@@ -33,3 +33,31 @@ canonical doc, we need answers on the following:
    still aligned that Phase 1 (the first playable build) is just the solo
    survival-craft loop with no magic/factions/guilds yet — or does adding these
    systems change what counts as MVP?
+
+
+Reconciliation Decisions — Design Brief vs. Game Overview
+
+Resolves the open questions in reconciliation-questions.md. These decisions are now reflected in game-overview.md.
+
+1. Magic
+
+Decision: Core and universal. Every player is randomly assigned a magical lineage (Elemental, Illusion, Kinetic, Restoration) by the game — not optional, not rare.
+
+2. Factions, Guilds & Settlement Warfare
+
+Decision: Three separate systems, not one:
+
+Factions = reputation/perception. How trusted or feared a player/group is, driven by behavior (safe productive settlements build trust; raiding erodes it).
+Merchant Guilds = craft-skill bonuses and trade perks. Not territorial — guild benefits apply regardless of who controls the surrounding settlement.
+Warbands / Militias = the literal combatant groups in Settlement Warfare (city capture/destroy fights). Separate from reputation Factions, though a Warband's conduct can affect the Faction standing of players associated with it.
+3. Currency Ladder
+
+Decision: 5-tier ladder, merging both docs' versions: Copper → Iron (×10) → Silver (×10) → Gold (×10) → Platinum (×10)
+
+4. World & City Names
+
+Decision: Replica Earth. Real-world geography is preserved (settlements sit at their correct real-world locations), but city names are invented rather than using real names — this is what makes the "it's not actually Earth" reveal land. Present-day settlements are small, not full modern cities.
+
+5. Phase 1 / MVP Scope
+
+Decision: Solo survival-craft loop plus lightweight magic (lineage assignment, early-tier ability use). Factions, Guilds, Warbands, and Settlement Warfare are deferred to later phases — they need more players/world infrastructure to be meaningful.
