@@ -4,12 +4,33 @@ A survival, world-building, and economic management game set on an artificially 
 
 ## Repo Structure
 
+Unity project (Editor: 6000.0.32f1 LTS, Universal Render Pipeline):
+
 - `docs/` — Game design documents, story bible, system specs
-- `src/` — Game code
-- `data/` — Config files, balance data, item definitions, etc.
-- `assets/` — Art, audio, and other binary assets
+- `Assets/` — All game content, opened directly by the Unity Editor
+  - `Scripts/` — Game code
+  - `Scenes/` — Unity scenes
+  - `Prefabs/` — Reusable prefab objects
+  - `Art/` — Models, materials, textures
+  - `Audio/` — Music and sound effects
+  - `Data/` — Config, balance data, item definitions (e.g. ScriptableObjects)
+- `Packages/` — Unity Package Manager manifest
+- `ProjectSettings/` — Unity project configuration (populated further on first
+  Editor open)
+
+Binary assets (art, audio, models) are tracked via Git LFS — see `.gitattributes`.
+Everything Unity generates locally (`Library/`, `Temp/`, `Obj/`, `Build/`,
+`UserSettings/`, `.vs/`, `*.sln`, `*.csproj`) is gitignored and will regenerate
+automatically the first time the project is opened in the Editor.
 
 ## Getting Started
+
+1. Install [Unity Hub](https://unity.com/download) and Unity Editor `6000.0.32f1`
+   (or let Hub prompt you to install it when opening the project).
+2. In Unity Hub, choose **Add project from disk** and select this repo's root
+   folder (the one containing `Assets/`).
+3. Open the project — Unity will resolve packages and generate the remaining
+   `ProjectSettings`/`Library` files on first load.
 
 See [`docs/game-overview.md`](docs/game-overview.md) for the narrative/setting pitch,
 and [`docs/design-brief.md`](docs/design-brief.md) for the systems/technical design
