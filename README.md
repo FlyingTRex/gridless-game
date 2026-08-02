@@ -11,7 +11,12 @@ A survival, world-building, and economic management game set on an artificially 
 
 ## Getting Started
 
-See [`docs/game-overview.md`](docs/game-overview.md) for the current game design overview.
+See [`docs/game-overview.md`](docs/game-overview.md) for the narrative/setting pitch,
+and [`docs/design-brief.md`](docs/design-brief.md) for the systems/technical design
+brief (world scope, multiplayer architecture, city growth, settlement warfare,
+phased MVP roadmap). The two were reconciled in
+[`docs/reconciliation-questions.md`](docs/reconciliation-questions.md) — read that
+first if the other two seem to disagree on something.
 
 ## Contributing
 
