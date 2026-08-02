@@ -13,6 +13,14 @@ Upon crash-landing, the player escapes into an untouched wilderness equipped wit
 - **Technological Discrepancy:** Stumbling upon scattered, low-tech agrarian villages populated by descendants of earlier colonization efforts who have regressed to a pre-industrial era.
 - **Off-Grid Infrastructure & Climate:** Managing power systems like solar arrays and geothermal loops, regulating internal compound temperatures, and adapting to artificial weather cycles.
 
+### Character Creation & Stats
+Gridless deliberately skips a traditional point-buy attribute screen at character creation, to stay consistent with the game's skill-via-use philosophy and to avoid players min-maxing a "build" before they've even seen the world:
+- **Survival Vitals (start full, tracked live):** Health, Hunger, Thirst, Stamina/Fatigue, and Body Temperature. These are the only numbers a new character has at spawn.
+- **No Point-Buy Core Attributes:** There is no Strength/Endurance/Agility/Intelligence allocation screen. These emerge over time as skills that grow through play — the same skill-via-use model that governs crafting (see Universal Crafting, Disassembly & Intellectual Property) — rather than being fixed or chosen at creation.
+- **Skills Grow Through Use, Not Assignment:** Combat disciplines, crafting trades, medical ability, and foraging/gathering all improve through active use. (See Combat, Damage & Medical Systems above.)
+- **Magic Lineage:** The one randomized element at character creation — every player is assigned one of four magical lineages (Elemental, Illusion, Kinetic, Restoration) at spawn. See Magical Evolution & Mastery below.
+- **Deferred/Optional Layers:** Sanity/Morale and Reputation/Fame are candidates for later phases, not part of the initial character model.
+
 ### World-Building & Modular Real Estate
 Players are not restricted to predefined structures. The game features a flexible real estate and building system:
 - **Acquisition Options:** Players can rent, buy, or construct structures for living, crafting, and commerce.
