@@ -251,6 +251,9 @@ each with distinct mechanics and consequences:
 - Whether the fighting is played out live by participating players in real time, or
   abstracted/simulated once a siege is triggered (relevant since dedicated servers
   won't always have both sides' players online at once).
+- The **Conquered Launch Site** endgame route (see Endgame: Leaving the Planet,
+  below) is specifically a capture of a launch site by a Warband, and needs its
+  Faction/reputation fallout ruled on consistently with whatever gets decided here.
 
 ## Factions, Guilds & Warbands
 
@@ -295,6 +298,41 @@ and universal, not optional). Details:
 lineage assignment happens instantly at spawn or "awakens" over time as part of the
 crash-landing narrative; and how (or whether) magic interacts with crafting, combat,
 or Settlement Warfare beyond the Restoration/medical tie-in.
+
+## Endgame: Leaving the Planet
+
+Full spec in `docs/skill-path-space.md` (companion to Ben's Skill Atlas visualization)
+— summarized here since it's the convergence point for every discipline in the
+Systems Wishlist below. Deep late-game content, but establishing the shape now
+clarifies what the eight discipline Keystones (Master Forager, Master Physician,
+Master Warlord, Master Financier, Master Smith, Master Engineer, Master Builder,
+Master of the Lineage) are actually building toward.
+
+- **The Gateway:** reaching *any one* discipline's Keystone reveals the **Ruins of
+  the Old Engineers** — the launch complex of whoever actually built this replica.
+  Deliberately any-one-of-eight, not all-of-eight: deep investment in a single
+  discipline is enough to discover it exists.
+- **Four distinct routes from there, only one needed:**
+  1. **Orbital Engineering** (purist) — Master Smith + Master Engineer + Master
+     Builder. Build a launch vehicle from first principles.
+  2. **Arcane Propulsion** (mystic) — Master of the Lineage + a mid-tier Kinetic
+     node. Magic substitutes for a rocket engine.
+  3. **Chartered Expedition** (merchant) — Master Financier + a mid-tier Guild
+     node. Fund and contract someone else's ship rather than build one.
+  4. **Conquered Launch Site** (warlord) — Master Warlord + a mid-tier
+     Combat/Warbands node. Take an existing launch site by force — ties directly
+     into Settlement Warfare and should carry real Faction consequences (see that
+     section's still-open items).
+- **Convergence:** any one route → **Escape Velocity** → **Ascend to the Stars**.
+  One narrow endpoint regardless of which discipline got a player there.
+
+**Still open** (from `docs/skill-path-space.md`, not resolved here): whether the four
+routes are mutually exclusive per-character or freely chosen among qualifying ones;
+what Ascend to the Stars actually does (ends the character's arc? unlocks a new
+layer of play? repeatable/server-wide milestone?); the Faction/reputation ruling for
+Conquered Launch Site (ties to the Settlement Warfare capture/destroy consequences
+above); and whether Chartered Expedition requires personally traveling or allows a
+purely economic "win."
 
 ## Systems Wishlist (Feature Inspirations)
 

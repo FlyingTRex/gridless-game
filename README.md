@@ -38,6 +38,8 @@ brief (world scope, multiplayer architecture, city growth, settlement warfare,
 phased MVP roadmap). The two were reconciled in
 [`docs/reconciliation-questions.md`](docs/reconciliation-questions.md) — read that
 first if the other two seem to disagree on something.
+[`docs/skill-path-space.md`](docs/skill-path-space.md) specs the endgame convergence
+layer (the "leaving the planet" arc) sitting above all eight skill disciplines.
 
 ## Contributing
 
