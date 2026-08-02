@@ -84,13 +84,48 @@ you — turning a solo survival game into a small, then growing, settlement.
    in the design brief at all before reconciliation) — see the dedicated Magic System
    section below for what's in Phase 1 vs. deferred.
 
+## Character Creation & Stats
+
+New via Ben's `docs/game-overview.md` update — no traditional point-buy attribute
+screen at character creation, staying consistent with the skill-via-use philosophy
+(Pillar 2) and avoiding pre-world min-maxing before a player has even seen the game:
+
+- **Survival vitals (start full, tracked live):** Health, Hunger, Thirst,
+  Stamina/Fatigue, and Body Temperature — the only numbers a new character has at
+  spawn. Fills in the full vital list for the Phase 1 food/water item in the Systems
+  Wishlist below.
+- **No point-buy core attributes:** no Strength/Endurance/Agility/Intelligence
+  allocation screen. These emerge over time as skills that grow through play — the
+  same skill-via-use model as crafting (Pillar 2) — confirming how the Phase 1
+  encumbrance item's "strength/athletics" skill is meant to work: it's grown, not
+  chosen.
+- **Skills grow through use, not assignment:** combat, crafting trades, medical, and
+  foraging/gathering all improve through active use.
+- **Magic lineage** is the one randomized element at character creation — confirms
+  Pillar 7 / Magic System above.
+- **Deferred/optional layers:** Sanity/Morale and Reputation/Fame are candidates for
+  later phases, not part of the initial character model.
+
+**Still open — flagged, not resolved here:** Ben's note that Reputation/Fame is a
+"later phase" candidate is worth squaring against this brief's existing Phase 2
+placement of the Fame/reputation system and Factions (below) — confirm with Ben
+whether Phase 2 still holds or these should push later, rather than assuming either
+way.
+
 ## Tech Stack
 
-- **Engine: Unity — confirmed.** Chosen for genre precedent (Valheim, Rust, V Rising
-  all use Unity for dedicated-server survival-crafting), C#'s faster iteration for a
-  small team, mature dedicated-server netcode options (Fish-Networking, Mirror), and
-  because the macro map staying abstracted (rather than a fully rendered 3D globe)
-  means Unreal's biggest advantage — seamless large-world streaming — isn't needed.
+- **Engine: Unity 6.3 LTS (6000.3.0f1) — confirmed.** Moved from the originally
+  targeted 6.0 LTS after reconsidering with nothing yet built to migrate (see prior
+  discussion) — 6.3 gets a longer support runway for the same low switching cost.
+  Chosen over Unreal for genre precedent (Valheim, Rust, V Rising all use Unity for
+  dedicated-server survival-crafting), C#'s faster iteration for a small team, mature
+  dedicated-server netcode options (Fish-Networking, Mirror), and because the macro
+  map staying abstracted (rather than a fully rendered 3D globe) means Unreal's
+  biggest advantage — seamless large-world streaming — isn't needed.
+  - Note: local dev installs may be on a newer patch within 6000.3.x (e.g.
+    6000.3.21f1) rather than the exact `6000.3.0f1` pinned in `ProjectVersion.txt` —
+    fine within the same LTS line (patch-level, non-breaking), just worth keeping an
+    eye on so the whole team converges on one patch eventually.
 
 ## World Scope (MVP)
 
