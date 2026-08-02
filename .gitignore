@@ -1,0 +1,25 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor/IDE
+.vscode/
+.idea/
+*.swp
+
+# Dependencies (adjust once you pick an engine/language)
+node_modules/
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Build output
+dist/
+build/
+*.log
+
+# Large binary assets (consider Git LFS instead — see note in README)
+# *.psd
+# *.wav
+# *.png
