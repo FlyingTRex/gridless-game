@@ -4,7 +4,7 @@ A survival, world-building, and economic management game set on an artificially 
 
 ## Repo Structure
 
-Unity project (Editor: 6000.0.32f1 LTS, Universal Render Pipeline):
+Unity project (Editor: 6000.3.0f1 LTS, Universal Render Pipeline):
 
 - `docs/` — Game design documents, story bible, system specs
 - `Assets/` — All game content, opened directly by the Unity Editor
@@ -25,7 +25,7 @@ automatically the first time the project is opened in the Editor.
 
 ## Getting Started
 
-1. Install [Unity Hub](https://unity.com/download) and Unity Editor `6000.0.32f1`
+1. Install [Unity Hub](https://unity.com/download) and Unity Editor `6000.3.0f1`
    (or let Hub prompt you to install it when opening the project).
 2. In Unity Hub, choose **Add project from disk** and select this repo's root
    folder (the one containing `Assets/`).
