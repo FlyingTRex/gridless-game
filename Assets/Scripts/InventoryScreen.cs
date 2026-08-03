@@ -156,7 +156,7 @@ public class InventoryScreen : MonoBehaviour
         const float width = 220f;
         float height = choosingStorage
             ? 70f + Mathf.Max(nearbyStorages.Count, 1) * 26f
-            : 240f;
+            : 270f;
         var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
 
         DebugGUI.DrawPanel(rect);
@@ -195,6 +195,13 @@ public class InventoryScreen : MonoBehaviour
         if (rightHand != null && rightHand != pendingMoveSource && GUILayout.Button("To Right Hand"))
         {
             InventoryTransfer.Move(pendingMoveSource, rightHand, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            return true;
+        }
+
+        var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
+        if (equippedBackpack != null && equippedBackpack.Inventory != pendingMoveSource && GUILayout.Button("To Backpack"))
+        {
+            InventoryTransfer.Move(pendingMoveSource, equippedBackpack.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
             return true;
         }
 

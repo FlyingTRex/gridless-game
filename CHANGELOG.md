@@ -5,12 +5,28 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.21-dev` — must always match `GameVersion` in
+**Current version:** `0.1.22-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.22-dev — Move popup can send an item straight to the backpack
+User feedback: moving an item out of a nearby storage box's contents (or
+a hand) always landed in the main inventory or a hand — there was no way
+to send it straight into an equipped backpack, unlike the main inventory
+list's row buttons, which already had "To Pack" alongside "To Storage".
+
+`DrawMoveDestinations` (the popup opened by clicking an item in a
+container's contents grid, a hand, or the equipment section) gained a
+"To Backpack" option, shown whenever a backpack is worn and isn't already
+the source — same guard pattern as the existing hand/storage options.
+Bumped the popup's fixed height (240 → 270) to fit the extra button.
+
+Also removed the temporary `Debug.Log` calls added earlier this session
+while diagnosing what turned out to be a stale `Library` cache, not an
+actual code bug, on the "To Storage" picker (see previous entry).
 
 ### v0.1.21-dev — Hover a storage container to see its name
 New `StorageBoxHover`, attached to `Player` alongside `PlayerInteraction`.
