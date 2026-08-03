@@ -7,6 +7,18 @@ skimmable version.
 
 ## 2026-08-02
 
+### Backpack silhouette instead of a box (`69a79b8`)
+Rebuilt `Backpack.prefab` and its `TestScene` instance as a body + tilted flap
++ two side straps + front pocket (all primitives, same `Backpack.mat`), instead
+of one flattened cube. Built via the batch-mode Editor-script workflow — a
+throwaway `Assets/Editor` script that composed the hierarchy with real Unity
+APIs (`GameObject.CreatePrimitive`, `PrefabUtility.SaveAsPrefabAsset`,
+`EditorSceneManager`) and was deleted after — rather than hand-authoring the
+multi-child YAML directly. Composing a parent/several-children hierarchy by
+hand is exactly the kind of edit that produces silent fileID mistakes (see the
+merge entry below); letting Unity allocate the fileIDs itself sidesteps that
+class of bug entirely.
+
 ### Merge with survival vitals (`91240b3`)
 Built in parallel with the vitals work below on a separate Claude Code session,
 discovered only on push. Real gotcha, not just a text conflict: both branches
