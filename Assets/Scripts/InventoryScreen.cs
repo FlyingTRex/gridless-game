@@ -56,6 +56,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerHealthMonitor healthMonitorCarrier;
     private PlayerSunglasses sunglassesCarrier;
     private PlayerCurrency currency;
+    private PlayerCoinDrop coinDropper;
     private PlayerVitals vitals;
     private bool isOpen;
     private Vector2 scrollPos;
@@ -81,6 +82,11 @@ public class InventoryScreen : MonoBehaviour
     // entered by clicking "To Storage".
     private bool choosingStorage;
 
+    // Set when the player clicks a coin box in the currency row — opens a
+    // popup to pick how many of that type to drop.
+    private CoinType? pendingDropCoinType;
+    private int pendingDropAmount;
+
     public bool IsOpen => isOpen;
 
     private void Awake()
@@ -95,6 +101,7 @@ public class InventoryScreen : MonoBehaviour
         healthMonitorCarrier = GetComponent<PlayerHealthMonitor>();
         sunglassesCarrier = GetComponent<PlayerSunglasses>();
         currency = GetComponent<PlayerCurrency>();
+        coinDropper = GetComponent<PlayerCoinDrop>();
         vitals = GetComponent<PlayerVitals>();
     }
 
@@ -121,6 +128,7 @@ public class InventoryScreen : MonoBehaviour
             pendingMoveItem = null;
             pendingMoveSource = null;
             choosingStorage = false;
+            pendingDropCoinType = null;
         }
         Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = value;
@@ -166,6 +174,7 @@ public class InventoryScreen : MonoBehaviour
         GUILayout.EndArea();
 
         DrawPendingMovePopup();
+        DrawCoinDropPopup();
     }
 
     // Small "where should this go?" dialog shown after clicking an item
@@ -270,7 +279,8 @@ public class InventoryScreen : MonoBehaviour
 
     // Fixed header row (outside the scroll view) — 5 equal-width coin
     // boxes spanning 90% of the panel's width, centered, with a label
-    // above each. Read-only for now; no earn/spend mechanic exists yet.
+    // above each. Clicking a box opens the drop-quantity popup for that
+    // coin type (see DrawCoinDropPopup).
     private void DrawCurrencySection()
     {
         if (currency == null) return;
@@ -288,7 +298,11 @@ public class InventoryScreen : MonoBehaviour
 
             GUILayout.BeginVertical(GUILayout.Width(boxWidth));
             GUILayout.Label(label, DebugGUI.Header, GUILayout.Width(boxWidth));
-            GUILayout.Box(currency.GetBalance(type).ToString(), GUILayout.Width(boxWidth), GUILayout.Height(CoinBoxHeight));
+            if (GUILayout.Button(currency.GetBalance(type).ToString(), GUILayout.Width(boxWidth), GUILayout.Height(CoinBoxHeight)))
+            {
+                pendingDropCoinType = type;
+                pendingDropAmount = 0;
+            }
             GUILayout.EndVertical();
 
             if (i < CoinDisplayOrder.Length - 1)
@@ -297,6 +311,69 @@ public class InventoryScreen : MonoBehaviour
 
         GUILayout.Space(sideMargin);
         GUILayout.EndHorizontal();
+    }
+
+    // Quantity picker for dropping coins, opened by clicking a coin box.
+    // Stepper buttons (+/- 1 and 10) plus "All" rather than a slider —
+    // matches this screen's existing button-only popups, and gives exact
+    // control that a slider wouldn't at a 250-coin scale.
+    private void DrawCoinDropPopup()
+    {
+        if (pendingDropCoinType == null) return;
+
+        if (currency == null || coinDropper == null)
+        {
+            pendingDropCoinType = null;
+            return;
+        }
+
+        CoinType type = pendingDropCoinType.Value;
+        int balance = currency.GetBalance(type);
+        pendingDropAmount = Mathf.Clamp(pendingDropAmount, 0, balance);
+
+        const float width = 260f;
+        const float height = 190f;
+        var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
+
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label($"Drop {type} Coins", DebugGUI.Header);
+        GUILayout.Label($"Balance: {balance}", DebugGUI.Label);
+
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("-10", GUILayout.Width(45))) pendingDropAmount -= 10;
+        if (GUILayout.Button("-1", GUILayout.Width(35))) pendingDropAmount -= 1;
+        GUILayout.Label(pendingDropAmount.ToString(), DebugGUI.Header, GUILayout.Width(50));
+        if (GUILayout.Button("+1", GUILayout.Width(35))) pendingDropAmount += 1;
+        if (GUILayout.Button("+10", GUILayout.Width(45))) pendingDropAmount += 10;
+        GUILayout.EndHorizontal();
+
+        if (GUILayout.Button("All"))
+            pendingDropAmount = balance;
+
+        pendingDropAmount = Mathf.Clamp(pendingDropAmount, 0, balance);
+
+        bool resolved = false;
+
+        GUILayout.BeginHorizontal();
+        GUI.enabled = pendingDropAmount > 0;
+        if (GUILayout.Button("Drop"))
+        {
+            coinDropper.DropCoins(type, pendingDropAmount);
+            resolved = true;
+        }
+        GUI.enabled = true;
+        if (GUILayout.Button("Cancel"))
+            resolved = true;
+        GUILayout.EndHorizontal();
+
+        GUILayout.EndArea();
+
+        if (resolved)
+        {
+            pendingDropCoinType = null;
+            pendingDropAmount = 0;
+        }
     }
 
     // Ported from the old always-on PlayerInventory panel.

@@ -3432,6 +3432,7 @@ GameObject:
   - component: {fileID: 1681626253}
   - component: {fileID: 1681626254}
   - component: {fileID: 1681626255}
+  - component: {fileID: 1681626256}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -3454,6 +3455,9 @@ MonoBehaviour:
   playerCamera: {fileID: 724364631}
   moveSpeed: 4.5
   sprintSpeed: 7
+  kneelSpeedMultiplier: 0.4
+  crawlSpeedMultiplier: 0.2
+  proneSpeedMultiplier: 0.1
   jumpHeight: 1.2
   jumpStaminaCost: 10
   gravity: -20
@@ -3565,7 +3569,6 @@ MonoBehaviour:
   healthRegenPerSecond: 1
   staminaDrainPerSecond: 10
   staminaRegenPerSecond: 6
-  staminaExhaustionRecoveryThreshold: 25
   bodyTemperatureNeutral: 50
   bodyTemperatureDriftPerSecond: 2
 --- !u!114 &1681626239
@@ -3836,6 +3839,34 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 66acd908eadd09145980165fd1eb84b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCurrency
+--- !u!114 &1681626256
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 773c53caa08fd6f4a979db590044cf6a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCoinDrop
+  coinMaterials:
+  - type: 0
+    material: {fileID: 2100000, guid: 2184bb425b3fb4d4bb806b595135787b, type: 2}
+  - type: 1
+    material: {fileID: 2100000, guid: ef7e84a7ae25f7244b4115dcf5a261ab, type: 2}
+  - type: 2
+    material: {fileID: 2100000, guid: 036053b2ad54b334497b1ad11835de1f, type: 2}
+  - type: 3
+    material: {fileID: 2100000, guid: ea3961d6e52b90e489a45dd4ea7116ac, type: 2}
+  - type: 4
+    material: {fileID: 2100000, guid: 61f2e311297f9fe4db04bc5232c2344e, type: 2}
+  coinScale: {x: 0.08, y: 0.01, z: 0.08}
+  dropDistance: 1.2
+  dropHeight: 1
+  scatterForce: 0.4
+  coinSpacing: 0.05
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0

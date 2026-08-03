@@ -14,6 +14,15 @@ public class Coin : MonoBehaviour, IInteractable
     public bool IsInstant => true;
     public float HoldDuration => 0f;
 
+    // Same purpose as Pickup.Configure — lets code that spawns a Coin at
+    // runtime (PlayerCoinDrop) set its type/amount without needing a
+    // dedicated prefab per coin type.
+    public void Configure(CoinType type, int coinAmount)
+    {
+        coinType = type;
+        amount = coinAmount;
+    }
+
     public void Complete(GameObject player)
     {
         var currency = player.GetComponent<PlayerCurrency>();

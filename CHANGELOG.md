@@ -5,12 +5,33 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.40-dev` — must always match `GameVersion` in
+**Current version:** `0.1.41-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.41-dev — Drop coins from the currency row
+Clicking a coin box in `InventoryScreen`'s currency row now opens a
+quantity popup (`DrawCoinDropPopup`) instead of doing nothing — stepper
+buttons (±1/±10, "All") rather than a slider, matching this screen's
+existing button-only popups and giving exact control a slider wouldn't at
+a 250-coin scale. **Drop** spends that many via the new
+`PlayerCoinDrop.DropCoins`.
+
+New `PlayerCoinDrop` builds each dropped coin procedurally
+(`CreatePrimitive(Cylinder)` + the matching material + `Rigidbody` +
+`Coin`) rather than needing a prefab per type — `Coin` gained a
+`Configure(type, amount)` method for this, the same pattern
+`Pickup.Configure` already uses for generic dropped items. Coins spawn
+individually (one `Coin` object per unit dropped, not a single
+stack-of-N) at a small random horizontal offset in front of the player
+and get a small physics impulse — same "scatter" approach
+`ResourceNode.OnPunch` already uses for rock chunks — so a multi-coin drop
+bounces apart on landing instead of stacking identically. Rigidbody set
+to ContinuousDynamic from the start (see
+[[gridless-ground-tunneling]]).
 
 ### v0.1.40-dev — Prone is its own stance, and the keybinds moved
 Follow-up to the previous version: "Crawling" and "Prone" turned out to be
