@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Rock Knife
   maxStack: 1
+  worldPickupPrefab: {fileID: 7906518579634586652, guid: 88a933136bcbd8048a35435ad60f6cb7, type: 3}

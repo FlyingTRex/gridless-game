@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
-  m_Name: Rock
+  m_Name: Berry
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Rock
+  itemName: Berry
   maxStack: 20
-  worldPickupPrefab: {fileID: 1931988532258926014, guid: cbb3c62f40084df4b92bca399068f400, type: 3}
+  worldPickupPrefab: {fileID: 5564716943278315345, guid: 380f78c2b55dbd54ca91b821363a6f82, type: 3}

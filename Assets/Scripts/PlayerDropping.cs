@@ -16,13 +16,14 @@ public class PlayerDropping : MonoBehaviour
 
     public void Drop(ItemDefinition item)
     {
-        if (item == null || droppedItemPrefab == null) return;
+        var prefab = item != null && item.worldPickupPrefab != null ? item.worldPickupPrefab : droppedItemPrefab;
+        if (item == null || prefab == null) return;
 
         int count = inventory.GetCount(item);
         if (count <= 0 || !inventory.RemoveItem(item, count)) return;
 
         Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
-        var dropped = Instantiate(droppedItemPrefab, position, Quaternion.identity);
+        var dropped = Instantiate(prefab, position, Quaternion.identity);
 
         if (dropped.TryGetComponent(out Pickup pickup))
             pickup.Configure(item, count);

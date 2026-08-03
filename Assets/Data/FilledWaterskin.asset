@@ -10,8 +10,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
-  m_Name: Rock
+  m_Name: FilledWaterskin
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Rock
-  maxStack: 20
-  worldPickupPrefab: {fileID: 1931988532258926014, guid: cbb3c62f40084df4b92bca399068f400, type: 3}
+  itemName: Filled Waterskin
+  maxStack: 4
+  worldPickupPrefab: {fileID: 691612435067318158, guid: fea2c08e93e7f0b409d75d3197aee8a5, type: 3}

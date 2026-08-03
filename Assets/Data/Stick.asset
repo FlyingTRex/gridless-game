@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Stick
   maxStack: 20
+  worldPickupPrefab: {fileID: 2845580259793570749, guid: bbc37a3796d8b524fbf7ebef98fed8a2, type: 3}

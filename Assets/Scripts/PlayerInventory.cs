@@ -9,6 +9,7 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
     private PlayerCrafting crafting;
     private PlayerDropping dropping;
     private PlayerBackpack backpackCarrier;
+    private PlayerEating eating;
 
     public Inventory Inventory => inventory;
     public string DisplayName => "Inventory";
@@ -19,6 +20,7 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
         crafting = GetComponent<PlayerCrafting>();
         dropping = GetComponent<PlayerDropping>();
         backpackCarrier = GetComponent<PlayerBackpack>();
+        eating = GetComponent<PlayerEating>();
     }
 
     // Returns the amount that did NOT fit (0 means everything was added).
@@ -38,6 +40,7 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
         ItemDefinition craftClicked = null;
         ItemDefinition dropClicked = null;
         ItemDefinition packClicked = null;
+        ItemDefinition eatClicked = null;
         Backpack equipClicked = null;
         Backpack backpackDropClicked = null;
         var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
@@ -71,6 +74,10 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
                     GUILayout.Label(label, DebugGUI.Label);
                 }
 
+                var edible = eating != null ? eating.FindEdible(slot.item) : null;
+                if (edible != null && GUILayout.Button(edible.verb, GUILayout.Width(50)))
+                    eatClicked = slot.item;
+
                 if (dropping != null && GUILayout.Button("Drop", GUILayout.Width(50)))
                     dropClicked = slot.item;
 
@@ -85,6 +92,8 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
 
         if (craftClicked != null)
             crafting.TryCraft(craftClicked);
+        if (eatClicked != null)
+            eating.TryEat(eatClicked);
         if (dropClicked != null)
             dropping.Drop(dropClicked);
         if (packClicked != null)

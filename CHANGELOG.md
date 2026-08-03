@@ -5,12 +5,60 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.2-dev` — must always match `GameVersion` in
+**Current version:** `0.1.3-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-02
+
+### v0.1.3-dev — Berry eat/drink system, per-item drop visuals, physics fixes
+Berry went from an instant-eat-on-touch world object to a real inventory item:
+`Pickup` it like anything else, carry it, move it to the backpack, and `EdibleItem`
+(new ScriptableObject, mirrors the existing `CraftingRecipe` pattern) drives an
+"Eat"/"Drink" button that only appears in the personal-inventory panel — never in
+the backpack panel, so a stored berry can't be eaten without taking it out first.
+Water needs a container now too: `WaterSource` (replacing the old instant-drink
+`Consumable` on the Water Puddle) fills an Empty Waterskin into a Filled one;
+drinking it restores Thirst and leaves the Empty Waterskin behind via `EdibleItem`'s
+optional `returnItem` field, rather than consuming the container outright. The
+`verb` field ("Eat" vs "Drink") is data-driven per `EdibleItem` rather than
+hardcoded, so future consumables (soup, potions, whatever) don't need a code change.
+
+**New general mechanism:** `ItemDefinition.worldPickupPrefab` — what a dropped item
+looks like now depends on the item, not a single generic gray-cube fallback shared
+by everything. Built one for every current item (Berry, Stick, Rock — reusing the
+existing `RockChunk.prefab` instead of duplicating it — Empty/Filled Waterskin,
+Rock Knife); the backpack already had its own dedicated drop visual and didn't need
+one.
+
+**Real bugs hit building this, in order:**
+- A `SerializedObject.objectReferenceValue` assignment silently produced a null
+  reference (`fileID: 0`) for several fields (`Pickup.item`, `PlayerEating.edibles`,
+  `WaterSource`'s two fields) despite no error and an identical pattern elsewhere in
+  the same script succeeding. Root cause: assets created via `AssetDatabase.CreateAsset`
+  earlier in the script, then referenced *after* an `EditorSceneManager.OpenScene()`
+  call later in the same script, without an intervening `AssetDatabase.SaveAssets()`
+  — the scene-open silently invalidated the uncommitted in-memory asset references.
+  Fixed by re-fetching via `AssetDatabase.LoadAssetAtPath` *after* the scene is
+  already open, rather than trusting pre-open references to survive. General rule
+  worth remembering: never let object references cross an `OpenScene` call within
+  the same batch-mode script — save assets first, or re-fetch after.
+- Repeated the exact material-into-prefab mistake this project's own `CLAUDE.md`
+  already documents: used `new Material(Shader.Find(...))` directly on new drop
+  prefabs instead of saving it as a real `.mat` asset first. All five new drop
+  prefabs rendered pink until fixed. Worth noting because it's a *documented*
+  gotcha that still got missed under time pressure — a reminder to actually check
+  `CLAUDE.md` conventions before repeating a pattern, not just after something
+  breaks.
+- The two thinnest new drop prefabs (Rock Knife at 0.05 units tall, Stick at 0.1)
+  fell straight through the Ground collider — classic tunneling: Unity's default
+  Discrete collision detection can miss a collision entirely if a thin, fast-moving
+  collider passes a thin static collider between physics steps. Berry (a chunky
+  sphere) and the Waterskins were thick enough to never hit this. Fixed by setting
+  `Rigidbody.collisionDetectionMode` to `ContinuousDynamic` on all seven
+  Rigidbody-bearing pickup/dropped-item prefabs (the five new ones plus the
+  pre-existing `RockChunk`/`DroppedItem`), not just the two that visibly broke.
 
 ### v0.1.2-dev — Merge: backpack silhouette + cursor-lock/panel/worn-equipment fixes
 Built in parallel with the silhouette rebuild below on a separate Claude Code
