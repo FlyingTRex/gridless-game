@@ -45,15 +45,22 @@ public class PlayerBackpack : MonoBehaviour
         return true;
     }
 
-    // Moves the backpack from a regular inventory slot onto the Back slot.
+    // Moves the backpack onto the Back slot from wherever it currently is
+    // (a regular inventory slot, or a hand if PlayerLoot put it there on
+    // pickup).
     public bool Equip(Backpack backpack)
     {
         if (backpack == null) return false;
 
+        string currentSlot = FindSlot(backpack);
         var slot = equipment.GetSlot(BackSlot);
         if (slot == null || !slot.AddEquipmentItem(backpackItem, backpack)) return false;
 
-        playerInventory.Inventory.RemoveEquipmentItem(backpackItem);
+        if (currentSlot != null)
+            equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(backpackItem);
+        else
+            playerInventory.Inventory.RemoveEquipmentItem(backpackItem);
+
         backpack.SetCarried(true, carrySlot != null ? carrySlot : transform);
         return true;
     }

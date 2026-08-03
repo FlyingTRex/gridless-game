@@ -180,6 +180,7 @@ public class InventoryScreen : MonoBehaviour
 
     private void DrawEquipmentSection()
     {
+        Backpack backpackEquipClicked = null;
         Backpack backpackUnequipClicked = null;
         Backpack backpackDropClicked = null;
         Canteen canteenUnequipClicked = null;
@@ -225,7 +226,11 @@ public class InventoryScreen : MonoBehaviour
                         GUILayout.Box(label, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight));
                     }
 
-                    if (entry.equipment is IInventoryHolder holder) nestedHolder = holder;
+                    // A backpack only exposes its own storage (and can
+                    // only be Unequipped, as opposed to Equipped) once
+                    // it's actually worn on Back — holding one in a hand
+                    // doesn't make it usable storage yet.
+                    if (entry.equipment is IInventoryHolder holder && slotName == "Back") nestedHolder = holder;
                     if (entry.equipment is Backpack bp) backpackHere = bp;
                     if (entry.equipment is Canteen ct) canteenHere = ct;
                 }
@@ -237,7 +242,15 @@ public class InventoryScreen : MonoBehaviour
 
             if (backpackHere != null)
             {
-                if (GUILayout.Button("Unequip", GUILayout.Width(70))) backpackUnequipClicked = backpackHere;
+                if (slotName == "Back")
+                {
+                    if (GUILayout.Button("Unequip", GUILayout.Width(70))) backpackUnequipClicked = backpackHere;
+                }
+                else
+                {
+                    if (GUILayout.Button("Equip", GUILayout.Width(55))) backpackEquipClicked = backpackHere;
+                }
+
                 if (GUILayout.Button("Drop", GUILayout.Width(50))) backpackDropClicked = backpackHere;
             }
             else if (canteenHere != null)
@@ -265,6 +278,7 @@ public class InventoryScreen : MonoBehaviour
             }
         }
 
+        if (backpackEquipClicked != null) backpackCarrier.Equip(backpackEquipClicked);
         if (backpackUnequipClicked != null) backpackCarrier.Unequip(backpackUnequipClicked);
         if (backpackDropClicked != null) backpackCarrier.Drop(backpackDropClicked);
         if (canteenUnequipClicked != null) canteenCarrier.Unequip(canteenUnequipClicked);

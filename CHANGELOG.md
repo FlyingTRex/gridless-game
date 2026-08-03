@@ -5,12 +5,34 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.11-dev` — must always match `GameVersion` in
+**Current version:** `0.1.12-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.12-dev — A held (not worn) backpack isn't usable storage yet
+User feedback on the previous version's routing change: a backpack picked
+up into a hand showed "Unequip" (as if already worn) and exposed its
+contents grid, when thematically holding a backpack in your hand isn't the
+same as wearing it — you shouldn't be able to use it as storage, or
+"unequip" something that was never equipped.
+
+`InventoryScreen` now branches on which slot a backpack is actually in: on
+`Back`, unchanged (Unequip + contents grid). Anywhere else (a hand), shows
+**Equip** instead of Unequip, and the contents grid doesn't render at all —
+`nestedHolder` is only set when `slotName == "Back"`.
+
+Fixing this exposed a real duplicate-occupancy bug in `PlayerBackpack.Equip`:
+it unconditionally removed the backpack from the *main inventory* before
+placing it on `Back`, regardless of where it actually was. If it was
+sitting in a hand instead (the new common case after last version's
+routing change), that removal call found nothing there and silently did
+nothing — the backpack would end up occupying *both* the hand slot and
+`Back` simultaneously. `Equip` now calls the same `FindSlot()` used by
+`Unequip`/`Drop` to locate it first, then removes it from wherever that
+actually is.
 
 ### v0.1.11-dev — Backpack/Canteen pickup routes through PlayerLoot too; 20-cap
 User-reported gap: picking up a Backpack (or Canteen) from the world always
