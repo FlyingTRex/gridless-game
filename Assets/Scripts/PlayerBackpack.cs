@@ -13,6 +13,7 @@ public class PlayerBackpack : MonoBehaviour
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
+    private InventoryScreen inventoryScreen;
 
     public Backpack Equipped => equipment.GetEquipped(BackSlot) as Backpack;
 
@@ -20,6 +21,7 @@ public class PlayerBackpack : MonoBehaviour
     {
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
+        inventoryScreen = GetComponent<InventoryScreen>();
     }
 
     // Called when the player interacts with a backpack lying in the world —
@@ -75,6 +77,10 @@ public class PlayerBackpack : MonoBehaviour
 
     private void OnGUI()
     {
+        // The full Equipment screen (I) already shows what's in the
+        // backpack — avoid drawing this panel on top of it.
+        if (inventoryScreen != null && inventoryScreen.IsOpen) return;
+
         var backpack = Equipped;
         if (backpack == null) return;
 

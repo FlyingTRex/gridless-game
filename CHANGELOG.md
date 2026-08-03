@@ -5,12 +5,32 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.7-dev` — must always match `GameVersion` in
+**Current version:** `0.1.8-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.8-dev — Inventory screen: show container contents, fix panel overlap
+User-reported bug, two real causes:
+- `InventoryScreen`'s per-slot boxes only ever reflected the *slot's* own
+  capacity (Back = 1 box), so a box just displayed "Rough Backpack" and
+  never looked inside it — adding Sticks to the backpack via "To Pack"
+  changed nothing on screen. Fixed by detecting when an equipped item is
+  itself a container (`is IInventoryHolder`) and drawing a nested row of
+  *that* container's own capacity/contents underneath the slot row, wrapped
+  at 6 per line. Panel height is now computed per-frame from whatever's
+  actually equipped, rather than a fixed constant, so it doesn't reserve
+  wasted space when nothing equipped is a container.
+- A screenshot from testing showed `PlayerBackpack`'s own always-on panel
+  (`Unequip`/`Drop Backpack`/`To Inventory`) rendered directly on top of the
+  Equipment screen — both draw in overlapping screen regions. `PlayerBackpack`
+  and `PlayerCanteen` now skip their own `OnGUI` entirely while
+  `InventoryScreen.IsOpen` is true, since the Equipment screen is meant to be
+  the single source of truth when it's up. Trade-off: Unequip/Drop for those
+  two aren't reachable while the Equipment screen is open — close it (I or
+  Escape) to use them, consistent with the screen being read-only for now.
 
 ### v0.1.7-dev — Sync Escape and I so the cursor/inventory-screen state can't drift
 `InventoryScreen` (I) and `FirstPersonController`'s Escape toggle each

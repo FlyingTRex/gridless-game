@@ -17,12 +17,14 @@ public class PlayerCanteen : MonoBehaviour
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerVitals vitals;
+    private InventoryScreen inventoryScreen;
 
     private void Awake()
     {
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         vitals = GetComponent<PlayerVitals>();
+        inventoryScreen = GetComponent<InventoryScreen>();
     }
 
     // Called when the player interacts with a canteen lying in the world —
@@ -106,6 +108,10 @@ public class PlayerCanteen : MonoBehaviour
 
     private void OnGUI()
     {
+        // The full Equipment screen (I) already shows where the canteen is
+        // equipped — avoid drawing this panel on top of it.
+        if (inventoryScreen != null && inventoryScreen.IsOpen) return;
+
         string slotName = null;
         Canteen canteen = null;
         foreach (var candidate in CanteenSlots)
