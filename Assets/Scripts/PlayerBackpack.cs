@@ -13,7 +13,6 @@ public class PlayerBackpack : MonoBehaviour
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
-    private InventoryScreen inventoryScreen;
 
     public Backpack Equipped => equipment.GetEquipped(BackSlot) as Backpack;
 
@@ -21,7 +20,6 @@ public class PlayerBackpack : MonoBehaviour
     {
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
-        inventoryScreen = GetComponent<InventoryScreen>();
     }
 
     // Called when the player interacts with a backpack lying in the world —
@@ -73,45 +71,5 @@ public class PlayerBackpack : MonoBehaviour
 
         backpack.SetCarried(false, null);
         backpack.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
-    }
-
-    private void OnGUI()
-    {
-        // The full Equipment screen (I) already shows what's in the
-        // backpack — avoid drawing this panel on top of it.
-        if (inventoryScreen != null && inventoryScreen.IsOpen) return;
-
-        var backpack = Equipped;
-        if (backpack == null) return;
-
-        GUILayout.BeginArea(new Rect(320, 10, 280, 320));
-        GUILayout.Label($"Back: {backpack.DisplayName}", GUI.skin.box);
-
-        bool unequipClicked = GUILayout.Button("Unequip");
-        bool dropClicked = GUILayout.Button("Drop Backpack");
-
-        ItemDefinition moveClicked = null;
-        if (!unequipClicked && !dropClicked)
-        {
-            var slots = backpack.Inventory.Slots;
-            for (int i = 0; i < slots.Count; i++)
-            {
-                var slot = slots[i];
-                GUILayout.BeginHorizontal();
-                GUILayout.Label($"{slot.item.itemName} x{slot.count}");
-                if (GUILayout.Button("To Inventory", GUILayout.Width(90)))
-                    moveClicked = slot.item;
-                GUILayout.EndHorizontal();
-            }
-        }
-
-        GUILayout.EndArea();
-
-        if (unequipClicked)
-            Unequip(backpack);
-        else if (dropClicked)
-            Drop(backpack);
-        else if (moveClicked != null)
-            InventoryTransfer.Move(backpack.Inventory, playerInventory.Inventory, moveClicked, backpack.Inventory.GetCount(moveClicked));
     }
 }

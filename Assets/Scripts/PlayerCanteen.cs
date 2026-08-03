@@ -16,15 +16,11 @@ public class PlayerCanteen : MonoBehaviour
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
-    private PlayerVitals vitals;
-    private InventoryScreen inventoryScreen;
 
     private void Awake()
     {
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
-        vitals = GetComponent<PlayerVitals>();
-        inventoryScreen = GetComponent<InventoryScreen>();
     }
 
     // Called when the player interacts with a canteen lying in the world —
@@ -86,7 +82,7 @@ public class PlayerCanteen : MonoBehaviour
         canteen.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
     }
 
-    private string FindSlot(Canteen canteen)
+    public string FindSlot(Canteen canteen)
     {
         foreach (var slotName in CanteenSlots)
             if ((equipment.GetEquipped(slotName) as Canteen) == canteen)
@@ -104,45 +100,5 @@ public class PlayerCanteen : MonoBehaviour
             _ => null,
         };
         return anchor != null ? anchor : transform;
-    }
-
-    private void OnGUI()
-    {
-        // The full Equipment screen (I) already shows where the canteen is
-        // equipped — avoid drawing this panel on top of it.
-        if (inventoryScreen != null && inventoryScreen.IsOpen) return;
-
-        string slotName = null;
-        Canteen canteen = null;
-        foreach (var candidate in CanteenSlots)
-        {
-            var c = equipment.GetEquipped(candidate) as Canteen;
-            if (c == null) continue;
-            slotName = candidate;
-            canteen = c;
-            break;
-        }
-
-        if (canteen == null) return;
-
-        var rect = new Rect(610, 10, 240, 110);
-        DebugGUI.DrawPanel(rect);
-        GUILayout.BeginArea(rect);
-        GUILayout.Label($"{slotName}: {canteen.DisplayName}", DebugGUI.Header);
-
-        string liquidLabel = canteen.IsEmpty ? "Empty" : $"{canteen.Liquid} {canteen.Amount:F0}/{canteen.Capacity:F0}";
-        GUILayout.Label(liquidLabel, DebugGUI.Label);
-
-        GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Drink")) canteen.Drink(vitals);
-        if (GUILayout.Button("Fill")) canteen.Fill(LiquidType.Water);
-        GUILayout.EndHorizontal();
-
-        GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Unequip")) Unequip(canteen);
-        if (GUILayout.Button("Drop")) Drop(canteen);
-        GUILayout.EndHorizontal();
-
-        GUILayout.EndArea();
     }
 }

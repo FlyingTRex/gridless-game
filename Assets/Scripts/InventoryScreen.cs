@@ -1,12 +1,12 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Full character equipment screen, toggled with I. Lists every body slot
-// and, for each one, a row of boxes — one per unit of that slot's
-// Inventory capacity — showing what's equipped in it, if anything. If the
-// equipped item is itself a container (e.g. a Backpack), its own capacity
-// and contents are drawn as a nested row underneath.
+// Full inventory + equipment management screen, toggled with I. Combines
+// what used to be separate always-on panels (Inventory, Backpack, Canteen)
+// into one screen, so the normal HUD stays clean and all inventory state
+// lives in one place, scrollable so it can't overflow the window.
 [RequireComponent(typeof(PlayerEquipment))]
+[RequireComponent(typeof(PlayerInventory))]
 public class InventoryScreen : MonoBehaviour
 {
     private static readonly string[] SlotOrder =
@@ -24,14 +24,31 @@ public class InventoryScreen : MonoBehaviour
     private const float SubBoxHeight = 30f;
     private const int SubBoxesPerRow = 6;
 
+    private const float PanelWidth = LabelWidth + BoxWidth * 2f + 220f;
+
     private PlayerEquipment equipment;
+    private PlayerInventory playerInventory;
+    private PlayerCrafting crafting;
+    private PlayerDropping dropping;
+    private PlayerEating eating;
+    private PlayerBackpack backpackCarrier;
+    private PlayerCanteen canteenCarrier;
+    private PlayerVitals vitals;
     private bool isOpen;
+    private Vector2 scrollPos;
 
     public bool IsOpen => isOpen;
 
     private void Awake()
     {
         equipment = GetComponent<PlayerEquipment>();
+        playerInventory = GetComponent<PlayerInventory>();
+        crafting = GetComponent<PlayerCrafting>();
+        dropping = GetComponent<PlayerDropping>();
+        eating = GetComponent<PlayerEating>();
+        backpackCarrier = GetComponent<PlayerBackpack>();
+        canteenCarrier = GetComponent<PlayerCanteen>();
+        vitals = GetComponent<PlayerVitals>();
     }
 
     private void Update()
@@ -55,14 +72,120 @@ public class InventoryScreen : MonoBehaviour
     {
         if (!isOpen) return;
 
-        float width = LabelWidth + BoxWidth * 2f + 40f;
-        float height = 60f + SlotOrder.Length * (BoxHeight + 6f) + NestedContainerHeight() + 50f;
-        var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
+        float height = Mathf.Min(Screen.height - 40f, 700f);
+        var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - height) / 2f, PanelWidth, height);
 
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
+
+        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(height - 60f));
+
+        GUILayout.Label("Inventory", DebugGUI.Header);
+        DrawInventorySection();
+
+        GUILayout.Space(10);
         GUILayout.Label("Equipment", DebugGUI.Header);
-        GUILayout.Space(6);
+        DrawEquipmentSection();
+
+        GUILayout.EndScrollView();
+
+        if (GUILayout.Button("Close", GUILayout.Width(100)))
+            SetOpen(false);
+
+        GUILayout.EndArea();
+    }
+
+    // Ported from the old always-on PlayerInventory panel.
+    private void DrawInventorySection()
+    {
+        ItemDefinition craftClicked = null;
+        ItemDefinition dropClicked = null;
+        ItemDefinition packClicked = null;
+        ItemDefinition eatClicked = null;
+        Backpack equipClicked = null;
+        Backpack backpackDropClicked = null;
+        Canteen canteenEquipClicked = null;
+        Canteen canteenDropClicked = null;
+        var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
+
+        var inv = playerInventory.Inventory;
+        var slots = inv.Slots;
+        for (int i = 0; i < slots.Count; i++)
+        {
+            var slot = slots[i];
+            string label = $"{slot.item.itemName} x{slot.count}";
+
+            GUILayout.BeginHorizontal();
+
+            if (slot.equipment is Backpack backpack)
+            {
+                GUILayout.Label(label, DebugGUI.Label);
+                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                    equipClicked = backpack;
+                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                    backpackDropClicked = backpack;
+            }
+            else if (slot.equipment is Canteen canteen)
+            {
+                GUILayout.Label(label, DebugGUI.Label);
+                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                    canteenEquipClicked = canteen;
+                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                    canteenDropClicked = canteen;
+            }
+            else
+            {
+                var recipe = crafting != null ? crafting.FindRecipe(slot.item) : null;
+                if (recipe != null)
+                {
+                    if (GUILayout.Button($"{label}  (craft {recipe.outputItem.itemName})"))
+                        craftClicked = slot.item;
+                }
+                else
+                {
+                    GUILayout.Label(label, DebugGUI.Label);
+                }
+
+                var edible = eating != null ? eating.FindEdible(slot.item) : null;
+                if (edible != null && GUILayout.Button(edible.verb, GUILayout.Width(50)))
+                    eatClicked = slot.item;
+
+                if (dropping != null && GUILayout.Button("Drop", GUILayout.Width(50)))
+                    dropClicked = slot.item;
+
+                if (equippedBackpack != null && GUILayout.Button("To Pack", GUILayout.Width(60)))
+                    packClicked = slot.item;
+            }
+
+            GUILayout.EndHorizontal();
+        }
+
+        if (craftClicked != null)
+            crafting.TryCraft(craftClicked);
+        if (eatClicked != null)
+            eating.TryEat(eatClicked);
+        if (dropClicked != null)
+            dropping.Drop(dropClicked);
+        if (packClicked != null)
+            InventoryTransfer.Move(inv, equippedBackpack.Inventory, packClicked, inv.GetCount(packClicked));
+        if (equipClicked != null)
+            backpackCarrier.Equip(equipClicked);
+        if (backpackDropClicked != null)
+            backpackCarrier.Drop(backpackDropClicked);
+        if (canteenEquipClicked != null)
+            canteenCarrier.Equip(canteenEquipClicked);
+        if (canteenDropClicked != null)
+            canteenCarrier.Drop(canteenDropClicked);
+    }
+
+    private void DrawEquipmentSection()
+    {
+        Backpack backpackUnequipClicked = null;
+        Backpack backpackDropClicked = null;
+        Canteen canteenUnequipClicked = null;
+        Canteen canteenDropClicked = null;
+        ItemDefinition containerMoveClicked = null;
+        IInventoryHolder containerMoveSource = null;
 
         foreach (var slotName in SlotOrder)
         {
@@ -74,6 +197,8 @@ public class InventoryScreen : MonoBehaviour
 
             var occupied = slotInventory.Slots;
             IInventoryHolder nestedHolder = null;
+            Backpack backpackHere = null;
+            Canteen canteenHere = null;
 
             for (int i = 0; i < slotInventory.Capacity; i++)
             {
@@ -82,8 +207,10 @@ public class InventoryScreen : MonoBehaviour
                     var entry = occupied[i];
                     string label = entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
                     GUILayout.Box(label, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight));
-                    if (entry.equipment is IInventoryHolder holder)
-                        nestedHolder = holder;
+
+                    if (entry.equipment is IInventoryHolder holder) nestedHolder = holder;
+                    if (entry.equipment is Backpack bp) backpackHere = bp;
+                    if (entry.equipment is Canteen ct) canteenHere = ct;
                 }
                 else
                 {
@@ -91,25 +218,55 @@ public class InventoryScreen : MonoBehaviour
                 }
             }
 
+            if (backpackHere != null)
+            {
+                if (GUILayout.Button("Unequip", GUILayout.Width(70))) backpackUnequipClicked = backpackHere;
+                if (GUILayout.Button("Drop", GUILayout.Width(50))) backpackDropClicked = backpackHere;
+            }
+            else if (canteenHere != null)
+            {
+                string liquidLabel = canteenHere.IsEmpty
+                    ? "Empty"
+                    : $"{canteenHere.Liquid} {canteenHere.Amount:F0}/{canteenHere.Capacity:F0}";
+                GUILayout.Label(liquidLabel, DebugGUI.Label, GUILayout.Width(90));
+                if (GUILayout.Button("Drink", GUILayout.Width(50))) canteenHere.Drink(vitals);
+                if (GUILayout.Button("Fill", GUILayout.Width(45))) canteenHere.Fill(LiquidType.Water);
+                if (GUILayout.Button("Unequip", GUILayout.Width(65))) canteenUnequipClicked = canteenHere;
+                if (GUILayout.Button("Drop", GUILayout.Width(50))) canteenDropClicked = canteenHere;
+            }
+
             GUILayout.EndHorizontal();
 
             if (nestedHolder != null)
-                DrawContainerContents(nestedHolder);
+            {
+                var moved = DrawContainerContents(nestedHolder);
+                if (moved != null)
+                {
+                    containerMoveClicked = moved;
+                    containerMoveSource = nestedHolder;
+                }
+            }
         }
 
-        GUILayout.Space(10);
-        if (GUILayout.Button("Close", GUILayout.Width(100)))
-            SetOpen(false);
-
-        GUILayout.EndArea();
+        if (backpackUnequipClicked != null) backpackCarrier.Unequip(backpackUnequipClicked);
+        if (backpackDropClicked != null) backpackCarrier.Drop(backpackDropClicked);
+        if (canteenUnequipClicked != null) canteenCarrier.Unequip(canteenUnequipClicked);
+        if (canteenDropClicked != null) canteenCarrier.Drop(canteenDropClicked);
+        if (containerMoveClicked != null && containerMoveSource != null)
+            InventoryTransfer.Move(containerMoveSource.Inventory, playerInventory.Inventory,
+                containerMoveClicked, containerMoveSource.Inventory.GetCount(containerMoveClicked));
     }
 
-    private void DrawContainerContents(IInventoryHolder holder)
+    // Draws a container's own capacity as a wrapped grid of boxes. Occupied
+    // boxes are buttons — clicking one moves that item back to the main
+    // inventory. Returns the clicked item, if any.
+    private ItemDefinition DrawContainerContents(IInventoryHolder holder)
     {
         var contents = holder.Inventory.Slots;
         int capacity = holder.Inventory.Capacity;
+        ItemDefinition moveClicked = null;
 
-        GUILayout.Label($"    {holder.DisplayName} contents:", DebugGUI.Label);
+        GUILayout.Label($"    {holder.DisplayName} contents (click to move to inventory):", DebugGUI.Label);
 
         int drawn = 0;
         while (drawn < capacity)
@@ -118,36 +275,21 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.Space(20);
             for (int col = 0; col < SubBoxesPerRow && drawn < capacity; col++, drawn++)
             {
-                string label = drawn < contents.Count
-                    ? contents[drawn].item.itemName + (contents[drawn].count > 1 ? $" x{contents[drawn].count}" : "")
-                    : "Empty";
-                GUILayout.Box(label, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight));
+                if (drawn < contents.Count)
+                {
+                    var entry = contents[drawn];
+                    string label = entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
+                    if (GUILayout.Button(label, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight)))
+                        moveClicked = entry.item;
+                }
+                else
+                {
+                    GUILayout.Box("Empty", GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight));
+                }
             }
             GUILayout.EndHorizontal();
         }
-    }
 
-    // Extra panel height to reserve this frame for a nested container's
-    // contents, if anything currently equipped is one. Only accounts for a
-    // single nested block — fine today since only one slot (Back) can ever
-    // hold a container-type equippable, but would need to sum per-slot if
-    // that changes.
-    private float NestedContainerHeight()
-    {
-        int maxCapacity = 0;
-        foreach (var slotName in SlotOrder)
-        {
-            var slotInventory = equipment.GetSlot(slotName);
-            if (slotInventory == null) continue;
-
-            foreach (var entry in slotInventory.Slots)
-                if (entry.equipment is IInventoryHolder holder)
-                    maxCapacity = Mathf.Max(maxCapacity, holder.Inventory.Capacity);
-        }
-
-        if (maxCapacity <= 0) return 0f;
-
-        int rows = Mathf.CeilToInt(maxCapacity / (float)SubBoxesPerRow);
-        return rows * (SubBoxHeight + 4f) + 24f;
+        return moveClicked;
     }
 }

@@ -5,12 +5,44 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.8-dev` — must always match `GameVersion` in
+**Current version:** `0.1.9-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.9-dev — Consolidate all inventory UI into the I screen
+User request: the always-on Inventory box and Back-slot (Backpack) panel
+should be gone from the normal HUD entirely, with inventory only visible via
+I. Rather than just hiding those panels behind an `IsOpen` check (already in
+place from the previous overlap fix), folded their actual content into
+`InventoryScreen` and deleted the three source `OnGUI` methods outright —
+one screen, one place the logic lives, instead of three panels coordinating
+visibility with a fourth.
+
+- `PlayerInventory.OnGUI` (item list, craft/eat/drop/equip/to-pack buttons)
+  → `InventoryScreen.DrawInventorySection`.
+- `PlayerBackpack.OnGUI` (Unequip/Drop Backpack, per-item "To Inventory")
+  → folded into `InventoryScreen.DrawEquipmentSection`'s Back row: Unequip/
+  Drop buttons appear next to the slot, and each nested content box is now
+  itself a button — click an item to move it back to the main inventory,
+  replacing the old separate "To Inventory" button per row.
+- `PlayerCanteen.OnGUI` (Drink/Fill/Unequip/Drop) → same treatment, appended
+  to whichever slot (Left Hand/Right Hand/Waist) the canteen currently
+  occupies.
+
+`PlayerInventory`/`PlayerBackpack`/`PlayerCanteen` lost their now-dead
+`crafting`/`dropping`/`eating`/`vitals`/`inventoryScreen` cross-references
+along with the removed `OnGUI`s — they're back to pure state/logic holders,
+UI-agnostic.
+
+Stacking the full inventory list + all 14 equipment rows + nested container
+contents in one fixed-height panel would have badly overflowed most window
+heights (a rough estimate came out near 900px). Switched to a
+`GUILayout.BeginScrollView` inside a screen-clamped panel
+(`Mathf.Min(Screen.height - 40, 700)`) instead of hand-computing exact
+content height — robust regardless of how many slots end up occupied.
 
 ### v0.1.8-dev — Inventory screen: show container contents, fix panel overlap
 User-reported bug, two real causes:
