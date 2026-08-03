@@ -5,12 +5,54 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.10-dev` — must always match `GameVersion` in
+**Current version:** `0.1.11-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.11-dev — Backpack/Canteen pickup routes through PlayerLoot too; 20-cap
+User-reported gap: picking up a Backpack (or Canteen) from the world always
+stashed it straight into the main inventory — `Backpack.Complete`/
+`Canteen.Complete` never went through the `PlayerLoot` hand/backpack
+priority added last version at all, only `Pickup.Complete` did. Sticks
+correctly went to a hand; the backpack itself didn't.
+
+- `PlayerLoot` gained `ReceiveEquipment(item, IEquippable)`, same priority
+  as `Receive()` but using `AddEquipmentItem`/`RemoveEquipmentItem` since
+  Backpack/Canteen aren't stackable counts. Deliberately does *not* evict
+  another equipment item from a hand to make room (only plain items) —
+  swapping someone's held Canteen out for a picked-up Backpack felt like a
+  rarer case not worth the added complexity.
+- This exposed a real gap in `IEquippable`: it only had `DisplayName`, so
+  there was no way to generically tell a newly-routed item to become
+  visible (carried, e.g. landed in a hand) vs. stay hidden (stashed, e.g.
+  packed inside a container). Promoted `Stash()`/`SetCarried(bool,
+  Transform)` onto the interface — `Backpack` and `Canteen` needed zero
+  code changes, since both already implemented matching methods.
+- That promotion broke compilation: `PlayerInventory` also declared
+  `IInventoryHolder` (which extends `IEquippable`), so it was suddenly on
+  the hook for `Stash`/`SetCarried` too, despite never being a physical
+  object. Checked whether anything actually used `PlayerInventory` as an
+  `IInventoryHolder`/`IEquippable` polymorphically — nothing did, anywhere
+  — so removed that conformance (and the `DisplayName` property that only
+  existed to satisfy it) rather than bolting on meaningless no-op methods.
+- `PlayerBackpack.Unequip`/`Drop` had the same latent bug already fixed for
+  the routing itself: both assumed a backpack was either in `Back` or the
+  main inventory, so a backpack that ended up in a hand couldn't actually
+  be removed from it — clicking Drop would detach the physical object
+  while leaving a "ghost" entry stuck occupying the hand slot. Added
+  `FindSlot()` (Back, then both hands) so both methods find it wherever it
+  actually is. `PlayerCanteen` already searched all its valid slots this
+  way, so it wasn't affected.
+
+Also, per a second request in the same message: `Inventory` now enforces a
+hard `MaxStackCap = 20` centrally (`Mathf.Min(item.maxStack, MaxStackCap)`
+wherever `maxStack` was used), rather than trusting each `ItemDefinition`'s
+own value — applies to every `Inventory` (main, backpack, any equip slot)
+from one place. A no-op today (Rock/Stick are already 20), but a real
+ceiling against a future item being configured with an unintended stack size.
 
 ### v0.1.10-dev — Pickups route to Backpack, then hands, evicting if needed
 User-requested mechanics change: picked-up items no longer go straight to

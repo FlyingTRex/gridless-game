@@ -16,6 +16,12 @@ public class Inventory
         public IEquippable equipment;
     }
 
+    // Hard ceiling on any single slot's stack, regardless of what an
+    // individual ItemDefinition's own maxStack says — enforced centrally
+    // here so it applies to every Inventory (main, backpack, any equip
+    // slot) without each item asset needing to be trusted individually.
+    public const int MaxStackCap = 20;
+
     [SerializeField] private int capacity = 4;
     private readonly List<Slot> slots = new List<Slot>();
 
@@ -26,6 +32,8 @@ public class Inventory
     {
         this.capacity = capacity;
     }
+
+    private static int EffectiveMaxStack(ItemDefinition item) => Mathf.Min(item.maxStack, MaxStackCap);
 
     public int GetCount(ItemDefinition item)
     {
@@ -39,18 +47,19 @@ public class Inventory
     {
         if (item == null || quantity <= 0) return true;
 
+        int maxStack = EffectiveMaxStack(item);
         int remaining = quantity;
         foreach (var slot in slots)
         {
-            if (slot.item == item && slot.count < item.maxStack)
+            if (slot.item == item && slot.count < maxStack)
             {
-                remaining -= Mathf.Min(item.maxStack - slot.count, remaining);
+                remaining -= Mathf.Min(maxStack - slot.count, remaining);
                 if (remaining <= 0) return true;
             }
         }
 
         int freeSlots = capacity - slots.Count;
-        return freeSlots > 0 && remaining <= freeSlots * item.maxStack;
+        return freeSlots > 0 && remaining <= freeSlots * maxStack;
     }
 
     // Returns the amount that did NOT fit (0 means everything was added).
@@ -58,11 +67,13 @@ public class Inventory
     {
         if (item == null || quantity <= 0) return quantity;
 
+        int maxStack = EffectiveMaxStack(item);
+
         foreach (var slot in slots)
         {
-            if (slot.item == item && slot.count < item.maxStack)
+            if (slot.item == item && slot.count < maxStack)
             {
-                int space = item.maxStack - slot.count;
+                int space = maxStack - slot.count;
                 int add = Mathf.Min(space, quantity);
                 slot.count += add;
                 quantity -= add;
@@ -72,7 +83,7 @@ public class Inventory
 
         while (quantity > 0 && slots.Count < capacity)
         {
-            int add = Mathf.Min(item.maxStack, quantity);
+            int add = Mathf.Min(maxStack, quantity);
             slots.Add(new Slot { item = item, count = add });
             quantity -= add;
         }

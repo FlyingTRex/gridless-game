@@ -1,14 +1,13 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class PlayerInventory : MonoBehaviour, IInventoryHolder
+public class PlayerInventory : MonoBehaviour
 {
     [SerializeField] private int capacity = 4;
 
     private Inventory inventory;
 
     public Inventory Inventory => inventory;
-    public string DisplayName => "Inventory";
 
     private void Awake()
     {

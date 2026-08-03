@@ -16,18 +16,26 @@ public class PlayerCanteen : MonoBehaviour
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
+    private PlayerLoot loot;
 
     private void Awake()
     {
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
+        loot = GetComponent<PlayerLoot>();
     }
 
-    // Called when the player interacts with a canteen lying in the world —
-    // stashes it as a regular (hidden) inventory item, not carried yet.
+    // Called when the player interacts with a canteen lying in the world.
+    // Routes through PlayerLoot first (equipped backpack's own contents,
+    // then a free hand) — falls back to stashing as a regular (hidden)
+    // inventory item only if PlayerLoot found nowhere else for it.
     public bool PickUp(Canteen canteen)
     {
         if (canteen == null) return false;
+
+        if (loot != null && loot.ReceiveEquipment(canteenItem, canteen))
+            return true;
+
         if (!playerInventory.Inventory.AddEquipmentItem(canteenItem, canteen)) return false;
 
         canteen.Stash();

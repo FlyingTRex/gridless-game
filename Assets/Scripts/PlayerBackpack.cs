@@ -5,6 +5,10 @@ using UnityEngine;
 public class PlayerBackpack : MonoBehaviour
 {
     private const string BackSlot = "Back";
+    // Where PlayerLoot might have placed a picked-up backpack that hasn't
+    // been (or can't be) worn — checked by Unequip/Drop so they find it
+    // regardless of which of these it landed in.
+    private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
     [SerializeField] private ItemDefinition backpackItem;
     [SerializeField] private Transform carrySlot;
@@ -13,6 +17,7 @@ public class PlayerBackpack : MonoBehaviour
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
+    private PlayerLoot loot;
 
     public Backpack Equipped => equipment.GetEquipped(BackSlot) as Backpack;
 
@@ -20,13 +25,20 @@ public class PlayerBackpack : MonoBehaviour
     {
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
+        loot = GetComponent<PlayerLoot>();
     }
 
-    // Called when the player interacts with a backpack lying in the world —
-    // stashes it as a regular (hidden) inventory item, not worn yet.
+    // Called when the player interacts with a backpack lying in the world.
+    // Routes through PlayerLoot first (equipped backpack's own contents,
+    // then a free hand) — falls back to stashing as a regular (hidden)
+    // inventory item only if PlayerLoot found nowhere else for it.
     public bool PickUp(Backpack backpack)
     {
         if (backpack == null) return false;
+
+        if (loot != null && loot.ReceiveEquipment(backpackItem, backpack))
+            return true;
+
         if (!playerInventory.Inventory.AddEquipmentItem(backpackItem, backpack)) return false;
 
         backpack.Stash();
@@ -46,30 +58,45 @@ public class PlayerBackpack : MonoBehaviour
         return true;
     }
 
-    // Moves the backpack from the Back slot back into a regular inventory
-    // slot. Fails (leaving it equipped) if the regular inventory is full.
+    // Moves the backpack from the Back slot (or a hand, if PlayerLoot put
+    // it there) back into a regular inventory slot. Fails (leaving it
+    // where it is) if the regular inventory is full.
     public bool Unequip(Backpack backpack)
     {
-        if (backpack == null || Equipped != backpack) return false;
+        string slotName = FindSlot(backpack);
+        if (backpack == null || slotName == null) return false;
         if (!playerInventory.Inventory.AddEquipmentItem(backpackItem, backpack)) return false;
 
-        equipment.GetSlot(BackSlot)?.RemoveEquipmentItem(backpackItem);
+        equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpackItem);
         backpack.Stash();
         return true;
     }
 
-    // Drops the backpack into the world in front of the player, whether it
-    // was equipped or just sitting in the regular inventory.
+    // Drops the backpack into the world in front of the player, wherever
+    // it currently is (Back, a hand, or the regular inventory).
     public void Drop(Backpack backpack)
     {
         if (backpack == null) return;
 
-        if (Equipped == backpack)
-            equipment.GetSlot(BackSlot)?.RemoveEquipmentItem(backpackItem);
+        string slotName = FindSlot(backpack);
+        if (slotName != null)
+            equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpackItem);
         else
             playerInventory.Inventory.RemoveEquipmentItem(backpackItem);
 
         backpack.SetCarried(false, null);
         backpack.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+    }
+
+    // Searches Back, then the hands, for the given backpack instance.
+    private string FindSlot(Backpack backpack)
+    {
+        if (Equipped == backpack) return BackSlot;
+
+        foreach (var slotName in HandSlots)
+            if ((equipment.GetEquipped(slotName) as Backpack) == backpack)
+                return slotName;
+
+        return null;
     }
 }
