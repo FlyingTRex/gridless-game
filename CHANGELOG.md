@@ -5,7 +5,31 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
+**Current version:** `0.1.3-dev` — must always match `GameVersion` in
+`Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
+panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
+change; see `CLAUDE.md` for the exact rule.
+
 ## 2026-08-02
+
+### Merge: canteen + panel-layout/versioning reconciliation
+Built in parallel with the `v0.1.2-dev` work below on a separate Claude Code
+session, discovered on push — same recurring situation as the two merge
+entries further down, but a cleaner one this time: no fileID collision, just
+a text conflict in this file's own version line/entries. Two real things to
+reconcile though, not just text:
+- The other session's Backpack debug panel moved to `Rect(320, 10, 280, 320)`
+  as part of its own panel-overlap cleanup — which put its right edge at
+  `x=600`, ten pixels inside where this session's new canteen Hand/Belt panels
+  had been placed (`x=590`). Moved the canteen panels to `x=610` and gave them
+  the same `DebugGUI.DrawPanel`/`Header`/`Label` treatment the other panels
+  now use, instead of plain unstyled `GUILayout`.
+- First time this session's Claude instance saw the new
+  `CLAUDE.md`/`CHANGELOG.md` version-bump convention introduced by the other
+  session (`GameVersion` + this file's "Current version" line, bumped
+  together on every gameplay-affecting commit). The canteen commit predated
+  discovering that rule, so this merge is also where it first gets applied
+  here — bumped `0.1.2-dev` → `0.1.3-dev`.
 
 ### Canteen: craftable liquid container, first `IEquippable` beyond Backpack (`8670677`)
 Craftable from 3 Sticks (trains Crafting), cylinder-shaped (body + cap
@@ -30,6 +54,40 @@ composition + wiring `PlayerCanteen`/the new recipe into `TestScene` via
 `SerializedObject`, not hand-authored YAML) — validated with a full batch-mode
 compile check and a duplicate-fileID scan before committing.
 
+### v0.1.2-dev — Merge: backpack silhouette + cursor-lock/panel/worn-equipment fixes
+Built in parallel with the silhouette rebuild below on a separate Claude Code
+session, discovered on push (same situation as the vitals merge further down).
+Real fileID collision again: this session's edit to `Backpack.prefab` (via
+`PrefabUtility.LoadPrefabContents` → `SaveAsPrefabAsset`, round-tripping the same
+asset) silently reassigned the root GameObject's fileID instead of preserving it —
+a new gotcha distinct from the hand-authored-YAML case in the vitals merge. That
+reassigned fileID then collided with a `StrapLeft` object the other session
+independently created while rebuilding the same prefab into a multi-part
+hierarchy. Resolved by taking the other session's full prefab/scene structure as
+the base (correct fileID continuity with shared history) and re-applying this
+session's changes on top, rather than trying to reconcile two structurally
+different versions of the same file by hand.
+
+Also corrected a design mistake caught during the merge: this session's first pass
+set `m_Layer` to a new `WornEquipment` layer (excluded from the player's own
+`Camera.cullingMask`) directly on the `Backpack` prefab asset. That's wrong — it
+would make the backpack invisible even while just sitting in the world, since
+nothing ever reset the layer back. Moved the logic into `Backpack.SetCarried()`
+instead, toggling the whole hierarchy's layer at runtime (`WornEquipment` while
+worn, `Default` on drop/unequip) — the prefab itself stays on `Default`.
+
+Otherwise unchanged from this session's original fixes: clicking on-screen debug
+buttons (Equip/craft/Drop) was unusable because any left-click while the cursor was
+unlocked immediately re-locked and hid it before the click could register — Escape
+now toggles the lock both directions instead of any-click relocking. Debug panels
+(Inventory/Skills/Vitals/speed+version) got a shared `DebugGUI` background for
+readability, which exposed a real pre-existing overlap between the Inventory,
+Skills, and Backpack panel `Rect`s — repositioned to clear each other's edges.
+(Also chased and ruled out a *third* apparent bug — Berry Bush, Water Puddle, and
+two stick pickups looking like they were floating/overlapping — that was just a
+flat featureless plane with no depth cues; verified exact Transform values before
+touching anything rather than guessing fixes for things that weren't broken.)
+
 ### Backpack silhouette instead of a box (`69a79b8`)
 Rebuilt `Backpack.prefab` and its `TestScene` instance as a body + tilted flap
 + two side straps + front pocket (all primitives, same `Backpack.mat`), instead
@@ -39,7 +97,7 @@ APIs (`GameObject.CreatePrimitive`, `PrefabUtility.SaveAsPrefabAsset`,
 `EditorSceneManager`) and was deleted after — rather than hand-authoring the
 multi-child YAML directly. Composing a parent/several-children hierarchy by
 hand is exactly the kind of edit that produces silent fileID mistakes (see the
-merge entry below); letting Unity allocate the fileIDs itself sidesteps that
+merge entry above); letting Unity allocate the fileIDs itself sidesteps that
 class of bug entirely.
 
 ### Merge with survival vitals (`91240b3`)

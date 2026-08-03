@@ -45,3 +45,15 @@ Read these directly rather than trusting a summary — they're actively evolving
   into a **scene** file but not reliably into a **prefab** — save as a real `.mat`
   asset via `AssetDatabase.CreateAsset` first, then reference it, or the prefab
   renders pink.
+- **Bump the version number on every commit that touches gameplay code or scenes**
+  (`Assets/Scripts/**`, `Assets/Scenes/**`, `Assets/Prefabs/**`). Two places must
+  match, updated together in the same commit:
+  - `GameVersion` in `Assets/Scripts/FirstPersonController.cs` (shown on-screen in
+    the bottom-left debug panel)
+  - the **"Current version"** line near the top of `CHANGELOG.md`
+
+  Format: `MAJOR.MINOR.PATCH-dev` — increment PATCH for a normal commit; bump MINOR
+  by hand for a completed Phase 1 milestone; MAJOR stays `0` until there's a real
+  release. Doc-only commits (design docs, changelog, this file) don't need a bump.
+  Both collaborators' Claude sessions should follow this — the in-game number and the
+  changelog are meant to be cross-checkable at a glance, without digging into git.

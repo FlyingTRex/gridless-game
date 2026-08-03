@@ -22,10 +22,12 @@ public class PlayerSkills : MonoBehaviour
 
     private void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(10, 320, 220, 200));
-        GUILayout.Label("Skills", GUI.skin.box);
+        var rect = new Rect(10, 360, 220, 200);
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label("Skills", DebugGUI.Header);
         foreach (var pair in levels)
-            GUILayout.Label($"{pair.Key.skillName}: {pair.Value:F1}");
+            GUILayout.Label($"{pair.Key.skillName}: {pair.Value:F1}", DebugGUI.Label);
         GUILayout.EndArea();
     }
 }

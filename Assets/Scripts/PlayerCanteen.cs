@@ -89,11 +89,13 @@ public class PlayerCanteen : MonoBehaviour
         var canteen = equipment.GetEquipped(slotName) as Canteen;
         if (canteen == null) return false;
 
-        GUILayout.BeginArea(new Rect(590, top, 240, 110));
-        GUILayout.Label($"{slotName}: {canteen.DisplayName}", GUI.skin.box);
+        var rect = new Rect(610, top, 240, 110);
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label($"{slotName}: {canteen.DisplayName}", DebugGUI.Header);
 
         string liquidLabel = canteen.IsEmpty ? "Empty" : $"{canteen.Liquid} {canteen.Amount:F0}/{canteen.Capacity:F0}";
-        GUILayout.Label(liquidLabel);
+        GUILayout.Label(liquidLabel, DebugGUI.Label);
 
         GUILayout.BeginHorizontal();
         if (GUILayout.Button("Drink")) canteen.Drink(vitals);

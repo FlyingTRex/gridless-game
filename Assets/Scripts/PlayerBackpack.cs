@@ -76,7 +76,7 @@ public class PlayerBackpack : MonoBehaviour
         var backpack = Equipped;
         if (backpack == null) return;
 
-        GUILayout.BeginArea(new Rect(300, 10, 280, 320));
+        GUILayout.BeginArea(new Rect(320, 10, 280, 320));
         GUILayout.Label($"Back: {backpack.DisplayName}", GUI.skin.box);
 
         bool unequipClicked = GUILayout.Button("Unequip");

@@ -45,14 +45,9 @@ public class FirstPersonController : MonoBehaviour
 
         if (keyboard.escapeKey.wasPressedThisFrame)
         {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-        }
-        else if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame
-                 && Cursor.lockState != CursorLockMode.Locked)
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
+            bool locked = Cursor.lockState == CursorLockMode.Locked;
+            Cursor.lockState = locked ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = locked;
         }
     }
 
@@ -108,12 +103,18 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
+    private const string GameVersion = "0.1.3-dev";
+
     private float lastSpeed;
     private bool lastSprinting;
 
     private void OnGUI()
     {
-        GUI.Label(new Rect(10, Screen.height - 30, 300, 20),
-            $"Speed: {lastSpeed:F1} m/s  Sprinting: {lastSprinting}");
+        var rect = new Rect(10, Screen.height - 50, 300, 40);
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label($"Speed: {lastSpeed:F1} m/s  Sprinting: {lastSprinting}", DebugGUI.Label);
+        GUILayout.Label($"Gridless {GameVersion}", DebugGUI.Label);
+        GUILayout.EndArea();
     }
 }
