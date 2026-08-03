@@ -5,12 +5,25 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.14-dev` — must always match `GameVersion` in
+**Current version:** `0.1.15-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.15-dev — Unequip falls back to a hand/drop instead of no-op'ing, canteen spawns at start
+User feedback: unequipping a worn backpack when the main inventory is full
+did nothing — `PlayerBackpack.Unequip` only ever attempted
+`playerInventory.Inventory.AddEquipmentItem` and returned `false` with no
+other recourse. It now mirrors the fallback chain `PickUp`/`ReceiveEquipment`
+already used: main inventory first, then Left Hand, then Right Hand, and
+if all of those are full, drops the backpack into the world in front of the
+player rather than leaving it stuck on the back.
+
+Also added a Canteen to `TestScene` at `(-1, 0.3, 1.5)`, spawned alongside
+the existing world-start Backpack so there's a liquid container to pick up
+without needing to craft one first.
 
 ### v0.1.14-dev — Plain items in a hand use the same move popup as backpack contents
 Follow-up to the previous version's popup, closing the scope gap flagged

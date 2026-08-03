@@ -66,16 +66,36 @@ public class PlayerBackpack : MonoBehaviour
     }
 
     // Moves the backpack from the Back slot (or a hand, if PlayerLoot put
-    // it there) back into a regular inventory slot. Fails (leaving it
-    // where it is) if the regular inventory is full.
+    // it there) back into a regular inventory slot. Prefers the main
+    // inventory; if that's full, tries a hand instead; if hands are full
+    // too, drops it into the world rather than Unequip silently doing
+    // nothing.
     public bool Unequip(Backpack backpack)
     {
         string slotName = FindSlot(backpack);
         if (backpack == null || slotName == null) return false;
-        if (!playerInventory.Inventory.AddEquipmentItem(backpackItem, backpack)) return false;
 
-        equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpackItem);
-        backpack.Stash();
+        if (playerInventory.Inventory.AddEquipmentItem(backpackItem, backpack))
+        {
+            equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpackItem);
+            backpack.Stash();
+            return true;
+        }
+
+        foreach (var handSlotName in HandSlots)
+        {
+            var hand = equipment.GetSlot(handSlotName);
+            if (hand == null || handSlotName == slotName) continue;
+
+            if (hand.AddEquipmentItem(backpackItem, backpack))
+            {
+                equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpackItem);
+                backpack.SetCarried(true, transform);
+                return true;
+            }
+        }
+
+        Drop(backpack);
         return true;
     }
 
