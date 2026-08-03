@@ -5,12 +5,32 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.26-dev` — must always match `GameVersion` in
+**Current version:** `0.1.27-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.27-dev — Sticks and the Rock Node respawn 3 minutes after being taken
+`Pickup` gained an opt-in `canRespawn` (default off, so every existing
+usage — items the player drops, chunks scattered out of a broken
+`ResourceNode` — is unaffected). When enabled, taking the item no longer
+destroys the GameObject: it hides the renderer/collider instead and starts
+a `respawnDelay` (180s) countdown from `Time.time`, only running once
+something's actually been taken — sitting there unpicked holds the timer
+indefinitely, per the request. On expiry it reappears at its original
+spawn position (captured in `Awake`) plus a small random horizontal
+offset (`Random.insideUnitCircle * respawnScatter`, 0.5m).
+
+`ResourceNode` (the Rock Node) got the identical pattern directly, since
+it's never used for anything but a persistent world resource point —
+breaking it now hides+times out the same way instead of destroying the
+GameObject, and respawning also resets `hitsTaken` so it can be broken
+again from scratch.
+
+Enabled `canRespawn` on both `Stick Pickup` and `Stick Pickup 2` in
+`TestScene`; left the Berry Pickup and everything else untouched.
 
 ### v0.1.26-dev — Sunglasses: a silver screen tint while worn on the face
 New `Sunglasses` (`IInteractable` + `IEquippable`) carried by
