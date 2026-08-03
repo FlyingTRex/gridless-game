@@ -4,6 +4,13 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
 {
+    // Excluded from the player's own camera (see Main Camera's cullingMask in
+    // TestScene) so worn gear doesn't fill the screen if you turn to look at
+    // your own back. Only applied while worn — SetCarried resets it to Default
+    // on drop/unequip so a world-sitting backpack stays visible.
+    private const int DefaultLayer = 0;
+    private const int WornEquipmentLayer = 8;
+
     [SerializeField] private string backpackName = "Rough Backpack";
     [SerializeField] private int capacity = 8;
 
@@ -47,6 +54,7 @@ public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
         gameObject.SetActive(true);
         col.enabled = !value;
         body.isKinematic = value;
+        SetLayerRecursively(transform, value ? WornEquipmentLayer : DefaultLayer);
 
         if (value)
         {
@@ -58,5 +66,12 @@ public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
         {
             transform.SetParent(null, true);
         }
+    }
+
+    private static void SetLayerRecursively(Transform root, int layer)
+    {
+        root.gameObject.layer = layer;
+        foreach (Transform child in root)
+            SetLayerRecursively(child, layer);
     }
 }
