@@ -5,7 +5,49 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
+**Current version:** `0.1.1-dev` — must always match `GameVersion` in
+`Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
+panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
+change; see `CLAUDE.md` for the exact rule.
+
 ## 2026-08-02
+
+### v0.1.1-dev — Cursor-lock fix, backpack anchor fix, debug panel readability
+Fixed a real interaction bug: clicking any on-screen debug button (Equip, craft,
+Drop) while the cursor was unlocked would immediately re-lock and hide the cursor
+before the click could register, since `FirstPersonController` re-locked on *any*
+left-click rather than requiring an explicit toggle. Changed Escape to toggle the
+cursor lock both directions instead.
+
+Also fixed the equipped backpack rendering at the player's feet instead of "on the
+back" — its `carrySlot` anchor was never wired up, so it fell back to the player
+root's zero-offset transform. Added a real `BackpackAnchor` child transform and wired
+it in. (What looked like a *third* bug in the same session — the Berry Bush, Water
+Puddle, and two stick pickups appearing to float/overlap — turned out to be correct
+positions in every case, just a flat featureless plane with no depth cues making
+perspective hard to read. Verified each with exact Transform values before touching
+anything, rather than guessing fixes for things that weren't broken.)
+
+Debug panels (Inventory, Skills, Vitals, the new speed/version readout) now draw a
+solid dark background via a shared `DebugGUI` helper instead of default IMGUI
+styling, which had poor contrast against the green ground. That same readability fix
+exposed a real, pre-existing layout bug: the Skills and Backpack panel `Rect`s
+overlapped the Inventory panel's edges by 10-30px. Harmless with transparent labels,
+but visually obvious once every panel had a solid background — moved Skills and
+Backpack to clear Inventory's actual bottom/right edges.
+
+Also gave worn equipment (starting with the backpack) a proper first-person
+"can't-see-your-own-back" treatment: a new `WornEquipment` layer (project layer 8,
+`ProjectSettings/TagManager.asset`), the `Backpack` prefab set to it, and the
+player's `Camera.cullingMask` excluding that layer. Without this, turning around to
+look at your own back would show the backpack mesh from ~0.5 units away, filling the
+screen — not a positioning bug, just the standard reason FPS games hide self-worn
+gear from their own camera.
+
+Also established the version-tracking convention itself: `GameVersion` in
+`FirstPersonController.cs` and the "Current version" line at the top of this file
+must be bumped together on every commit touching gameplay code/scenes/prefabs — see
+`CLAUDE.md`.
 
 ### Merge with survival vitals (`91240b3`)
 Built in parallel with the vitals work below on a separate Claude Code session,

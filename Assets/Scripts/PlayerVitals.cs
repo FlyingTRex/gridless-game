@@ -84,13 +84,15 @@ public class PlayerVitals : MonoBehaviour
 
     private void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(Screen.width - 230, 10, 220, 150));
-        GUILayout.Label("Vitals", GUI.skin.box);
-        GUILayout.Label($"Health: {health:F0}");
-        GUILayout.Label($"Hunger: {hunger:F0}");
-        GUILayout.Label($"Thirst: {thirst:F0}");
-        GUILayout.Label($"Stamina: {stamina:F0}");
-        GUILayout.Label($"Body Temp: {bodyTemperature:F0}");
+        var rect = new Rect(Screen.width - 230, 10, 220, 150);
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label("Vitals", DebugGUI.Header);
+        GUILayout.Label($"Health: {health:F0}", DebugGUI.Label);
+        GUILayout.Label($"Hunger: {hunger:F0}", DebugGUI.Label);
+        GUILayout.Label($"Thirst: {thirst:F0}", DebugGUI.Label);
+        GUILayout.Label($"Stamina: {stamina:F0}", DebugGUI.Label);
+        GUILayout.Label($"Body Temp: {bodyTemperature:F0}", DebugGUI.Label);
         GUILayout.EndArea();
     }
 }

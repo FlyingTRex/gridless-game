@@ -833,7 +833,7 @@ Camera:
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 4294967039
   m_RenderingPath: -1
   m_TargetTexture: {fileID: 0}
   m_TargetDisplay: 0
@@ -1694,6 +1694,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 724364632}
+  - {fileID: 1874308669}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1681626231
@@ -1722,6 +1723,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5304d9d9980caf2439fc4567ca459dc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
+  capacity: 4
 --- !u!114 &1681626234
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1732,7 +1734,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 01f87e2b54abdd54893e26b420f52d3c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSkills
 --- !u!114 &1681626235
 MonoBehaviour:
@@ -1744,7 +1746,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cc7238cf84771ca40ba8f797d59e4a7d, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerVitals
   health: 100
   hunger: 100
@@ -1770,7 +1772,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7f41eb85729676cdeb1a8427eb8d7958, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCrafting
   recipes:
   - {fileID: 11400000, guid: c56edc8aeb05ff939106cbf1987d9c73, type: 2}
@@ -1784,7 +1786,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: f16c4aebe1989263a6515e77bdcd5a27, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDropping
   droppedItemPrefab: {fileID: 1931988532258926014, guid: c8732281c83045432f0d2a717de0b4c0, type: 3}
   dropDistance: 1.2
@@ -1799,10 +1801,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e33c9272f6fc9ca319f4e34dca71568a, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBackpack
   backpackItem: {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
-  carrySlot: {fileID: 0}
+  carrySlot: {fileID: 1874308669}
   dropDistance: 1.2
   dropHeight: 1
 --- !u!114 &1681626242
@@ -1815,7 +1817,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 94c326fd07c0af8ebb61ad06661f224c, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerEquipment
   slotNames:
   - Back
@@ -1947,6 +1949,37 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1874308668
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1874308669}
+  m_Layer: 0
+  m_Name: BackpackAnchor
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1874308669
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1874308668}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 1.2, z: -0.25}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1681626230}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2000000000000001
 GameObject:
@@ -2099,7 +2132,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 74e23c6d22b81d9edacc1f91fba165ae, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Backpack
   backpackName: Rough Backpack
   capacity: 8

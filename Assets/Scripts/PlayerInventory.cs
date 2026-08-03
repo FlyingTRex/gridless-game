@@ -30,8 +30,10 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
 
     private void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(10, 10, 300, 340));
-        GUILayout.Label("Inventory", GUI.skin.box);
+        var rect = new Rect(10, 10, 300, 340);
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label("Inventory", DebugGUI.Header);
 
         ItemDefinition craftClicked = null;
         ItemDefinition dropClicked = null;
@@ -50,7 +52,7 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
 
             if (slot.equipment is Backpack backpack)
             {
-                GUILayout.Label(label);
+                GUILayout.Label(label, DebugGUI.Label);
                 if (GUILayout.Button("Equip", GUILayout.Width(55)))
                     equipClicked = backpack;
                 if (GUILayout.Button("Drop", GUILayout.Width(50)))
@@ -66,7 +68,7 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
                 }
                 else
                 {
-                    GUILayout.Label(label);
+                    GUILayout.Label(label, DebugGUI.Label);
                 }
 
                 if (dropping != null && GUILayout.Button("Drop", GUILayout.Width(50)))
