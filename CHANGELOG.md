@@ -5,12 +5,17 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.37-dev` — must always match `GameVersion` in
+**Current version:** `0.1.38-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.38-dev — Starting purse: 20 Copper, 5 Silver, 1 Gold
+`PlayerCurrency.Awake` now seeds the wallet via the same `Add` path a Coin
+pickup uses (so it still respects `MaxBalance`, though nowhere near it)
+instead of starting every character at zero across the board.
 
 ### v0.1.37-dev — Coin pickups deposit straight into the wallet, capped at 250
 `PlayerCurrency.Add` now clamps each balance at a new `MaxBalance` (250)

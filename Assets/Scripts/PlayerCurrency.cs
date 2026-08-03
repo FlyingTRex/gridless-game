@@ -21,6 +21,15 @@ public class PlayerCurrency : MonoBehaviour
 
     private readonly int[] balances = new int[CoinTypeCount];
 
+    private void Awake()
+    {
+        // Starting purse — every character begins with a small amount of
+        // the lower denominations rather than nothing at all.
+        Add(CoinType.Copper, 20);
+        Add(CoinType.Silver, 5);
+        Add(CoinType.Gold, 1);
+    }
+
     public int GetBalance(CoinType type) => balances[(int)type];
 
     // Returns the amount that did NOT fit under the cap (0 means the full
