@@ -18,6 +18,8 @@ public class FirstPersonController : MonoBehaviour
     private PlayerVitals vitals;
     private InventoryScreen inventoryScreen;
     private PlayerRenaming renaming;
+    private SkillsScreen skillsScreen;
+    private CraftingScreen craftingScreen;
     private Vector3 velocity;
     private float pitch;
 
@@ -27,6 +29,8 @@ public class FirstPersonController : MonoBehaviour
         vitals = GetComponent<PlayerVitals>();
         inventoryScreen = GetComponent<InventoryScreen>();
         renaming = GetComponent<PlayerRenaming>();
+        skillsScreen = GetComponent<SkillsScreen>();
+        craftingScreen = GetComponent<CraftingScreen>();
     }
 
     private void OnEnable()
@@ -60,6 +64,8 @@ public class FirstPersonController : MonoBehaviour
             {
                 inventoryScreen?.Close();
                 renaming?.Close();
+                skillsScreen?.Close();
+                craftingScreen?.Close();
             }
         }
     }
@@ -116,7 +122,7 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.23-dev";
+    private const string GameVersion = "0.1.24-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

@@ -31,7 +31,6 @@ public class InventoryScreen : MonoBehaviour
 
     private PlayerEquipment equipment;
     private PlayerInventory playerInventory;
-    private PlayerCrafting crafting;
     private PlayerDropping dropping;
     private PlayerEating eating;
     private PlayerBackpack backpackCarrier;
@@ -68,7 +67,6 @@ public class InventoryScreen : MonoBehaviour
     {
         equipment = GetComponent<PlayerEquipment>();
         playerInventory = GetComponent<PlayerInventory>();
-        crafting = GetComponent<PlayerCrafting>();
         dropping = GetComponent<PlayerDropping>();
         eating = GetComponent<PlayerEating>();
         backpackCarrier = GetComponent<PlayerBackpack>();
@@ -247,7 +245,6 @@ public class InventoryScreen : MonoBehaviour
     // Ported from the old always-on PlayerInventory panel.
     private void DrawInventorySection()
     {
-        ItemDefinition craftClicked = null;
         ItemDefinition dropClicked = null;
         ItemDefinition packClicked = null;
         ItemDefinition eatClicked = null;
@@ -294,16 +291,7 @@ public class InventoryScreen : MonoBehaviour
             }
             else
             {
-                var recipe = crafting != null ? crafting.FindRecipe(slot.item) : null;
-                if (recipe != null)
-                {
-                    if (GUILayout.Button($"{label}  (craft {recipe.outputItem.itemName})"))
-                        craftClicked = slot.item;
-                }
-                else
-                {
-                    GUILayout.Label(label, DebugGUI.Label);
-                }
+                GUILayout.Label(label, DebugGUI.Label);
 
                 var edible = eating != null ? eating.FindEdible(slot.item) : null;
                 if (edible != null && GUILayout.Button(edible.verb, GUILayout.Width(50)))
@@ -326,8 +314,6 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.EndHorizontal();
         }
 
-        if (craftClicked != null)
-            crafting.TryCraft(craftClicked);
         if (eatClicked != null)
             eating.TryEat(eatClicked);
         if (dropClicked != null)

@@ -5,12 +5,35 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.23-dev` — must always match `GameVersion` in
+**Current version:** `0.1.24-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.24-dev — Skills (U) and Crafting (O) become their own toggleable screens
+Pulled both out of where they used to live — Skills was an always-on
+bottom-left panel drawn directly by `PlayerSkills.OnGUI`; Crafting was an
+inline "(craft X)" button next to a matching item in `InventoryScreen`'s
+main list — into dedicated screens matching `InventoryScreen`'s own
+open/close convention (centered panel, Close button, cursor
+lock/unlock, only opens from normal gameplay so it can't stack on another
+open screen).
+
+New `SkillsScreen` (U) reads `PlayerSkills.Levels` (newly exposed —
+`PlayerSkills` no longer draws anything itself) and lists each skill's
+level. New `CraftingScreen` (O) reads `PlayerCrafting.Recipes` (also newly
+exposed) and lists *every* known recipe with how many of its input you
+currently have, rather than only showing a craft option for items already
+sitting in your inventory. `InventoryScreen` no longer has any
+crafting-related code — that recipe-lookup button is gone from its main
+list.
+
+`FirstPersonController`'s Escape handling now closes both new screens
+alongside Inventory and the rename prompt, so they can't be left open with
+a locked cursor. Added `SkillsScreen`/`CraftingScreen` to the `Player`
+GameObject in `TestScene`.
 
 ### v0.1.23-dev — Fix dropped Backpack/Canteen/Navigation Computer falling through the floor
 User report: dropping a Canteen or Navigation Computer made it appear

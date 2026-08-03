@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(PlayerInventory))]
@@ -7,6 +8,9 @@ public class PlayerCrafting : MonoBehaviour
 
     private PlayerInventory inventory;
     private PlayerSkills skills;
+
+    // Read by CraftingScreen (toggled with O) to render the recipe list.
+    public IReadOnlyList<CraftingRecipe> Recipes => recipes;
 
     private void Awake()
     {
