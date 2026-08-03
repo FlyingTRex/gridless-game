@@ -12,4 +12,10 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-(none right now)
+## Bugs Found (2026-08-03)
+
+- Canteen visual feedback — Filling then dropping doesn't render it blue
+- Backpack drop bug — Right-clicking stick in backpack removes entire backpack instead of just the stick
+- Canteen fills from anywhere — Can fill equipped canteen from any location (should be limited to water sources)
+- Overdrinking not implemented — Can drink past 100% thrust without consequence; should allow to 125% then cause sickness, health loss, thirst → 50%
+- Canteen transfer breaks interaction — Moving canteen from backpack to hands removes ability to fill or drink
