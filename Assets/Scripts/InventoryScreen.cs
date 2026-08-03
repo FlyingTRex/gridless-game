@@ -37,6 +37,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerCanteen canteenCarrier;
     private PlayerNavComputer navComputerCarrier;
     private PlayerHealthMonitor healthMonitorCarrier;
+    private PlayerSunglasses sunglassesCarrier;
     private PlayerVitals vitals;
     private bool isOpen;
     private Vector2 scrollPos;
@@ -74,6 +75,7 @@ public class InventoryScreen : MonoBehaviour
         canteenCarrier = GetComponent<PlayerCanteen>();
         navComputerCarrier = GetComponent<PlayerNavComputer>();
         healthMonitorCarrier = GetComponent<PlayerHealthMonitor>();
+        sunglassesCarrier = GetComponent<PlayerSunglasses>();
         vitals = GetComponent<PlayerVitals>();
     }
 
@@ -258,6 +260,8 @@ public class InventoryScreen : MonoBehaviour
         NavigationComputer navComputerDropClicked = null;
         PersonalHealthMonitor healthMonitorEquipClicked = null;
         PersonalHealthMonitor healthMonitorDropClicked = null;
+        Sunglasses sunglassesEquipClicked = null;
+        Sunglasses sunglassesDropClicked = null;
         var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
 
         var inv = playerInventory.Inventory;
@@ -300,6 +304,14 @@ public class InventoryScreen : MonoBehaviour
                     healthMonitorEquipClicked = healthMonitor;
                 if (GUILayout.Button("Drop", GUILayout.Width(50)))
                     healthMonitorDropClicked = healthMonitor;
+            }
+            else if (slot.equipment is Sunglasses sunglasses)
+            {
+                GUILayout.Label(label, DebugGUI.Label);
+                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                    sunglassesEquipClicked = sunglasses;
+                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                    sunglassesDropClicked = sunglasses;
             }
             else
             {
@@ -348,6 +360,10 @@ public class InventoryScreen : MonoBehaviour
             healthMonitorCarrier.Equip(healthMonitorEquipClicked);
         if (healthMonitorDropClicked != null)
             healthMonitorCarrier.Drop(healthMonitorDropClicked);
+        if (sunglassesEquipClicked != null)
+            sunglassesCarrier.Equip(sunglassesEquipClicked);
+        if (sunglassesDropClicked != null)
+            sunglassesCarrier.Drop(sunglassesDropClicked);
     }
 
     private void DrawEquipmentSection()
@@ -363,6 +379,9 @@ public class InventoryScreen : MonoBehaviour
         PersonalHealthMonitor healthMonitorEquipClicked = null;
         PersonalHealthMonitor healthMonitorUnequipClicked = null;
         PersonalHealthMonitor healthMonitorDropClicked = null;
+        Sunglasses sunglassesEquipClicked = null;
+        Sunglasses sunglassesUnequipClicked = null;
+        Sunglasses sunglassesDropClicked = null;
 
         foreach (var slotName in SlotOrder)
         {
@@ -378,6 +397,7 @@ public class InventoryScreen : MonoBehaviour
             Canteen canteenHere = null;
             NavigationComputer navComputerHere = null;
             PersonalHealthMonitor healthMonitorHere = null;
+            Sunglasses sunglassesHere = null;
 
             for (int i = 0; i < slotInventory.Capacity; i++)
             {
@@ -412,6 +432,7 @@ public class InventoryScreen : MonoBehaviour
                     if (entry.equipment is Canteen ct) canteenHere = ct;
                     if (entry.equipment is NavigationComputer nc) navComputerHere = nc;
                     if (entry.equipment is PersonalHealthMonitor phm) healthMonitorHere = phm;
+                    if (entry.equipment is Sunglasses sg) sunglassesHere = sg;
                 }
                 else
                 {
@@ -471,6 +492,19 @@ public class InventoryScreen : MonoBehaviour
 
                 if (GUILayout.Button("Drop", GUILayout.Width(50))) healthMonitorDropClicked = healthMonitorHere;
             }
+            else if (sunglassesHere != null)
+            {
+                if (slotName == "Face")
+                {
+                    if (GUILayout.Button("Unequip", GUILayout.Width(70))) sunglassesUnequipClicked = sunglassesHere;
+                }
+                else
+                {
+                    if (GUILayout.Button("Equip", GUILayout.Width(55))) sunglassesEquipClicked = sunglassesHere;
+                }
+
+                if (GUILayout.Button("Drop", GUILayout.Width(50))) sunglassesDropClicked = sunglassesHere;
+            }
 
             GUILayout.EndHorizontal();
 
@@ -489,6 +523,9 @@ public class InventoryScreen : MonoBehaviour
         if (healthMonitorEquipClicked != null) healthMonitorCarrier.Equip(healthMonitorEquipClicked);
         if (healthMonitorUnequipClicked != null) healthMonitorCarrier.Unequip(healthMonitorUnequipClicked);
         if (healthMonitorDropClicked != null) healthMonitorCarrier.Drop(healthMonitorDropClicked);
+        if (sunglassesEquipClicked != null) sunglassesCarrier.Equip(sunglassesEquipClicked);
+        if (sunglassesUnequipClicked != null) sunglassesCarrier.Unequip(sunglassesUnequipClicked);
+        if (sunglassesDropClicked != null) sunglassesCarrier.Drop(sunglassesDropClicked);
     }
 
     // Draws an inventory's own capacity as a wrapped grid of boxes. Occupied

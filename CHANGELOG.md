@@ -5,12 +5,35 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.25-dev` — must always match `GameVersion` in
+**Current version:** `0.1.26-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.26-dev — Sunglasses: a silver screen tint while worn on the face
+New `Sunglasses` (`IInteractable` + `IEquippable`) carried by
+`PlayerSunglasses`, built like `PlayerBackpack` rather than the wrist
+gadgets — a single destination slot (`Face`) instead of trying two. Face
+has capacity 2 (room for a second accessory later), so unlike the
+capacity-1 wrist/back slots, `PlayerEquipment.GetEquipped`'s "first
+equipped item" isn't reliable for finding *this* instance — `Equipped`
+and `FindSlot` instead scan the Face slot's own entries for a `Sunglasses`
+specifically. Same pickup-priority/Unequip-fallback/Drop pattern as every
+other equippable this session.
+
+While worn, `PlayerSunglasses.OnGUI` draws a light silver, 25%-alpha
+full-screen texture over everything — a pure visual filter with no
+gameplay effect. Unequipping or dropping them means `Equipped` goes null
+and the overlay stops drawing, the same "equip gates the HUD" pattern as
+the Nav Computer's compass and the Health Monitor's vitals panel.
+
+Craftable from 1 Rock Knife (`SunglassesRecipe.asset`, trains Crafting,
+skill gain 2 — cheaper than the electronic gadgets' 3), and one is placed
+in `TestScene` at `(-3.5, 0.3, 1.5)` as a world pickup. World Rigidbody
+set to ContinuousDynamic collision detection from the start (see
+[[gridless-ground-tunneling]]).
 
 ### v0.1.25-dev — Personal Health Monitor: wrist-worn vitals HUD
 Second wrist-worn gadget alongside the Navigation Computer, built the same
