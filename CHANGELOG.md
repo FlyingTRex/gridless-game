@@ -5,12 +5,46 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.33-dev` — must always match `GameVersion` in
+**Current version:** `0.1.34-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.34-dev — Fix bugs from playtesting: canteen visuals, fills from anywhere, overdrinking, equipment transfer
+
+Five bugs found during canteen/backpack testing, rooted in several underlying issues:
+
+- **Canteen visual feedback missing when dropped.** Canteen didn't change appearance
+  based on liquid state — added material swapping (blue when filled, gray when empty)
+  via `UpdateVisuals()` called after Fill/Drink. Materials are asset references with
+  fallback to null if not assigned.
+- **Canteen fills from anywhere on the map.** No location check existed — added
+  `IWaterSource` interface and `WaterSource` component so only world objects marked as
+  water sources allow filling. Canteen.Fill now checks `HasNearbyWaterSource()` within
+  `fillRange` (2m default) before allowing a fill. Created `WaterSource.cs` as a simple
+  marker component for placement in the scene.
+- **Overdrinking mechanic not implemented.** Player could drink past 100% thirst with
+  no consequence. `PlayerVitals` now allows Thirst to be restored up to 125% (changed
+  `Mathf.Min(100f, ...)` to `Mathf.Min(125f, ...)` in Restore). When thirst exceeds
+  `overdrinkSicknessThreshold` (100), player takes `overdrinkSicknessDamagePerSecond`
+  (5 default) health damage. Sickness clears once thirst drops back to
+  `overdrinkRecoveryThreshold` (50). Stored `isOverdrunkSick` state to gate the logic.
+- **Moving items from a backpack/container orphans held equippables.** Root cause:
+  `InventoryTransfer.Move` uses generic `RemoveItem`/`AddItem` which strip equipment
+  references, leaving the real Canteen/Backpack physically attached but with no
+  inventory slot referencing it (and no Fill/Drink/Equip buttons). This was a known
+  gotcha already documented in `CLAUDE.md`. Added guard at the top of `Move()`: if any
+  slot holding the item has `equipment != null`, refuse to move it (return false).
+  Equipment-type items must route through type-specific handlers
+  (PlayerCanteen.Equip/Unequip/Drop, PlayerBackpack.Equip/Unequip/Drop) instead.
+- **Right-click-to-drop stick in backpack removes backpack.** Likely same root cause as
+  the orphaning bug above — when the move popup tried to shift the item via the generic
+  path, equipment references were stripped. The guard added to `InventoryTransfer.Move`
+  should now prevent this by refusing the move entirely.
+
+### v0.1.33-dev — Fix bugs found after pulling 0.1.5-0.1.32: worn-item visibility, a Canteen-corrupting eviction bug
 
 ### v0.1.33-dev — Fix bugs found after pulling 0.1.5-0.1.32: worn-item visibility, a Canteen-corrupting eviction bug
 User report after playtesting the batch of work from the other session (Sunglasses,

@@ -26,8 +26,12 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float staminaExhaustionRecoveryThreshold = 25f;
     [SerializeField] private float bodyTemperatureNeutral = 50f;
     [SerializeField] private float bodyTemperatureDriftPerSecond = 2f;
+    [SerializeField] private float overdrinkSicknessThreshold = 100f;
+    [SerializeField] private float overdrinkSicknessDamagePerSecond = 5f;
+    [SerializeField] private float overdrinkRecoveryThreshold = 50f;
 
     private bool isExhausted;
+    private bool isOverdrunkSick;
 
     public float Health => health;
     public float Hunger => hunger;
@@ -46,7 +50,14 @@ public class PlayerVitals : MonoBehaviour
         hunger = Mathf.Max(0f, hunger - hungerDrainPerSecond * dt);
         thirst = Mathf.Max(0f, thirst - thirstDrainPerSecond * dt);
 
-        if (hunger <= 0f || thirst <= 0f)
+        if (thirst > overdrinkSicknessThreshold)
+        {
+            isOverdrunkSick = true;
+            health = Mathf.Max(0f, health - overdrinkSicknessDamagePerSecond * dt);
+            if (thirst <= overdrinkRecoveryThreshold)
+                isOverdrunkSick = false;
+        }
+        else if (hunger <= 0f || thirst <= 0f)
             health = Mathf.Max(0f, health - starvationDamagePerSecond * dt);
         else if (hunger > 50f && thirst > 50f)
             health = Mathf.Min(100f, health + healthRegenPerSecond * dt);
@@ -77,7 +88,7 @@ public class PlayerVitals : MonoBehaviour
         {
             case VitalType.Health: health = Mathf.Min(100f, health + amount); break;
             case VitalType.Hunger: hunger = Mathf.Min(100f, hunger + amount); break;
-            case VitalType.Thirst: thirst = Mathf.Min(100f, thirst + amount); break;
+            case VitalType.Thirst: thirst = Mathf.Min(125f, thirst + amount); break;
             case VitalType.Stamina: stamina = Mathf.Min(100f, stamina + amount); break;
         }
     }

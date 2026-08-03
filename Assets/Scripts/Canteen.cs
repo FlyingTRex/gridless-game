@@ -2,6 +2,7 @@ using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(Renderer))]
 public class Canteen : MonoBehaviour, IInteractable, IEquippable
 {
     // Excluded from the player's own camera while worn — see Backpack.cs for
@@ -13,9 +14,15 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
     [SerializeField] private string canteenName = "Canteen";
     [SerializeField] private float capacity = 100f;
     [SerializeField] private float drinkAmount = 25f;
+    [SerializeField] private Material emptyMaterial;
+    [SerializeField] private Material filledMaterial;
+    [SerializeField] private float fillRange = 2f;
 
     private Rigidbody body;
     private Collider col;
+    private Renderer rend;
+    private Color originalColor;
+    private Material workingMaterial;
 
     public string DisplayName => canteenName;
     public LiquidType? Liquid { get; private set; }
@@ -32,6 +39,14 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
     {
         body = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
+        rend = GetComponent<Renderer>();
+
+        if (rend != null && emptyMaterial != null)
+        {
+            workingMaterial = new Material(emptyMaterial);
+            rend.material = workingMaterial;
+            originalColor = workingMaterial.color;
+        }
     }
 
     public void Complete(GameObject player)
@@ -42,12 +57,39 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
 
     // A canteen only ever holds liquid, never items — filling replaces
     // whatever's in it unless it's already carrying a different liquid.
+    // Only succeeds if there's a water source nearby.
     public bool Fill(LiquidType type)
     {
         if (Liquid.HasValue && Liquid.Value != type) return false;
+
+        if (!HasNearbyWaterSource())
+            return false;
+
         Liquid = type;
         Amount = capacity;
+        UpdateVisuals();
         return true;
+    }
+
+    private bool HasNearbyWaterSource()
+    {
+        var colliders = Physics.OverlapSphere(transform.position, fillRange);
+        foreach (var col in colliders)
+        {
+            if (col.GetComponent<IWaterSource>() != null)
+                return true;
+        }
+        return false;
+    }
+
+    private void UpdateVisuals()
+    {
+        if (rend == null || workingMaterial == null) return;
+
+        if (IsEmpty && emptyMaterial != null)
+            rend.material = new Material(emptyMaterial);
+        else if (!IsEmpty && filledMaterial != null)
+            rend.material = new Material(filledMaterial);
     }
 
     public bool Drink(PlayerVitals vitals)
@@ -58,6 +100,7 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
         Amount -= used;
         vitals?.Restore(VitalType.Thirst, used);
         if (Amount <= 0f) Liquid = null;
+        UpdateVisuals();
         return true;
     }
 
