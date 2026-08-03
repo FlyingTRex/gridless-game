@@ -84,12 +84,23 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
 
     private void UpdateVisuals()
     {
-        if (rend == null || workingMaterial == null) return;
+        if (rend == null) return;
 
-        if (IsEmpty && emptyMaterial != null)
-            rend.material = new Material(emptyMaterial);
-        else if (!IsEmpty && filledMaterial != null)
-            rend.material = new Material(filledMaterial);
+        if (IsEmpty)
+        {
+            if (emptyMaterial != null)
+                rend.material = new Material(emptyMaterial);
+        }
+        else
+        {
+            if (filledMaterial != null)
+                rend.material = new Material(filledMaterial);
+            else if (workingMaterial != null)
+            {
+                workingMaterial.color = new Color(0.2f, 0.6f, 0.9f, 1f);
+                rend.material = workingMaterial;
+            }
+        }
     }
 
     public bool Drink(PlayerVitals vitals)
