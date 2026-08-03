@@ -3435,6 +3435,7 @@ GameObject:
   - component: {fileID: 1681626256}
   - component: {fileID: 1681626258}
   - component: {fileID: 1681626257}
+  - component: {fileID: 1681626259}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -3882,6 +3883,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 174526fbd8ddf4b4daf28088bb46dbbb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BankScreen
+  lockboxMaterials:
+  - {fileID: 2100000, guid: b9bd474d56f63254b8ccdcc0d309d817, type: 2}
+  - {fileID: 2100000, guid: 4c980052239c7ba40adeda82c68bbe03, type: 2}
+  - {fileID: 2100000, guid: 9d14ae54e8ce1654c9ae1080a888c27a, type: 2}
+  - {fileID: 2100000, guid: 4c886e861d11e834a8b981934a386e31, type: 2}
+  - {fileID: 2100000, guid: 4da76da4c5b33a64ea1091197827e7e8, type: 2}
+  lockboxScale: {x: 0.5, y: 0.4, z: 0.4}
+  lockboxSpawnDistance: 2
 --- !u!114 &1681626258
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3894,6 +3903,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0085076d7db6e648b6b54811fda5bdb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBank
+--- !u!114 &1681626259
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ffa9ad3f01c7ec43be9d97f069e2c48, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LockboxScreen
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0

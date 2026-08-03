@@ -14,6 +14,6 @@ public class BankBox : MonoBehaviour, IInteractable
 
     public void Complete(GameObject player)
     {
-        player.GetComponent<BankScreen>()?.Open();
+        player.GetComponent<BankScreen>()?.Open(this);
     }
 }

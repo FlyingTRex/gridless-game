@@ -5,12 +5,46 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.43-dev` — must always match `GameVersion` in
+**Current version:** `0.1.44-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.44-dev — Five crafting-quality tiers decided; purchasable coin Lockboxes
+Updated `docs/design-brief.md`'s Phase 1 wishlist with the five decided
+crafting-quality tier names — **Crude, Rudimentary, (no adjective —
+Normal), Fine, Masterwork** — superseding `game-overview.md`'s
+never-reconciled "Crude/Standard/Mastery" three-tier mention. New
+`CraftTier` enum + `CraftTierNames` (the display-name prefix helper —
+Normal gets none) + `CraftTierScale` (suggested capacity/price modifiers:
+0.2×/0.5×/1×/2×/5×, chosen so every tier's numbers come out a clean whole
+number off the Normal baseline).
+
+New `Lockbox` — personal coin storage, purchasable from the bank in any of
+the five tiers. Normal holds 2,500 of each coin type for 10 Gold; the
+other four tiers scale both capacity and price by the same
+`CraftTierScale` modifier (Crude: 500/2g, Rudimentary: 1,250/5g, Fine:
+5,000/20g, Masterwork: 12,500/50g). Unlike `PlayerBank`, each Lockbox is
+its own world object with its own balances — buying two doesn't pool
+their capacity.
+
+New `LockboxScreen` (E to open a specific Lockbox, no hotkey — same
+reasoning as the bank) shows wallet vs. that box's balance per coin type
+with Deposit/Withdraw. Deposit is capped by the box's remaining capacity
+for that type; Withdraw is capped by both what the box holds *and* what
+the wallet has room for (`PlayerCurrency.MaxBalance`) — pulling 1,000 Gold
+isn't possible if the wallet can't hold that much even if the box does.
+Neither direction charges the bank's 3% fee — purchasing a Lockbox isn't
+one of the fee-bearing deposit/withdraw/exchange transactions, and moving
+coins into your own already-purchased box is closer to personal storage
+(like a `StorageBox`) than a bank transaction.
+
+`BankScreen` gained a Lockbox shop section — Buy per tier, greyed out
+below the Gold price — and now takes the `BankBox` it was opened from so
+a purchased Lockbox spawns 2m in front of *that* box rather than the
+player.
 
 ### v0.1.43-dev — Global bank: deposit, withdraw, exchange (Phase 3 commerce, early)
 New `PlayerBank` — a global account (no per-branch ledger; any `BankBox`

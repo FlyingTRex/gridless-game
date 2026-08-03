@@ -16,11 +16,26 @@ public class BankScreen : MonoBehaviour
         ("Platinum", CoinType.Platinum),
     };
 
+    private static readonly CraftTier[] LockboxTierOrder =
+    {
+        CraftTier.Crude, CraftTier.Rudimentary, CraftTier.Normal, CraftTier.Fine, CraftTier.Masterwork,
+    };
+
     private const float PanelWidth = 480f;
-    private const float PanelHeight = 430f;
+    private const float PanelHeight = 620f;
+
+    // Lockbox baseline (CraftTier.Normal): capacity per coin type and
+    // Gold price, scaled per tier by CraftTierScale.Modifier.
+    private const int LockboxBaseCapacity = 2500;
+    private const int LockboxBasePrice = 10;
+
+    [SerializeField] private Material[] lockboxMaterials; // indexed by CraftTier
+    [SerializeField] private Vector3 lockboxScale = new Vector3(0.5f, 0.4f, 0.4f);
+    [SerializeField] private float lockboxSpawnDistance = 2f;
 
     private PlayerCurrency wallet;
     private PlayerBank bank;
+    private Transform bankBoxOrigin;
     private bool isOpen;
 
     // Pending Deposit/Withdraw quantity popup.
@@ -44,9 +59,10 @@ public class BankScreen : MonoBehaviour
     // Called by BankBox.Complete. Only opens from normal gameplay — same
     // rule every other screen follows, so it can't stack on top of one
     // that already has the cursor unlocked.
-    public void Open()
+    public void Open(BankBox box)
     {
         if (Cursor.lockState != CursorLockMode.Locked) return;
+        bankBoxOrigin = box != null ? box.transform : transform;
         SetOpen(true);
     }
 
@@ -133,6 +149,27 @@ public class BankScreen : MonoBehaviour
         }
 
         GUILayout.Space(10);
+        GUILayout.Label("Lockboxes (personal coin storage, purchased with Gold)", DebugGUI.Header);
+
+        CraftTier? buyClicked = null;
+        foreach (var tier in LockboxTierOrder)
+        {
+            int capacity = LockboxCapacity(tier);
+            int price = LockboxPrice(tier);
+            string name = CraftTierNames.WithPrefix(tier, "Lockbox");
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"{name} — {capacity}/type — {price} Gold", DebugGUI.Label, GUILayout.Width(300));
+            GUI.enabled = wallet.GetBalance(CoinType.Gold) >= price;
+            if (GUILayout.Button("Buy", GUILayout.Width(60))) buyClicked = tier;
+            GUI.enabled = true;
+            GUILayout.EndHorizontal();
+        }
+
+        if (buyClicked != null)
+            BuyLockbox(buyClicked.Value);
+
+        GUILayout.Space(10);
         if (GUILayout.Button("Close", GUILayout.Width(100)))
             SetOpen(false);
 
@@ -140,6 +177,40 @@ public class BankScreen : MonoBehaviour
 
         DrawDepositWithdrawPopup();
         DrawExchangePopup();
+    }
+
+    private static int LockboxCapacity(CraftTier tier) =>
+        Mathf.RoundToInt(LockboxBaseCapacity * CraftTierScale.Modifier(tier));
+
+    private static int LockboxPrice(CraftTier tier) =>
+        Mathf.RoundToInt(LockboxBasePrice * CraftTierScale.Modifier(tier));
+
+    // Lockbox purchases aren't one of the fee-bearing transaction types
+    // (deposit/withdraw/exchange) — just a flat Gold price, paid from the
+    // wallet like any other purchase.
+    private void BuyLockbox(CraftTier tier)
+    {
+        int price = LockboxPrice(tier);
+        if (!wallet.Spend(CoinType.Gold, price)) return;
+
+        Transform origin = bankBoxOrigin != null ? bankBoxOrigin : transform;
+        Vector3 spawnPos = origin.position + origin.forward * lockboxSpawnDistance;
+        SpawnLockbox(tier, spawnPos);
+    }
+
+    private void SpawnLockbox(CraftTier tier, Vector3 position)
+    {
+        var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        go.transform.position = position;
+        go.transform.localScale = lockboxScale;
+
+        int index = (int)tier;
+        if (lockboxMaterials != null && index < lockboxMaterials.Length && lockboxMaterials[index] != null)
+            go.GetComponent<Renderer>().sharedMaterial = lockboxMaterials[index];
+
+        var lockbox = go.AddComponent<Lockbox>();
+        lockbox.Configure(tier);
+        go.name = lockbox.DisplayName;
     }
 
     // Deposit: wallet pays amount + fee, bank receives exactly amount.
