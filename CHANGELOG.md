@@ -5,12 +5,27 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.34-dev` — must always match `GameVersion` in
+**Current version:** `0.1.35-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.35-dev — Always-on Health/Stamina/Hunger/Thirst bar HUD
+New `VitalsBarHUD`, a permanent bottom-center 2×2 grid (Health/Stamina top
+row, Hunger/Thirst bottom row) — deliberately independent of
+`PlayerHealthMonitor`'s detailed text panel from a few versions back,
+which stays gated behind wearing a monitor; this is a baseline glanceable
+readout that's always there.
+
+Each bar's full width represents 150% of a stat's normal max (100), not
+100% — `fraction = Mathf.Clamp01(value / 150f)`, so under the game's
+ordinary 0-100 range every bar's top third stays visually
+empty/transparent by design (reserved headroom, not a bug), only filling
+past two-thirds if something ever pushes a stat above 100. Color-coded per
+stat (red/gold/orange/blue) with the numeric value overlaid as centered
+text. Added to the `Player` GameObject in `TestScene`.
 
 ### v0.1.34-dev — Movement locks while any screen has the cursor unlocked
 User report: typing a space into the rename box's text field also jumped
