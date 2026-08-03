@@ -1,0 +1,62 @@
+using UnityEngine;
+
+[RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(Collider))]
+public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
+{
+    [SerializeField] private string backpackName = "Rough Backpack";
+    [SerializeField] private int capacity = 8;
+
+    private Inventory inventory;
+    private Rigidbody body;
+    private Collider col;
+
+    public Inventory Inventory => inventory;
+    public string DisplayName => backpackName;
+
+    public string Prompt => $"Pick up {backpackName}";
+    public bool IsInstant => true;
+    public float HoldDuration => 0f;
+
+    private void Awake()
+    {
+        inventory = new Inventory(capacity);
+        body = GetComponent<Rigidbody>();
+        col = GetComponent<Collider>();
+    }
+
+    public void Complete(PlayerInventory playerInventory, PlayerSkills skills)
+    {
+        var carrier = playerInventory.GetComponent<PlayerBackpack>();
+        carrier?.PickUp(this);
+    }
+
+    // Fully hides the object while it's stashed in a regular inventory slot
+    // rather than sitting in the world or worn on the back.
+    public void Stash()
+    {
+        transform.SetParent(null, false);
+        gameObject.SetActive(false);
+    }
+
+    // Worn on the back (visible, non-collidable, follows the player) when
+    // anchor is set, or released back into the world as a normal physical
+    // object when anchor is null.
+    public void SetCarried(bool value, Transform anchor)
+    {
+        gameObject.SetActive(true);
+        col.enabled = !value;
+        body.isKinematic = value;
+
+        if (value)
+        {
+            transform.SetParent(anchor, false);
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+        }
+        else
+        {
+            transform.SetParent(null, true);
+        }
+    }
+}

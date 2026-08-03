@@ -1,49 +1,95 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 [DisallowMultipleComponent]
-public class PlayerInventory : MonoBehaviour
+public class PlayerInventory : MonoBehaviour, IInventoryHolder
 {
-    [System.Serializable]
-    public class Slot
+    [SerializeField] private int capacity = 4;
+
+    private Inventory inventory;
+    private PlayerCrafting crafting;
+    private PlayerDropping dropping;
+    private PlayerBackpack backpackCarrier;
+
+    public Inventory Inventory => inventory;
+    public string DisplayName => "Inventory";
+
+    private void Awake()
     {
-        public ItemDefinition item;
-        public int count;
+        inventory = new Inventory(capacity);
+        crafting = GetComponent<PlayerCrafting>();
+        dropping = GetComponent<PlayerDropping>();
+        backpackCarrier = GetComponent<PlayerBackpack>();
     }
 
-    private readonly List<Slot> slots = new List<Slot>();
-    public IReadOnlyList<Slot> Slots => slots;
+    // Returns the amount that did NOT fit (0 means everything was added).
+    public int AddItem(ItemDefinition item, int quantity) => inventory.AddItem(item, quantity);
 
-    public void AddItem(ItemDefinition item, int quantity)
-    {
-        if (item == null || quantity <= 0) return;
+    public bool RemoveItem(ItemDefinition item, int quantity) => inventory.RemoveItem(item, quantity);
 
-        foreach (var slot in slots)
-        {
-            if (slot.item == item && slot.count < item.maxStack)
-            {
-                int space = item.maxStack - slot.count;
-                int add = Mathf.Min(space, quantity);
-                slot.count += add;
-                quantity -= add;
-                if (quantity <= 0) return;
-            }
-        }
-
-        while (quantity > 0)
-        {
-            int add = Mathf.Min(item.maxStack, quantity);
-            slots.Add(new Slot { item = item, count = add });
-            quantity -= add;
-        }
-    }
+    public int GetCount(ItemDefinition item) => inventory.GetCount(item);
 
     private void OnGUI()
     {
-        GUILayout.BeginArea(new Rect(10, 10, 220, 300));
+        GUILayout.BeginArea(new Rect(10, 10, 300, 340));
         GUILayout.Label("Inventory", GUI.skin.box);
-        foreach (var slot in slots)
-            GUILayout.Label($"{slot.item.itemName} x{slot.count}");
+
+        ItemDefinition craftClicked = null;
+        ItemDefinition dropClicked = null;
+        ItemDefinition packClicked = null;
+        Backpack equipClicked = null;
+        Backpack backpackDropClicked = null;
+        var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
+
+        var slots = inventory.Slots;
+        for (int i = 0; i < slots.Count; i++)
+        {
+            var slot = slots[i];
+            string label = $"{slot.item.itemName} x{slot.count}";
+
+            GUILayout.BeginHorizontal();
+
+            if (slot.equipment is Backpack backpack)
+            {
+                GUILayout.Label(label);
+                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                    equipClicked = backpack;
+                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                    backpackDropClicked = backpack;
+            }
+            else
+            {
+                var recipe = crafting != null ? crafting.FindRecipe(slot.item) : null;
+                if (recipe != null)
+                {
+                    if (GUILayout.Button($"{label}  (craft {recipe.outputItem.itemName})"))
+                        craftClicked = slot.item;
+                }
+                else
+                {
+                    GUILayout.Label(label);
+                }
+
+                if (dropping != null && GUILayout.Button("Drop", GUILayout.Width(50)))
+                    dropClicked = slot.item;
+
+                if (equippedBackpack != null && GUILayout.Button("To Pack", GUILayout.Width(60)))
+                    packClicked = slot.item;
+            }
+
+            GUILayout.EndHorizontal();
+        }
+
         GUILayout.EndArea();
+
+        if (craftClicked != null)
+            crafting.TryCraft(craftClicked);
+        if (dropClicked != null)
+            dropping.Drop(dropClicked);
+        if (packClicked != null)
+            InventoryTransfer.Move(inventory, equippedBackpack.Inventory, packClicked, inventory.GetCount(packClicked));
+        if (equipClicked != null)
+            backpackCarrier.Equip(equipClicked);
+        if (backpackDropClicked != null)
+            backpackCarrier.Drop(backpackDropClicked);
     }
 }

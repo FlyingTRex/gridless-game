@@ -11,9 +11,22 @@ public class Pickup : MonoBehaviour, IInteractable
     public bool IsInstant => true;
     public float HoldDuration => 0f;
 
+    public void Configure(ItemDefinition newItem, int newQuantity)
+    {
+        item = newItem;
+        quantity = newQuantity;
+    }
+
     public void Complete(PlayerInventory inventory, PlayerSkills skills)
     {
-        inventory.AddItem(item, quantity);
+        int leftover = inventory.AddItem(item, quantity);
+        if (leftover > 0)
+        {
+            // Inventory is full — leave the remainder on the ground instead of deleting it.
+            quantity = leftover;
+            return;
+        }
+
         skills?.GainExperience(trainedSkill, skillGain);
         Destroy(gameObject);
     }
