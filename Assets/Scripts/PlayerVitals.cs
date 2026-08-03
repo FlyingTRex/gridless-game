@@ -11,6 +11,11 @@ public enum VitalType
 [DisallowMultipleComponent]
 public class PlayerVitals : MonoBehaviour
 {
+    // Stamina must be at or above this percentage to get the sprint speed
+    // bonus at all — below it, FirstPersonController caps movement to
+    // normal walk speed regardless of whether sprint is held.
+    public const float SprintStaminaThreshold = 85f;
+
     [SerializeField] private float health = 100f;
     [SerializeField] private float hunger = 100f;
     [SerializeField] private float thirst = 100f;
@@ -22,8 +27,8 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float starvationDamagePerSecond = 2f;
     [SerializeField] private float healthRegenPerSecond = 1f;
     [SerializeField] private float staminaDrainPerSecond = 10f;
+    [SerializeField] private float walkStaminaDrainPerSecond = 2f;
     [SerializeField] private float staminaRegenPerSecond = 6f;
-    [SerializeField] private float staminaExhaustionRecoveryThreshold = 25f;
     [SerializeField] private float bodyTemperatureNeutral = 50f;
     [SerializeField] private float bodyTemperatureDriftPerSecond = 2f;
     [SerializeField] private float overdrinkSicknessThreshold = 125f;
@@ -31,7 +36,6 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float overdrinkRecoveryThreshold = 50f;
     [SerializeField] private float overdrinkThirstRecoveryPerSecond = 10f;
 
-    private bool isExhausted;
     private bool isOverdrunkSick;
 
     public float Health => health;
@@ -43,7 +47,18 @@ public class PlayerVitals : MonoBehaviour
 
     public bool IsSprinting { get; set; }
 
-    public bool CanSprint => !isExhausted && stamina > 0f;
+    // Set every frame by FirstPersonController — true while moving
+    // normally (standing, not getting the sprint bonus), including
+    // attempted sprints below SprintStaminaThreshold. Drains stamina at a
+    // slower rate than sprinting.
+    public bool IsWalking { get; set; }
+
+    // Set every frame by FirstPersonController based on movement/stance —
+    // stamina only climbs back up while stopped, kneeling, crawling, or
+    // prone.
+    public bool CanRegenStamina { get; set; } = true;
+
+    public bool CanSprint => stamina >= SprintStaminaThreshold;
 
     private void Update()
     {
@@ -71,14 +86,12 @@ public class PlayerVitals : MonoBehaviour
         else if (hunger > 50f && thirst > 50f)
             health = Mathf.Min(100f, health + healthRegenPerSecond * dt);
 
-        stamina = IsSprinting
-            ? Mathf.Max(0f, stamina - staminaDrainPerSecond * dt)
-            : Mathf.Min(100f, stamina + staminaRegenPerSecond * dt);
-
-        if (stamina <= 0f)
-            isExhausted = true;
-        else if (stamina >= staminaExhaustionRecoveryThreshold)
-            isExhausted = false;
+        if (IsSprinting)
+            stamina = Mathf.Max(0f, stamina - staminaDrainPerSecond * dt);
+        else if (IsWalking)
+            stamina = Mathf.Max(0f, stamina - walkStaminaDrainPerSecond * dt);
+        else if (CanRegenStamina)
+            stamina = Mathf.Min(100f, stamina + staminaRegenPerSecond * dt);
 
         bodyTemperature = Mathf.MoveTowards(bodyTemperature, bodyTemperatureNeutral,
             bodyTemperatureDriftPerSecond * dt);
@@ -87,8 +100,6 @@ public class PlayerVitals : MonoBehaviour
     public void ConsumeStamina(float amount)
     {
         stamina = Mathf.Clamp(stamina - amount, 0f, 100f);
-        if (stamina <= 0f)
-            isExhausted = true;
     }
 
     public void Restore(VitalType vital, float amount)

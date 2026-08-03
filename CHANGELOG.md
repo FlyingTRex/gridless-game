@@ -5,21 +5,28 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.35-dev` — must always match `GameVersion` in
+**Current version:** `0.1.46-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
 
-### v0.1.35-dev — Second playtest pass: canteen still white, overdrink threshold wrong, Sunglasses orphaned, direct water-source interaction
+### v0.1.46-dev — Second playtest pass: canteen still white, overdrink threshold wrong, Sunglasses orphaned, direct water-source interaction
 
-The v0.1.34-dev fixes below didn't fully hold up under a second round of testing —
+Merged with Ben's parallel session (v0.1.36-dev through v0.1.44-dev below), which had
+already claimed the v0.1.34-dev/v0.1.35-dev numbers for unrelated work before either
+session saw the other's commits — this entry and the one below were renumbered up
+from their original local v0.1.35-dev/v0.1.34-dev to land after that chain instead of
+colliding with it.
+
+The v0.1.45-dev fixes below (originally v0.1.34-dev locally) didn't fully hold up
+under a second round of testing —
 three of the four "fixed" items had a real bug still hiding underneath, plus one
 brand-new feature request.
 
 - **Canteen full but still showing white.** Root cause was never the material/color
-  logic added in v0.1.34-dev — it was that `Canteen.cs` looked up its `Renderer` with
+  logic added in v0.1.45-dev — it was that `Canteen.cs` looked up its `Renderer` with
   a plain `GetComponent<Renderer>()`, but the prefab's actual mesh renderers live on
   child objects ("Body"/"Cap"), not the root the script sits on. `rend` was `null`
   the entire time, so `UpdateVisuals()` was silently a no-op regardless of fill
@@ -28,7 +35,7 @@ brand-new feature request.
   `Material.color` only reliably touches `_Color`, which URP/Lit doesn't render from
   (`_BaseColor` does); added a `SetTint`/`GetTint` helper that sets both so the color
   change is guaranteed to actually render regardless of shader.
-- **Overdrink sickness threshold was wrong.** Implemented in v0.1.34-dev as ">100%
+- **Overdrink sickness threshold was wrong.** Implemented in v0.1.45-dev as ">100%
   thirst triggers sickness", but the actual intended design (confirmed by user) is
   "125% is the safe ceiling, sickness triggers only above it." Moved
   `overdrinkSicknessThreshold` from 100 to 125, and raised the `Restore(Thirst)` cap
@@ -49,7 +56,7 @@ brand-new feature request.
   (`PlayerHealthMonitor`) via a new bold-red `DebugGUI.Warning` style — previously
   there was no UI indication sickness was even happening.
 - **Sunglasses moved from a backpack to a hand became permanently unequippable.**
-  Same root cause as the Canteen orphaning bug from v0.1.34-dev, still present
+  Same root cause as the Canteen orphaning bug from v0.1.45-dev, still present
   despite that entry's changelog description — see the `CLAUDE.md` gotcha section for
   the full story of why the earlier fix didn't actually ship. `InventoryTransfer.Move`
   now detects an `equipment`-backed slot and preserves the reference across the move
@@ -65,7 +72,7 @@ brand-new feature request.
   Sunglasses/PersonalHealthMonitor it never had one, since a canteen has no dedicated
   "worn" slot (holding it in a hand or at the waist is what equipped means for it).
 
-### v0.1.34-dev — Fix bugs from playtesting: canteen visuals, fills from anywhere, overdrinking, equipment transfer
+### v0.1.45-dev — Fix bugs from playtesting: canteen visuals, fills from anywhere, overdrinking, equipment transfer
 
 Five bugs found during canteen/backpack testing, rooted in several underlying issues:
 
@@ -96,6 +103,219 @@ Five bugs found during canteen/backpack testing, rooted in several underlying is
   the orphaning bug above — when the move popup tried to shift the item via the generic
   path, equipment references were stripped. The guard added to `InventoryTransfer.Move`
   should now prevent this by refusing the move entirely.
+
+### v0.1.44-dev — Five crafting-quality tiers decided; purchasable coin Lockboxes
+Updated `docs/design-brief.md`'s Phase 1 wishlist with the five decided
+crafting-quality tier names — **Crude, Rudimentary, (no adjective —
+Normal), Fine, Masterwork** — superseding `game-overview.md`'s
+never-reconciled "Crude/Standard/Mastery" three-tier mention. New
+`CraftTier` enum + `CraftTierNames` (the display-name prefix helper —
+Normal gets none) + `CraftTierScale` (suggested capacity/price modifiers:
+0.2×/0.5×/1×/2×/5×, chosen so every tier's numbers come out a clean whole
+number off the Normal baseline).
+
+New `Lockbox` — personal coin storage, purchasable from the bank in any of
+the five tiers. Normal holds 2,500 of each coin type for 10 Gold; the
+other four tiers scale both capacity and price by the same
+`CraftTierScale` modifier (Crude: 500/2g, Rudimentary: 1,250/5g, Fine:
+5,000/20g, Masterwork: 12,500/50g). Unlike `PlayerBank`, each Lockbox is
+its own world object with its own balances — buying two doesn't pool
+their capacity.
+
+New `LockboxScreen` (E to open a specific Lockbox, no hotkey — same
+reasoning as the bank) shows wallet vs. that box's balance per coin type
+with Deposit/Withdraw. Deposit is capped by the box's remaining capacity
+for that type; Withdraw is capped by both what the box holds *and* what
+the wallet has room for (`PlayerCurrency.MaxBalance`) — pulling 1,000 Gold
+isn't possible if the wallet can't hold that much even if the box does.
+Neither direction charges the bank's 3% fee — purchasing a Lockbox isn't
+one of the fee-bearing deposit/withdraw/exchange transactions, and moving
+coins into your own already-purchased box is closer to personal storage
+(like a `StorageBox`) than a bank transaction.
+
+`BankScreen` gained a Lockbox shop section — Buy per tier, greyed out
+below the Gold price — and now takes the `BankBox` it was opened from so
+a purchased Lockbox spawns 2m in front of *that* box rather than the
+player.
+
+### v0.1.43-dev — Global bank: deposit, withdraw, exchange (Phase 3 commerce, early)
+New `PlayerBank` — a global account (no per-branch ledger; any `BankBox`
+reads/writes the same balances) separate from `PlayerCurrency`'s carried
+wallet, with no cap unlike the wallet's 250. Clarified the exchange ladder
+with the user before building it: a clean ascending 10:1 chain
+(Copper→Iron→Silver→Gold→Platinum, matching both the design brief and the
+`CoinType` enum order) — what was actually typed in the request would have
+made Copper worth the same as Silver.
+
+**Fee model:** every Deposit/Withdraw/Exchange charges `max(1, ceil(3% of
+amount))`, but as an *extra* cost on the source side rather than skimmed
+off the transferred total — depositing 100 costs 103 from the wallet and
+the bank receives exactly 100, not 97. Chosen over skimming because it
+keeps every transaction's *destination* amount exact and predictable, and
+generalizes cleanly to Exchange (which also has a fixed 10:1 output ratio
+that a skimmed fee would make fractional). `Exchange` operates on the
+wallet, not the bank balance — bring physical coins to the counter, walk
+away with different ones — and rounds an upgrade's input down to the
+nearest clean multiple of 10 rather than ever producing a fractional coin.
+
+New `BankBox` (`IInteractable`, E to open) and `BankScreen` — unlike
+Inventory/Crafting/Skills there's no hotkey, since a bank is a place you
+have to be at. Lists wallet vs. bank balance per coin type with
+Deposit/Withdraw buttons, plus 8 Exchange buttons (up/down each of the 4
+adjacent pairs) — all four routed through the same stepper-button quantity
+popup pattern the coin-drop feature established, showing a live fee/total
+preview before confirming.
+
+`PlayerBank.Awake` seeds a starting bank balance of 25 Gold, separate from
+`PlayerCurrency`'s existing starting wallet purse. One `Bank Box` placed
+5m from the Small Storage Box in `TestScene`, with a new navy `BankBox.mat`.
+
+Notably, this is a Phase 3 "Commerce system" feature (per the design
+brief) built well ahead of Phase 1 completion — see the MVP status
+comparison from earlier this session. Still missing from that section:
+trading between players, central banking in cities, and the volatile gem
+market; this covers the personal deposit/withdraw/exchange piece only.
+
+### v0.1.42-dev — Regular movement drains stamina too, not just sprinting
+Previously, walking (Standing, moving, not getting the sprint bonus) held
+stamina flat — no drain, no regen. It now drains at a new, slower rate
+(`PlayerVitals.walkStaminaDrainPerSecond`, 2/s vs. sprinting's 10/s) via a
+new `IsWalking` flag `FirstPersonController` sets alongside `IsSprinting`
+each frame, same pattern. This also covers holding Shift below
+`SprintStaminaThreshold` (85%) — no speed bonus there, but it still counts
+as active movement, not resting.
+
+The 85% sprint-drain cutoff was already implicit (`CanSprint` requires
+`stamina >= 85`, so `IsSprinting` — and its drain — turns off the instant
+stamina crosses below it) — confirmed that's still exactly the behavior,
+just with the new walk-drain now taking over below that point instead of
+stamina holding flat. Regen is unchanged: still only stopped, kneeling,
+crawling, or prone.
+
+### v0.1.41-dev — Drop coins from the currency row
+Clicking a coin box in `InventoryScreen`'s currency row now opens a
+quantity popup (`DrawCoinDropPopup`) instead of doing nothing — stepper
+buttons (±1/±10, "All") rather than a slider, matching this screen's
+existing button-only popups and giving exact control a slider wouldn't at
+a 250-coin scale. **Drop** spends that many via the new
+`PlayerCoinDrop.DropCoins`.
+
+New `PlayerCoinDrop` builds each dropped coin procedurally
+(`CreatePrimitive(Cylinder)` + the matching material + `Rigidbody` +
+`Coin`) rather than needing a prefab per type — `Coin` gained a
+`Configure(type, amount)` method for this, the same pattern
+`Pickup.Configure` already uses for generic dropped items. Coins spawn
+individually (one `Coin` object per unit dropped, not a single
+stack-of-N) at a small random horizontal offset in front of the player
+and get a small physics impulse — same "scatter" approach
+`ResourceNode.OnPunch` already uses for rock chunks — so a multi-coin drop
+bounces apart on landing instead of stacking identically. Rigidbody set
+to ContinuousDynamic from the start (see
+[[gridless-ground-tunneling]]).
+
+### v0.1.40-dev — Prone is its own stance, and the keybinds moved
+Follow-up to the previous version: "Crawling" and "Prone" turned out to be
+two different things the user wanted, not one stance under two names.
+Added `MovementStance.Prone` (0.1× speed — slower than Crawl's 0.2×,
+lying flat being more restrictive than moving on hands and knees) and
+rebound all three: **X** = Kneel (was Left Ctrl), **C** = Crawl (was Z),
+**Z** = Prone (new). Still mutually exclusive — pressing a different
+stance's key switches directly to it — and Prone gets the same
+sprint/jump-disabled, stamina-regenerates treatment the other two already
+had, since it's just as much "not standing" as they are.
+
+### v0.1.39-dev — Stamina-gated movement speed, plus Kneeling/Crawling stances
+Reworked stamina's effect on movement into three tiers (checked in
+`FirstPersonController.HandleMove`, independent of stance):
+- **Stamina ≥ 85%** (`PlayerVitals.SprintStaminaThreshold`) — sprint gives
+  its full speed bonus, same as before.
+- **10% ≤ stamina < 85%** — sprint no longer gives any bonus; holding
+  Shift just moves at normal speed. `PlayerVitals.CanSprint` now checks
+  this threshold directly instead of the old hysteresis-based
+  `isExhausted`/`staminaExhaustionRecoveryThreshold`, which are gone.
+- **0% < stamina < 10%** — movement speed halved.
+- **Stamina = 0%** — movement speed cut to 10%.
+
+Also reworked stamina regen: it used to climb back up any time the player
+wasn't sprinting, including while just walking. Per this request it now
+only regenerates while stopped, kneeling, or crawling — walking normally
+holds it flat. `PlayerVitals` gained a `CanRegenStamina` flag (set every
+frame by `FirstPersonController`, same pattern as `IsSprinting`) instead
+of inferring it from `IsSprinting` alone.
+
+Kneeling and crawling didn't exist as player states before this — added
+both as new `MovementStance` values (`Standing`/`Kneeling`/`Crawling`),
+toggled with Left Ctrl (kneel) and Z (crawl), mutually exclusive, each
+applying its own speed multiplier (kneel 0.4×, crawl 0.2×, both stacking
+with the stamina tiers above) and disabling sprint and jump while active.
+Current stance now shows in the bottom-left debug panel alongside
+speed/sprinting.
+
+### v0.1.38-dev — Starting purse: 20 Copper, 5 Silver, 1 Gold
+`PlayerCurrency.Awake` now seeds the wallet via the same `Add` path a Coin
+pickup uses (so it still respects `MaxBalance`, though nowhere near it)
+instead of starting every character at zero across the board.
+
+### v0.1.37-dev — Coin pickups deposit straight into the wallet, capped at 250
+`PlayerCurrency.Add` now clamps each balance at a new `MaxBalance` (250)
+and returns the leftover that didn't fit — same convention as
+`Inventory.AddItem` — instead of adding unconditionally.
+
+New `Coin` (`IInteractable`, not an inventory item): picking one up calls
+`PlayerCurrency.Add` for its `CoinType` and destroys itself, *unless* that
+type is already capped, in which case it leaves the (partial) remainder
+sitting in the world rather than deleting value for nothing. Coins aren't
+carried or manually dropped — there's no inventory step, matching how
+picking one up is meant to work as a direct wallet deposit.
+
+Five small round coins (a scaled-down `Cylinder` primitive, one per
+`CoinType`) placed in `TestScene`, each with its own color-matched
+material (`CopperCoin.mat` etc.) so they visually read as their type both
+sitting in the world and while physically dropping onto the ground.
+Rigidbody set to ContinuousDynamic collision detection from the start
+(see [[gridless-ground-tunneling]]).
+
+### v0.1.36-dev — Currency: Copper/Iron/Silver/Gold/Platinum row on the Inventory screen
+New `PlayerCurrency` — a five-coin ledger (`CoinType`: Copper, Iron,
+Silver, Gold, Platinum), each balance starting at 0, with `Add`/`Spend`
+already there for whatever earns/spends coins later even though nothing
+does yet.
+
+`InventoryScreen` gained a fixed header row above the scrollable content
+(so it can't scroll out of view): 5 equal-width boxes spanning 90% of the
+panel's width, centered, each with its coin type's name above it as a
+label. Read-only for now — just displays `PlayerCurrency`'s live balances.
+Added `PlayerCurrency` to the `Player` GameObject in `TestScene`.
+
+### v0.1.35-dev — Always-on Health/Stamina/Hunger/Thirst bar HUD
+New `VitalsBarHUD`, a permanent bottom-center 2×2 grid (Health/Stamina top
+row, Hunger/Thirst bottom row) — deliberately independent of
+`PlayerHealthMonitor`'s detailed text panel from a few versions back,
+which stays gated behind wearing a monitor; this is a baseline glanceable
+readout that's always there.
+
+Each bar's full width represents 150% of a stat's normal max (100), not
+100% — `fraction = Mathf.Clamp01(value / 150f)`, so under the game's
+ordinary 0-100 range every bar's top third stays visually
+empty/transparent by design (reserved headroom, not a bug), only filling
+past two-thirds if something ever pushes a stat above 100. Color-coded per
+stat (red/gold/orange/blue) with the numeric value overlaid as centered
+text. Added to the `Player` GameObject in `TestScene`.
+
+### v0.1.34-dev — Movement locks while any screen has the cursor unlocked
+User report: typing a space into the rename box's text field also jumped
+the player. Root cause was broader than renaming specifically —
+`FirstPersonController.HandleLook` already skipped mouse-look while
+`Cursor.lockState` wasn't `Locked` (the shared signal every screen —
+Inventory, Crafting, Skills, `PlayerRenaming` — sets when it opens), but
+`HandleMove` had no equivalent guard, so WASD and Space always drove the
+player regardless of what screen was open.
+
+Added the same `Cursor.lockState != CursorLockMode.Locked` early-return to
+`HandleMove` that `HandleLook` already had, fixing it for every screen at
+once rather than special-casing the rename box. Movement (including
+gravity) now fully pauses while any screen is open, matching "lock the
+controls until accepted or cancelled."
 
 ### v0.1.33-dev — Fix bugs found after pulling 0.1.5-0.1.32: worn-item visibility, a Canteen-corrupting eviction bug
 User report after playtesting the batch of work from the other session (Sunglasses,

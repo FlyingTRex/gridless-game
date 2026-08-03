@@ -352,9 +352,22 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
 - **Food/water survival needs** (SCUM).
 - **Loot & gathering** — see and pick up items; dig/mine for rocks, dirt, sand, gems,
   precious metal.
-- **Skill-tied crafting quality** — a low-skill blacksmith makes a basic sword; higher
-  skill unlocks better materials/recipes. Low-quality gear degrades faster and performs
-  worse; top-quality stays sharp longest and hits hardest. Extends Pillar 2 directly.
+- **Skill-tied crafting quality — five named tiers, decided.** Every craftable item can
+  be produced at one of five quality tiers: **Crude, Rudimentary, (no adjective — the
+  plain/standard item name), Fine, Masterwork.** The middle tier deliberately carries no
+  prefix — "Rock Knife," not "Standard Rock Knife" — so the plain name always reads as
+  the baseline, with quality only called out when it deviates from it. A low-skill
+  blacksmith makes a Crude or Rudimentary sword; higher skill unlocks Fine and
+  Masterwork. Low-quality gear degrades faster and performs worse; top-quality stays
+  sharp longest and hits hardest. Extends Pillar 2 directly.
+  - This formalizes and supersedes `docs/game-overview.md`'s original, less-specific
+    "Crude, Standard, and Mastery" three-tier mention (Universal Crafting Ladder
+    section) — that pitch line was never actually carried into this brief's Phase 1
+    wishlist or given a decision entry in `docs/reconciliation-questions.md`, so the
+    five-tier scheme above is the first time concrete tier names are decided anywhere
+    in the docs.
+  - **Still open:** the exact skill thresholds that unlock each tier, and the concrete
+    degradation-rate/performance numbers per tier.
 - **Basic building** — start of the building module, shelter tier only. Incorporates
   Ben's **"Equip-to-Define" system**: empty architectural shells become functional
   (workshop, inn, clinic, etc.) based on what equipment is installed inside, rather
@@ -423,6 +436,15 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
   market** (high-risk/high-reward, prices fluctuate by regional supply/demand) and
   **connected central banking** in larger cities (deposit, storage, digital
   withdrawals).
+  - **Implemented ahead of schedule:** a global personal bank account (deposit,
+    withdraw, exchange between adjacent currency tiers at a fixed 10:1 rate, a flat 3%
+    transaction fee charged on top of the amount moved) and purchasable **Lockboxes**
+    — personal coin-storage containers available in all five crafting-quality tiers
+    (see the Skill-tied crafting quality item above), each tier scaling both storage
+    capacity and purchase price off the Normal tier's baseline (2,500 coins/type,
+    10 Gold). This is the personal deposit/withdraw/exchange/storage slice only —
+    trading between players, the gem market, and city-scale central banking are still
+    not built.
 - **Merchant Guilds & Warbands** — see the Factions, Guilds & Warbands section.
   Guilds provide craft bonuses/trade perks and aren't territorial; Warbands are the
   literal combatant groups in Settlement Warfare, deferred here alongside it.
