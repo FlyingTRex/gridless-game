@@ -5,12 +5,26 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.30-dev` — must always match `GameVersion` in
+**Current version:** `0.1.31-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.31-dev — Secret Wall: a message only Sunglasses can reveal
+New `SecretMessageWall` (5m × 5m × 0.5m, medium gray, blocks movement like
+any solid object) — a plain wall unless you're wearing Sunglasses
+(`PlayerSunglasses.Equipped != null`) *and* actually looking at it
+(raycast from `PlayerInteraction`'s camera hits this specific wall's
+collider), in which case it draws "Hell Yeah Brother!" in bold black text
+at its screen-projected position.
+
+Not a child of `Player` — it's a world object, not player gear — so
+rather than wiring a scene reference for one Easter-egg object, it looks
+up `PlayerInteraction`/`PlayerSunglasses` once via `FindFirstObjectByType`
+in `Start`. Placed one at `(0, 2.5, 8)` in `TestScene`, with a new
+medium-gray `Wall.mat`.
 
 ### v0.1.30-dev — Multi-ingredient recipes, and a new Rock Hammer
 `CraftingRecipe` could only ever hold one input item — no way to express
