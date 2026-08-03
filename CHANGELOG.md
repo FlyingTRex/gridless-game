@@ -45,8 +45,6 @@ Five bugs found during canteen/backpack testing, rooted in several underlying is
   should now prevent this by refusing the move entirely.
 
 ### v0.1.33-dev — Fix bugs found after pulling 0.1.5-0.1.32: worn-item visibility, a Canteen-corrupting eviction bug
-
-### v0.1.33-dev — Fix bugs found after pulling 0.1.5-0.1.32: worn-item visibility, a Canteen-corrupting eviction bug
 User report after playtesting the batch of work from the other session (Sunglasses,
 Navigation Computer, Health Monitor, Canteen, storage/UI overhaul): four things
 looked wrong. Root-caused all four before fixing anything, per this project's own
