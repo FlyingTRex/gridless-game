@@ -64,3 +64,38 @@ Read these directly rather than trusting a summary — they're actively evolving
   release. Doc-only commits (design docs, changelog, this file) don't need a bump.
   Both collaborators' Claude sessions should follow this — the in-game number and the
   changelog are meant to be cross-checkable at a glance, without digging into git.
+
+## Checklist: adding a new `IEquippable` (worn item)
+
+This exact class of bug has recurred across sessions — Backpack got these fixes
+first, then four more equippables (Canteen, Sunglasses, Navigation Computer,
+Health Monitor) shipped without them and needed the identical fix applied
+retroactively (2026-08-03). When adding a new physical object that can be worn
+(implements `IEquippable`, gets carried via `SetCarried`), copy the pattern from
+`Backpack.cs`, specifically:
+- **Hide it from the player's own camera while worn.** `SetCarried(true, ...)`
+  must set the object (and all children — use `SetLayerRecursively`) to the
+  `WornEquipment` layer (project layer 8); `SetCarried(false, ...)` must set it
+  back to `Default` (layer 0). Without this, turning to look at your own worn/held
+  gear shows it filling the screen from ~0.5 units away. The layer itself and the
+  `Main Camera`'s `cullingMask` excluding it already exist project-wide — this is
+  a per-script fix, not a scene/project-settings change.
+- **If it's a plain (non-equippable) `ItemDefinition`** rather than a physical
+  `IEquippable`, give it a `worldPickupPrefab` if it should look distinct when
+  dropped — otherwise it silently falls back to the generic gray `DroppedItem`
+  cube. Not always wrong (e.g. Rock Hammer currently does this on purpose), but
+  should be a deliberate choice, not an oversight.
+
+## Gotcha: `InventoryTransfer.Move` / generic `Inventory.RemoveItem`+`AddItem`
+strip an item's `equipment` reference
+
+They're built for plain stackable resources and don't know `IEquippable` exists.
+Calling them on a slot that might hold one (a Canteen, Backpack, etc.) removes the
+real object's slot entry and replaces it with a plain count-only stack of the same
+`ItemDefinition` — the physical object itself is orphaned (usually still visibly
+attached to the player, just with no inventory reference to it anymore, and no way
+to interact with it). Confirmed root cause of a real bug (2026-08-03): a Canteen
+evicted from a full hand via this generic path turned into an inert "CanteenItem"
+placeholder with no Fill/Drink/Unequip options. Always check `slot.equipment` first
+and route through the type's own carrier (`PlayerBackpack.Drop`,
+`PlayerCanteen.Equip`, etc.) for any slot that could hold an equippable.

@@ -4,6 +4,12 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class Canteen : MonoBehaviour, IInteractable, IEquippable
 {
+    // Excluded from the player's own camera while worn — see Backpack.cs for
+    // why (turning to look at your own held/worn gear would otherwise fill
+    // the screen with it from ~0.5 units away).
+    private const int DefaultLayer = 0;
+    private const int WornEquipmentLayer = 8;
+
     [SerializeField] private string canteenName = "Canteen";
     [SerializeField] private float capacity = 100f;
     [SerializeField] private float drinkAmount = 25f;
@@ -71,6 +77,7 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
         gameObject.SetActive(true);
         col.enabled = !value;
         body.isKinematic = value;
+        SetLayerRecursively(transform, value ? WornEquipmentLayer : DefaultLayer);
 
         if (value)
         {
@@ -82,5 +89,12 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
         {
             transform.SetParent(null, true);
         }
+    }
+
+    private static void SetLayerRecursively(Transform root, int layer)
+    {
+        root.gameObject.layer = layer;
+        foreach (Transform child in root)
+            SetLayerRecursively(child, layer);
     }
 }
