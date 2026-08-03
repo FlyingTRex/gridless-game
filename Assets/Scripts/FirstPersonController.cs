@@ -17,6 +17,7 @@ public class FirstPersonController : MonoBehaviour
     private CharacterController controller;
     private PlayerVitals vitals;
     private InventoryScreen inventoryScreen;
+    private PlayerRenaming renaming;
     private Vector3 velocity;
     private float pitch;
 
@@ -25,6 +26,7 @@ public class FirstPersonController : MonoBehaviour
         controller = GetComponent<CharacterController>();
         vitals = GetComponent<PlayerVitals>();
         inventoryScreen = GetComponent<InventoryScreen>();
+        renaming = GetComponent<PlayerRenaming>();
     }
 
     private void OnEnable()
@@ -55,7 +57,10 @@ public class FirstPersonController : MonoBehaviour
             // sure any open screen agrees, so I and Escape can't leave the
             // cursor and the screen's own open/closed state disagreeing.
             if (!wasLocked)
+            {
                 inventoryScreen?.Close();
+                renaming?.Close();
+            }
         }
     }
 
@@ -111,7 +116,7 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.17-dev";
+    private const string GameVersion = "0.1.18-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

@@ -69,7 +69,12 @@ public class InventoryScreen : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null && Keyboard.current.iKey.wasPressedThisFrame)
+        if (Keyboard.current == null || !Keyboard.current.iKey.wasPressedThisFrame) return;
+
+        // Always allow closing. Only allow opening from normal gameplay —
+        // not while some other screen (e.g. PlayerRenaming) already has
+        // the cursor unlocked, which would stack this on top of it.
+        if (isOpen || Cursor.lockState == CursorLockMode.Locked)
             SetOpen(!isOpen);
     }
 

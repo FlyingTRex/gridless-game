@@ -5,12 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.17-dev` — must always match `GameVersion` in
+**Current version:** `0.1.18-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.18-dev — Right-click a world object to rename it
+New `IRenameable` (`DisplayName`, `Rename(string)`) and `PlayerRenaming`,
+which right-click-raycasts using the same camera/range as
+`PlayerInteraction`'s E-prompt. Hitting an `IRenameable` opens a small
+text-entry window (Enter or Save to commit, Cancel or Escape to discard),
+unlocking the cursor the same way `InventoryScreen` does. `StorageBox` is
+the first (and so far only) `IRenameable` — since `InventoryScreen`
+already reads a nearby box's name through `DisplayName`, a rename shows up
+there automatically with no further changes needed.
+
+Wired `PlayerRenaming.Close()` into `FirstPersonController`'s Escape
+handling alongside `InventoryScreen.Close()`, and gated `InventoryScreen`'s
+I-key toggle to only *open* while the cursor is locked — otherwise
+pressing I while the rename window was open would stack the inventory
+screen on top of it. Added the `PlayerRenaming` component to the `Player`
+GameObject in `TestScene`.
 
 ### v0.1.17-dev — Small Storage Box spawned 20m from player start
 No code changes — `StorageBox`'s capacity was already a `[SerializeField]`,

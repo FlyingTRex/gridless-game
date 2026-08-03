@@ -13,6 +13,11 @@ public class PlayerInteraction : MonoBehaviour
     private IPunchable currentPunchable;
     private float holdProgress;
 
+    // Exposed so other player components (e.g. PlayerRenaming) can reuse
+    // the same camera for their own raycasts instead of each needing their
+    // own serialized reference wired up in the scene.
+    public Camera PlayerCamera => playerCamera;
+
     private void Update()
     {
         ResolveTarget();

@@ -7,7 +7,7 @@ using UnityEngine;
 // screen is open and draws its contents alongside the player's own
 // inventory, so storing/retrieving items just means walking up and
 // pressing I.
-public class StorageBox : MonoBehaviour
+public class StorageBox : MonoBehaviour, IRenameable
 {
     // Every enabled box registers here so InventoryScreen can find nearby
     // ones with a simple distance check instead of a physics query.
@@ -28,4 +28,10 @@ public class StorageBox : MonoBehaviour
 
     private void OnEnable() => Active.Add(this);
     private void OnDisable() => Active.Remove(this);
+
+    public void Rename(string newName)
+    {
+        if (string.IsNullOrWhiteSpace(newName)) return;
+        boxName = newName.Trim();
+    }
 }
