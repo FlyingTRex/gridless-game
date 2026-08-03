@@ -51,12 +51,12 @@ public class PlayerVitals : MonoBehaviour
         thirst = Mathf.Max(0f, thirst - thirstDrainPerSecond * dt);
 
         if (thirst > overdrinkSicknessThreshold)
-        {
             isOverdrunkSick = true;
+        else if (thirst <= overdrinkRecoveryThreshold)
+            isOverdrunkSick = false;
+
+        if (isOverdrunkSick)
             health = Mathf.Max(0f, health - overdrinkSicknessDamagePerSecond * dt);
-            if (thirst <= overdrinkRecoveryThreshold)
-                isOverdrunkSick = false;
-        }
         else if (hunger <= 0f || thirst <= 0f)
             health = Mathf.Max(0f, health - starvationDamagePerSecond * dt);
         else if (hunger > 50f && thirst > 50f)
