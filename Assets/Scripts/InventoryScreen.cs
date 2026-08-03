@@ -27,6 +27,23 @@ public class InventoryScreen : MonoBehaviour
 
     private const float PanelWidth = LabelWidth + BoxWidth * 2f + 220f;
 
+    private static readonly (string Label, CoinType Type)[] CoinDisplayOrder =
+    {
+        ("Copper", CoinType.Copper),
+        ("Iron", CoinType.Iron),
+        ("Silver", CoinType.Silver),
+        ("Gold", CoinType.Gold),
+        ("Platinum", CoinType.Platinum),
+    };
+
+    private const float CoinBoxHeight = 40f;
+    private const float CoinRowWidthFraction = 0.9f;
+    private const float CoinGap = 10f;
+    // Rough vertical space DrawCurrencySection() + its trailing Space(10)
+    // takes up — reserved out of the scroll view's height so the fixed
+    // currency header never gets clipped by it.
+    private const float CurrencySectionHeight = 80f;
+
     [SerializeField] private float storageRange = 10f;
 
     private PlayerEquipment equipment;
@@ -38,6 +55,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerNavComputer navComputerCarrier;
     private PlayerHealthMonitor healthMonitorCarrier;
     private PlayerSunglasses sunglassesCarrier;
+    private PlayerCurrency currency;
     private PlayerVitals vitals;
     private bool isOpen;
     private Vector2 scrollPos;
@@ -76,6 +94,7 @@ public class InventoryScreen : MonoBehaviour
         navComputerCarrier = GetComponent<PlayerNavComputer>();
         healthMonitorCarrier = GetComponent<PlayerHealthMonitor>();
         sunglassesCarrier = GetComponent<PlayerSunglasses>();
+        currency = GetComponent<PlayerCurrency>();
         vitals = GetComponent<PlayerVitals>();
     }
 
@@ -119,7 +138,10 @@ public class InventoryScreen : MonoBehaviour
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
 
-        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(height - 60f));
+        DrawCurrencySection();
+        GUILayout.Space(10);
+
+        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(height - 60f - CurrencySectionHeight));
 
         GUILayout.Label("Inventory", DebugGUI.Header);
         DrawInventorySection();
@@ -244,6 +266,37 @@ public class InventoryScreen : MonoBehaviour
         }
 
         return GUILayout.Button("Cancel");
+    }
+
+    // Fixed header row (outside the scroll view) — 5 equal-width coin
+    // boxes spanning 90% of the panel's width, centered, with a label
+    // above each. Read-only for now; no earn/spend mechanic exists yet.
+    private void DrawCurrencySection()
+    {
+        if (currency == null) return;
+
+        float totalWidth = PanelWidth * CoinRowWidthFraction;
+        float boxWidth = (totalWidth - CoinGap * (CoinDisplayOrder.Length - 1)) / CoinDisplayOrder.Length;
+        float sideMargin = (PanelWidth - totalWidth) / 2f;
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Space(sideMargin);
+
+        for (int i = 0; i < CoinDisplayOrder.Length; i++)
+        {
+            var (label, type) = CoinDisplayOrder[i];
+
+            GUILayout.BeginVertical(GUILayout.Width(boxWidth));
+            GUILayout.Label(label, DebugGUI.Header, GUILayout.Width(boxWidth));
+            GUILayout.Box(currency.GetBalance(type).ToString(), GUILayout.Width(boxWidth), GUILayout.Height(CoinBoxHeight));
+            GUILayout.EndVertical();
+
+            if (i < CoinDisplayOrder.Length - 1)
+                GUILayout.Space(CoinGap);
+        }
+
+        GUILayout.Space(sideMargin);
+        GUILayout.EndHorizontal();
     }
 
     // Ported from the old always-on PlayerInventory panel.

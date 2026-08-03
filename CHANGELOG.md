@@ -5,12 +5,24 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.35-dev` — must always match `GameVersion` in
+**Current version:** `0.1.36-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.36-dev — Currency: Copper/Iron/Silver/Gold/Platinum row on the Inventory screen
+New `PlayerCurrency` — a five-coin ledger (`CoinType`: Copper, Iron,
+Silver, Gold, Platinum), each balance starting at 0, with `Add`/`Spend`
+already there for whatever earns/spends coins later even though nothing
+does yet.
+
+`InventoryScreen` gained a fixed header row above the scrollable content
+(so it can't scroll out of view): 5 equal-width boxes spanning 90% of the
+panel's width, centered, each with its coin type's name above it as a
+label. Read-only for now — just displays `PlayerCurrency`'s live balances.
+Added `PlayerCurrency` to the `Player` GameObject in `TestScene`.
 
 ### v0.1.35-dev — Always-on Health/Stamina/Hunger/Thirst bar HUD
 New `VitalsBarHUD`, a permanent bottom-center 2×2 grid (Health/Stamina top

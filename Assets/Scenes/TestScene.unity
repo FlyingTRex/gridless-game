@@ -2960,6 +2960,7 @@ GameObject:
   - component: {fileID: 1681626252}
   - component: {fileID: 1681626253}
   - component: {fileID: 1681626254}
+  - component: {fileID: 1681626255}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -3352,6 +3353,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f96ba38e95d88ce4da40e885889f2ae5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VitalsBarHUD
+--- !u!114 &1681626255
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 66acd908eadd09145980165fd1eb84b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerCurrency
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0
