@@ -5,12 +5,33 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.12-dev` — must always match `GameVersion` in
+**Current version:** `0.1.13-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.13-dev — Popup for where a backpack item should go, instead of a hardcoded move
+User feedback: clicking an item inside the backpack's contents grid always
+moved it straight to the main inventory with no other option — should
+offer Drop or move-to-hand instead, ideally as a menu of choices.
+
+`DrawContainerContents` no longer moves anything itself — clicking an
+occupied box now just records `pendingMoveItem`/`pendingMoveSource` and a
+small popup (`DrawPendingMovePopup`) opens with the real set of
+destinations: **Drop**, **To Left Hand**, **To Right Hand**, **To
+Inventory**, **Cancel** — each hand/inventory option only shown if it
+isn't already the source. Drawn last in `OnGUI`, after `GUILayout.EndArea()`
+of the main panel, so it renders on top regardless of scroll position.
+Cleared whenever the screen closes (`SetOpen(false)`), so a stale popup
+can't reappear the next time it's opened.
+
+Scope note: this only changes the backpack-*contents* click (the thing
+actually reported). The separate "click a plain item sitting directly in a
+hand" case (added two versions ago) still moves straight to inventory —
+left alone since it wasn't part of what was asked, though it'd be a
+straightforward follow-up to route through the same popup if wanted.
 
 ### v0.1.12-dev — A held (not worn) backpack isn't usable storage yet
 User feedback on the previous version's routing change: a backpack picked

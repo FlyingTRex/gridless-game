@@ -37,6 +37,12 @@ public class InventoryScreen : MonoBehaviour
     private bool isOpen;
     private Vector2 scrollPos;
 
+    // Set when the player clicks an item inside a container's contents
+    // grid — rather than acting immediately, opens a popup asking where it
+    // should go (Drop / a hand / the main inventory).
+    private ItemDefinition pendingMoveItem;
+    private Inventory pendingMoveSource;
+
     public bool IsOpen => isOpen;
 
     private void Awake()
@@ -64,6 +70,11 @@ public class InventoryScreen : MonoBehaviour
     private void SetOpen(bool value)
     {
         isOpen = value;
+        if (!value)
+        {
+            pendingMoveItem = null;
+            pendingMoveSource = null;
+        }
         Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = value;
     }
@@ -93,6 +104,62 @@ public class InventoryScreen : MonoBehaviour
             SetOpen(false);
 
         GUILayout.EndArea();
+
+        DrawPendingMovePopup();
+    }
+
+    // Small "where should this go?" dialog shown after clicking an item
+    // inside a container's contents grid. Drawn last so it sits on top.
+    private void DrawPendingMovePopup()
+    {
+        if (pendingMoveItem == null || pendingMoveSource == null) return;
+
+        const float width = 220f;
+        const float height = 210f;
+        var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
+
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label(pendingMoveItem.itemName, DebugGUI.Header);
+
+        bool resolved = false;
+
+        if (GUILayout.Button("Drop"))
+        {
+            dropping?.DropFrom(pendingMoveSource, pendingMoveItem);
+            resolved = true;
+        }
+
+        var leftHand = equipment.GetSlot("Left Hand");
+        if (leftHand != null && leftHand != pendingMoveSource && GUILayout.Button("To Left Hand"))
+        {
+            InventoryTransfer.Move(pendingMoveSource, leftHand, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            resolved = true;
+        }
+
+        var rightHand = equipment.GetSlot("Right Hand");
+        if (rightHand != null && rightHand != pendingMoveSource && GUILayout.Button("To Right Hand"))
+        {
+            InventoryTransfer.Move(pendingMoveSource, rightHand, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            resolved = true;
+        }
+
+        if (playerInventory.Inventory != pendingMoveSource && GUILayout.Button("To Inventory"))
+        {
+            InventoryTransfer.Move(pendingMoveSource, playerInventory.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            resolved = true;
+        }
+
+        if (GUILayout.Button("Cancel"))
+            resolved = true;
+
+        GUILayout.EndArea();
+
+        if (resolved)
+        {
+            pendingMoveItem = null;
+            pendingMoveSource = null;
+        }
     }
 
     // Ported from the old always-on PlayerInventory panel.
@@ -185,8 +252,6 @@ public class InventoryScreen : MonoBehaviour
         Backpack backpackDropClicked = null;
         Canteen canteenUnequipClicked = null;
         Canteen canteenDropClicked = null;
-        ItemDefinition containerMoveClicked = null;
-        IInventoryHolder containerMoveSource = null;
         ItemDefinition plainItemMoveClicked = null;
         Inventory plainItemMoveSource = null;
 
@@ -268,14 +333,7 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.EndHorizontal();
 
             if (nestedHolder != null)
-            {
-                var moved = DrawContainerContents(nestedHolder);
-                if (moved != null)
-                {
-                    containerMoveClicked = moved;
-                    containerMoveSource = nestedHolder;
-                }
-            }
+                DrawContainerContents(nestedHolder);
         }
 
         if (backpackEquipClicked != null) backpackCarrier.Equip(backpackEquipClicked);
@@ -283,24 +341,20 @@ public class InventoryScreen : MonoBehaviour
         if (backpackDropClicked != null) backpackCarrier.Drop(backpackDropClicked);
         if (canteenUnequipClicked != null) canteenCarrier.Unequip(canteenUnequipClicked);
         if (canteenDropClicked != null) canteenCarrier.Drop(canteenDropClicked);
-        if (containerMoveClicked != null && containerMoveSource != null)
-            InventoryTransfer.Move(containerMoveSource.Inventory, playerInventory.Inventory,
-                containerMoveClicked, containerMoveSource.Inventory.GetCount(containerMoveClicked));
         if (plainItemMoveClicked != null && plainItemMoveSource != null)
             InventoryTransfer.Move(plainItemMoveSource, playerInventory.Inventory,
                 plainItemMoveClicked, plainItemMoveSource.GetCount(plainItemMoveClicked));
     }
 
     // Draws a container's own capacity as a wrapped grid of boxes. Occupied
-    // boxes are buttons — clicking one moves that item back to the main
-    // inventory. Returns the clicked item, if any.
-    private ItemDefinition DrawContainerContents(IInventoryHolder holder)
+    // boxes are buttons — clicking one opens the "where should this go?"
+    // popup (DrawPendingMovePopup) instead of moving it anywhere directly.
+    private void DrawContainerContents(IInventoryHolder holder)
     {
         var contents = holder.Inventory.Slots;
         int capacity = holder.Inventory.Capacity;
-        ItemDefinition moveClicked = null;
 
-        GUILayout.Label($"    {holder.DisplayName} contents (click to move to inventory):", DebugGUI.Label);
+        GUILayout.Label($"    {holder.DisplayName} contents (click an item for options):", DebugGUI.Label);
 
         int drawn = 0;
         while (drawn < capacity)
@@ -314,7 +368,10 @@ public class InventoryScreen : MonoBehaviour
                     var entry = contents[drawn];
                     string label = entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
                     if (GUILayout.Button(label, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight)))
-                        moveClicked = entry.item;
+                    {
+                        pendingMoveItem = entry.item;
+                        pendingMoveSource = holder.Inventory;
+                    }
                 }
                 else
                 {
@@ -323,7 +380,5 @@ public class InventoryScreen : MonoBehaviour
             }
             GUILayout.EndHorizontal();
         }
-
-        return moveClicked;
     }
 }
