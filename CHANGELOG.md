@@ -7,6 +7,42 @@ skimmable version.
 
 ## 2026-08-02
 
+### Merge with survival vitals (`91240b3`)
+Built in parallel with the vitals work below on a separate Claude Code session,
+discovered only on push. Real gotcha, not just a text conflict: both branches
+independently added new Player components starting at the same scene fileID
+(`1681626235`) — this session's `PlayerCrafting` vs. the other session's
+`PlayerVitals`. Git's line-based merge didn't flag it, since the line itself
+(`- component: {fileID: 1681626235}`) was identical on both sides — only the
+*object it points to* differed. Caught by diffing the full fileID list of both
+branches' `TestScene.unity` rather than trusting a clean `git merge` exit.
+Resolution: kept `PlayerVitals` at `1681626235`, renumbered
+`PlayerCrafting`/`PlayerDropping`/`PlayerBackpack`/`PlayerEquipment` to
+`1681626239`–`242`. Also updated `Pickup.cs` and `Backpack.cs` to the
+`IInteractable`/`IPunchable` → `GameObject` signature change introduced by the
+vitals branch (see below) — `Backpack.cs` wasn't even flagged as conflicted by
+git, since the other branch never touched it, so it would have silently failed
+to compile if not caught by hand. Validated the merge with a Unity batch-mode
+compile check rather than trusting the text merge alone — worth doing for any
+future merge that touches `.unity`/`.prefab` files by hand, since those can
+"merge cleanly" by git's rules while still being semantically broken.
+
+### Crafting, dropping, and a backpack equipment system (`abb8a3a`)
+Click-to-craft (Rock → Rock Knife, training a new Crafting skill), click-to-drop
+on any inventory stack, and a carryable/wearable backpack. Extracted a reusable
+`Inventory` class (capacity, slots, `HasSpaceFor`) out of `PlayerInventory`,
+which is now capped at 4 slots; the backpack is a separate 8-slot container.
+`InventoryTransfer.Move()` moves items between any two inventory-capable
+objects (`IInventoryHolder`). `PlayerEquipment` adds named equip slots
+(starting with "Back") — picking up the backpack stashes it as a regular
+inventory item, an Equip button moves it onto the Back slot (visible, worn,
+contents accessible), Unequip/Drop reverse that without ever losing contents.
+
+**Consequence of the new slot cap:** `Pickup.Complete` and
+`PlayerCrafting.TryCraft` both had to start checking for space *before*
+consuming anything — otherwise a full inventory would silently delete a
+picked-up item, or eat a crafting input without producing the output.
+
 ### Survival vitals: Health, Hunger, Thirst, Stamina, Body Temperature (`ba34403`)
 `PlayerVitals` ticks Hunger/Thirst down over real time, drains Health on starvation/
 dehydration and regens it when well-fed, and gates sprint on Stamina. Two consumables
