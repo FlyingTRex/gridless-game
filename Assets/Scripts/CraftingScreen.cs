@@ -73,7 +73,7 @@ public class CraftingScreen : MonoBehaviour
                 {
                     if (ingredient == null || ingredient.item == null) continue;
                     if (needs.Length > 0) needs += ", ";
-                    needs += $"{ingredient.count}x {ingredient.item.itemName} (have {playerInventory.GetCount(ingredient.item)})";
+                    needs += $"{ingredient.count}x {ingredient.item.itemName} (have {crafting.GetAvailableCount(ingredient.item)})";
                 }
 
                 string label = $"{recipe.outputItem.itemName}  (needs {needs})";

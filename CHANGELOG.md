@@ -5,12 +5,34 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.31-dev` — must always match `GameVersion` in
+**Current version:** `0.1.32-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.32-dev — Crafting sees materials in your backpack and nearby storage
+User report: materials sitting in an equipped backpack showed in the
+Inventory screen but the Crafting screen (and `TryCraft`) only ever
+checked the main inventory, so a recipe could read "have 0" while the
+backpack clearly held enough.
+
+`PlayerCrafting` now checks (and, on craft, draws from) every reachable
+`Inventory`: the main inventory first, then an equipped backpack's
+contents, then any `StorageBox` within `storageRange` (10m, same default
+as `InventoryScreen`) — same idea as the move popup already being able to
+send items to any of those, just applied to what a recipe can consume.
+`GetAvailableCount` replaces the direct `PlayerInventory.GetCount` call in
+`CraftingScreen`'s "have N" label, so the displayed count now matches what
+`HasIngredients` actually checks. Output still only ever lands in the main
+inventory — this only changes where *inputs* can come from. When crafting
+consumes an ingredient split across sources, it takes from the main
+inventory first, then the backpack, then boxes in distance order.
+
+Extracted the nearby-box lookup (previously duplicated between
+`InventoryScreen` and now `PlayerCrafting`) into a shared
+`StorageBox.FindNearby` static method both call.
 
 ### v0.1.31-dev — Secret Wall: a message only Sunglasses can reveal
 New `SecretMessageWall` (5m × 5m × 0.5m, medium gray, blocks movement like

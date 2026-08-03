@@ -111,7 +111,7 @@ public class InventoryScreen : MonoBehaviour
     {
         if (!isOpen) return;
 
-        FindNearbyStorageBoxes(nearbyStorages);
+        StorageBox.FindNearby(transform.position, storageRange, nearbyStorages);
 
         float height = Mathf.Min(Screen.height - 40f, 700f);
         var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - height) / 2f, PanelWidth, height);
@@ -565,24 +565,4 @@ public class InventoryScreen : MonoBehaviour
         }
     }
 
-    // Every active StorageBox within storageRange, nearest first. Called
-    // once per OnGUI frame rather than every frame — this screen only
-    // exists while isOpen, so there's no per-frame cost while it's closed.
-    private void FindNearbyStorageBoxes(List<StorageBox> result)
-    {
-        result.Clear();
-        float rangeSq = storageRange * storageRange;
-
-        foreach (var box in StorageBox.Active)
-        {
-            if (box == null) continue;
-            float distSq = (box.transform.position - transform.position).sqrMagnitude;
-            if (distSq <= rangeSq)
-                result.Add(box);
-        }
-
-        result.Sort((a, b) =>
-            (a.transform.position - transform.position).sqrMagnitude
-                .CompareTo((b.transform.position - transform.position).sqrMagnitude));
-    }
 }

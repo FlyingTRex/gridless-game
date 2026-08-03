@@ -29,6 +29,28 @@ public class StorageBox : MonoBehaviour, IRenameable
     private void OnEnable() => Active.Add(this);
     private void OnDisable() => Active.Remove(this);
 
+    // Every active box within range of position, nearest first. Shared by
+    // InventoryScreen (the "(nearby)" contents section, storage picker)
+    // and PlayerCrafting (letting a recipe draw on a nearby box's
+    // materials) so both use the exact same distance rule.
+    public static void FindNearby(Vector3 position, float range, List<StorageBox> result)
+    {
+        result.Clear();
+        float rangeSq = range * range;
+
+        foreach (var box in Active)
+        {
+            if (box == null) continue;
+            float distSq = (box.transform.position - position).sqrMagnitude;
+            if (distSq <= rangeSq)
+                result.Add(box);
+        }
+
+        result.Sort((a, b) =>
+            (a.transform.position - position).sqrMagnitude
+                .CompareTo((b.transform.position - position).sqrMagnitude));
+    }
+
     public void Rename(string newName)
     {
         if (string.IsNullOrWhiteSpace(newName)) return;
