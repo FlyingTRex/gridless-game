@@ -5,12 +5,28 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.41-dev` — must always match `GameVersion` in
+**Current version:** `0.1.42-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.42-dev — Regular movement drains stamina too, not just sprinting
+Previously, walking (Standing, moving, not getting the sprint bonus) held
+stamina flat — no drain, no regen. It now drains at a new, slower rate
+(`PlayerVitals.walkStaminaDrainPerSecond`, 2/s vs. sprinting's 10/s) via a
+new `IsWalking` flag `FirstPersonController` sets alongside `IsSprinting`
+each frame, same pattern. This also covers holding Shift below
+`SprintStaminaThreshold` (85%) — no speed bonus there, but it still counts
+as active movement, not resting.
+
+The 85% sprint-drain cutoff was already implicit (`CanSprint` requires
+`stamina >= 85`, so `IsSprinting` — and its drain — turns off the instant
+stamina crosses below it) — confirmed that's still exactly the behavior,
+just with the new walk-drain now taking over below that point instead of
+stamina holding flat. Regen is unchanged: still only stopped, kneeling,
+crawling, or prone.
 
 ### v0.1.41-dev — Drop coins from the currency row
 Clicking a coin box in `InventoryScreen`'s currency row now opens a

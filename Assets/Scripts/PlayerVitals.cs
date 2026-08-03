@@ -27,6 +27,7 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float starvationDamagePerSecond = 2f;
     [SerializeField] private float healthRegenPerSecond = 1f;
     [SerializeField] private float staminaDrainPerSecond = 10f;
+    [SerializeField] private float walkStaminaDrainPerSecond = 2f;
     [SerializeField] private float staminaRegenPerSecond = 6f;
     [SerializeField] private float bodyTemperatureNeutral = 50f;
     [SerializeField] private float bodyTemperatureDriftPerSecond = 2f;
@@ -39,9 +40,15 @@ public class PlayerVitals : MonoBehaviour
 
     public bool IsSprinting { get; set; }
 
+    // Set every frame by FirstPersonController — true while moving
+    // normally (standing, not getting the sprint bonus), including
+    // attempted sprints below SprintStaminaThreshold. Drains stamina at a
+    // slower rate than sprinting.
+    public bool IsWalking { get; set; }
+
     // Set every frame by FirstPersonController based on movement/stance —
-    // stamina holds flat while walking normally and only climbs back up
-    // while stopped, kneeling, or crawling.
+    // stamina only climbs back up while stopped, kneeling, crawling, or
+    // prone.
     public bool CanRegenStamina { get; set; } = true;
 
     public bool CanSprint => stamina >= SprintStaminaThreshold;
@@ -60,6 +67,8 @@ public class PlayerVitals : MonoBehaviour
 
         if (IsSprinting)
             stamina = Mathf.Max(0f, stamina - staminaDrainPerSecond * dt);
+        else if (IsWalking)
+            stamina = Mathf.Max(0f, stamina - walkStaminaDrainPerSecond * dt);
         else if (CanRegenStamina)
             stamina = Mathf.Min(100f, stamina + staminaRegenPerSecond * dt);
 

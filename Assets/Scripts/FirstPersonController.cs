@@ -142,10 +142,17 @@ public class FirstPersonController : MonoBehaviour
         bool isSprinting = wantsSprint && vitals.CanSprint;
         vitals.IsSprinting = isSprinting;
 
+        // Regular movement drains stamina too, just slower than sprinting
+        // — this covers both plain walking and holding Shift below
+        // SprintStaminaThreshold (sprint gives no speed bonus there, but
+        // still counts as "moving", not "resting"). Kneeling/crawling/
+        // prone don't drain even while moving in those stances — only
+        // Standing movement does.
+        vitals.IsWalking = isMoving && stance == MovementStance.Standing && !isSprinting;
+
         // Stamina only climbs back up while stopped, kneeling, crawling,
-        // or prone — walking (or trying to sprint below the threshold)
-        // holds it flat instead of regenerating like it used to whenever
-        // the player simply wasn't sprinting.
+        // or prone — any Standing movement (walking or sprinting) holds
+        // it flat or drains it instead.
         vitals.CanRegenStamina = !isMoving || stance != MovementStance.Standing;
 
         float baseSpeed = stance switch
@@ -186,7 +193,7 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.41-dev";
+    private const string GameVersion = "0.1.42-dev";
 
     private float lastSpeed;
     private bool lastSprinting;
