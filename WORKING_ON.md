@@ -12,4 +12,4 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-- 2026-08-03 — Claude (Tekim's session) — fixing overdrink-sickness thirst/notice bug and InventoryTransfer orphaning equipment items (e.g. Sunglasses) moved out of a container
+(none right now)
