@@ -5,12 +5,31 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.22-dev` — must always match `GameVersion` in
+**Current version:** `0.1.23-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.23-dev — Fix dropped Backpack/Canteen/Navigation Computer falling through the floor
+User report: dropping a Canteen or Navigation Computer made it appear
+briefly then vanish. Root cause: `Backpack.prefab`, `Canteen.prefab`, and
+the Navigation Computer's world Rigidbody all had `m_CollisionDetection: 0`
+(Discrete) — every other droppable prefab (`DroppedItem`, `BerryPickup`,
+`StickPickup`, `RockKnifePickup`, `RockChunk`) already used `2`
+(ContinuousDynamic). `Ground` is a Plane mesh scaled to (10, 1, 10) — a
+paper-thin `MeshCollider` — so a Discrete-mode Rigidbody falling even the
+~1m `dropHeight` drop distance could tunnel straight through it with no
+tolerance for the gap Discrete detection leaves, meaning it just kept
+falling, off into the void.
+
+Switched all three to ContinuousDynamic: `Backpack.prefab`,
+`Canteen.prefab`, and the world-placed instances of Backpack, Canteen, and
+Navigation Computer already sitting in `TestScene` (editing the prefabs
+alone doesn't retroactively fix instances that aren't live prefab
+connections — these three were baked copies, so each needed the same
+scalar field fixed directly).
 
 ### v0.1.22-dev — Move popup can send an item straight to the backpack
 User feedback: moving an item out of a nearby storage box's contents (or
