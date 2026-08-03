@@ -1,13 +1,28 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public enum MovementStance
+{
+    Standing,
+    Kneeling,
+    Crawling,
+}
+
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerVitals))]
 public class FirstPersonController : MonoBehaviour
 {
+    // Stamina tiers below SprintStaminaThreshold (see PlayerVitals) that
+    // further cap movement speed, independent of stance.
+    private const float LowStaminaThreshold = 10f;
+    private const float LowStaminaSpeedMultiplier = 0.5f;
+    private const float ZeroStaminaSpeedMultiplier = 0.1f;
+
     [SerializeField] private Camera playerCamera;
     [SerializeField] private float moveSpeed = 4.5f;
     [SerializeField] private float sprintSpeed = 7f;
+    [SerializeField] private float kneelSpeedMultiplier = 0.4f;
+    [SerializeField] private float crawlSpeedMultiplier = 0.2f;
     [SerializeField] private float jumpHeight = 1.2f;
     [SerializeField] private float jumpStaminaCost = 10f;
     [SerializeField] private float gravity = -20f;
@@ -22,6 +37,7 @@ public class FirstPersonController : MonoBehaviour
     private CraftingScreen craftingScreen;
     private Vector3 velocity;
     private float pitch;
+    private MovementStance stance = MovementStance.Standing;
 
     private void Awake()
     {
@@ -42,6 +58,7 @@ public class FirstPersonController : MonoBehaviour
     private void Update()
     {
         HandleCursorToggle();
+        HandleStance();
         HandleLook();
         HandleMove();
     }
@@ -68,6 +85,20 @@ public class FirstPersonController : MonoBehaviour
                 craftingScreen?.Close();
             }
         }
+    }
+
+    // Left Ctrl toggles Kneeling, Z toggles Crawling — pressing either
+    // again while already in that stance returns to Standing, and the two
+    // are mutually exclusive (switching to one drops the other).
+    private void HandleStance()
+    {
+        var keyboard = Keyboard.current;
+        if (keyboard == null || Cursor.lockState != CursorLockMode.Locked) return;
+
+        if (keyboard.leftCtrlKey.wasPressedThisFrame)
+            stance = stance == MovementStance.Kneeling ? MovementStance.Standing : MovementStance.Kneeling;
+        else if (keyboard.zKey.wasPressedThisFrame)
+            stance = stance == MovementStance.Crawling ? MovementStance.Standing : MovementStance.Crawling;
     }
 
     private void HandleLook()
@@ -101,17 +132,37 @@ public class FirstPersonController : MonoBehaviour
         if (keyboard.aKey.isPressed) input.x -= 1f;
         input = Vector2.ClampMagnitude(input, 1f);
 
-        bool wantsSprint = keyboard.leftShiftKey.isPressed && input.sqrMagnitude > 0.01f;
+        bool isMoving = input.sqrMagnitude > 0.01f;
+        bool wantsSprint = keyboard.leftShiftKey.isPressed && isMoving && stance == MovementStance.Standing;
         bool isSprinting = wantsSprint && vitals.CanSprint;
         vitals.IsSprinting = isSprinting;
 
-        float speed = isSprinting ? sprintSpeed : moveSpeed;
+        // Stamina only climbs back up while stopped, kneeling, or
+        // crawling — walking (or trying to sprint below the threshold)
+        // holds it flat instead of regenerating like it used to whenever
+        // the player simply wasn't sprinting.
+        vitals.CanRegenStamina = !isMoving || stance != MovementStance.Standing;
+
+        float baseSpeed = stance switch
+        {
+            MovementStance.Kneeling => moveSpeed * kneelSpeedMultiplier,
+            MovementStance.Crawling => moveSpeed * crawlSpeedMultiplier,
+            _ => isSprinting ? sprintSpeed : moveSpeed,
+        };
+
+        float staminaMultiplier = 1f;
+        if (vitals.Stamina <= 0f)
+            staminaMultiplier = ZeroStaminaSpeedMultiplier;
+        else if (vitals.Stamina < LowStaminaThreshold)
+            staminaMultiplier = LowStaminaSpeedMultiplier;
+
+        float speed = baseSpeed * staminaMultiplier;
         Vector3 move = (transform.right * input.x + transform.forward * input.y) * speed;
 
         if (controller.isGrounded)
         {
             velocity.y = -1f;
-            if (keyboard.spaceKey.wasPressedThisFrame)
+            if (keyboard.spaceKey.wasPressedThisFrame && stance == MovementStance.Standing)
             {
                 velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
                 vitals.ConsumeStamina(jumpStaminaCost);
@@ -129,17 +180,18 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.38-dev";
+    private const string GameVersion = "0.1.39-dev";
 
     private float lastSpeed;
     private bool lastSprinting;
 
     private void OnGUI()
     {
-        var rect = new Rect(10, Screen.height - 50, 300, 40);
+        var rect = new Rect(10, Screen.height - 66, 300, 56);
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
         GUILayout.Label($"Speed: {lastSpeed:F1} m/s  Sprinting: {lastSprinting}", DebugGUI.Label);
+        GUILayout.Label($"Stance: {stance}", DebugGUI.Label);
         GUILayout.Label($"Gridless {GameVersion}", DebugGUI.Label);
         GUILayout.EndArea();
     }

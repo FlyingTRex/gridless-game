@@ -5,12 +5,39 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.38-dev` — must always match `GameVersion` in
+**Current version:** `0.1.39-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.39-dev — Stamina-gated movement speed, plus Kneeling/Crawling stances
+Reworked stamina's effect on movement into three tiers (checked in
+`FirstPersonController.HandleMove`, independent of stance):
+- **Stamina ≥ 85%** (`PlayerVitals.SprintStaminaThreshold`) — sprint gives
+  its full speed bonus, same as before.
+- **10% ≤ stamina < 85%** — sprint no longer gives any bonus; holding
+  Shift just moves at normal speed. `PlayerVitals.CanSprint` now checks
+  this threshold directly instead of the old hysteresis-based
+  `isExhausted`/`staminaExhaustionRecoveryThreshold`, which are gone.
+- **0% < stamina < 10%** — movement speed halved.
+- **Stamina = 0%** — movement speed cut to 10%.
+
+Also reworked stamina regen: it used to climb back up any time the player
+wasn't sprinting, including while just walking. Per this request it now
+only regenerates while stopped, kneeling, or crawling — walking normally
+holds it flat. `PlayerVitals` gained a `CanRegenStamina` flag (set every
+frame by `FirstPersonController`, same pattern as `IsSprinting`) instead
+of inferring it from `IsSprinting` alone.
+
+Kneeling and crawling didn't exist as player states before this — added
+both as new `MovementStance` values (`Standing`/`Kneeling`/`Crawling`),
+toggled with Left Ctrl (kneel) and Z (crawl), mutually exclusive, each
+applying its own speed multiplier (kneel 0.4×, crawl 0.2×, both stacking
+with the stamina tiers above) and disabling sprint and jump while active.
+Current stance now shows in the bottom-left debug panel alongside
+speed/sprinting.
 
 ### v0.1.38-dev — Starting purse: 20 Copper, 5 Silver, 1 Gold
 `PlayerCurrency.Awake` now seeds the wallet via the same `Add` path a Coin
