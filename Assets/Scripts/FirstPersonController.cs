@@ -87,6 +87,13 @@ public class FirstPersonController : MonoBehaviour
         var keyboard = Keyboard.current;
         if (keyboard == null) return;
 
+        // Same guard as HandleLook — while any screen has the cursor
+        // unlocked (Inventory, Crafting, Skills, renaming a world object),
+        // WASD/Space shouldn't move or jump the player. Previously only
+        // look was gated, so e.g. typing a space into the rename box's
+        // text field also triggered a jump.
+        if (Cursor.lockState != CursorLockMode.Locked) return;
+
         Vector2 input = Vector2.zero;
         if (keyboard.wKey.isPressed) input.y += 1f;
         if (keyboard.sKey.isPressed) input.y -= 1f;
@@ -122,7 +129,7 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.32-dev";
+    private const string GameVersion = "0.1.33-dev";
 
     private float lastSpeed;
     private bool lastSprinting;
