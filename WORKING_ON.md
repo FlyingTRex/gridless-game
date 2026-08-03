@@ -12,4 +12,4 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-(none right now)
+- 2026-08-03 — Claude — Investigating: InventoryTransfer.Move guard was too strict, blocking normal item moves. Reverted and looking for targeted fix for equipment orphaning issue.
