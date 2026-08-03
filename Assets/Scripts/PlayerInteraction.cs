@@ -11,6 +11,8 @@ public class PlayerInteraction : MonoBehaviour
 
     private IInteractable current;
     private IPunchable currentPunchable;
+    private ISecondaryInteractable currentSecondary;
+    private string currentSecondaryPrompt;
     private float holdProgress;
 
     // Exposed so other player components (e.g. PlayerRenaming) can reuse
@@ -56,12 +58,17 @@ public class PlayerInteraction : MonoBehaviour
 
         if (currentPunchable != null && mouse != null && mouse.leftButton.wasPressedThisFrame)
             currentPunchable.OnPunch(gameObject);
+
+        if (!string.IsNullOrEmpty(currentSecondaryPrompt) && keyboard != null && keyboard.fKey.wasPressedThisFrame)
+            currentSecondary.CompleteSecondary(gameObject);
     }
 
     private void ResolveTarget()
     {
         current = null;
         currentPunchable = null;
+        currentSecondary = null;
+        currentSecondaryPrompt = null;
 
         if (playerCamera == null) return;
 
@@ -70,6 +77,9 @@ public class PlayerInteraction : MonoBehaviour
         {
             current = hit.collider.GetComponentInParent<IInteractable>();
             currentPunchable = hit.collider.GetComponentInParent<IPunchable>();
+            currentSecondary = hit.collider.GetComponentInParent<ISecondaryInteractable>();
+            if (currentSecondary != null)
+                currentSecondaryPrompt = currentSecondary.GetSecondaryPrompt(gameObject);
         }
     }
 
@@ -87,6 +97,15 @@ public class PlayerInteraction : MonoBehaviour
         else if (currentPunchable != null)
         {
             text = currentPunchable.Prompt;
+        }
+
+        // Disambiguate with an explicit key label only when there's a
+        // second option to disambiguate from — every other interactable
+        // still shows its plain, unprefixed prompt as before.
+        if (!string.IsNullOrEmpty(currentSecondaryPrompt))
+        {
+            if (!string.IsNullOrEmpty(text)) text = $"[E] {text}";
+            text = string.IsNullOrEmpty(text) ? $"[F] {currentSecondaryPrompt}" : $"{text}    [F] {currentSecondaryPrompt}";
         }
 
         if (text == null) return;

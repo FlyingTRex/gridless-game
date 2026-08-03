@@ -3113,7 +3113,7 @@ MonoBehaviour:
   staminaExhaustionRecoveryThreshold: 25
   bodyTemperatureNeutral: 50
   bodyTemperatureDriftPerSecond: 2
-  overdrinkSicknessThreshold: 100
+  overdrinkSicknessThreshold: 125
   overdrinkSicknessDamagePerSecond: 5
   overdrinkRecoveryThreshold: 50
 --- !u!114 &1681626239

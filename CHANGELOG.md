@@ -5,12 +5,65 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.34-dev` — must always match `GameVersion` in
+**Current version:** `0.1.35-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.35-dev — Second playtest pass: canteen still white, overdrink threshold wrong, Sunglasses orphaned, direct water-source interaction
+
+The v0.1.34-dev fixes below didn't fully hold up under a second round of testing —
+three of the four "fixed" items had a real bug still hiding underneath, plus one
+brand-new feature request.
+
+- **Canteen full but still showing white.** Root cause was never the material/color
+  logic added in v0.1.34-dev — it was that `Canteen.cs` looked up its `Renderer` with
+  a plain `GetComponent<Renderer>()`, but the prefab's actual mesh renderers live on
+  child objects ("Body"/"Cap"), not the root the script sits on. `rend` was `null`
+  the entire time, so `UpdateVisuals()` was silently a no-op regardless of fill
+  state. Switched to `GetComponentsInChildren<Renderer>()` and apply the tint to all
+  of them. Also found the project uses URP, and `Canteen.mat` is a URP/Lit material —
+  `Material.color` only reliably touches `_Color`, which URP/Lit doesn't render from
+  (`_BaseColor` does); added a `SetTint`/`GetTint` helper that sets both so the color
+  change is guaranteed to actually render regardless of shader.
+- **Overdrink sickness threshold was wrong.** Implemented in v0.1.34-dev as ">100%
+  thirst triggers sickness", but the actual intended design (confirmed by user) is
+  "125% is the safe ceiling, sickness triggers only above it." Moved
+  `overdrinkSicknessThreshold` from 100 to 125, and raised the `Restore(Thirst)` cap
+  from 125 to 150 — without that headroom, thirst could never actually exceed 125
+  through drinking and the sickness threshold could never trigger at all. Also found
+  the threshold change alone wasn't enough: `TestScene.unity` had
+  `overdrinkSicknessThreshold: 100` serialized directly onto the Player's
+  `PlayerVitals` component from before this field existed at its new default — Unity
+  doesn't retroactively apply a changed C# default to an already-serialized value, so
+  the scene was silently overriding the code back to 100. Fixed the scene value
+  directly.
+- **Sickness could reduce health to 0 with no warning and no actual recovery.**
+  Thirst was only draining at the slow ambient rate (~0.14/s) while sick, but
+  sickness damage runs at 5 health/s — health hits 0 in 20s, long before thirst could
+  ever drain down to the 50% recovery line. Added `overdrinkThirstRecoveryPerSecond`
+  (10/s, vomiting/sweating out the excess) so sickness is now actually self-limiting
+  and recoverable, and added a "SICK: Overdrank water!" warning to the Vitals HUD
+  (`PlayerHealthMonitor`) via a new bold-red `DebugGUI.Warning` style — previously
+  there was no UI indication sickness was even happening.
+- **Sunglasses moved from a backpack to a hand became permanently unequippable.**
+  Same root cause as the Canteen orphaning bug from v0.1.34-dev, still present
+  despite that entry's changelog description — see the `CLAUDE.md` gotcha section for
+  the full story of why the earlier fix didn't actually ship. `InventoryTransfer.Move`
+  now detects an `equipment`-backed slot and preserves the reference across the move
+  instead of stripping it.
+- **New: interact directly with a water source, no inventory screen needed.** Added
+  `ISecondaryInteractable` — a small additive extension to the existing single-key
+  (E) interact system that lets an object also offer a second action bound to F,
+  shown in the prompt alongside the first (e.g. `[E] Drink    [F] Fill Canteen`) only
+  when there's actually a second option available. `WaterSource` now implements both:
+  E always offers Drink (works with no carrier equipped); F offers Fill and only
+  appears when the player has a water carrier equipped that isn't already full.
+  `PlayerCanteen` needed an `Equipped` accessor added for this — unlike
+  Sunglasses/PersonalHealthMonitor it never had one, since a canteen has no dedicated
+  "worn" slot (holding it in a hand or at the waist is what equipped means for it).
 
 ### v0.1.34-dev — Fix bugs from playtesting: canteen visuals, fills from anywhere, overdrinking, equipment transfer
 

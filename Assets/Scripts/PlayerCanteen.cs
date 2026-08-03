@@ -18,6 +18,19 @@ public class PlayerCanteen : MonoBehaviour
     private PlayerEquipment equipment;
     private PlayerLoot loot;
 
+    // Unlike Sunglasses/PersonalHealthMonitor, a canteen has no dedicated
+    // "worn" slot — holding it in a hand or clipped to the waist (any of
+    // CanteenSlots) is what carrying/equipped means for it.
+    public Canteen Equipped
+    {
+        get
+        {
+            foreach (var slotName in CanteenSlots)
+                if (equipment.GetEquipped(slotName) is Canteen c) return c;
+            return null;
+        }
+    }
+
     private void Awake()
     {
         playerInventory = GetComponent<PlayerInventory>();

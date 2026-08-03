@@ -26,9 +26,10 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float staminaExhaustionRecoveryThreshold = 25f;
     [SerializeField] private float bodyTemperatureNeutral = 50f;
     [SerializeField] private float bodyTemperatureDriftPerSecond = 2f;
-    [SerializeField] private float overdrinkSicknessThreshold = 100f;
+    [SerializeField] private float overdrinkSicknessThreshold = 125f;
     [SerializeField] private float overdrinkSicknessDamagePerSecond = 5f;
     [SerializeField] private float overdrinkRecoveryThreshold = 50f;
+    [SerializeField] private float overdrinkThirstRecoveryPerSecond = 10f;
 
     private bool isExhausted;
     private bool isOverdrunkSick;
@@ -38,6 +39,7 @@ public class PlayerVitals : MonoBehaviour
     public float Thirst => thirst;
     public float Stamina => stamina;
     public float BodyTemperature => bodyTemperature;
+    public bool IsOverdrunkSick => isOverdrunkSick;
 
     public bool IsSprinting { get; set; }
 
@@ -56,7 +58,14 @@ public class PlayerVitals : MonoBehaviour
             isOverdrunkSick = false;
 
         if (isOverdrunkSick)
+        {
+            // Vomiting/sweating out the excess — much faster than the
+            // ambient thirst drain above, so the player actually recovers
+            // (crosses overdrinkRecoveryThreshold) instead of dying from
+            // sickness damage before thirst ever comes back down.
+            thirst = Mathf.Max(0f, thirst - overdrinkThirstRecoveryPerSecond * dt);
             health = Mathf.Max(0f, health - overdrinkSicknessDamagePerSecond * dt);
+        }
         else if (hunger <= 0f || thirst <= 0f)
             health = Mathf.Max(0f, health - starvationDamagePerSecond * dt);
         else if (hunger > 50f && thirst > 50f)
@@ -88,7 +97,11 @@ public class PlayerVitals : MonoBehaviour
         {
             case VitalType.Health: health = Mathf.Min(100f, health + amount); break;
             case VitalType.Hunger: hunger = Mathf.Min(100f, hunger + amount); break;
-            case VitalType.Thirst: thirst = Mathf.Min(125f, thirst + amount); break;
+            // 125 is the safe ceiling; the extra headroom to 150 is what
+            // lets a drink past 125 register as overdrinking at all —
+            // without it, thirst could never actually cross
+            // overdrinkSicknessThreshold through drinking.
+            case VitalType.Thirst: thirst = Mathf.Min(150f, thirst + amount); break;
             case VitalType.Stamina: stamina = Mathf.Min(100f, stamina + amount); break;
         }
     }

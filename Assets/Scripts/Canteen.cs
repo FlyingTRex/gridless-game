@@ -19,7 +19,7 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
 
     private Rigidbody body;
     private Collider col;
-    private Renderer rend;
+    private Renderer[] renderers;
     private Color originalColor;
     private Material workingMaterial;
 
@@ -38,23 +38,19 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
     {
         body = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
-        rend = GetComponent<Renderer>();
+        // The mesh (Body/Cap) lives on child objects, not this root — a
+        // plain GetComponent<Renderer>() here would find nothing.
+        renderers = GetComponentsInChildren<Renderer>();
 
-        if (rend != null)
+        if (renderers.Length > 0)
         {
-            if (emptyMaterial != null)
+            Material source = emptyMaterial != null ? emptyMaterial : renderers[0].sharedMaterial;
+            if (source != null)
             {
-                workingMaterial = new Material(emptyMaterial);
-            }
-            else if (rend.material != null)
-            {
-                workingMaterial = new Material(rend.material);
-            }
-
-            if (workingMaterial != null)
-            {
-                rend.material = workingMaterial;
-                originalColor = workingMaterial.color;
+                workingMaterial = new Material(source);
+                originalColor = GetTint(workingMaterial);
+                foreach (var r in renderers)
+                    r.material = workingMaterial;
             }
         }
     }
@@ -94,33 +90,47 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
 
     private void UpdateVisuals()
     {
-        if (rend == null) return;
+        if (renderers == null || renderers.Length == 0) return;
 
         if (IsEmpty)
         {
             if (emptyMaterial != null)
             {
-                rend.material = new Material(emptyMaterial);
+                var mat = new Material(emptyMaterial);
+                foreach (var r in renderers) r.material = mat;
             }
             else if (workingMaterial != null)
             {
-                workingMaterial.color = originalColor;
-                rend.material = workingMaterial;
+                SetTint(workingMaterial, originalColor);
             }
         }
         else
         {
             if (filledMaterial != null)
             {
-                rend.material = new Material(filledMaterial);
+                var mat = new Material(filledMaterial);
+                foreach (var r in renderers) r.material = mat;
             }
             else if (workingMaterial != null)
             {
-                workingMaterial.color = new Color(0.2f, 0.6f, 0.9f, 1f);
-                rend.material = workingMaterial;
+                SetTint(workingMaterial, new Color(0.2f, 0.6f, 0.9f, 1f));
             }
         }
     }
+
+    // Material.color only affects the shader's "_Color" property. URP's Lit
+    // shader (what Canteen.mat uses) renders from "_BaseColor" instead, so
+    // plain .color assignments can silently do nothing — set both.
+    private static void SetTint(Material mat, Color color)
+    {
+        if (mat.HasProperty("_BaseColor"))
+            mat.SetColor("_BaseColor", color);
+        if (mat.HasProperty("_Color"))
+            mat.color = color;
+    }
+
+    private static Color GetTint(Material mat) =>
+        mat.HasProperty("_BaseColor") ? mat.GetColor("_BaseColor") : mat.color;
 
     public bool Drink(PlayerVitals vitals)
     {

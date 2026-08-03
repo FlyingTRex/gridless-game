@@ -155,6 +155,8 @@ public class PlayerHealthMonitor : MonoBehaviour
         GUILayout.Label($"Thirst: {vitals.Thirst:F0}", DebugGUI.Label);
         GUILayout.Label($"Stamina: {vitals.Stamina:F0}", DebugGUI.Label);
         GUILayout.Label($"Body Temp: {vitals.BodyTemperature:F0}", DebugGUI.Label);
+        if (vitals.IsOverdrunkSick)
+            GUILayout.Label("SICK: Overdrank water!", DebugGUI.Warning);
         GUILayout.EndArea();
     }
 }

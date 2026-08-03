@@ -86,16 +86,33 @@ retroactively (2026-08-03). When adding a new physical object that can be worn
   cube. Not always wrong (e.g. Rock Hammer currently does this on purpose), but
   should be a deliberate choice, not an oversight.
 
-## Gotcha: `InventoryTransfer.Move` / generic `Inventory.RemoveItem`+`AddItem`
-strip an item's `equipment` reference
+## Gotcha: generic `Inventory.RemoveItem`+`AddItem` strip an item's `equipment`
+reference
 
 They're built for plain stackable resources and don't know `IEquippable` exists.
-Calling them on a slot that might hold one (a Canteen, Backpack, etc.) removes the
-real object's slot entry and replaces it with a plain count-only stack of the same
-`ItemDefinition` — the physical object itself is orphaned (usually still visibly
-attached to the player, just with no inventory reference to it anymore, and no way
-to interact with it). Confirmed root cause of a real bug (2026-08-03): a Canteen
-evicted from a full hand via this generic path turned into an inert "CanteenItem"
-placeholder with no Fill/Drink/Unequip options. Always check `slot.equipment` first
-and route through the type's own carrier (`PlayerBackpack.Drop`,
-`PlayerCanteen.Equip`, etc.) for any slot that could hold an equippable.
+Calling them on a slot that might hold one (a Canteen, Backpack, Sunglasses, etc.)
+removes the real object's slot entry and replaces it with a plain count-only stack of
+the same `ItemDefinition` — the physical object itself is orphaned (usually still
+visibly attached to the player, just with no inventory reference to it anymore, and
+no way to interact with it).
+
+**`InventoryTransfer.Move` handles this automatically now (2026-08-03, take 2).** It
+detects when the item being moved has a live `equipment` reference and routes through
+`AddEquipmentItem`/`RemoveEquipmentItem` instead, preserving the object. The first
+attempt at this fix (v0.1.34-dev, same day) added a blanket guard that refused the
+move entirely whenever *any* slot held an `equipment` reference — too broad, it also
+blocked ordinary item moves and got reverted, silently leaving the underlying bug
+unfixed despite the changelog describing it as resolved. Root-caused for real via a
+second bug report (Sunglasses moved from a backpack to a hand through the inventory
+screen's move popup, then couldn't be equipped) that turned out to be the identical
+issue. The new fix is scoped to just the specific item/slot being moved, not a
+blanket refusal.
+
+This only covers callers that go through `Move()`. Anything that calls
+`Inventory.RemoveItem`+`AddItem` (or `PlayerDropping.DropFrom`, which still does this
+internally and has no equipment check of its own) directly on a slot that might hold
+an equippable is still on the hook to check `slot.equipment` first and route through
+the type's own carrier (`PlayerBackpack.Drop`, `PlayerCanteen.Equip`, etc.). Every
+current call site of `DropFrom` happens to already guard against this correctly —
+but that's a property of the callers, not of `DropFrom` itself, so a new call site
+can reintroduce the bug without touching `InventoryTransfer` at all.
