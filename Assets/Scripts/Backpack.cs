@@ -25,9 +25,9 @@ public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
         col = GetComponent<Collider>();
     }
 
-    public void Complete(PlayerInventory playerInventory, PlayerSkills skills)
+    public void Complete(GameObject player)
     {
-        var carrier = playerInventory.GetComponent<PlayerBackpack>();
+        var carrier = player.GetComponent<PlayerBackpack>();
         carrier?.PickUp(this);
     }
 

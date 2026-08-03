@@ -1,5 +1,7 @@
+using UnityEngine;
+
 public interface IPunchable
 {
     string Prompt { get; }
-    void OnPunch(PlayerSkills skills);
+    void OnPunch(GameObject player);
 }

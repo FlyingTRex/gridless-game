@@ -17,9 +17,10 @@ public class Pickup : MonoBehaviour, IInteractable
         quantity = newQuantity;
     }
 
-    public void Complete(PlayerInventory inventory, PlayerSkills skills)
+    public void Complete(GameObject player)
     {
-        int leftover = inventory.AddItem(item, quantity);
+        var inventory = player.GetComponent<PlayerInventory>();
+        int leftover = inventory != null ? inventory.AddItem(item, quantity) : quantity;
         if (leftover > 0)
         {
             // Inventory is full — leave the remainder on the ground instead of deleting it.
@@ -27,7 +28,7 @@ public class Pickup : MonoBehaviour, IInteractable
             return;
         }
 
-        skills?.GainExperience(trainedSkill, skillGain);
+        player.GetComponent<PlayerSkills>()?.GainExperience(trainedSkill, skillGain);
         Destroy(gameObject);
     }
 }
