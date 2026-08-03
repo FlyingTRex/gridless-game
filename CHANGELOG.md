@@ -7,6 +7,29 @@ skimmable version.
 
 ## 2026-08-02
 
+### Canteen: craftable liquid container, first `IEquippable` beyond Backpack (`8670677`)
+Craftable from 3 Sticks (trains Crafting), cylinder-shaped (body + cap
+primitives, steel-grey `Canteen.mat`), can sit in the regular inventory or be
+equipped to two new slots — Hand or Belt (`PlayerEquipment.slotNames` grew
+from just `Back`). Holds liquid, not items: `Canteen` tracks a
+`LiquidType?`/`Amount`/`Capacity` triplet directly rather than wrapping an
+`Inventory`, with `Fill`/`Drink` (the latter restores `PlayerVitals` Thirst).
+
+**Refactor forced by this:** `Inventory.Slot.equipment` and
+`AddEquipmentItem`/`RemoveEquipmentItem` were typed to `IInventoryHolder`,
+which assumes the equipped thing wraps an `Inventory` — true for `Backpack`,
+false for `Canteen`. Pulled the common bit (`DisplayName`) out into a new
+`IEquippable` base interface; `IInventoryHolder : IEquippable` adds
+`Inventory` on top for container-type equippables. `PlayerEquipment` now
+stores `IEquippable`, not `IInventoryHolder` — `Backpack` needed no code
+changes, since it still satisfies the wider interface through the narrower
+one.
+
+Built via the batch-mode Editor-script workflow throughout (prefab
+composition + wiring `PlayerCanteen`/the new recipe into `TestScene` via
+`SerializedObject`, not hand-authored YAML) — validated with a full batch-mode
+compile check and a duplicate-fileID scan before committing.
+
 ### Backpack silhouette instead of a box (`69a79b8`)
 Rebuilt `Backpack.prefab` and its `TestScene` instance as a body + tilted flap
 + two side straps + front pocket (all primitives, same `Backpack.mat`), instead
