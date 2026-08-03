@@ -35,6 +35,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerEating eating;
     private PlayerBackpack backpackCarrier;
     private PlayerCanteen canteenCarrier;
+    private PlayerNavComputer navComputerCarrier;
     private PlayerVitals vitals;
     private bool isOpen;
     private Vector2 scrollPos;
@@ -64,6 +65,7 @@ public class InventoryScreen : MonoBehaviour
         eating = GetComponent<PlayerEating>();
         backpackCarrier = GetComponent<PlayerBackpack>();
         canteenCarrier = GetComponent<PlayerCanteen>();
+        navComputerCarrier = GetComponent<PlayerNavComputer>();
         vitals = GetComponent<PlayerVitals>();
     }
 
@@ -204,6 +206,8 @@ public class InventoryScreen : MonoBehaviour
         Backpack backpackDropClicked = null;
         Canteen canteenEquipClicked = null;
         Canteen canteenDropClicked = null;
+        NavigationComputer navComputerEquipClicked = null;
+        NavigationComputer navComputerDropClicked = null;
         var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
 
         var inv = playerInventory.Inventory;
@@ -230,6 +234,14 @@ public class InventoryScreen : MonoBehaviour
                     canteenEquipClicked = canteen;
                 if (GUILayout.Button("Drop", GUILayout.Width(50)))
                     canteenDropClicked = canteen;
+            }
+            else if (slot.equipment is NavigationComputer navComputer)
+            {
+                GUILayout.Label(label, DebugGUI.Label);
+                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                    navComputerEquipClicked = navComputer;
+                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                    navComputerDropClicked = navComputer;
             }
             else
             {
@@ -279,6 +291,10 @@ public class InventoryScreen : MonoBehaviour
             canteenCarrier.Equip(canteenEquipClicked);
         if (canteenDropClicked != null)
             canteenCarrier.Drop(canteenDropClicked);
+        if (navComputerEquipClicked != null)
+            navComputerCarrier.Equip(navComputerEquipClicked);
+        if (navComputerDropClicked != null)
+            navComputerCarrier.Drop(navComputerDropClicked);
     }
 
     private void DrawEquipmentSection()
@@ -288,6 +304,9 @@ public class InventoryScreen : MonoBehaviour
         Backpack backpackDropClicked = null;
         Canteen canteenUnequipClicked = null;
         Canteen canteenDropClicked = null;
+        NavigationComputer navComputerEquipClicked = null;
+        NavigationComputer navComputerUnequipClicked = null;
+        NavigationComputer navComputerDropClicked = null;
 
         foreach (var slotName in SlotOrder)
         {
@@ -301,6 +320,7 @@ public class InventoryScreen : MonoBehaviour
             IInventoryHolder nestedHolder = null;
             Backpack backpackHere = null;
             Canteen canteenHere = null;
+            NavigationComputer navComputerHere = null;
 
             for (int i = 0; i < slotInventory.Capacity; i++)
             {
@@ -333,6 +353,7 @@ public class InventoryScreen : MonoBehaviour
                     if (entry.equipment is IInventoryHolder holder && slotName == "Back") nestedHolder = holder;
                     if (entry.equipment is Backpack bp) backpackHere = bp;
                     if (entry.equipment is Canteen ct) canteenHere = ct;
+                    if (entry.equipment is NavigationComputer nc) navComputerHere = nc;
                 }
                 else
                 {
@@ -364,6 +385,20 @@ public class InventoryScreen : MonoBehaviour
                 if (GUILayout.Button("Unequip", GUILayout.Width(65))) canteenUnequipClicked = canteenHere;
                 if (GUILayout.Button("Drop", GUILayout.Width(50))) canteenDropClicked = canteenHere;
             }
+            else if (navComputerHere != null)
+            {
+                bool isWorn = slotName == "Left Wrist" || slotName == "Right Wrist";
+                if (isWorn)
+                {
+                    if (GUILayout.Button("Unequip", GUILayout.Width(70))) navComputerUnequipClicked = navComputerHere;
+                }
+                else
+                {
+                    if (GUILayout.Button("Equip", GUILayout.Width(55))) navComputerEquipClicked = navComputerHere;
+                }
+
+                if (GUILayout.Button("Drop", GUILayout.Width(50))) navComputerDropClicked = navComputerHere;
+            }
 
             GUILayout.EndHorizontal();
 
@@ -376,6 +411,9 @@ public class InventoryScreen : MonoBehaviour
         if (backpackDropClicked != null) backpackCarrier.Drop(backpackDropClicked);
         if (canteenUnequipClicked != null) canteenCarrier.Unequip(canteenUnequipClicked);
         if (canteenDropClicked != null) canteenCarrier.Drop(canteenDropClicked);
+        if (navComputerEquipClicked != null) navComputerCarrier.Equip(navComputerEquipClicked);
+        if (navComputerUnequipClicked != null) navComputerCarrier.Unequip(navComputerUnequipClicked);
+        if (navComputerDropClicked != null) navComputerCarrier.Drop(navComputerDropClicked);
     }
 
     // Draws an inventory's own capacity as a wrapped grid of boxes. Occupied

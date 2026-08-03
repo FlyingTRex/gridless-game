@@ -5,12 +5,39 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.18-dev` — must always match `GameVersion` in
+**Current version:** `0.1.19-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.19-dev — Navigation Computer: wrist-worn compass + speed HUD
+New equippable gadget, `NavigationComputer` (`IInteractable` + `IEquippable`,
+no inventory of its own — just a wearable), carried by new `PlayerNavComputer`
+(`RequireComponent`s `PlayerInventory`/`PlayerEquipment`/`CharacterController`).
+Pickup follows the same priority as Backpack/Canteen (equipped backpack, then
+a free hand, then stashed in the main inventory), and `Equip` tries Left
+Wrist then Right Wrist. `Unequip` uses the same fallback chain added for
+`PlayerBackpack` a few versions back — main inventory, then a hand, then
+drop — instead of risking the old no-op-when-full bug.
+
+While a computer is worn on either wrist, `PlayerNavComputer.OnGUI` draws a
+scrolling compass strip across the top-center of the screen (cardinal
+labels positioned by their angular offset from `transform.eulerAngles.y`,
+so they slide past as the player turns) with current horizontal speed
+(from `CharacterController.velocity`, y-component zeroed) shown underneath.
+Unequipping just stops drawing it — `Equipped` going null is the only
+condition `OnGUI` checks.
+
+`InventoryScreen` got the same three-way Equip/Unequip/Drop wiring
+Backpack/Canteen already have, in both the main inventory list and the
+Equipment section (worn = shown on Left/Right Wrist specifically, unlike
+Canteen where any of its slots count as worn).
+
+Craftable from 1 Rock Knife (`NavComputerRecipe.asset`, trains Crafting),
+and one is placed in `TestScene` at `(-1.5, 0.3, 0.5)` as a world pickup so
+it's usable without crafting first.
 
 ### v0.1.18-dev — Right-click a world object to rename it
 New `IRenameable` (`DisplayName`, `Rename(string)`) and `PlayerRenaming`,
