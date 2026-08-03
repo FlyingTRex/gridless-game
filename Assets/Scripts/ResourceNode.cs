@@ -13,10 +13,10 @@ public class ResourceNode : MonoBehaviour, IPunchable
 
     public string Prompt => "Punch to break";
 
-    public void OnPunch(PlayerSkills skills)
+    public void OnPunch(GameObject player)
     {
         hitsTaken++;
-        skills?.GainExperience(trainedSkill, skillGain);
+        player.GetComponent<PlayerSkills>()?.GainExperience(trainedSkill, skillGain);
         if (hitsTaken < hitsToBreak) return;
 
         for (int i = 0; i < chunkCount; i++)

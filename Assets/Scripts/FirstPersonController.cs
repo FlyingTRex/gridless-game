@@ -2,23 +2,27 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(CharacterController))]
+[RequireComponent(typeof(PlayerVitals))]
 public class FirstPersonController : MonoBehaviour
 {
     [SerializeField] private Camera playerCamera;
     [SerializeField] private float moveSpeed = 4.5f;
     [SerializeField] private float sprintSpeed = 7f;
     [SerializeField] private float jumpHeight = 1.2f;
+    [SerializeField] private float jumpStaminaCost = 10f;
     [SerializeField] private float gravity = -20f;
     [SerializeField] private float mouseSensitivity = 0.12f;
     [SerializeField] private float lookPitchLimit = 85f;
 
     private CharacterController controller;
+    private PlayerVitals vitals;
     private Vector3 velocity;
     private float pitch;
 
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
+        vitals = GetComponent<PlayerVitals>();
     }
 
     private void OnEnable()
@@ -76,14 +80,21 @@ public class FirstPersonController : MonoBehaviour
         if (keyboard.aKey.isPressed) input.x -= 1f;
         input = Vector2.ClampMagnitude(input, 1f);
 
-        float speed = keyboard.leftShiftKey.isPressed ? sprintSpeed : moveSpeed;
+        bool wantsSprint = keyboard.leftShiftKey.isPressed && input.sqrMagnitude > 0.01f;
+        bool isSprinting = wantsSprint && vitals.CanSprint;
+        vitals.IsSprinting = isSprinting;
+
+        float speed = isSprinting ? sprintSpeed : moveSpeed;
         Vector3 move = (transform.right * input.x + transform.forward * input.y) * speed;
 
         if (controller.isGrounded)
         {
             velocity.y = -1f;
             if (keyboard.spaceKey.wasPressedThisFrame)
+            {
                 velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+                vitals.ConsumeStamina(jumpStaminaCost);
+            }
         }
         else
         {
@@ -92,5 +103,17 @@ public class FirstPersonController : MonoBehaviour
 
         Vector3 motion = move + Vector3.up * velocity.y;
         controller.Move(motion * Time.deltaTime);
+
+        lastSpeed = speed;
+        lastSprinting = isSprinting;
+    }
+
+    private float lastSpeed;
+    private bool lastSprinting;
+
+    private void OnGUI()
+    {
+        GUI.Label(new Rect(10, Screen.height - 30, 300, 20),
+            $"Speed: {lastSpeed:F1} m/s  Sprinting: {lastSprinting}");
     }
 }

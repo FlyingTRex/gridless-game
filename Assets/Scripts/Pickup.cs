@@ -11,10 +11,10 @@ public class Pickup : MonoBehaviour, IInteractable
     public bool IsInstant => true;
     public float HoldDuration => 0f;
 
-    public void Complete(PlayerInventory inventory, PlayerSkills skills)
+    public void Complete(GameObject player)
     {
-        inventory.AddItem(item, quantity);
-        skills?.GainExperience(trainedSkill, skillGain);
+        player.GetComponent<PlayerInventory>()?.AddItem(item, quantity);
+        player.GetComponent<PlayerSkills>()?.GainExperience(trainedSkill, skillGain);
         Destroy(gameObject);
     }
 }

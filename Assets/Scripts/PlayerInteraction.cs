@@ -3,22 +3,15 @@ using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerSkills))]
+[RequireComponent(typeof(PlayerVitals))]
 public class PlayerInteraction : MonoBehaviour
 {
     [SerializeField] private Camera playerCamera;
     [SerializeField] private float interactRange = 3f;
 
-    private PlayerInventory inventory;
-    private PlayerSkills skills;
     private IInteractable current;
     private IPunchable currentPunchable;
     private float holdProgress;
-
-    private void Awake()
-    {
-        inventory = GetComponent<PlayerInventory>();
-        skills = GetComponent<PlayerSkills>();
-    }
 
     private void Update()
     {
@@ -32,7 +25,7 @@ public class PlayerInteraction : MonoBehaviour
             if (current.IsInstant)
             {
                 if (keyboard.eKey.wasPressedThisFrame)
-                    current.Complete(inventory, skills);
+                    current.Complete(gameObject);
             }
             else
             {
@@ -41,7 +34,7 @@ public class PlayerInteraction : MonoBehaviour
                     holdProgress += Time.deltaTime;
                     if (holdProgress >= current.HoldDuration)
                     {
-                        current.Complete(inventory, skills);
+                        current.Complete(gameObject);
                         holdProgress = 0f;
                     }
                 }
@@ -57,7 +50,7 @@ public class PlayerInteraction : MonoBehaviour
         }
 
         if (currentPunchable != null && mouse != null && mouse.leftButton.wasPressedThisFrame)
-            currentPunchable.OnPunch(skills);
+            currentPunchable.OnPunch(gameObject);
     }
 
     private void ResolveTarget()
