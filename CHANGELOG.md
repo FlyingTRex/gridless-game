@@ -5,12 +5,32 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.5-dev` — must always match `GameVersion` in
+**Current version:** `0.1.6-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.6-dev — Inventory management screen (I)
+`InventoryScreen`, toggled with I, lists all 14 `PlayerEquipment` slots in
+one place (previously only visible piecemeal — Backpack/Canteen each drew
+their own panel only while equipped, and there was no view at all for the
+other 12 slots since nothing equips into them yet). Each row is a slot name
+plus one box per unit of that slot's `Inventory` capacity (so `Face` draws
+two boxes, everything else one), showing the occupying item's name if
+filled or "Empty" if not — reads `Inventory.Slots`/`Capacity` directly, so
+it stays correct automatically as items get added/removed elsewhere.
+
+Read-only for now: no equip actions live here, since nothing yet targets the
+12 slots beyond Back/Hand/Waist. Opening it unlocks and shows the cursor
+directly (mirrors what Escape already does in `FirstPersonController`,
+kept intentionally simple rather than building a shared cursor-state
+stack for two independent toggles).
+
+Existing debug panels (Inventory, Backpack, Canteen, Vitals, Skills) are
+unchanged and still always-on — this is an additional full-picture view,
+not a replacement.
 
 ### v0.1.5-dev — Full body-equipment slot layout
 `PlayerEquipment` reworked from "one named slot holds one `IEquippable`" to

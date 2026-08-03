@@ -2074,6 +2074,7 @@ GameObject:
   - component: {fileID: 1681626242}
   - component: {fileID: 1681626243}
   - component: {fileID: 1681626244}
+  - component: {fileID: 1681626245}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -2268,8 +2269,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94c326fd07c0af8ebb61ad06661f224c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerEquipment
-  slotNames:
-  - Back
+  slots:
+  - slotName: Head
+    capacity: 1
+  - slotName: Face
+    capacity: 2
+  - slotName: Neck
+    capacity: 1
+  - slotName: Chest
+    capacity: 1
+  - slotName: Back
+    capacity: 1
+  - slotName: Left Arm
+    capacity: 1
+  - slotName: Right Arm
+    capacity: 1
+  - slotName: Left Wrist
+    capacity: 1
+  - slotName: Right Wrist
+    capacity: 1
+  - slotName: Left Hand
+    capacity: 1
+  - slotName: Right Hand
+    capacity: 1
+  - slotName: Waist
+    capacity: 1
+  - slotName: Leg
+    capacity: 1
+  - slotName: Feet
+    capacity: 1
 --- !u!114 &1681626243
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2297,10 +2325,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerCanteen
   canteenItem: {fileID: 11400000, guid: d9c6f1fc6d85bc78d70c6a72969f4ab1, type: 2}
-  handSlotAnchor: {fileID: 1841832237}
-  beltSlotAnchor: {fileID: 1841832238}
+  leftHandSlotAnchor: {fileID: 0}
+  rightHandSlotAnchor: {fileID: 0}
+  waistSlotAnchor: {fileID: 0}
   dropDistance: 1.2
   dropHeight: 1
+--- !u!114 &1681626245
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f965313c9b3ae485f82770a0991597b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::InventoryScreen
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0
