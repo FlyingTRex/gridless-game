@@ -9,6 +9,7 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
     private PlayerCrafting crafting;
     private PlayerDropping dropping;
     private PlayerBackpack backpackCarrier;
+    private PlayerCanteen canteenCarrier;
 
     public Inventory Inventory => inventory;
     public string DisplayName => "Inventory";
@@ -19,6 +20,7 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
         crafting = GetComponent<PlayerCrafting>();
         dropping = GetComponent<PlayerDropping>();
         backpackCarrier = GetComponent<PlayerBackpack>();
+        canteenCarrier = GetComponent<PlayerCanteen>();
     }
 
     // Returns the amount that did NOT fit (0 means everything was added).
@@ -38,6 +40,9 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
         ItemDefinition packClicked = null;
         Backpack equipClicked = null;
         Backpack backpackDropClicked = null;
+        Canteen canteenHandClicked = null;
+        Canteen canteenBeltClicked = null;
+        Canteen canteenDropClicked = null;
         var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
 
         var slots = inventory.Slots;
@@ -55,6 +60,16 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
                     equipClicked = backpack;
                 if (GUILayout.Button("Drop", GUILayout.Width(50)))
                     backpackDropClicked = backpack;
+            }
+            else if (slot.equipment is Canteen canteen)
+            {
+                GUILayout.Label(label);
+                if (GUILayout.Button("To Hand", GUILayout.Width(60)))
+                    canteenHandClicked = canteen;
+                if (GUILayout.Button("To Belt", GUILayout.Width(60)))
+                    canteenBeltClicked = canteen;
+                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                    canteenDropClicked = canteen;
             }
             else
             {
@@ -91,5 +106,11 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
             backpackCarrier.Equip(equipClicked);
         if (backpackDropClicked != null)
             backpackCarrier.Drop(backpackDropClicked);
+        if (canteenHandClicked != null)
+            canteenCarrier.Equip(canteenHandClicked, "Hand");
+        if (canteenBeltClicked != null)
+            canteenCarrier.Equip(canteenBeltClicked, "Belt");
+        if (canteenDropClicked != null)
+            canteenCarrier.Drop(canteenDropClicked, null);
     }
 }
