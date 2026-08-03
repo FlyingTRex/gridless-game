@@ -5,12 +5,31 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.36-dev` — must always match `GameVersion` in
+**Current version:** `0.1.37-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.37-dev — Coin pickups deposit straight into the wallet, capped at 250
+`PlayerCurrency.Add` now clamps each balance at a new `MaxBalance` (250)
+and returns the leftover that didn't fit — same convention as
+`Inventory.AddItem` — instead of adding unconditionally.
+
+New `Coin` (`IInteractable`, not an inventory item): picking one up calls
+`PlayerCurrency.Add` for its `CoinType` and destroys itself, *unless* that
+type is already capped, in which case it leaves the (partial) remainder
+sitting in the world rather than deleting value for nothing. Coins aren't
+carried or manually dropped — there's no inventory step, matching how
+picking one up is meant to work as a direct wallet deposit.
+
+Five small round coins (a scaled-down `Cylinder` primitive, one per
+`CoinType`) placed in `TestScene`, each with its own color-matched
+material (`CopperCoin.mat` etc.) so they visually read as their type both
+sitting in the world and while physically dropping onto the ground.
+Rigidbody set to ContinuousDynamic collision detection from the start
+(see [[gridless-ground-tunneling]]).
 
 ### v0.1.36-dev — Currency: Copper/Iron/Silver/Gold/Platinum row on the Inventory screen
 New `PlayerCurrency` — a five-coin ledger (`CoinType`: Copper, Iron,
