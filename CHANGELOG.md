@@ -7,6 +7,31 @@ skimmable version.
 
 ## 2026-08-02
 
+### Survival vitals: Health, Hunger, Thirst, Stamina, Body Temperature (`ba34403`)
+`PlayerVitals` ticks Hunger/Thirst down over real time, drains Health on starvation/
+dehydration and regens it when well-fed, and gates sprint on Stamina. Two consumables
+(Berry Bush → Hunger, Water Puddle → Thirst, reusable) make the loop testable without
+a full item-use/hotbar system.
+
+**Refactor:** `IInteractable.Complete` / `IPunchable.OnPunch` now take the player's
+`GameObject` instead of individual component references (inventory, skills, vitals).
+The parameter list was about to keep growing with every new player subsystem — third
+one (vitals) was the trigger to stop and pass the GameObject instead, letting each
+interactable pull what it needs via `GetComponent`.
+
+**Playtesting fixes:**
+- Stamina drain/regen initially caused a same-frame flicker between sprinting/not at
+  exactly 0 — regen resumed for a single frame, immediately re-enabling sprint, which
+  drained it right back to 0, repeating every frame. Fixed with a proper exhaustion/
+  recovery hysteresis: once exhausted, sprint stays locked out until stamina climbs
+  back to 25, not just `> 0`. Worth remembering as a general pattern for any future
+  binary gate driven by a continuously-draining/regenerating value.
+- Jumping now costs stamina too (flat cost per jump, not per-second like sprint).
+- Berry Bush's color turned out to be a genuinely bad pink/magenta choice
+  (`0.55, 0.05, 0.35`), not a rendering bug — spent a round wrongly chasing it as a
+  "one-off shader compile glitch" before actually computing what that RGB reads as.
+  Changed to a proper deep red (`0.35, 0.05, 0.08`).
+
 ### Auto-open default scene when the Editor has none loaded (`600e631`)
 Fixes a real onboarding bug: Unity's "last opened scene" state lives in the
 gitignored, machine-local `Library/` folder, so a fresh clone opens to a blank
