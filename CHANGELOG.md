@@ -5,12 +5,22 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.28-dev` — must always match `GameVersion` in
+**Current version:** `0.1.29-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.29-dev — Rock Node pieces are now "Small Rock"
+Pure data change, no code touched. `Rock.asset`'s `itemName` changed from
+"Rock" to "Small Rock" — it's the same `ItemDefinition` asset `RockChunk`
+(what the Rock Node scatters when broken) and `RockKnifeRecipe` already
+both pointed at, so renaming it in place means the Rock Knife recipe
+automatically now reads as requiring Small Rock, with no reference to
+update. Checked first that nothing else in the project referenced this
+asset (only those two), so an in-place rename was safe rather than
+needing a new item + reference migration.
 
 ### v0.1.28-dev — Crafting screen explains why a recipe can't be made
 User report: clicking Craft on a Rock Knife with 6 Rock in hand did
