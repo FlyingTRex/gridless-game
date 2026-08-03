@@ -26,6 +26,8 @@ public class InventoryScreen : MonoBehaviour
 
     private const float PanelWidth = LabelWidth + BoxWidth * 2f + 220f;
 
+    [SerializeField] private float storageRange = 10f;
+
     private PlayerEquipment equipment;
     private PlayerInventory playerInventory;
     private PlayerCrafting crafting;
@@ -36,6 +38,12 @@ public class InventoryScreen : MonoBehaviour
     private PlayerVitals vitals;
     private bool isOpen;
     private Vector2 scrollPos;
+
+    // Recomputed once per OnGUI call (see FindNearbyStorageBox) — the
+    // nearest StorageBox within storageRange, or null. Read by the
+    // inventory section (for the "To Storage" button), the storage
+    // section itself, and the move popup (for its "To Storage" option).
+    private StorageBox nearbyStorage;
 
     // Set when the player clicks any item box in the Equipment section —
     // whether inside a container's contents grid, or a plain item sitting
@@ -85,6 +93,8 @@ public class InventoryScreen : MonoBehaviour
     {
         if (!isOpen) return;
 
+        nearbyStorage = FindNearbyStorageBox();
+
         float height = Mathf.Min(Screen.height - 40f, 700f);
         var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - height) / 2f, PanelWidth, height);
 
@@ -99,6 +109,13 @@ public class InventoryScreen : MonoBehaviour
         GUILayout.Space(10);
         GUILayout.Label("Equipment", DebugGUI.Header);
         DrawEquipmentSection();
+
+        if (nearbyStorage != null)
+        {
+            GUILayout.Space(10);
+            GUILayout.Label($"{nearbyStorage.DisplayName} (nearby)", DebugGUI.Header);
+            DrawContainerContents(nearbyStorage.Inventory, "click an item for options");
+        }
 
         GUILayout.EndScrollView();
 
@@ -117,7 +134,7 @@ public class InventoryScreen : MonoBehaviour
         if (pendingMoveItem == null || pendingMoveSource == null) return;
 
         const float width = 220f;
-        const float height = 210f;
+        const float height = 240f;
         var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
 
         DebugGUI.DrawPanel(rect);
@@ -152,6 +169,12 @@ public class InventoryScreen : MonoBehaviour
             resolved = true;
         }
 
+        if (nearbyStorage != null && nearbyStorage.Inventory != pendingMoveSource && GUILayout.Button("To Storage"))
+        {
+            InventoryTransfer.Move(pendingMoveSource, nearbyStorage.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            resolved = true;
+        }
+
         if (GUILayout.Button("Cancel"))
             resolved = true;
 
@@ -170,6 +193,7 @@ public class InventoryScreen : MonoBehaviour
         ItemDefinition craftClicked = null;
         ItemDefinition dropClicked = null;
         ItemDefinition packClicked = null;
+        ItemDefinition storageClicked = null;
         ItemDefinition eatClicked = null;
         Backpack equipClicked = null;
         Backpack backpackDropClicked = null;
@@ -224,6 +248,9 @@ public class InventoryScreen : MonoBehaviour
 
                 if (equippedBackpack != null && GUILayout.Button("To Pack", GUILayout.Width(60)))
                     packClicked = slot.item;
+
+                if (nearbyStorage != null && GUILayout.Button("To Storage", GUILayout.Width(70)))
+                    storageClicked = slot.item;
             }
 
             GUILayout.EndHorizontal();
@@ -237,6 +264,8 @@ public class InventoryScreen : MonoBehaviour
             dropping.Drop(dropClicked);
         if (packClicked != null)
             InventoryTransfer.Move(inv, equippedBackpack.Inventory, packClicked, inv.GetCount(packClicked));
+        if (storageClicked != null)
+            InventoryTransfer.Move(inv, nearbyStorage.Inventory, storageClicked, inv.GetCount(storageClicked));
         if (equipClicked != null)
             backpackCarrier.Equip(equipClicked);
         if (backpackDropClicked != null)
@@ -334,7 +363,7 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.EndHorizontal();
 
             if (nestedHolder != null)
-                DrawContainerContents(nestedHolder);
+                DrawContainerContents(nestedHolder.Inventory, $"{nestedHolder.DisplayName} contents (click an item for options)");
         }
 
         if (backpackEquipClicked != null) backpackCarrier.Equip(backpackEquipClicked);
@@ -344,15 +373,16 @@ public class InventoryScreen : MonoBehaviour
         if (canteenDropClicked != null) canteenCarrier.Drop(canteenDropClicked);
     }
 
-    // Draws a container's own capacity as a wrapped grid of boxes. Occupied
+    // Draws an inventory's own capacity as a wrapped grid of boxes. Occupied
     // boxes are buttons — clicking one opens the "where should this go?"
     // popup (DrawPendingMovePopup) instead of moving it anywhere directly.
-    private void DrawContainerContents(IInventoryHolder holder)
+    // Shared by a worn backpack's contents and a nearby StorageBox's.
+    private void DrawContainerContents(Inventory inventory, string caption)
     {
-        var contents = holder.Inventory.Slots;
-        int capacity = holder.Inventory.Capacity;
+        var contents = inventory.Slots;
+        int capacity = inventory.Capacity;
 
-        GUILayout.Label($"    {holder.DisplayName} contents (click an item for options):", DebugGUI.Label);
+        GUILayout.Label($"    {caption}:", DebugGUI.Label);
 
         int drawn = 0;
         while (drawn < capacity)
@@ -368,7 +398,7 @@ public class InventoryScreen : MonoBehaviour
                     if (GUILayout.Button(label, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight)))
                     {
                         pendingMoveItem = entry.item;
-                        pendingMoveSource = holder.Inventory;
+                        pendingMoveSource = inventory;
                     }
                 }
                 else
@@ -378,5 +408,27 @@ public class InventoryScreen : MonoBehaviour
             }
             GUILayout.EndHorizontal();
         }
+    }
+
+    // Nearest active StorageBox within storageRange, or null. Called once
+    // per OnGUI frame rather than every frame — this screen only exists
+    // while isOpen, so there's no per-frame cost while it's closed.
+    private StorageBox FindNearbyStorageBox()
+    {
+        StorageBox nearest = null;
+        float nearestDistSq = storageRange * storageRange;
+
+        foreach (var box in StorageBox.Active)
+        {
+            if (box == null) continue;
+            float distSq = (box.transform.position - transform.position).sqrMagnitude;
+            if (distSq <= nearestDistSq)
+            {
+                nearest = box;
+                nearestDistSq = distSq;
+            }
+        }
+
+        return nearest;
     }
 }

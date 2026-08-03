@@ -5,12 +5,35 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.15-dev` — must always match `GameVersion` in
+**Current version:** `0.1.16-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.16-dev — Storage boxes: auto-expand the inventory screen near a nearby box
+New `StorageBox` — a stationary world container (not `IInteractable`, no
+pickup/use prompt). Every enabled box registers itself in a static
+`StorageBox.Active` list; `InventoryScreen` checks that list once per
+`OnGUI` frame and finds the nearest box within `storageRange` (10m by
+default). When one's in range, opening the I screen adds a third section
+below Inventory/Equipment showing that box's contents as a clickable grid,
+reusing the existing "where should this go?" move popup (now with a "To
+Storage" destination alongside Drop/hands/inventory) so items can move
+either direction. Plain inventory items also get a "To Storage" button
+next to "To Pack", mirroring how backpack transfers already worked.
+
+`DrawContainerContents` was generalized from taking an `IInventoryHolder`
+to a plain `(Inventory, caption)` pair, since a `StorageBox` has no
+Stash/SetCarried/equip-slot concept to justify that interface — it's just
+another `Inventory` to render the same way a worn backpack's contents
+already were.
+
+Added one Storage Box to `TestScene` at `(3, 0.25, 0)`, clear of the
+existing Backpack/Canteen/resource spawns, with a new
+`Assets/Data/StorageBox.mat` (brown) so it reads as a container at a
+glance.
 
 ### v0.1.15-dev — Unequip falls back to a hand/drop instead of no-op'ing, canteen spawns at start
 User feedback: unequipping a worn backpack when the main inventory is full
