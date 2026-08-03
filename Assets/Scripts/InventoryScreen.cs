@@ -37,9 +37,11 @@ public class InventoryScreen : MonoBehaviour
     private bool isOpen;
     private Vector2 scrollPos;
 
-    // Set when the player clicks an item inside a container's contents
-    // grid — rather than acting immediately, opens a popup asking where it
-    // should go (Drop / a hand / the main inventory).
+    // Set when the player clicks any item box in the Equipment section —
+    // whether inside a container's contents grid, or a plain item sitting
+    // directly in an equip slot (e.g. a hand). Rather than acting
+    // immediately, opens a popup asking where it should go
+    // (Drop / a hand / the main inventory).
     private ItemDefinition pendingMoveItem;
     private Inventory pendingMoveSource;
 
@@ -252,8 +254,6 @@ public class InventoryScreen : MonoBehaviour
         Backpack backpackDropClicked = null;
         Canteen canteenUnequipClicked = null;
         Canteen canteenDropClicked = null;
-        ItemDefinition plainItemMoveClicked = null;
-        Inventory plainItemMoveSource = null;
 
         foreach (var slotName in SlotOrder)
         {
@@ -279,11 +279,12 @@ public class InventoryScreen : MonoBehaviour
                     {
                         // A plain stackable item sitting directly in an
                         // equip slot (e.g. something picked up into a
-                        // hand) — click it to move it back to inventory.
+                        // hand) — click it to open the same "where should
+                        // this go?" popup as backpack contents.
                         if (GUILayout.Button(label, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight)))
                         {
-                            plainItemMoveClicked = entry.item;
-                            plainItemMoveSource = slotInventory;
+                            pendingMoveItem = entry.item;
+                            pendingMoveSource = slotInventory;
                         }
                     }
                     else
@@ -341,9 +342,6 @@ public class InventoryScreen : MonoBehaviour
         if (backpackDropClicked != null) backpackCarrier.Drop(backpackDropClicked);
         if (canteenUnequipClicked != null) canteenCarrier.Unequip(canteenUnequipClicked);
         if (canteenDropClicked != null) canteenCarrier.Drop(canteenDropClicked);
-        if (plainItemMoveClicked != null && plainItemMoveSource != null)
-            InventoryTransfer.Move(plainItemMoveSource, playerInventory.Inventory,
-                plainItemMoveClicked, plainItemMoveSource.GetCount(plainItemMoveClicked));
     }
 
     // Draws a container's own capacity as a wrapped grid of boxes. Occupied

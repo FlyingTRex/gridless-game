@@ -5,12 +5,22 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.13-dev` — must always match `GameVersion` in
+**Current version:** `0.1.14-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.14-dev — Plain items in a hand use the same move popup as backpack contents
+Follow-up to the previous version's popup, closing the scope gap flagged
+there: clicking a plain item sitting directly in an equip slot (e.g.
+something picked up into a hand) now sets `pendingMoveItem`/
+`pendingMoveSource` and opens `DrawPendingMovePopup`, same as clicking an
+item inside a backpack's contents grid — instead of moving straight to the
+main inventory with no other choice. The two click sites now share one
+popup and one set of destination rules instead of each hardcoding its own
+single target.
 
 ### v0.1.13-dev — Popup for where a backpack item should go, instead of a hardcoded move
 User feedback: clicking an item inside the backpack's contents grid always
