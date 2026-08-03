@@ -5,13 +5,30 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.6-dev` — must always match `GameVersion` in
+**Current version:** `0.1.7-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
 
+### v0.1.7-dev — Sync Escape and I so the cursor/inventory-screen state can't drift
+`InventoryScreen` (I) and `FirstPersonController`'s Escape toggle each
+managed `Cursor.lockState` independently, with no knowledge of each other.
+Opening the inventory with I then pressing Escape would re-lock the cursor
+via `FirstPersonController` while `InventoryScreen.isOpen` stayed `true` —
+the panel kept rendering, mouse-look resumed under it, and a second I press
+would then close it instead of reopening it. Caught by the user asking
+"do we have a way to close the inventory screen" and pointing out the two
+controls could disagree.
+
+Fix: `InventoryScreen` exposes a public `Close()`; `FirstPersonController`
+calls it whenever Escape transitions the cursor *into* the locked state
+(`!wasLocked`) — "cursor just got re-locked" now always implies "any open
+screen is closed" as an invariant, regardless of which control the player
+used or which order their presses happened in. Deliberately not building a
+general cursor-state stack/owner system for this — two toggles was simple
+enough to reconcile directly; revisit if a third one shows up.
 ### v0.1.6-dev — Inventory management screen (I)
 `InventoryScreen`, toggled with I, lists all 14 `PlayerEquipment` slots in
 one place (previously only visible piecemeal — Backpack/Canteen each drew

@@ -16,6 +16,7 @@ public class FirstPersonController : MonoBehaviour
 
     private CharacterController controller;
     private PlayerVitals vitals;
+    private InventoryScreen inventoryScreen;
     private Vector3 velocity;
     private float pitch;
 
@@ -23,6 +24,7 @@ public class FirstPersonController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         vitals = GetComponent<PlayerVitals>();
+        inventoryScreen = GetComponent<InventoryScreen>();
     }
 
     private void OnEnable()
@@ -45,9 +47,15 @@ public class FirstPersonController : MonoBehaviour
 
         if (keyboard.escapeKey.wasPressedThisFrame)
         {
-            bool locked = Cursor.lockState == CursorLockMode.Locked;
-            Cursor.lockState = locked ? CursorLockMode.None : CursorLockMode.Locked;
-            Cursor.visible = locked;
+            bool wasLocked = Cursor.lockState == CursorLockMode.Locked;
+            Cursor.lockState = wasLocked ? CursorLockMode.None : CursorLockMode.Locked;
+            Cursor.visible = wasLocked;
+
+            // Re-locking the cursor always means "back to gameplay" — make
+            // sure any open screen agrees, so I and Escape can't leave the
+            // cursor and the screen's own open/closed state disagreeing.
+            if (!wasLocked)
+                inventoryScreen?.Close();
         }
     }
 
@@ -103,7 +111,7 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.6-dev";
+    private const string GameVersion = "0.1.7-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

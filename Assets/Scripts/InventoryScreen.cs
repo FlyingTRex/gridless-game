@@ -21,6 +21,8 @@ public class InventoryScreen : MonoBehaviour
     private PlayerEquipment equipment;
     private bool isOpen;
 
+    public bool IsOpen => isOpen;
+
     private void Awake()
     {
         equipment = GetComponent<PlayerEquipment>();
@@ -31,6 +33,10 @@ public class InventoryScreen : MonoBehaviour
         if (Keyboard.current != null && Keyboard.current.iKey.wasPressedThisFrame)
             SetOpen(!isOpen);
     }
+
+    // Called by FirstPersonController when Escape re-locks the cursor, so
+    // the two toggles can't drift out of sync with each other.
+    public void Close() => SetOpen(false);
 
     private void SetOpen(bool value)
     {
