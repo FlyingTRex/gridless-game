@@ -40,11 +40,22 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
         col = GetComponent<Collider>();
         rend = GetComponent<Renderer>();
 
-        if (rend != null && emptyMaterial != null)
+        if (rend != null)
         {
-            workingMaterial = new Material(emptyMaterial);
-            rend.material = workingMaterial;
-            originalColor = workingMaterial.color;
+            if (emptyMaterial != null)
+            {
+                workingMaterial = new Material(emptyMaterial);
+            }
+            else if (rend.material != null)
+            {
+                workingMaterial = new Material(rend.material);
+            }
+
+            if (workingMaterial != null)
+            {
+                rend.material = workingMaterial;
+                originalColor = workingMaterial.color;
+            }
         }
     }
 
@@ -88,12 +99,21 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
         if (IsEmpty)
         {
             if (emptyMaterial != null)
+            {
                 rend.material = new Material(emptyMaterial);
+            }
+            else if (workingMaterial != null)
+            {
+                workingMaterial.color = originalColor;
+                rend.material = workingMaterial;
+            }
         }
         else
         {
             if (filledMaterial != null)
+            {
                 rend.material = new Material(filledMaterial);
+            }
             else if (workingMaterial != null)
             {
                 workingMaterial.color = new Color(0.2f, 0.6f, 0.9f, 1f);
