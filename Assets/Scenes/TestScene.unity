@@ -881,6 +881,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pickup
   item: {fileID: 11400000, guid: d492f069a86086445a701543be636fce, type: 2}
   quantity: 1
+  trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
+  skillGain: 0.05
 --- !u!23 &1217868792
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1010,6 +1012,8 @@ MonoBehaviour:
   chunkCount: 3
   hitsToBreak: 1
   scatterForce: 1.2
+  trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
+  skillGain: 0.5
 --- !u!23 &1609834782
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1116,6 +1120,7 @@ GameObject:
   - component: {fileID: 1681626228}
   - component: {fileID: 1681626232}
   - component: {fileID: 1681626231}
+  - component: {fileID: 1681626234}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -1209,6 +1214,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5304d9d9980caf2439fc4567ca459dc4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInventory
+--- !u!114 &1681626234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01f87e2b54abdd54893e26b420f52d3c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerSkills
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0
@@ -1243,6 +1260,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Pickup
   item: {fileID: 11400000, guid: d492f069a86086445a701543be636fce, type: 2}
   quantity: 1
+  trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
+  skillGain: 0.05
 --- !u!23 &1708551383
 MeshRenderer:
   m_ObjectHideFlags: 0
