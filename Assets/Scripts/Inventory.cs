@@ -11,9 +11,9 @@ public class Inventory
         public int count;
 
         // Non-null only for a slot representing a single equippable
-        // container instance (e.g. a specific backpack), as opposed to a
+        // instance (e.g. a specific backpack or canteen), as opposed to a
         // plain stackable resource. Such slots never merge with others.
-        public IInventoryHolder equipment;
+        public IEquippable equipment;
     }
 
     [SerializeField] private int capacity = 4;
@@ -80,9 +80,9 @@ public class Inventory
         return quantity;
     }
 
-    // Adds a single equippable container instance (e.g. a backpack) as its
+    // Adds a single equippable instance (e.g. a backpack or canteen) as its
     // own slot. Fails if there's no free slot — equipment items don't stack.
-    public bool AddEquipmentItem(ItemDefinition item, IInventoryHolder equipment)
+    public bool AddEquipmentItem(ItemDefinition item, IEquippable equipment)
     {
         if (item == null || equipment == null) return false;
         if (slots.Count >= capacity) return false;
@@ -93,7 +93,7 @@ public class Inventory
 
     // Finds and removes the first slot holding the given equipment
     // instance, returning it (null if not found).
-    public IInventoryHolder RemoveEquipmentItem(ItemDefinition item)
+    public IEquippable RemoveEquipmentItem(ItemDefinition item)
     {
         for (int i = slots.Count - 1; i >= 0; i--)
         {

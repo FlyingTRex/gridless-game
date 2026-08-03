@@ -9,7 +9,7 @@ public class EdibleItem : ScriptableObject
     public float restoreAmount = 20f;
     public string verb = "Eat";
 
-    // Optional — e.g. a Filled Waterskin leaves behind an Empty Waterskin
+    // Optional — for a consumable that leaves behind a reusable container
     // instead of being consumed entirely. Null means fully consumed.
     public ItemDefinition returnItem;
 }

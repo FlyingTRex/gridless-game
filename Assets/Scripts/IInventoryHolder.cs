@@ -1,5 +1,4 @@
-public interface IInventoryHolder
+public interface IInventoryHolder : IEquippable
 {
     Inventory Inventory { get; }
-    string DisplayName { get; }
 }

@@ -10,6 +10,13 @@ skimmable history of what's been built and non-obvious gotchas hit along the way
 the full detail; the changelog is the fast path to context. Update it when you land a
 meaningful change.
 
+**Check `WORKING_ON.md` before starting a new feature.** Both collaborators' Claude
+sessions work against this repo independently, and nothing else catches two sessions
+solving the same problem in parallel — a version-bump collision or a fileID
+collision self-heals at merge time, but building a whole duplicate system (see the
+Waterskin/Canteen entry in `CHANGELOG.md`, 2026-08-02) wastes real design effort.
+Add a line before starting non-trivial work; remove it once merged to `origin/main`.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:

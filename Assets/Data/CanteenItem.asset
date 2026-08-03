@@ -10,8 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
-  m_Name: EmptyWaterskin
+  m_Name: CanteenItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Empty Waterskin
-  maxStack: 4
-  worldPickupPrefab: {fileID: 119496677189137678, guid: b4fae350ae2c21f4eb5c52753421a446, type: 3}
+  itemName: Canteen
+  maxStack: 1

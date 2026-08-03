@@ -5,12 +5,33 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.3-dev` — must always match `GameVersion` in
+**Current version:** `0.1.4-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-02
+
+### v0.1.4-dev — Merge: reconcile Waterskin with Canteen (keep Canteen)
+Both sessions independently landed on the exact string `"0.1.3-dev"` for
+`GameVersion` despite representing different code — a version-number collision
+git's text diff can't catch, since identical text isn't a conflict. Bumped to a
+genuinely new number for this merge.
+
+Bigger reconciliation than a technical merge: this session's Empty/Filled
+Waterskin (found container, filled at the Water Puddle, drunk via `EdibleItem`)
+and the other session's Canteen below solve the same problem — carrying and
+drinking water — built in parallel with no coordination. Not something to
+mechanically merge; the game would end up with two redundant, unrelated ways to
+carry water. Kept Canteen (craftable, equippable to Hand/Belt, fits the game's
+first-person/embodied-crafting pillar better than a passively-found container)
+and removed Waterskin entirely — `WaterSource.cs`, `EmptyWaterskin`/
+`FilledWaterskin`/`WaterskinDrink` assets, their pickup prefabs/materials, and
+the `WaterSource` component on the Water Puddle (now just a decorative prop;
+Canteen's `Fill` isn't tied to a specific world location). Berry's `EdibleItem`/
+`PlayerEating` system is unaffected and still ships — it doesn't overlap with
+Canteen at all, and Canteen deliberately doesn't use it (holds liquid state
+directly rather than wrapping an `Inventory`).
 
 ### v0.1.3-dev — Berry eat/drink system, per-item drop visuals, physics fixes
 Berry went from an instant-eat-on-touch world object to a real inventory item:
@@ -18,32 +39,29 @@ Berry went from an instant-eat-on-touch world object to a real inventory item:
 (new ScriptableObject, mirrors the existing `CraftingRecipe` pattern) drives an
 "Eat"/"Drink" button that only appears in the personal-inventory panel — never in
 the backpack panel, so a stored berry can't be eaten without taking it out first.
-Water needs a container now too: `WaterSource` (replacing the old instant-drink
-`Consumable` on the Water Puddle) fills an Empty Waterskin into a Filled one;
-drinking it restores Thirst and leaves the Empty Waterskin behind via `EdibleItem`'s
-optional `returnItem` field, rather than consuming the container outright. The
-`verb` field ("Eat" vs "Drink") is data-driven per `EdibleItem` rather than
+The `verb` field ("Eat" vs "Drink") is data-driven per `EdibleItem` rather than
 hardcoded, so future consumables (soup, potions, whatever) don't need a code change.
 
 **New general mechanism:** `ItemDefinition.worldPickupPrefab` — what a dropped item
 looks like now depends on the item, not a single generic gray-cube fallback shared
-by everything. Built one for every current item (Berry, Stick, Rock — reusing the
-existing `RockChunk.prefab` instead of duplicating it — Empty/Filled Waterskin,
-Rock Knife); the backpack already had its own dedicated drop visual and didn't need
-one.
+by everything. Built one for Berry, Stick, Rock (reusing the existing
+`RockChunk.prefab` instead of duplicating it) and Rock Knife; the backpack already
+had its own dedicated drop visual and didn't need one. (Also built one for the
+Empty/Filled Waterskin at the time — removed along with the rest of that system in
+the merge above.)
 
 **Real bugs hit building this, in order:**
 - A `SerializedObject.objectReferenceValue` assignment silently produced a null
-  reference (`fileID: 0`) for several fields (`Pickup.item`, `PlayerEating.edibles`,
-  `WaterSource`'s two fields) despite no error and an identical pattern elsewhere in
-  the same script succeeding. Root cause: assets created via `AssetDatabase.CreateAsset`
-  earlier in the script, then referenced *after* an `EditorSceneManager.OpenScene()`
-  call later in the same script, without an intervening `AssetDatabase.SaveAssets()`
-  — the scene-open silently invalidated the uncommitted in-memory asset references.
-  Fixed by re-fetching via `AssetDatabase.LoadAssetAtPath` *after* the scene is
-  already open, rather than trusting pre-open references to survive. General rule
-  worth remembering: never let object references cross an `OpenScene` call within
-  the same batch-mode script — save assets first, or re-fetch after.
+  reference (`fileID: 0`) for several fields despite no error and an identical
+  pattern elsewhere in the same script succeeding. Root cause: assets created via
+  `AssetDatabase.CreateAsset` earlier in the script, then referenced *after* an
+  `EditorSceneManager.OpenScene()` call later in the same script, without an
+  intervening `AssetDatabase.SaveAssets()` — the scene-open silently invalidated
+  the uncommitted in-memory asset references. Fixed by re-fetching via
+  `AssetDatabase.LoadAssetAtPath` *after* the scene is already open, rather than
+  trusting pre-open references to survive. General rule worth remembering: never
+  let object references cross an `OpenScene` call within the same batch-mode
+  script — save assets first, or re-fetch after.
 - Repeated the exact material-into-prefab mistake this project's own `CLAUDE.md`
   already documents: used `new Material(Shader.Find(...))` directly on new drop
   prefabs instead of saving it as a real `.mat` asset first. All five new drop
@@ -55,10 +73,51 @@ one.
   fell straight through the Ground collider — classic tunneling: Unity's default
   Discrete collision detection can miss a collision entirely if a thin, fast-moving
   collider passes a thin static collider between physics steps. Berry (a chunky
-  sphere) and the Waterskins were thick enough to never hit this. Fixed by setting
-  `Rigidbody.collisionDetectionMode` to `ContinuousDynamic` on all seven
-  Rigidbody-bearing pickup/dropped-item prefabs (the five new ones plus the
-  pre-existing `RockChunk`/`DroppedItem`), not just the two that visibly broke.
+  sphere) was thick enough to never hit this. Fixed by setting
+  `Rigidbody.collisionDetectionMode` to `ContinuousDynamic` on every
+  Rigidbody-bearing pickup/dropped-item prefab, not just the two that visibly broke.
+
+### Merge: canteen + panel-layout/versioning reconciliation
+Built in parallel with the `v0.1.2-dev` work below on a separate Claude Code
+session, discovered on push — same recurring situation as the two merge
+entries further down, but a cleaner one this time: no fileID collision, just
+a text conflict in this file's own version line/entries. Two real things to
+reconcile though, not just text:
+- The other session's Backpack debug panel moved to `Rect(320, 10, 280, 320)`
+  as part of its own panel-overlap cleanup — which put its right edge at
+  `x=600`, ten pixels inside where this session's new canteen Hand/Belt panels
+  had been placed (`x=590`). Moved the canteen panels to `x=610` and gave them
+  the same `DebugGUI.DrawPanel`/`Header`/`Label` treatment the other panels
+  now use, instead of plain unstyled `GUILayout`.
+- First time this session's Claude instance saw the new
+  `CLAUDE.md`/`CHANGELOG.md` version-bump convention introduced by the other
+  session (`GameVersion` + this file's "Current version" line, bumped
+  together on every gameplay-affecting commit). The canteen commit predated
+  discovering that rule, so this merge is also where it first gets applied
+  here — bumped `0.1.2-dev` → `0.1.3-dev`.
+
+### Canteen: craftable liquid container, first `IEquippable` beyond Backpack (`8670677`)
+Craftable from 3 Sticks (trains Crafting), cylinder-shaped (body + cap
+primitives, steel-grey `Canteen.mat`), can sit in the regular inventory or be
+equipped to two new slots — Hand or Belt (`PlayerEquipment.slotNames` grew
+from just `Back`). Holds liquid, not items: `Canteen` tracks a
+`LiquidType?`/`Amount`/`Capacity` triplet directly rather than wrapping an
+`Inventory`, with `Fill`/`Drink` (the latter restores `PlayerVitals` Thirst).
+
+**Refactor forced by this:** `Inventory.Slot.equipment` and
+`AddEquipmentItem`/`RemoveEquipmentItem` were typed to `IInventoryHolder`,
+which assumes the equipped thing wraps an `Inventory` — true for `Backpack`,
+false for `Canteen`. Pulled the common bit (`DisplayName`) out into a new
+`IEquippable` base interface; `IInventoryHolder : IEquippable` adds
+`Inventory` on top for container-type equippables. `PlayerEquipment` now
+stores `IEquippable`, not `IInventoryHolder` — `Backpack` needed no code
+changes, since it still satisfies the wider interface through the narrower
+one.
+
+Built via the batch-mode Editor-script workflow throughout (prefab
+composition + wiring `PlayerCanteen`/the new recipe into `TestScene` via
+`SerializedObject`, not hand-authored YAML) — validated with a full batch-mode
+compile check and a duplicate-fileID scan before committing.
 
 ### v0.1.2-dev — Merge: backpack silhouette + cursor-lock/panel/worn-equipment fixes
 Built in parallel with the silhouette rebuild below on a separate Claude Code
