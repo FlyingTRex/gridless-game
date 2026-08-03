@@ -5,12 +5,24 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.20-dev` — must always match `GameVersion` in
+**Current version:** `0.1.21-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.21-dev — Hover a storage container to see its name
+New `StorageBoxHover`, attached to `Player` alongside `PlayerInteraction`.
+Raycasts from the same camera every `Update` (its own `hoverRange`, 20m —
+deliberately longer than interact range, since reading a label shouldn't
+require being close enough to use the box) and, when the ray hits a
+`StorageBox`, draws its `DisplayName` above the crosshair in `OnGUI`.
+Reads `DisplayName` directly, so a renamed box's name shows immediately.
+
+Positioned above the crosshair rather than below, where
+`PlayerInteraction`'s own interact-prompt text draws — the two never
+compete for the same spot since `StorageBox` isn't `IInteractable`.
 
 ### v0.1.20-dev — "To Storage" now lists nearby boxes by name
 User feedback: `InventoryScreen` only ever offered the single *nearest*

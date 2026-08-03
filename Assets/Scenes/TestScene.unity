@@ -2511,6 +2511,7 @@ GameObject:
   - component: {fileID: 1681626246}
   - component: {fileID: 1681626247}
   - component: {fileID: 1681626248}
+  - component: {fileID: 1681626249}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -2820,6 +2821,19 @@ MonoBehaviour:
   navComputerItem: {fileID: 11400000, guid: 49fef511b80a3e146baa5bafa40d2bf9, type: 2}
   dropDistance: 1.2
   dropHeight: 1
+--- !u!114 &1681626249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 737e2ec8cb616934b9bde0bb59be6a26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StorageBoxHover
+  hoverRange: 20
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0
