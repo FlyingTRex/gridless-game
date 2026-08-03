@@ -1175,6 +1175,7 @@ GameObject:
   - component: {fileID: 687259672}
   - component: {fileID: 687259671}
   - component: {fileID: 687259670}
+  - component: {fileID: 687259674}
   m_Layer: 0
   m_Name: Water Puddle
   m_TagString: Untagged
@@ -1277,6 +1278,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &687259674
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 687259668}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7efad05b65b9ea84ea6589c3b0fa3871, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WaterSource
 --- !u!21 &689743557
 Material:
   serializedVersion: 8
@@ -1993,6 +2006,9 @@ MonoBehaviour:
   canteenName: Canteen
   capacity: 100
   drinkAmount: 25
+  emptyMaterial: {fileID: 0}
+  filledMaterial: {fileID: 0}
+  fillRange: 2
 --- !u!65 &896003594
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2826,8 +2842,10 @@ Material:
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
+  stringTagMap:
+    RenderType: Opaque
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -2924,7 +2942,7 @@ Material:
     - _ZWrite: 1
     m_Colors:
     - _BaseColor: {r: 0.15, g: 0.35, b: 0.6, a: 1}
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 0.15, g: 0.35, b: 0.6, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.2, g: 0.2, b: 0.2, a: 1}
   m_BuildTextureStacks: []
@@ -3095,6 +3113,9 @@ MonoBehaviour:
   staminaExhaustionRecoveryThreshold: 25
   bodyTemperatureNeutral: 50
   bodyTemperatureDriftPerSecond: 2
+  overdrinkSicknessThreshold: 100
+  overdrinkSicknessDamagePerSecond: 5
+  overdrinkRecoveryThreshold: 50
 --- !u!114 &1681626239
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3114,6 +3135,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d61a282b25e93e0428d46ff5ba6b5f3f, type: 2}
   - {fileID: 11400000, guid: 97a30021ea2f12c4ba38708bc240fe2f, type: 2}
   - {fileID: 11400000, guid: 4e7c3409c37d1a7449ced1b2a9c7a89f, type: 2}
+  storageRange: 10
 --- !u!114 &1681626240
 MonoBehaviour:
   m_ObjectHideFlags: 0
