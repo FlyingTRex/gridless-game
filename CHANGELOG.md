@@ -5,12 +5,34 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.24-dev` — must always match `GameVersion` in
+**Current version:** `0.1.25-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.25-dev — Personal Health Monitor: wrist-worn vitals HUD
+Second wrist-worn gadget alongside the Navigation Computer, built the same
+way: `PersonalHealthMonitor` (`IInteractable` + `IEquippable`, no inventory
+of its own) carried by `PlayerHealthMonitor`, same
+pickup-priority/Equip/Unequip-with-fallback/Drop pattern as
+Backpack/Canteen/NavComputer. Craftable from 1 Rock Knife
+(`HealthMonitorRecipe.asset`, trains Crafting), and one is placed in
+`TestScene` at `(-3, 0.3, 1)` as a world pickup. Its world Rigidbody was
+set to ContinuousDynamic collision detection from the start — see
+[[gridless-ground-tunneling]] — instead of repeating the bug just fixed in
+the previous version.
+
+While worn on either wrist, it draws the exact "Vitals" panel that used to
+be `PlayerVitals`'s own always-on top-right `OnGUI` — Health/Hunger/
+Thirst/Stamina/Body Temp — which is now gone from `PlayerVitals` entirely.
+`PlayerVitals` just exposes the numbers (`Health`, `Hunger`, etc., already
+public) for `PlayerHealthMonitor` to read; the game no longer always shows
+vitals, only while a monitor is equipped, matching how the Nav Computer
+gates its compass. `InventoryScreen` got the same three-way
+Equip/Unequip/Drop wiring the other wrist item already has, in both the
+main inventory list and the Equipment section.
 
 ### v0.1.24-dev — Skills (U) and Crafting (O) become their own toggleable screens
 Pulled both out of where they used to live — Skills was an always-on

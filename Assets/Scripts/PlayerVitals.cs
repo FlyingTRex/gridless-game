@@ -81,18 +81,4 @@ public class PlayerVitals : MonoBehaviour
             case VitalType.Stamina: stamina = Mathf.Min(100f, stamina + amount); break;
         }
     }
-
-    private void OnGUI()
-    {
-        var rect = new Rect(Screen.width - 230, 10, 220, 150);
-        DebugGUI.DrawPanel(rect);
-        GUILayout.BeginArea(rect);
-        GUILayout.Label("Vitals", DebugGUI.Header);
-        GUILayout.Label($"Health: {health:F0}", DebugGUI.Label);
-        GUILayout.Label($"Hunger: {hunger:F0}", DebugGUI.Label);
-        GUILayout.Label($"Thirst: {thirst:F0}", DebugGUI.Label);
-        GUILayout.Label($"Stamina: {stamina:F0}", DebugGUI.Label);
-        GUILayout.Label($"Body Temp: {bodyTemperature:F0}", DebugGUI.Label);
-        GUILayout.EndArea();
-    }
 }
