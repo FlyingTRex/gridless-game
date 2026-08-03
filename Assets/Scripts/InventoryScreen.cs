@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -40,11 +41,13 @@ public class InventoryScreen : MonoBehaviour
     private bool isOpen;
     private Vector2 scrollPos;
 
-    // Recomputed once per OnGUI call (see FindNearbyStorageBox) — the
-    // nearest StorageBox within storageRange, or null. Read by the
-    // inventory section (for the "To Storage" button), the storage
-    // section itself, and the move popup (for its "To Storage" option).
-    private StorageBox nearbyStorage;
+    // Recomputed once per OnGUI call (see FindNearbyStorageBoxes) — every
+    // StorageBox within storageRange, nearest first. Read by the inventory
+    // section (for the "To Storage" button), the storage section itself
+    // (shows the nearest one's contents), and the move popup's storage
+    // picker (lets the player choose by name when more than one is in
+    // range).
+    private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
     // Set when the player clicks any item box in the Equipment section —
     // whether inside a container's contents grid, or a plain item sitting
@@ -53,6 +56,11 @@ public class InventoryScreen : MonoBehaviour
     // (Drop / a hand / the main inventory).
     private ItemDefinition pendingMoveItem;
     private Inventory pendingMoveSource;
+
+    // True while the move popup is showing the storage picker (a named
+    // list of nearbyStorages) instead of its normal destination list —
+    // entered by clicking "To Storage".
+    private bool choosingStorage;
 
     public bool IsOpen => isOpen;
 
@@ -91,6 +99,7 @@ public class InventoryScreen : MonoBehaviour
         {
             pendingMoveItem = null;
             pendingMoveSource = null;
+            choosingStorage = false;
         }
         Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = value;
@@ -100,7 +109,7 @@ public class InventoryScreen : MonoBehaviour
     {
         if (!isOpen) return;
 
-        nearbyStorage = FindNearbyStorageBox();
+        FindNearbyStorageBoxes(nearbyStorages);
 
         float height = Mathf.Min(Screen.height - 40f, 700f);
         var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - height) / 2f, PanelWidth, height);
@@ -117,11 +126,12 @@ public class InventoryScreen : MonoBehaviour
         GUILayout.Label("Equipment", DebugGUI.Header);
         DrawEquipmentSection();
 
-        if (nearbyStorage != null)
+        if (nearbyStorages.Count > 0)
         {
+            var nearest = nearbyStorages[0];
             GUILayout.Space(10);
-            GUILayout.Label($"{nearbyStorage.DisplayName} (nearby)", DebugGUI.Header);
-            DrawContainerContents(nearbyStorage.Inventory, "click an item for options");
+            GUILayout.Label($"{nearest.DisplayName} (nearby)", DebugGUI.Header);
+            DrawContainerContents(nearest.Inventory, "click an item for options");
         }
 
         GUILayout.EndScrollView();
@@ -136,54 +146,24 @@ public class InventoryScreen : MonoBehaviour
 
     // Small "where should this go?" dialog shown after clicking an item
     // inside a container's contents grid. Drawn last so it sits on top.
+    // "To Storage" switches it into a second mode (choosingStorage) listing
+    // each nearby box by name instead of moving immediately, since more
+    // than one can be in range at once.
     private void DrawPendingMovePopup()
     {
         if (pendingMoveItem == null || pendingMoveSource == null) return;
 
         const float width = 220f;
-        const float height = 240f;
+        float height = choosingStorage
+            ? 70f + Mathf.Max(nearbyStorages.Count, 1) * 26f
+            : 240f;
         var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
 
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
         GUILayout.Label(pendingMoveItem.itemName, DebugGUI.Header);
 
-        bool resolved = false;
-
-        if (GUILayout.Button("Drop"))
-        {
-            dropping?.DropFrom(pendingMoveSource, pendingMoveItem);
-            resolved = true;
-        }
-
-        var leftHand = equipment.GetSlot("Left Hand");
-        if (leftHand != null && leftHand != pendingMoveSource && GUILayout.Button("To Left Hand"))
-        {
-            InventoryTransfer.Move(pendingMoveSource, leftHand, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
-            resolved = true;
-        }
-
-        var rightHand = equipment.GetSlot("Right Hand");
-        if (rightHand != null && rightHand != pendingMoveSource && GUILayout.Button("To Right Hand"))
-        {
-            InventoryTransfer.Move(pendingMoveSource, rightHand, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
-            resolved = true;
-        }
-
-        if (playerInventory.Inventory != pendingMoveSource && GUILayout.Button("To Inventory"))
-        {
-            InventoryTransfer.Move(pendingMoveSource, playerInventory.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
-            resolved = true;
-        }
-
-        if (nearbyStorage != null && nearbyStorage.Inventory != pendingMoveSource && GUILayout.Button("To Storage"))
-        {
-            InventoryTransfer.Move(pendingMoveSource, nearbyStorage.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
-            resolved = true;
-        }
-
-        if (GUILayout.Button("Cancel"))
-            resolved = true;
+        bool resolved = choosingStorage ? DrawStoragePicker() : DrawMoveDestinations();
 
         GUILayout.EndArea();
 
@@ -191,7 +171,70 @@ public class InventoryScreen : MonoBehaviour
         {
             pendingMoveItem = null;
             pendingMoveSource = null;
+            choosingStorage = false;
         }
+    }
+
+    // Normal destination list. Returns true once the popup should close.
+    private bool DrawMoveDestinations()
+    {
+        if (GUILayout.Button("Drop"))
+        {
+            dropping?.DropFrom(pendingMoveSource, pendingMoveItem);
+            return true;
+        }
+
+        var leftHand = equipment.GetSlot("Left Hand");
+        if (leftHand != null && leftHand != pendingMoveSource && GUILayout.Button("To Left Hand"))
+        {
+            InventoryTransfer.Move(pendingMoveSource, leftHand, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            return true;
+        }
+
+        var rightHand = equipment.GetSlot("Right Hand");
+        if (rightHand != null && rightHand != pendingMoveSource && GUILayout.Button("To Right Hand"))
+        {
+            InventoryTransfer.Move(pendingMoveSource, rightHand, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            return true;
+        }
+
+        if (playerInventory.Inventory != pendingMoveSource && GUILayout.Button("To Inventory"))
+        {
+            InventoryTransfer.Move(pendingMoveSource, playerInventory.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            return true;
+        }
+
+        if (nearbyStorages.Exists(box => box.Inventory != pendingMoveSource) && GUILayout.Button("To Storage"))
+        {
+            choosingStorage = true;
+            return false;
+        }
+
+        return GUILayout.Button("Cancel");
+    }
+
+    // Named list of every StorageBox currently in range. Returns true once
+    // the popup should close (a box was picked, or Cancel).
+    private bool DrawStoragePicker()
+    {
+        foreach (var box in nearbyStorages)
+        {
+            if (box.Inventory == pendingMoveSource) continue;
+
+            if (GUILayout.Button(box.DisplayName))
+            {
+                InventoryTransfer.Move(pendingMoveSource, box.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+                return true;
+            }
+        }
+
+        if (GUILayout.Button("Back"))
+        {
+            choosingStorage = false;
+            return false;
+        }
+
+        return GUILayout.Button("Cancel");
     }
 
     // Ported from the old always-on PlayerInventory panel.
@@ -200,7 +243,6 @@ public class InventoryScreen : MonoBehaviour
         ItemDefinition craftClicked = null;
         ItemDefinition dropClicked = null;
         ItemDefinition packClicked = null;
-        ItemDefinition storageClicked = null;
         ItemDefinition eatClicked = null;
         Backpack equipClicked = null;
         Backpack backpackDropClicked = null;
@@ -266,8 +308,12 @@ public class InventoryScreen : MonoBehaviour
                 if (equippedBackpack != null && GUILayout.Button("To Pack", GUILayout.Width(60)))
                     packClicked = slot.item;
 
-                if (nearbyStorage != null && GUILayout.Button("To Storage", GUILayout.Width(70)))
-                    storageClicked = slot.item;
+                if (nearbyStorages.Count > 0 && GUILayout.Button("To Storage", GUILayout.Width(70)))
+                {
+                    pendingMoveItem = slot.item;
+                    pendingMoveSource = inv;
+                    choosingStorage = true;
+                }
             }
 
             GUILayout.EndHorizontal();
@@ -281,8 +327,6 @@ public class InventoryScreen : MonoBehaviour
             dropping.Drop(dropClicked);
         if (packClicked != null)
             InventoryTransfer.Move(inv, equippedBackpack.Inventory, packClicked, inv.GetCount(packClicked));
-        if (storageClicked != null)
-            InventoryTransfer.Move(inv, nearbyStorage.Inventory, storageClicked, inv.GetCount(storageClicked));
         if (equipClicked != null)
             backpackCarrier.Equip(equipClicked);
         if (backpackDropClicked != null)
@@ -453,25 +497,24 @@ public class InventoryScreen : MonoBehaviour
         }
     }
 
-    // Nearest active StorageBox within storageRange, or null. Called once
-    // per OnGUI frame rather than every frame — this screen only exists
-    // while isOpen, so there's no per-frame cost while it's closed.
-    private StorageBox FindNearbyStorageBox()
+    // Every active StorageBox within storageRange, nearest first. Called
+    // once per OnGUI frame rather than every frame — this screen only
+    // exists while isOpen, so there's no per-frame cost while it's closed.
+    private void FindNearbyStorageBoxes(List<StorageBox> result)
     {
-        StorageBox nearest = null;
-        float nearestDistSq = storageRange * storageRange;
+        result.Clear();
+        float rangeSq = storageRange * storageRange;
 
         foreach (var box in StorageBox.Active)
         {
             if (box == null) continue;
             float distSq = (box.transform.position - transform.position).sqrMagnitude;
-            if (distSq <= nearestDistSq)
-            {
-                nearest = box;
-                nearestDistSq = distSq;
-            }
+            if (distSq <= rangeSq)
+                result.Add(box);
         }
 
-        return nearest;
+        result.Sort((a, b) =>
+            (a.transform.position - transform.position).sqrMagnitude
+                .CompareTo((b.transform.position - transform.position).sqrMagnitude));
     }
 }

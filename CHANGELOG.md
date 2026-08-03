@@ -5,12 +5,27 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.19-dev` — must always match `GameVersion` in
+**Current version:** `0.1.20-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.20-dev — "To Storage" now lists nearby boxes by name
+User feedback: `InventoryScreen` only ever offered the single *nearest*
+StorageBox as a move destination, silently ignoring any others in range.
+`storageRange` (10m) can easily contain more than one box, so there was no
+way to choose which.
+
+`nearbyStorage` (single) became `nearbyStorages` (`List<StorageBox>`,
+nearest first — `FindNearbyStorageBoxes` now populates it instead of
+returning one). Clicking "To Storage" — from either the main inventory
+list or the move popup — no longer moves immediately; it switches the
+popup into a picker mode (`choosingStorage`) listing every nearby box by
+`DisplayName` (so a rename shows up here too), with **Back** to return to
+the normal destination list and **Cancel** as before. The auto-expanding
+"(nearby)" contents section still shows just the nearest box, unchanged.
 
 ### v0.1.19-dev — Navigation Computer: wrist-worn compass + speed HUD
 New equippable gadget, `NavigationComputer` (`IInteractable` + `IEquippable`,
