@@ -5,12 +5,23 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.39-dev` — must always match `GameVersion` in
+**Current version:** `0.1.40-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.40-dev — Prone is its own stance, and the keybinds moved
+Follow-up to the previous version: "Crawling" and "Prone" turned out to be
+two different things the user wanted, not one stance under two names.
+Added `MovementStance.Prone` (0.1× speed — slower than Crawl's 0.2×,
+lying flat being more restrictive than moving on hands and knees) and
+rebound all three: **X** = Kneel (was Left Ctrl), **C** = Crawl (was Z),
+**Z** = Prone (new). Still mutually exclusive — pressing a different
+stance's key switches directly to it — and Prone gets the same
+sprint/jump-disabled, stamina-regenerates treatment the other two already
+had, since it's just as much "not standing" as they are.
 
 ### v0.1.39-dev — Stamina-gated movement speed, plus Kneeling/Crawling stances
 Reworked stamina's effect on movement into three tiers (checked in

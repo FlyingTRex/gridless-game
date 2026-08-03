@@ -6,6 +6,7 @@ public enum MovementStance
     Standing,
     Kneeling,
     Crawling,
+    Prone,
 }
 
 [RequireComponent(typeof(CharacterController))]
@@ -23,6 +24,7 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private float sprintSpeed = 7f;
     [SerializeField] private float kneelSpeedMultiplier = 0.4f;
     [SerializeField] private float crawlSpeedMultiplier = 0.2f;
+    [SerializeField] private float proneSpeedMultiplier = 0.1f;
     [SerializeField] private float jumpHeight = 1.2f;
     [SerializeField] private float jumpStaminaCost = 10f;
     [SerializeField] private float gravity = -20f;
@@ -87,18 +89,21 @@ public class FirstPersonController : MonoBehaviour
         }
     }
 
-    // Left Ctrl toggles Kneeling, Z toggles Crawling — pressing either
-    // again while already in that stance returns to Standing, and the two
-    // are mutually exclusive (switching to one drops the other).
+    // X toggles Kneeling, C toggles Crawling, Z toggles Prone — pressing
+    // the key for the current stance again returns to Standing, and all
+    // three are mutually exclusive (switching to one drops whichever of
+    // the others was active).
     private void HandleStance()
     {
         var keyboard = Keyboard.current;
         if (keyboard == null || Cursor.lockState != CursorLockMode.Locked) return;
 
-        if (keyboard.leftCtrlKey.wasPressedThisFrame)
+        if (keyboard.xKey.wasPressedThisFrame)
             stance = stance == MovementStance.Kneeling ? MovementStance.Standing : MovementStance.Kneeling;
-        else if (keyboard.zKey.wasPressedThisFrame)
+        else if (keyboard.cKey.wasPressedThisFrame)
             stance = stance == MovementStance.Crawling ? MovementStance.Standing : MovementStance.Crawling;
+        else if (keyboard.zKey.wasPressedThisFrame)
+            stance = stance == MovementStance.Prone ? MovementStance.Standing : MovementStance.Prone;
     }
 
     private void HandleLook()
@@ -137,8 +142,8 @@ public class FirstPersonController : MonoBehaviour
         bool isSprinting = wantsSprint && vitals.CanSprint;
         vitals.IsSprinting = isSprinting;
 
-        // Stamina only climbs back up while stopped, kneeling, or
-        // crawling — walking (or trying to sprint below the threshold)
+        // Stamina only climbs back up while stopped, kneeling, crawling,
+        // or prone — walking (or trying to sprint below the threshold)
         // holds it flat instead of regenerating like it used to whenever
         // the player simply wasn't sprinting.
         vitals.CanRegenStamina = !isMoving || stance != MovementStance.Standing;
@@ -147,6 +152,7 @@ public class FirstPersonController : MonoBehaviour
         {
             MovementStance.Kneeling => moveSpeed * kneelSpeedMultiplier,
             MovementStance.Crawling => moveSpeed * crawlSpeedMultiplier,
+            MovementStance.Prone => moveSpeed * proneSpeedMultiplier,
             _ => isSprinting ? sprintSpeed : moveSpeed,
         };
 
@@ -180,7 +186,7 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.39-dev";
+    private const string GameVersion = "0.1.40-dev";
 
     private float lastSpeed;
     private bool lastSprinting;
