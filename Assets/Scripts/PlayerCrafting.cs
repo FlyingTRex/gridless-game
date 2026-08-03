@@ -18,28 +18,31 @@ public class PlayerCrafting : MonoBehaviour
         skills = GetComponent<PlayerSkills>();
     }
 
-    public CraftingRecipe FindRecipe(ItemDefinition item)
+    // True if every ingredient's required count is currently held.
+    public bool HasIngredients(CraftingRecipe recipe)
     {
-        if (item == null || recipes == null) return null;
+        if (recipe?.ingredients == null) return false;
 
-        foreach (var recipe in recipes)
+        foreach (var ingredient in recipe.ingredients)
         {
-            if (recipe != null && recipe.inputItem == item)
-                return recipe;
+            if (ingredient == null || ingredient.item == null) continue;
+            if (inventory.GetCount(ingredient.item) < ingredient.count) return false;
         }
 
-        return null;
+        return true;
     }
 
-    public bool TryCraft(ItemDefinition item)
+    public bool TryCraft(CraftingRecipe recipe)
     {
-        var recipe = FindRecipe(item);
-        if (recipe == null) return false;
+        if (recipe == null || recipe.outputItem == null || recipe.ingredients == null) return false;
 
-        // Checked before removing the input so a full inventory can't consume
-        // the input without being able to hold the output.
+        // Checked before removing any ingredient so a full inventory can't
+        // consume materials without being able to hold the output.
         if (!inventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount)) return false;
-        if (!inventory.RemoveItem(recipe.inputItem, recipe.inputCount)) return false;
+        if (!HasIngredients(recipe)) return false;
+
+        foreach (var ingredient in recipe.ingredients)
+            inventory.RemoveItem(ingredient.item, ingredient.count);
 
         inventory.AddItem(recipe.outputItem, recipe.outputCount);
         skills?.GainExperience(recipe.trainedSkill, recipe.skillGain);

@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92d301792e8030a012592c540fbc7d6b, type: 3}
   m_Name: RockKnifeRecipe
   m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
-  inputItem: {fileID: 11400000, guid: 3d8f7ca61e2666c468f0401b63e2a7cc, type: 2}
-  inputCount: 1
+  ingredients:
+  - item: {fileID: 11400000, guid: 3d8f7ca61e2666c468f0401b63e2a7cc, type: 2}
+    count: 1
   outputItem: {fileID: 11400000, guid: b770c40f049e6c548d471825e1df0ada, type: 2}
   outputCount: 1
   trainedSkill: {fileID: 11400000, guid: 47cc22c6ae0afcfa9e4951f5dd4e1445, type: 2}

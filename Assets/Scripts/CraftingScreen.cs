@@ -10,8 +10,8 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerInventory))]
 public class CraftingScreen : MonoBehaviour
 {
-    private const float PanelWidth = 380f;
-    private const float PanelHeight = 300f;
+    private const float PanelWidth = 460f;
+    private const float PanelHeight = 320f;
 
     private PlayerCrafting crafting;
     private PlayerInventory playerInventory;
@@ -56,19 +56,27 @@ public class CraftingScreen : MonoBehaviour
         GUILayout.BeginArea(rect);
         GUILayout.Label("Crafting", DebugGUI.Header);
 
-        ItemDefinition craftClicked = null;
+        CraftingRecipe craftClicked = null;
         var recipes = crafting.Recipes;
         if (recipes != null)
         {
             foreach (var recipe in recipes)
             {
-                if (recipe == null || recipe.inputItem == null || recipe.outputItem == null) continue;
+                if (recipe == null || recipe.outputItem == null || recipe.ingredients == null || recipe.ingredients.Length == 0)
+                    continue;
 
-                int have = playerInventory.GetCount(recipe.inputItem);
-                bool hasEnough = have >= recipe.inputCount;
+                bool hasEnough = crafting.HasIngredients(recipe);
                 bool hasSpace = playerInventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount);
 
-                string label = $"{recipe.outputItem.itemName}  (needs {recipe.inputCount}x {recipe.inputItem.itemName}, have {have})";
+                string needs = "";
+                foreach (var ingredient in recipe.ingredients)
+                {
+                    if (ingredient == null || ingredient.item == null) continue;
+                    if (needs.Length > 0) needs += ", ";
+                    needs += $"{ingredient.count}x {ingredient.item.itemName} (have {playerInventory.GetCount(ingredient.item)})";
+                }
+
+                string label = $"{recipe.outputItem.itemName}  (needs {needs})";
                 if (hasEnough && !hasSpace)
                     label += "  — inventory full";
 
@@ -81,7 +89,7 @@ public class CraftingScreen : MonoBehaviour
                 // nothing happened at all.
                 GUI.enabled = hasEnough && hasSpace;
                 if (GUILayout.Button("Craft", GUILayout.Width(60)))
-                    craftClicked = recipe.inputItem;
+                    craftClicked = recipe;
                 GUI.enabled = true;
 
                 GUILayout.EndHorizontal();

@@ -5,12 +5,37 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.29-dev` — must always match `GameVersion` in
+**Current version:** `0.1.30-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.30-dev — Multi-ingredient recipes, and a new Rock Hammer
+`CraftingRecipe` could only ever hold one input item — no way to express
+"needs a Stick *and* a Small Rock" for the Rock Hammer this version adds.
+Replaced `inputItem`/`inputCount` with `Ingredient[] ingredients`
+(`{item, count}` pairs). `PlayerCrafting.TryCraft`/`HasIngredients` now
+take the `CraftingRecipe` itself rather than looking one up by a single
+input item — that lookup-by-item indirection only ever worked because
+every recipe had exactly one input, and had already gone unused outside
+`TryCraft` itself since Crafting moved into its own screen (`CraftingScreen`
+already iterates `crafting.Recipes` directly). `FindRecipe` is gone.
+
+Migrated all 5 existing recipes to the new format (each becomes a
+single-element `ingredients` array with its old input item/count — verified
+each against what was already on disk before changing anything). New
+`RockHammerRecipe.asset`: 1 Stick + 1 Small Rock → 1 Rock Hammer, trains
+Crafting (+2). New `RockHammerItem.asset` ("Rock Hammer", max stack 1) — a
+plain, non-equippable item with no custom prefab, so dropping one falls
+back to the generic `DroppedItem` prefab like any other plain resource.
+
+`CraftingScreen` now lists every ingredient per recipe ("needs 1x Stick
+(have 3), 1x Small Rock (have 5)") instead of just one, still greying out
+Craft when anything's short or the inventory has no room for the output.
+Widened the panel (380×300 → 460×320) for the longer multi-ingredient
+labels.
 
 ### v0.1.29-dev — Rock Node pieces are now "Small Rock"
 Pure data change, no code touched. `Rock.asset`'s `itemName` changed from

@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 92d301792e8030a012592c540fbc7d6b, type: 3}
   m_Name: NavComputerRecipe
   m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
-  inputItem: {fileID: 11400000, guid: b770c40f049e6c548d471825e1df0ada, type: 2}
-  inputCount: 1
+  ingredients:
+  - item: {fileID: 11400000, guid: b770c40f049e6c548d471825e1df0ada, type: 2}
+    count: 1
   outputItem: {fileID: 11400000, guid: 49fef511b80a3e146baa5bafa40d2bf9, type: 2}
   outputCount: 1
   trainedSkill: {fileID: 11400000, guid: 47cc22c6ae0afcfa9e4951f5dd4e1445, type: 2}
