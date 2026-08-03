@@ -5,14 +5,14 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.33-dev` — must always match `GameVersion` in
+**Current version:** `0.1.34-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
 
-### v0.1.33-dev — Movement locks while any screen has the cursor unlocked
+### v0.1.34-dev — Movement locks while any screen has the cursor unlocked
 User report: typing a space into the rename box's text field also jumped
 the player. Root cause was broader than renaming specifically —
 `FirstPersonController.HandleLook` already skipped mouse-look while
@@ -26,6 +26,46 @@ Added the same `Cursor.lockState != CursorLockMode.Locked` early-return to
 once rather than special-casing the rename box. Movement (including
 gravity) now fully pauses while any screen is open, matching "lock the
 controls until accepted or cancelled."
+
+### v0.1.33-dev — Fix bugs found after pulling 0.1.5-0.1.32: worn-item visibility, a Canteen-corrupting eviction bug
+User report after playtesting the batch of work from the other session (Sunglasses,
+Navigation Computer, Health Monitor, Canteen, storage/UI overhaul): four things
+looked wrong. Root-caused all four before fixing anything, per this project's own
+verify-before-fixing habit — one turned out not to be a bug at all.
+
+- **Worn items visible when looking down/around.** The "hide from your own camera
+  while worn" fix `Backpack.cs` got several sessions ago (a `WornEquipment` layer,
+  toggled in `SetCarried`) never made it onto the four equippables that shipped
+  since: `Canteen`, `Sunglasses`, `NavigationComputer`, `PersonalHealthMonitor`. Added
+  the identical `SetLayerRecursively` treatment to all four. Added a checklist to
+  `CLAUDE.md` so this stops recurring per new equippable.
+- **A held Canteen turning into an inert "CanteenItem" placeholder with no Fill/
+  Drink.** Real root cause, found by reading code rather than guessing:
+  `PlayerLoot.ReceiveEquipment()` already refuses to evict an equipment-holding hand
+  slot via the generic drop path (correctly, since that path doesn't know how to
+  detach a physical `IEquippable`) — but the sibling method `Receive()`, used for
+  picking up *plain* items, was missing that same guard. Picking up a plain item
+  while both hands were full, one occupied by a Canteen, evicted the Canteen through
+  `PlayerDropping.DropFrom`, which matches `Inventory.RemoveItem`/`AddItem` by
+  `ItemDefinition` alone — stripping the `equipment` reference and leaving the real
+  Canteen orphaned (still attached to the player, but referenced by no inventory slot)
+  while spawning a fake, non-functional "CanteenItem" stack in its place. Added the
+  missing `occupant.equipment == null` guard to `Receive()`, matching
+  `ReceiveEquipment()`'s existing conservative behavior. Documented the underlying
+  gotcha (`InventoryTransfer.Move`/generic `RemoveItem`+`AddItem` silently strip
+  `equipment` references) in `CLAUDE.md` — this is the second equippable-corruption
+  bug from the same root cause, and won't be the last new equippable added.
+- **Crafted Rock Knife landing in the main inventory instead of the backpack** — not
+  a bug. Explicitly documented, intentional behavior from the crafting-materials
+  commit two versions prior: crafting output only ever lands in the main inventory;
+  only *inputs* can be drawn from the backpack/storage. Flagged to the user as a
+  possible follow-up request, not fixed.
+- **"Couldn't find a way to fill the Canteen"** — turned out to be the corruption bug
+  above, not a missing feature. Fill/Drink already render unconditionally the moment
+  a real Canteen occupies any equipment slot (verified by reading
+  `InventoryScreen.DrawEquipmentSection` directly) — what the user had was the fake
+  placeholder item from the eviction bug, which naturally had no Canteen-specific
+  buttons since it wasn't a Canteen anymore.
 
 ### v0.1.32-dev — Crafting sees materials in your backpack and nearby storage
 User report: materials sitting in an equipped backpack showed in the

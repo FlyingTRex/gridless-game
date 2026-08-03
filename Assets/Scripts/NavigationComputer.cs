@@ -4,6 +4,10 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class NavigationComputer : MonoBehaviour, IInteractable, IEquippable
 {
+    // Excluded from the player's own camera while worn — see Backpack.cs.
+    private const int DefaultLayer = 0;
+    private const int WornEquipmentLayer = 8;
+
     [SerializeField] private string computerName = "Navigation Computer";
 
     private Rigidbody body;
@@ -43,6 +47,7 @@ public class NavigationComputer : MonoBehaviour, IInteractable, IEquippable
         gameObject.SetActive(true);
         col.enabled = !value;
         body.isKinematic = value;
+        SetLayerRecursively(transform, value ? WornEquipmentLayer : DefaultLayer);
 
         if (value)
         {
@@ -54,5 +59,12 @@ public class NavigationComputer : MonoBehaviour, IInteractable, IEquippable
         {
             transform.SetParent(null, true);
         }
+    }
+
+    private static void SetLayerRecursively(Transform root, int layer)
+    {
+        root.gameObject.layer = layer;
+        foreach (Transform child in root)
+            SetLayerRecursively(child, layer);
     }
 }

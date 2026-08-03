@@ -41,11 +41,16 @@ public class PlayerLoot : MonoBehaviour
 
         // Both hands refused it outright (occupied by something this item
         // can't stack with) — evict whatever's in the first hand to make
-        // room, then place the new item there.
+        // room, then place the new item there. Only evicts a plain item —
+        // an equipment occupant (e.g. a held Canteen) would need the
+        // generic drop path below, which doesn't know how to detach a
+        // physical IEquippable correctly (no worldPickupPrefab for it, and
+        // dropping this way orphans the real object). Same conservative
+        // rule ReceiveEquipment() already applies in the mirror case.
         var evictHand = equipment.GetSlot(HandSlots[0]);
         if (evictHand == null) return quantity;
 
-        if (evictHand.Slots.Count > 0)
+        if (evictHand.Slots.Count > 0 && evictHand.Slots[0].equipment == null)
             dropping?.DropFrom(evictHand, evictHand.Slots[0].item);
 
         return evictHand.AddItem(item, quantity);
