@@ -5,12 +5,50 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.42-dev` — must always match `GameVersion` in
+**Current version:** `0.1.43-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.43-dev — Global bank: deposit, withdraw, exchange (Phase 3 commerce, early)
+New `PlayerBank` — a global account (no per-branch ledger; any `BankBox`
+reads/writes the same balances) separate from `PlayerCurrency`'s carried
+wallet, with no cap unlike the wallet's 250. Clarified the exchange ladder
+with the user before building it: a clean ascending 10:1 chain
+(Copper→Iron→Silver→Gold→Platinum, matching both the design brief and the
+`CoinType` enum order) — what was actually typed in the request would have
+made Copper worth the same as Silver.
+
+**Fee model:** every Deposit/Withdraw/Exchange charges `max(1, ceil(3% of
+amount))`, but as an *extra* cost on the source side rather than skimmed
+off the transferred total — depositing 100 costs 103 from the wallet and
+the bank receives exactly 100, not 97. Chosen over skimming because it
+keeps every transaction's *destination* amount exact and predictable, and
+generalizes cleanly to Exchange (which also has a fixed 10:1 output ratio
+that a skimmed fee would make fractional). `Exchange` operates on the
+wallet, not the bank balance — bring physical coins to the counter, walk
+away with different ones — and rounds an upgrade's input down to the
+nearest clean multiple of 10 rather than ever producing a fractional coin.
+
+New `BankBox` (`IInteractable`, E to open) and `BankScreen` — unlike
+Inventory/Crafting/Skills there's no hotkey, since a bank is a place you
+have to be at. Lists wallet vs. bank balance per coin type with
+Deposit/Withdraw buttons, plus 8 Exchange buttons (up/down each of the 4
+adjacent pairs) — all four routed through the same stepper-button quantity
+popup pattern the coin-drop feature established, showing a live fee/total
+preview before confirming.
+
+`PlayerBank.Awake` seeds a starting bank balance of 25 Gold, separate from
+`PlayerCurrency`'s existing starting wallet purse. One `Bank Box` placed
+5m from the Small Storage Box in `TestScene`, with a new navy `BankBox.mat`.
+
+Notably, this is a Phase 3 "Commerce system" feature (per the design
+brief) built well ahead of Phase 1 completion — see the MVP status
+comparison from earlier this session. Still missing from that section:
+trading between players, central banking in cities, and the volatile gem
+market; this covers the personal deposit/withdraw/exchange piece only.
 
 ### v0.1.42-dev — Regular movement drains stamina too, not just sprinting
 Previously, walking (Standing, moving, not getting the sprint bonus) held
