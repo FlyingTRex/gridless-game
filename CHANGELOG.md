@@ -5,12 +5,21 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.16-dev` — must always match `GameVersion` in
+**Current version:** `0.1.17-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.17-dev — Small Storage Box spawned 20m from player start
+No code changes — `StorageBox`'s capacity was already a `[SerializeField]`,
+so this is purely a scene addition. Added a second, smaller box ("Small
+Storage Box", 10 slots vs. the original's 20) to `TestScene` at
+`(0, 0.2, -20)`, 20 meters from the player's spawn point `(0, 1.05, 0)`
+and clear of every other placed object (all of which sit within ~3.4m of
+spawn). Reuses the existing `Assets/Data/StorageBox.mat`, just scaled down
+(0.45 x 0.35 x 0.35) to read as the smaller of the two at a glance.
 
 ### v0.1.16-dev — Storage boxes: auto-expand the inventory screen near a nearby box
 New `StorageBox` — a stationary world container (not `IInteractable`, no
