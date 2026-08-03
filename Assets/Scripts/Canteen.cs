@@ -2,7 +2,6 @@ using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
-[RequireComponent(typeof(Renderer))]
 public class Canteen : MonoBehaviour, IInteractable, IEquippable
 {
     // Excluded from the player's own camera while worn — see Backpack.cs for
