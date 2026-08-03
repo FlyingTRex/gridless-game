@@ -10,7 +10,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerInventory))]
 public class CraftingScreen : MonoBehaviour
 {
-    private const float PanelWidth = 340f;
+    private const float PanelWidth = 380f;
     private const float PanelHeight = 300f;
 
     private PlayerCrafting crafting;
@@ -65,12 +65,25 @@ public class CraftingScreen : MonoBehaviour
                 if (recipe == null || recipe.inputItem == null || recipe.outputItem == null) continue;
 
                 int have = playerInventory.GetCount(recipe.inputItem);
+                bool hasEnough = have >= recipe.inputCount;
+                bool hasSpace = playerInventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount);
+
                 string label = $"{recipe.outputItem.itemName}  (needs {recipe.inputCount}x {recipe.inputItem.itemName}, have {have})";
+                if (hasEnough && !hasSpace)
+                    label += "  — inventory full";
 
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(label, DebugGUI.Label);
+
+                // Greyed out and unclickable rather than a button that
+                // silently does nothing when the recipe can't be made —
+                // the missing feedback that made a failed craft look like
+                // nothing happened at all.
+                GUI.enabled = hasEnough && hasSpace;
                 if (GUILayout.Button("Craft", GUILayout.Width(60)))
                     craftClicked = recipe.inputItem;
+                GUI.enabled = true;
+
                 GUILayout.EndHorizontal();
             }
         }

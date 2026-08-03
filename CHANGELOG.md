@@ -5,12 +5,27 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.27-dev` — must always match `GameVersion` in
+**Current version:** `0.1.28-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.28-dev — Crafting screen explains why a recipe can't be made
+User report: clicking Craft on a Rock Knife with 6 Rock in hand did
+nothing. `PlayerCrafting.TryCraft` was already correctly failing —
+`Inventory.HasSpaceFor` returns false when the main inventory (only 4
+slots by default) has no room for the output — but nothing ever told the
+player that's what happened, so a full inventory and a genuine bug looked
+identical from the UI.
+
+`CraftingScreen` now checks `hasEnough`/`hasSpace` per recipe before
+drawing its Craft button: `GUI.enabled = hasEnough && hasSpace` greys the
+button out and makes it unclickable when the recipe can't be made, and the
+label appends "— inventory full" when that's specifically why (insufficient
+input already shows via the existing "have N" count). Widened the panel
+(340 → 380) to fit the longer label.
 
 ### v0.1.27-dev — Sticks and the Rock Node respawn 3 minutes after being taken
 `Pickup` gained an opt-in `canRespawn` (default off, so every existing
