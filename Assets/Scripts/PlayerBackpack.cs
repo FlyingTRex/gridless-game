@@ -37,7 +37,9 @@ public class PlayerBackpack : MonoBehaviour
     public bool Equip(Backpack backpack)
     {
         if (backpack == null) return false;
-        if (!equipment.Equip(BackSlot, backpack)) return false;
+
+        var slot = equipment.GetSlot(BackSlot);
+        if (slot == null || !slot.AddEquipmentItem(backpackItem, backpack)) return false;
 
         playerInventory.Inventory.RemoveEquipmentItem(backpackItem);
         backpack.SetCarried(true, carrySlot != null ? carrySlot : transform);
@@ -51,7 +53,7 @@ public class PlayerBackpack : MonoBehaviour
         if (backpack == null || Equipped != backpack) return false;
         if (!playerInventory.Inventory.AddEquipmentItem(backpackItem, backpack)) return false;
 
-        equipment.Unequip(BackSlot);
+        equipment.GetSlot(BackSlot)?.RemoveEquipmentItem(backpackItem);
         backpack.Stash();
         return true;
     }
@@ -63,7 +65,7 @@ public class PlayerBackpack : MonoBehaviour
         if (backpack == null) return;
 
         if (Equipped == backpack)
-            equipment.Unequip(BackSlot);
+            equipment.GetSlot(BackSlot)?.RemoveEquipmentItem(backpackItem);
         else
             playerInventory.Inventory.RemoveEquipmentItem(backpackItem);
 

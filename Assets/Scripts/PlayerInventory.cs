@@ -45,8 +45,7 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
         ItemDefinition eatClicked = null;
         Backpack equipClicked = null;
         Backpack backpackDropClicked = null;
-        Canteen canteenHandClicked = null;
-        Canteen canteenBeltClicked = null;
+        Canteen canteenEquipClicked = null;
         Canteen canteenDropClicked = null;
         var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
 
@@ -69,10 +68,8 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
             else if (slot.equipment is Canteen canteen)
             {
                 GUILayout.Label(label, DebugGUI.Label);
-                if (GUILayout.Button("To Hand", GUILayout.Width(60)))
-                    canteenHandClicked = canteen;
-                if (GUILayout.Button("To Belt", GUILayout.Width(60)))
-                    canteenBeltClicked = canteen;
+                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                    canteenEquipClicked = canteen;
                 if (GUILayout.Button("Drop", GUILayout.Width(50)))
                     canteenDropClicked = canteen;
             }
@@ -117,11 +114,9 @@ public class PlayerInventory : MonoBehaviour, IInventoryHolder
             backpackCarrier.Equip(equipClicked);
         if (backpackDropClicked != null)
             backpackCarrier.Drop(backpackDropClicked);
-        if (canteenHandClicked != null)
-            canteenCarrier.Equip(canteenHandClicked, "Hand");
-        if (canteenBeltClicked != null)
-            canteenCarrier.Equip(canteenBeltClicked, "Belt");
+        if (canteenEquipClicked != null)
+            canteenCarrier.Equip(canteenEquipClicked);
         if (canteenDropClicked != null)
-            canteenCarrier.Drop(canteenDropClicked, null);
+            canteenCarrier.Drop(canteenDropClicked);
     }
 }

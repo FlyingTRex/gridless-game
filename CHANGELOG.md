@@ -5,12 +5,41 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.4-dev` — must always match `GameVersion` in
+**Current version:** `0.1.5-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-02
+## 2026-08-03
+
+### v0.1.5-dev — Full body-equipment slot layout
+`PlayerEquipment` reworked from "one named slot holds one `IEquippable`" to
+"each named slot is its own small `Inventory`" (capacity usually 1, `Face` is
+2), since some requested slots needed to hold more than one item — the same
+`AddEquipmentItem`/`RemoveEquipmentItem` flow already used for the main
+inventory and for Backpack/Canteen's own internal storage, just applied one
+level up. Full slot list: `Head`, `Face` (×2), `Neck`, `Chest`, `Back`,
+`Left Arm`, `Right Arm`, `Left Wrist`, `Right Wrist`, `Left Hand`,
+`Right Hand`, `Waist`, `Leg`, `Feet`. `Back` was already named `Back`, not
+`Backpack` — no rename needed there.
+
+`PlayerBackpack`/`PlayerCanteen` updated to equip through
+`equipment.GetSlot(name).AddEquipmentItem(...)` instead of the old
+single-slot `Equip`/`Unequip`/`CanEquip` API, which no longer exists.
+`PlayerCanteen` also simplified from two explicit destination buttons
+(To Hand / To Belt) to one `Equip` button that tries `Left Hand` → `Right
+Hand` → `Waist` in order — matches how `Backpack`'s row already works, and
+avoids the button row growing by one for every additional slot a future
+equippable might be able to target.
+
+No scene changes needed: `PlayerEquipment.slotNames` and
+`PlayerCanteen`'s old `handSlotAnchor`/`beltSlotAnchor` fields were renamed/
+restructured, and `TestScene.unity` still has the old serialized values for
+them — Unity just ignores orphaned fields on load and falls back to the new
+fields' C# defaults, which happen to already be what's wanted (the full slot
+list; unassigned anchors falling back to the player transform). Validated
+with a full batch-mode compile check rather than assuming that fallback
+holds.
 
 ### v0.1.4-dev — Merge: reconcile Waterskin with Canteen (keep Canteen)
 Both sessions independently landed on the exact string `"0.1.3-dev"` for

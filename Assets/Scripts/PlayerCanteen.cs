@@ -4,11 +4,13 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerEquipment))]
 public class PlayerCanteen : MonoBehaviour
 {
-    private static readonly string[] CanteenSlots = { "Hand", "Belt" };
+    // Tried in order when equipping — first free slot wins.
+    private static readonly string[] CanteenSlots = { "Left Hand", "Right Hand", "Waist" };
 
     [SerializeField] private ItemDefinition canteenItem;
-    [SerializeField] private Transform handSlotAnchor;
-    [SerializeField] private Transform beltSlotAnchor;
+    [SerializeField] private Transform leftHandSlotAnchor;
+    [SerializeField] private Transform rightHandSlotAnchor;
+    [SerializeField] private Transform waistSlotAnchor;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
 
@@ -34,39 +36,47 @@ public class PlayerCanteen : MonoBehaviour
         return true;
     }
 
-    // Moves the canteen from a regular inventory slot onto Hand or Belt.
-    public bool Equip(Canteen canteen, string slotName)
+    // Moves the canteen from a regular inventory slot onto the first
+    // available slot in CanteenSlots (Left Hand, then Right Hand, then Waist).
+    public bool Equip(Canteen canteen)
     {
         if (canteen == null) return false;
-        if (!equipment.Equip(slotName, canteen)) return false;
 
-        playerInventory.Inventory.RemoveEquipmentItem(canteenItem);
-        var anchor = slotName == "Hand" ? handSlotAnchor : beltSlotAnchor;
-        canteen.SetCarried(true, anchor != null ? anchor : transform);
-        return true;
+        foreach (var slotName in CanteenSlots)
+        {
+            var slot = equipment.GetSlot(slotName);
+            if (slot == null || !slot.AddEquipmentItem(canteenItem, canteen)) continue;
+
+            playerInventory.Inventory.RemoveEquipmentItem(canteenItem);
+            canteen.SetCarried(true, AnchorFor(slotName));
+            return true;
+        }
+
+        return false;
     }
 
-    // Moves the canteen from Hand/Belt back into a regular inventory slot.
-    // Fails (leaving it equipped) if the regular inventory is full.
-    public bool Unequip(Canteen canteen, string slotName)
+    // Moves the canteen from wherever it's equipped back into a regular
+    // inventory slot. Fails (leaving it equipped) if the inventory is full.
+    public bool Unequip(Canteen canteen)
     {
-        if (canteen == null || (equipment.GetEquipped(slotName) as Canteen) != canteen) return false;
+        string slotName = FindSlot(canteen);
+        if (slotName == null) return false;
         if (!playerInventory.Inventory.AddEquipmentItem(canteenItem, canteen)) return false;
 
-        equipment.Unequip(slotName);
+        equipment.GetSlot(slotName).RemoveEquipmentItem(canteenItem);
         canteen.Stash();
         return true;
     }
 
     // Drops the canteen into the world in front of the player, whether it
-    // was equipped (slotName given) or just sitting in the regular
-    // inventory (slotName null).
-    public void Drop(Canteen canteen, string slotName)
+    // was equipped or just sitting in the regular inventory.
+    public void Drop(Canteen canteen)
     {
         if (canteen == null) return;
 
-        if (slotName != null && (equipment.GetEquipped(slotName) as Canteen) == canteen)
-            equipment.Unequip(slotName);
+        string slotName = FindSlot(canteen);
+        if (slotName != null)
+            equipment.GetSlot(slotName).RemoveEquipmentItem(canteenItem);
         else
             playerInventory.Inventory.RemoveEquipmentItem(canteenItem);
 
@@ -74,22 +84,42 @@ public class PlayerCanteen : MonoBehaviour
         canteen.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
     }
 
-    private void OnGUI()
+    private string FindSlot(Canteen canteen)
     {
-        float top = 10f;
         foreach (var slotName in CanteenSlots)
-        {
-            if (DrawSlot(slotName, top))
-                top += 120f;
-        }
+            if ((equipment.GetEquipped(slotName) as Canteen) == canteen)
+                return slotName;
+        return null;
     }
 
-    private bool DrawSlot(string slotName, float top)
+    private Transform AnchorFor(string slotName)
     {
-        var canteen = equipment.GetEquipped(slotName) as Canteen;
-        if (canteen == null) return false;
+        Transform anchor = slotName switch
+        {
+            "Left Hand" => leftHandSlotAnchor,
+            "Right Hand" => rightHandSlotAnchor,
+            "Waist" => waistSlotAnchor,
+            _ => null,
+        };
+        return anchor != null ? anchor : transform;
+    }
 
-        var rect = new Rect(610, top, 240, 110);
+    private void OnGUI()
+    {
+        string slotName = null;
+        Canteen canteen = null;
+        foreach (var candidate in CanteenSlots)
+        {
+            var c = equipment.GetEquipped(candidate) as Canteen;
+            if (c == null) continue;
+            slotName = candidate;
+            canteen = c;
+            break;
+        }
+
+        if (canteen == null) return;
+
+        var rect = new Rect(610, 10, 240, 110);
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
         GUILayout.Label($"{slotName}: {canteen.DisplayName}", DebugGUI.Header);
@@ -103,11 +133,10 @@ public class PlayerCanteen : MonoBehaviour
         GUILayout.EndHorizontal();
 
         GUILayout.BeginHorizontal();
-        if (GUILayout.Button("Unequip")) Unequip(canteen, slotName);
-        if (GUILayout.Button("Drop")) Drop(canteen, slotName);
+        if (GUILayout.Button("Unequip")) Unequip(canteen);
+        if (GUILayout.Button("Drop")) Drop(canteen);
         GUILayout.EndHorizontal();
 
         GUILayout.EndArea();
-        return true;
     }
 }
