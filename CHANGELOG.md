@@ -5,12 +5,45 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.9-dev` — must always match `GameVersion` in
+**Current version:** `0.1.10-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.10-dev — Pickups route to Backpack, then hands, evicting if needed
+User-requested mechanics change: picked-up items no longer go straight to
+the main 4-slot inventory. New priority order, implemented in a new
+`PlayerLoot` component:
+1. **Backpack equipped** → item goes straight into its `Inventory`
+   (`AddItem`, normal stacking/capacity rules — if the backpack is full the
+   remainder stays on the ground, same as the existing full-inventory
+   behavior).
+2. **No backpack** → tries Left Hand, then Right Hand (`Inventory.AddItem`
+   on each slot — stacks into a hand already holding the same item before
+   trying an empty one).
+3. **Both hands occupied by something that won't stack** → evicts whatever
+   is in Left Hand (physically dropped into the world, not deleted), then
+   places the new item there. Picking something up now never simply fails
+   when there's no backpack — worst case it swaps out what's in your hand.
+
+`PlayerDropping` gained a `DropFrom(Inventory, item)` alongside the existing
+`Drop(item)`, so eviction reuses the exact same "spawn a physical pickup in
+the world" path as the manual Drop button instead of duplicating it —
+`Drop(item)` is now a one-line call to `DropFrom(playerInventory.Inventory,
+item)`.
+
+`Pickup.Complete` now calls `PlayerLoot.Receive` instead of
+`PlayerInventory.AddItem` directly (falls back to the old direct-to-
+inventory behavior if `PlayerLoot` is somehow missing).
+
+**Necessary follow-on:** hands can now hold plain stackable items, not just
+equippables like Canteen — but `InventoryScreen`'s equipment boxes were only
+ever interactive for backpack/canteen contents. A plain item picked into a
+hand would've been visible but permanently stuck with no UI path back out.
+Made plain-item boxes in any equip slot clickable-to-move-to-inventory too,
+same pattern as backpack contents.
 
 ### v0.1.9-dev — Consolidate all inventory UI into the I screen
 User request: the always-on Inventory box and Back-slot (Backpack) panel

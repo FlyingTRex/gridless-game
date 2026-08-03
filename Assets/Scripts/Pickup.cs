@@ -19,11 +19,23 @@ public class Pickup : MonoBehaviour, IInteractable
 
     public void Complete(GameObject player)
     {
-        var inventory = player.GetComponent<PlayerInventory>();
-        int leftover = inventory != null ? inventory.AddItem(item, quantity) : quantity;
+        var loot = player.GetComponent<PlayerLoot>();
+        int leftover;
+        if (loot != null)
+        {
+            leftover = loot.Receive(item, quantity);
+        }
+        else
+        {
+            var inventory = player.GetComponent<PlayerInventory>();
+            leftover = inventory != null ? inventory.AddItem(item, quantity) : quantity;
+        }
+
         if (leftover > 0)
         {
-            // Inventory is full — leave the remainder on the ground instead of deleting it.
+            // Nowhere to put it (backpack/hands full with PlayerLoot, or
+            // inventory full without it) — leave the remainder on the
+            // ground instead of deleting it.
             quantity = leftover;
             return;
         }

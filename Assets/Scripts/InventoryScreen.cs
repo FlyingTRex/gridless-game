@@ -186,6 +186,8 @@ public class InventoryScreen : MonoBehaviour
         Canteen canteenDropClicked = null;
         ItemDefinition containerMoveClicked = null;
         IInventoryHolder containerMoveSource = null;
+        ItemDefinition plainItemMoveClicked = null;
+        Inventory plainItemMoveSource = null;
 
         foreach (var slotName in SlotOrder)
         {
@@ -206,7 +208,22 @@ public class InventoryScreen : MonoBehaviour
                 {
                     var entry = occupied[i];
                     string label = entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
-                    GUILayout.Box(label, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight));
+
+                    if (entry.equipment == null)
+                    {
+                        // A plain stackable item sitting directly in an
+                        // equip slot (e.g. something picked up into a
+                        // hand) — click it to move it back to inventory.
+                        if (GUILayout.Button(label, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight)))
+                        {
+                            plainItemMoveClicked = entry.item;
+                            plainItemMoveSource = slotInventory;
+                        }
+                    }
+                    else
+                    {
+                        GUILayout.Box(label, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight));
+                    }
 
                     if (entry.equipment is IInventoryHolder holder) nestedHolder = holder;
                     if (entry.equipment is Backpack bp) backpackHere = bp;
@@ -255,6 +272,9 @@ public class InventoryScreen : MonoBehaviour
         if (containerMoveClicked != null && containerMoveSource != null)
             InventoryTransfer.Move(containerMoveSource.Inventory, playerInventory.Inventory,
                 containerMoveClicked, containerMoveSource.Inventory.GetCount(containerMoveClicked));
+        if (plainItemMoveClicked != null && plainItemMoveSource != null)
+            InventoryTransfer.Move(plainItemMoveSource, playerInventory.Inventory,
+                plainItemMoveClicked, plainItemMoveSource.GetCount(plainItemMoveClicked));
     }
 
     // Draws a container's own capacity as a wrapped grid of boxes. Occupied
