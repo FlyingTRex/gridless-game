@@ -5,12 +5,59 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.57-dev` — must always match `GameVersion` in
+**Current version:** `0.1.58-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.58-dev — Procedural branching tree, real mesh geometry (not primitive composition)
+
+Asked whether tree models could be procedurally generated; offered a choice
+between combining stock primitives (Backpack.prefab's existing technique) or
+actually generating trunk/branch geometry in code — went with the latter for
+a more organic, less "blocky" result.
+
+`GenerateTree.cs` (throwaway, run via batch mode then deleted) builds a tree
+via recursive branching: starting from a single trunk segment, each branch
+splits into 2–3 children at a random angle within a 32° cone of its parent's
+direction (with a slight upward bias so branches don't droop after several
+recursive levels), shrinking in length/radius each generation, 4 levels deep
+(66 segments total this run — the exact shape is seeded, so it's
+reproducible, not different every time the script runs). Each segment is a
+tapered-cylinder (hexagonal cross-section, 6 sides) built from real vertex/
+triangle data via a from-scratch `AddCylinderSegment` — not `CreatePrimitive`
+— all combined into a single `Mesh` asset (`Assets/Data/TreeTrunkMesh.asset`).
+Foliage stays simple: 2–3 scaled Sphere primitives clustered at each of the 41
+terminal branch tips, colliders removed from the foliage spheres so they
+don't block movement/interaction the way the trunk does.
+
+**Risk mitigation, not guesswork:** this session can't render or screenshot
+locally, so there was no way to visually confirm the hand-written cylinder
+triangle winding order was actually correct — getting it backwards would make
+the trunk invisible from outside (only visible from inside, due to backface
+culling) with no compile error to catch it. Rather than gamble on it, verified
+`_Cull` is a real property on this project's URP/Lit materials first (grepped
+an existing `.mat` file), then set it to `Off` on `TreeBark.mat` — the trunk
+renders regardless of which way the winding turned out, at the cost of
+trivial double-sided overdraw on a low-poly mesh.
+
+New `Assets/Prefabs/Tree.prefab` (mesh + bark material + non-convex
+`MeshCollider`, matching `Ground`'s static-collider pattern — no `Rigidbody`
+involved) with 4 instances placed in `TestScene`, each with randomized
+Y-rotation and a small scale variance (0.85×–1.25×) so four copies of the
+same mesh don't look identical, scattered clear of the existing object
+cluster near spawn and the Secret Wall. Verified end-to-end: asset files on
+disk, exactly 4 real `PrefabInstance` roots linked to `Tree.prefab`'s guid in
+the scene (not the much larger raw match count from per-property
+modification entries), and a clean duplicate-fileID scan on the resaved
+scene.
+
+**Still needs an in-Editor look** — same limitation as the sky work: can't
+confirm visually from here whether the branching silhouette actually reads as
+tree-like, whether the culling safety net was even necessary, or whether 4
+levels/66 segments is too sparse or too dense at actual in-game scale.
 
 ### v0.1.57-dev — Fix: sky gradient direction was inverted, clouds still not reading as shapes
 

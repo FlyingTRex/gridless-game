@@ -61,6 +61,19 @@ fix the coordinate in this file rather than assuming the step is wrong.
      rather than just weak.
   Also reconfirm no pink rendering (the original shader-compatibility risk
   from v0.1.55-dev).
+- [ ] **Trees (v0.1.58-dev):** 4 `Tree.prefab` instances are placed around
+  `(6,0,6)`, `(-6,0,8)`, `(9,0,-3)`, `(-8,0,-6)` — walk to at least one and
+  confirm: the trunk/branches render as a real branching shape (not a
+  cylinder or a blob), visible and correctly lit **from every angle walked
+  around it** (this specifically checks whether the untested triangle-winding
+  safety net — `_Cull: Off` on `TreeBark.mat` — was actually needed; it
+  should look normal regardless, just possibly rendering both mesh faces
+  instead of one). Foliage clusters (small green spheres) sit at branch tips
+  without floating detached from the branch. Walking into the trunk should
+  block movement (`MeshCollider`); walking through where foliage-only spheres
+  are shouldn't (their colliders were deliberately removed). Flag if the
+  silhouette reads as clearly tree-like or more like an abstract branching
+  blob — this is a first pass with no prior visual check.
 
 ## 1. Movement & Stances
 
