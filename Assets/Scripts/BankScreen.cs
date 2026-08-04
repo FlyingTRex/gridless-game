@@ -24,6 +24,13 @@ public class BankScreen : MonoBehaviour
     private const float PanelWidth = 480f;
     private const float PanelHeight = 620f;
 
+    // User feedback: the bank window was hard to read. GUILayout uses fixed
+    // pixel widths throughout, so just enlarging PanelWidth/PanelHeight would
+    // only add empty padding, not bigger text/buttons — scaling the whole
+    // GUI matrix around the screen center grows everything (text, buttons,
+    // spacing, and the popups drawn later in this same OnGUI call) together.
+    private const float UiScale = 1.5f;
+
     // Lockbox baseline (CraftTier.Normal): capacity per coin type and
     // Gold price, scaled per tier by CraftTierScale.Modifier.
     private const int LockboxBaseCapacity = 2500;
@@ -86,11 +93,24 @@ public class BankScreen : MonoBehaviour
     {
         if (!isOpen) return;
 
+        // Scale the whole screen (panel + both popups, drawn later in this
+        // same call) around the screen center so it grows in place rather
+        // than shifting off-center.
+        Matrix4x4 savedMatrix = GUI.matrix;
+        GUIUtility.ScaleAroundPivot(Vector2.one * UiScale, new Vector2(Screen.width / 2f, Screen.height / 2f));
+
+        // A Deposit/Withdraw/Exchange popup is modal — block every button on
+        // the panel underneath it, otherwise a click that lands on the table
+        // behind the popup silently reassigns pendingType/pendingExchangeFrom
+        // instead of being caught by the popup in front of it.
+        bool popupOpen = pendingType != null || pendingExchangeFrom != null;
+
         var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - PanelHeight) / 2f, PanelWidth, PanelHeight);
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
         GUILayout.Label("Bank", DebugGUI.Header);
 
+        GUI.enabled = !popupOpen;
         GUILayout.BeginHorizontal();
         GUILayout.Label("", GUILayout.Width(90));
         GUILayout.Label("Wallet", DebugGUI.Label, GUILayout.Width(60));
@@ -160,9 +180,9 @@ public class BankScreen : MonoBehaviour
 
             GUILayout.BeginHorizontal();
             GUILayout.Label($"{name} — {capacity}/type — {price} Gold", DebugGUI.Label, GUILayout.Width(300));
-            GUI.enabled = wallet.GetBalance(CoinType.Gold) >= price;
+            GUI.enabled = !popupOpen && wallet.GetBalance(CoinType.Gold) >= price;
             if (GUILayout.Button("Buy", GUILayout.Width(60))) buyClicked = tier;
-            GUI.enabled = true;
+            GUI.enabled = !popupOpen;
             GUILayout.EndHorizontal();
         }
 
@@ -173,10 +193,13 @@ public class BankScreen : MonoBehaviour
         if (GUILayout.Button("Close", GUILayout.Width(100)))
             SetOpen(false);
 
+        GUI.enabled = true;
         GUILayout.EndArea();
 
         DrawDepositWithdrawPopup();
         DrawExchangePopup();
+
+        GUI.matrix = savedMatrix;
     }
 
     private static int LockboxCapacity(CraftTier tier) =>

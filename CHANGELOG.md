@@ -49,6 +49,69 @@ Third playtest pass on the water-source/inventory work above.
   null)` instead of stripping the reference and spawning a fake pickup, matching the
   `InventoryTransfer.Move` fix from the previous entry.
 
+### v0.1.50-dev — Inventory window scaled 50% larger for readability
+
+Same request and same fix as the Bank window in v0.1.49-dev: scaled the whole
+`GUI.matrix` by 1.5x around screen center in `InventoryScreen.OnGUI`, covering
+the panel, the scroll view, and both popups (move destination, coin drop)
+automatically since they draw later in the same `OnGUI` call.
+
+One wrinkle Bank didn't have: `InventoryScreen`'s panel height was already
+screen-responsive (`Mathf.Min(Screen.height - 40f, 700f)`) to avoid overflowing
+shorter displays. Left unadjusted, scaling that already-capped height by another
+1.5x could push the panel off the top/bottom of a smaller window. Divided the
+on-screen height budget by `UiScale` before applying the existing cap
+(`Mathf.Min((Screen.height - 40f) / UiScale, 700f)`) so the *post-scale* result
+still respects the original margin instead of the pre-scale one.
+
+### v0.1.49-dev — Bank window scaled 50% larger for readability
+
+User feedback: the Bank window was hard to read. `GUILayout` uses fixed pixel
+widths throughout (`GUILayout.Width(90)` etc.), so just growing `BankScreen`'s
+outer panel `Rect` would only have added empty padding around the same small
+text and buttons — not actually fixed the readability complaint. Instead scaled
+the whole `GUI.matrix` by 1.5x around the screen center at the top of `OnGUI`
+(restored at the end), which grows the panel, its text, its buttons, and both
+popups (Deposit/Withdraw, Exchange — drawn later in the same `OnGUI` call, so
+the scale already applies to them too) proportionally together, all still
+centered on screen. `LockboxScreen` wasn't touched — this request was scoped to
+the Bank window specifically.
+
+### v0.1.48-dev — Dropped items despawn after 15 minutes
+
+First slice of the item-holding-redesign backlog entry: just the despawn timer, not
+the pickup-priority/unequip-fallback rework (still open, needs its own pass).
+
+`Pickup` gained a `despawnAt` countdown (15 minutes, `DespawnDelay`) started inside
+`Configure(item, quantity)` — which turns out to be called from exactly one place,
+`PlayerDropping.DropFrom`, so it fires for every item the player actually drops
+(manual Drop button, and the hand-eviction fallback `PlayerLoot` uses when both
+hands are full with no backpack equipped) without needing a separate flag to
+distinguish "dropped" from "world-placed" pickups. World-placed pickups (Sticks,
+Berry Bush) and `ResourceNode`'s scattered chunks never call `Configure`, so they're
+unaffected — they keep whatever `canRespawn` behavior they already had. Deliberately
+a distinct timer from `canRespawn`/`respawnDelay` (3 minutes) — that one restores a
+resource point in place; this one deletes a dropped item outright once nobody's
+picked it up.
+
+**Scope note:** doesn't cover the five equippables (Backpack/Canteen/Sunglasses/
+NavigationComputer/PersonalHealthMonitor) — their `Drop()` methods detach an
+already-existing physical object rather than instantiating a new `Pickup`, so they
+don't go through `Configure` at all. Revisit once/if the equipped-item unequip-
+fallback drop path (still unbuilt) needs the same timer.
+
+### v0.1.47-dev — Fix: bank/lockbox popups let the coin type switch mid-transaction
+
+Reported by Ben (filed in `BUGS_AND_ENHANCEMENTS.md`, commit `08d3c89`). In both
+`BankScreen.cs` and `LockboxScreen.cs`, the coin-type table underneath a
+Deposit/Withdraw (or Exchange) popup stayed fully clickable while the popup was open
+— a click that landed on the table instead of the popup silently reassigned
+`pendingType`/`pendingExchangeFrom` and reset the pending amount back to 0, so a
+withdrawal could switch to a different coin type mid-flow without the player
+intending it. Fixed by disabling (`GUI.enabled = false`) every background button on
+the panel — coin table, Exchange buttons, Lockbox Buy row, Close — for the duration
+any popup is open, consistent with the modal role those popups already play.
+
 ### v0.1.46-dev — Second playtest pass: canteen still white, overdrink threshold wrong, Sunglasses orphaned, direct water-source interaction
 
 Merged with Ben's parallel session (v0.1.36-dev through v0.1.44-dev below), which had

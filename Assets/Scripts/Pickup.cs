@@ -14,6 +14,12 @@ public class Pickup : MonoBehaviour, IInteractable
     [SerializeField] private float respawnDelay = 180f;
     [SerializeField] private float respawnScatter = 0.5f;
 
+    // A player-dropped item (manual Drop, unequip-with-full-inventory
+    // fallback, or hand-eviction on pickup) despawns from the world if left
+    // unpicked this long. Distinct from respawnDelay above — this deletes
+    // a dropped item outright rather than restoring a resource point.
+    private const float DespawnDelay = 900f; // 15 minutes
+
     private Vector3 spawnPosition;
     private Collider col;
     private Renderer[] renderers;
@@ -21,6 +27,10 @@ public class Pickup : MonoBehaviour, IInteractable
     // (the timer is held until something actually takes it) or respawn
     // isn't enabled at all.
     private float respawnAt = -1f;
+    // -1 means "not a dropped item" — only Configure() (called exclusively
+    // by PlayerDropping.DropFrom) starts this countdown; world-placed
+    // pickups set up directly in the scene/prefab never get one.
+    private float despawnAt = -1f;
 
     public string Prompt => item != null ? $"Pick up {item.itemName}" : "Pick up";
     public bool IsInstant => true;
@@ -37,10 +47,17 @@ public class Pickup : MonoBehaviour, IInteractable
     {
         item = newItem;
         quantity = newQuantity;
+        despawnAt = Time.time + DespawnDelay;
     }
 
     private void Update()
     {
+        if (despawnAt >= 0f && Time.time >= despawnAt)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
         if (respawnAt < 0f || Time.time < respawnAt) return;
         Respawn();
     }
