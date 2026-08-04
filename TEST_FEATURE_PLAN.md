@@ -156,6 +156,25 @@ fix the coordinate in this file rather than assuming the step is wrong.
   mottled grey stone (same tileable-noise technique as the grass texture), not
   flat solid grey — check both the whole node and its broken-off chunks look
   consistent with each other (they now share one material).
+- [ ] **Small Rock chunk shape (v0.1.62-dev):** broken/dropped Small Rock pieces
+  should read as a rounded sphere shape, not an obvious cube. **Regression:**
+  `RockChunk.prefab` was a plain scaled Cube from the very start of the
+  project — should now look and collide (roll, not slide/skid on flat faces)
+  like a sphere.
+- [ ] **Boulder (v0.1.62-dev)** at `(-4, 0.6, 4)`: should read as one irregular,
+  lumpy rock shape (not a smooth sphere) with several small pebble bumps
+  scattered on its surface, not several separate balls obviously glued
+  together. Bare-handed punching works (no tool required, same as Rock Node)
+  — takes 2 hits, yields 3 **Rock** (a new item, distinct from Small Rock).
+  Confirm it renders and is visible from every angle walked around it (checks
+  whether the untested triangle-winding safety net — `_Cull: Off` on
+  `RockChunk.mat` — was actually needed).
+- [ ] **Rock (the new middle-tier item, v0.1.62-dev):** a pure intermediate
+  material — no recipe currently uses it directly, and there's no way yet to
+  turn it into Small Rock (not built — see `BUGS_AND_ENHANCEMENTS.md`/
+  `CHANGELOG.md` for the scope boundary). Its dropped/world visual should be
+  the same "lumpy body + small pebbles" hybrid shape as the Boulder, just
+  smaller (4 pebbles vs. Boulder's 8).
 - [ ] **Copper Ore Node (v0.1.59-dev)** at `(2, 0.4, -4)`: punching it *without* a
   Pickaxe held in a hand does nothing (no hit registers, prompt reads "Punch to
   break (requires Pickaxe)"). With a Pickaxe in either hand, punching works and

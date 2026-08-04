@@ -5,12 +5,55 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.61-dev` — must always match `GameVersion` in
+**Current version:** `0.1.62-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-04
+
+### v0.1.62-dev — Boulder + Rock (new stone tier), Small Rock's chunk shape fixed
+
+Ben pointed out `RockChunk.prefab` has always been a plain scaled Cube — more
+noticeable now that the texture actually looks like rock. Explored shape
+options (primitive clustering, a noise-displaced mesh, or a hybrid) and went
+with the hybrid: a real displaced-sphere mesh (per-vertex random radial
+displacement, not a primitive) for the main irregular silhouette, plus several
+small clustered pebble spheres scattered on its surface.
+
+- **`RockChunk.prefab`** (Small Rock's chunk, and Rock Node's broken-piece
+  visual — same prefab, both uses) swapped from a Cube mesh/`BoxCollider` to a
+  Sphere mesh/`SphereCollider`. Same prefab guid, so every existing reference
+  (`Rock.asset`'s `worldPickupPrefab`, Rock Node's `chunkPrefab`, the
+  `hiddenChunkPrefab` fallback on the disguised Silver/Gold/Platinum ore
+  nodes) stayed valid with no further wiring needed.
+- **New `Rock`** (file `MediumRock.asset`, item name "Rock") — a pure
+  intermediate stage, same as Small Rock already is: never used directly in a
+  recipe. Its chunk (`MediumRockChunk.prefab`) is the new hybrid shape: a
+  0.35-radius displaced-sphere body plus 4 small pebbles.
+- **New `Boulder`** — a world object (not an item; nothing to pick up
+  directly) using the same hybrid technique at a bigger scale (0.9-radius
+  body, 8 pebbles), placed in `TestScene` at `(-4, 0.6, 4)`. Breaks via the
+  existing `ResourceNode`/`IPunchable` mechanic — bare-handed, no tool
+  required, same as Rock Node (2 hits, yields 3 Rock).
+
+**Scope boundary, deliberately not built here:** this only fixes the shapes
+and wires Boulder → Rock through the *existing* punch-to-break mechanic. It
+does not implement "Rock breaks down further into Small Rock" — that
+mechanism (a recipe? a separate mineable object?) was discussed in concept
+back when the tier was named but never concretely decided beyond "Rock is a
+pure intermediate stage," so nothing was invented here to fill that gap. Also
+doesn't touch the separately-planned randomized-size-on-spawn/yield-scaling/
+duration-scaling design from that same conversation — this is shapes only.
+
+**Safety net applied again** (same reasoning as the Tree's branching mesh):
+can't verify the displaced-sphere triangle winding visually from this headless
+session, so `RockChunk.mat`'s `_Cull` was set to `Off` — harmless on the
+existing plain-primitive uses (Rock Node, Small Rock) too. Verified the full
+guid chain (`MediumRock.asset` ↔ `MediumRockChunk.prefab`, `RockChunk.prefab`'s
+new mesh/collider, `Boulder`'s `ResourceNode` fields) directly rather than
+trusting the generator's success log, plus a clean duplicate-fileID scan and a
+clean batch-mode compile.
 
 ### v0.1.61-dev — Fix: all 5 ore textures rendered as solid color blobs, not flecked rock
 
