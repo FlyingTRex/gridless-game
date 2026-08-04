@@ -31,12 +31,16 @@ fix the coordinate in this file rather than assuming the step is wrong.
   on Play.
 - [ ] Bottom-left debug panel shows `Gridless <version>` matching `CHANGELOG.md`'s
   "Current version" line and `FirstPersonController.GameVersion`.
-- [ ] **Ground texture (v0.1.53-dev):** the ground reads as a mottled green grass
-  texture (dark/mid/light patches with fine blade-like detail), not a flat solid
-  green. Walk across a wide stretch of it and check for an obvious visible
-  repeating grid pattern or a hard seam line — some faint repetition is a known,
-  accepted limitation of this first procedural pass (see `CHANGELOG.md`), but call
-  it out if it's distracting rather than subtle.
+- [ ] **Ground texture (v0.1.53-dev, tiling fixed in v0.1.54-dev):** the ground
+  reads as a mottled green grass texture (dark/mid/light patches with fine
+  blade-like detail), not a flat solid green. Walk/look across a wide stretch,
+  ideally from an elevated or angled view (that's what made the original bug
+  obvious). **Regression:** v0.1.53-dev's first pass showed a clearly visible
+  repeating checkerboard/waffle grid — should now read as continuous mottled
+  ground with no obvious seam lines or identically-repeating blob shapes. Some
+  amount of large-scale pattern repetition is inherent to any tiled texture at
+  a fixed tile size; flag it specifically if it's still distracting rather than
+  subtle.
 
 ## 1. Movement & Stances
 

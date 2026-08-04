@@ -5,12 +5,38 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.53-dev` — must always match `GameVersion` in
+**Current version:** `0.1.54-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.54-dev — Fix visible tiling grid in the grass texture with genuinely seamless noise
+
+User feedback with a screenshot: v0.1.53-dev's grass read as an obvious repeating
+checkerboard/waffle grid in play, not natural grass — worse than the "faint seams"
+limitation that entry called out. Root cause was two-fold: `Mathf.PerlinNoise` gives
+no periodicity guarantee at arbitrary frequencies, so every one of the 1,600 tile
+repeats (40×40) had a visible seam *and* showed the exact same low-frequency blob
+shape, which is what the eye actually locks onto as "a grid" — the seam alone
+wasn't the main problem.
+
+Rewrote the generator with a custom tileable value-noise function: a
+`LatticeValue(x, y, period, seed)` hash that wraps `x`/`y` into `period` *before*
+hashing, so sampling one full period to the right/down lands on the identical
+wrapped lattice point — adjacent copies of the texture flow together with zero
+seam by construction, not approximation. `TileableNoise` smoothstep-interpolates
+between four such lattice corners. Layered three octaves (periods 5/10/20) for the
+large mottled patches, same color gradient as before, plus one more (period 60)
+for the fine blade-detail brightness variation.
+
+Also reduced the material's UV tiling from 40×40 to 20×20 and doubled the source
+texture to 1024×1024 — fixing the seam alone still leaves the exact same tile
+repeating identically at every step, and cutting the repeat count in half reduces
+how many chances the eye gets to pattern-match that repetition, independent of the
+seamless fix. `Ground.mat`'s `_BaseMap` guid is unchanged (same file path,
+re-imported in place), only `m_Scale` and the PNG's pixel content changed.
 
 ### v0.1.53-dev — Procedural grass texture on the Ground, replacing the flat green color
 
