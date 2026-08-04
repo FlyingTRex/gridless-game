@@ -5,12 +5,43 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.55-dev` — must always match `GameVersion` in
+**Current version:** `0.1.56-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.56-dev — Fix: sky clouds barely visible from a normal camera angle
+
+User screenshot from a roughly level-pitched first-person view showed the
+v0.1.55-dev sky as an almost flat pale wash — no visible cloud shapes, no
+visible horizon-to-zenith blue gradient either, just faint streaks. Not a
+shader-compatibility problem (no pink, confirming the `Skybox/Panoramic`
+choice was fine) — a content-tuning problem in the generated texture itself.
+Two likely causes, both addressed (can't render/screenshot locally to isolate
+which dominated):
+
+- **Low color contrast.** `Horizon` (0.75, 0.85, 0.95) and `CloudColor`
+  (0.97, 0.97, 1) were close enough to blend into each other rather than read
+  as distinct shapes. Made `Horizon`/`Zenith` more saturated blues and
+  `CloudColor` pure white.
+- **Narrow visible band, coarse noise.** A level-pitched camera most likely
+  only ever sees a narrow slice of the texture's v-range near the horizon
+  (v≈0.5) — the old noise's coarsest octaves (period 5/10/20 across the
+  *entire* pole-to-pole 0–1 range) put very little variation inside any
+  narrow slice that close to a single value, so that band looked almost
+  uniform regardless of contrast. Doubled every octave's period (10/20/40)
+  so a narrow near-horizon slice still crosses enough lattice cells to show
+  real variation. Also moved the cloud band's fade-in from starting at
+  v=0.35 to v=0.45 (clouds now reach full strength right at the horizon,
+  where a level camera actually looks) and lowered/widened the coverage
+  threshold for denser, easier-to-spot clouds.
+
+`SkyTexture.png` regenerated in place (`AssetDatabase.ImportAsset` reimport,
+same file path/guid) — `Sky.mat`'s `_MainTex` reference and `TestScene`'s
+`RenderSettings.skybox` needed no changes, verified by re-checking the guid
+chain after regeneration.
 
 ### v0.1.55-dev — Procedural cloudy sky, replacing the built-in default skybox
 

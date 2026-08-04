@@ -41,16 +41,19 @@ fix the coordinate in this file rather than assuming the step is wrong.
   amount of large-scale pattern repetition is inherent to any tiled texture at
   a fixed tile size; flag it specifically if it's still distracting rather than
   subtle.
-- [ ] **Sky (v0.1.55-dev):** the sky shows a blue gradient (lighter near the
-  horizon, deeper blue toward the zenith) with scattered white clouds — not the
-  plain flat gradient with no clouds from every earlier screenshot. Look straight
-  up and toward the horizon in a few different directions. **Expected:** clouds
-  fade out before the exact zenith and don't dip below the horizon; no visible
-  hard seam where the texture wraps around (look mostly toward the horizon
-  turning a full circle — the seam, if any, would show as a vertical line clouds
-  don't cross smoothly). Confirm the sky doesn't render pink (would mean the
-  `Skybox/Panoramic` shader isn't actually URP-compatible despite compiling
-  clean — the untested risk called out when this shipped).
+- [ ] **Sky (v0.1.55-dev, contrast/visibility fixed in v0.1.56-dev):** the sky
+  shows a blue gradient (lighter/more saturated blue near the horizon, deeper
+  blue toward the zenith) with clearly visible scattered white clouds — not
+  the plain flat gradient with no clouds from every earlier screenshot. Check
+  from a normal, level-pitched view first (that's exactly the angle that
+  exposed the v0.1.55-dev bug — clouds were essentially invisible from a
+  typical camera pitch, only the shader-compatibility part worked), then look
+  up toward the zenith and turn a full circle checking for a visible vertical
+  seam line clouds don't cross smoothly. **Regression:** v0.1.55-dev's first
+  pass looked like a flat pale wash with no visible cloud shapes or gradient
+  from a normal viewing angle — confirm that's actually fixed, not just less
+  bad. Also reconfirm no pink rendering (the shader-compatibility risk from
+  v0.1.55-dev, already checked once but worth another glance).
 
 ## 1. Movement & Stances
 
