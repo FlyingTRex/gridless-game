@@ -172,10 +172,18 @@ fix the coordinate in this file rather than assuming the step is wrong.
   break (requires Axe)". With an Axe in hand, takes 4 hits to break into 3 Wood
   chunks; the tree (trunk + foliage) hides and respawns ~3 minutes later, same
   pattern as Rock Node.
-- [ ] **Iron Ore Node (v0.1.60-dev)** at `(4, 0.4, -4)`: same tool-gating and
-  texture check as Copper — visibly identifiable as ore from the start, no
-  Mining Face Shield needed, 2 hits with a Pickaxe to break into 3 Iron Ore.
-- [ ] **Silver/Gold/Platinum Ore Nodes (v0.1.60-dev)** at `(2, 0.4, -6)`,
+- [ ] **Iron Ore Node (v0.1.60-dev; texture fixed in v0.1.61-dev)** at
+  `(4, 0.4, -4)`: same tool-gating and texture check as Copper — visibly
+  identifiable as ore from the start, no Mining Face Shield needed, 2 hits with
+  a Pickaxe to break into 3 Iron Ore. **Regression:** v0.1.60-dev's texture
+  rendered as a near-solid reddish-brown blob with no visible rock/fleck
+  contrast — should now read as dark rock with distinct rust-colored flecks.
+- [ ] **Copper Ore Node (texture fixed in v0.1.61-dev):** re-check this one too
+  even though it shipped earlier — v0.1.60-dev's texture bug affected it too
+  (rendered as a near-solid green blob). Should now read as dark rock with
+  distinct copper-orange flecks and sparser green patina spots.
+- [ ] **Silver/Gold/Platinum Ore Nodes (v0.1.60-dev; texture fixed in
+  v0.1.61-dev)** at `(2, 0.4, -6)`,
   `(4, 0.4, -6)`, `(6, 0.4, -6)`: **without** a Mining Face Shield equipped, each
   should look and behave exactly like a plain Rock Node — indistinguishable, no
   visual hint anything's special. **Equip the Mining Face Shield** (Face slot;
@@ -183,7 +191,12 @@ fix the coordinate in this file rather than assuming the step is wrong.
   wearable gadgets close to spawn) and look at each node again: it should
   visibly change to a metal-flecked ore texture (Silver = bright silvery-white
   flecks, Gold = yellow-gold flecks, Platinum = pale cool-white flecks —
-  distinct from each other and from Silver's warmer white).
+  distinct from each other and from Silver's warmer white). **Regression:**
+  v0.1.60-dev's Silver/Platinum textures were both near-solid pale blobs, nearly
+  indistinguishable from the hidden/rock state even when correctly revealed —
+  the reveal *logic* was actually working the whole time, but the visual result
+  looked broken because the texture itself lacked contrast. Confirm the change
+  now actually reads as obviously different, not just technically different.
   **Regression-style check, this is the important part:** mine one of these
   nodes *without* the shield equipped (Pickaxe in hand, shield off) — it should
   take 2 hits and yield **Small Rock, not the real ore** (the ore goes

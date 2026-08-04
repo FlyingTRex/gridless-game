@@ -5,12 +5,51 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.60-dev` — must always match `GameVersion` in
+**Current version:** `0.1.61-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-04
+
+### v0.1.61-dev — Fix: all 5 ore textures rendered as solid color blobs, not flecked rock
+
+User screenshots (in-game, without and with the Mining Face Shield equipped)
+showed the v0.1.60-dev ore nodes as near-solid colored spheres — reddish-brown,
+green — instead of grey rock with metal flecks, and Silver/Platinum appeared not
+to reveal at all when the shield was equipped.
+
+Root-caused by reading the actual generated PNGs directly rather than guessing
+from the in-game screenshots alone (`CopperOreTexture.png` was, in fact, a nearly
+flat solid green image). Two compounding problems, found via standalone test
+swatches inspected before touching any real asset:
+
+1. **The real bug:** `Mathf.SmoothStep(low, high, rawNoiseValue)` — used for
+   every fleck-coverage mask — doesn't threshold anything the way GLSL's
+   `smoothstep(edge0, edge1, x)` does; Unity's version treats its third argument
+   as an already-normalized `[0,1]` progress value and the first two as the
+   *output range*, not threshold edges. The call was silently remapping every
+   pixel into a narrow output band uniformly, never producing sparse flecks
+   regardless of what threshold values were tried — confirmed by testing three
+   different threshold pairs that all looked nearly identical, which is what
+   exposed the real bug rather than a tuning problem. New gotcha documented in
+   `CLAUDE.md` with the correct GLSL-style replacement (`SmoothThreshold`).
+2. Also darkened every rock-matrix color palette — contrast alone (tested first,
+   before finding the SmoothStep bug) didn't fix it, since some fleck colors
+   (Silver's near-white especially) were already close to the original "light"
+   rock color even before any blending.
+
+All 5 ore textures (`CopperOreTexture.png`, `IronOreTexture.png`,
+`SilverOreTexture.png`, `GoldOreTexture.png`, `PlatinumOreTexture.png`)
+regenerated in place with the corrected math — same file paths/guids as before,
+so no material or scene changes were needed. Verified by reading each
+regenerated PNG directly before considering it fixed, not just by re-running the
+generator and trusting the log.
+
+**Flagged, not yet fixed:** the sky texture's cloud coverage (v0.1.55–57-dev)
+used the identical buggy pattern — very likely the real explanation for why
+clouds stayed faint across three tuning rounds that session. Noted in
+`BUGS_AND_ENHANCEMENTS.md`'s sky entry for whenever that gets revisited.
 
 ### v0.1.60-dev — Full ore ladder (Iron/Silver/Gold/Platinum) + Mining Face Shield
 

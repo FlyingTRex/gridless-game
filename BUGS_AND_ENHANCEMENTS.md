@@ -75,7 +75,15 @@ work) — this is the backlog between the two. Check off and move the entry to
   again — same tileable-noise technique as the grass texture, see
   `CHANGELOG.md`'s v0.1.55/56/57-dev entries for the full history of what was
   tried (including the inverted-gradient bug already fixed) before changing
-  anything. *(Reported by Ben.)*
+  anything.
+  **Likely root cause identified 2026-08-04, not yet applied here:** while
+  fixing the ore textures, found that `Mathf.SmoothStep(low, high, rawValue)`
+  doesn't threshold anything the way GLSL's `smoothstep` does — see `CLAUDE.md`'s
+  new gotcha on this exact bug. The sky's cloud-coverage code used the identical
+  pattern, so the persistently-faint clouds across three tuning rounds were very
+  likely this, not a frequency/contrast problem. Try the corrected
+  `SmoothThreshold` helper from that gotcha before anything else. *(Reported by
+  Ben.)*
 - [ ] **Simplify item-holding to two states: equipped or inventory-stored — no
   ad-hoc "held in a hand" third state.** Today `PlayerLoot`'s pickup priority is
   Backpack → Left Hand → Right Hand → evict-into-world (`CHANGELOG.md`

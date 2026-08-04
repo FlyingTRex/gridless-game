@@ -208,3 +208,50 @@ that does both prefab-content editing and scene editing in the same run,
 "the script logged success with no exceptions" as proof the references landed
 correctly; a stale reference degrades silently to `{fileID: 0}`, not a thrown
 error.
+
+## Gotcha: `Mathf.SmoothStep(a, b, t)` is not GLSL's `smoothstep(edge0, edge1, x)` despite the identical-looking name
+
+Hit for real (2026-08-04, ore textures): every procedural-texture script this
+session that wanted "0 below a threshold, 1 above another threshold, smooth
+transition between" (i.e. a coverage/fleck mask from a raw noise value) called
+`Mathf.SmoothStep(low, high, rawNoiseValue)`, modeled on GLSL/HLSL's
+`smoothstep(edge0, edge1, x)` — which clamps `x` against the `[edge0, edge1]`
+*input* range, remaps it to `[0, 1]`, then smooths. **Unity's `Mathf.SmoothStep`
+does something different**: `t` (the third argument) is treated as an
+*already-normalized* `[0, 1]` progress value, and the first two arguments are the
+**output value range** to interpolate between —
+`t = Clamp01(t); t = smooth(t); return from + (to - from) * t;`. Passing a raw,
+unnormalized noise value as `t` doesn't threshold anything; it just remaps every
+pixel's noise into a narrow output band uniformly, regardless of the noise's
+actual magnitude — the opposite of a sparse threshold.
+
+**Symptom:** a procedurally generated "flecked" texture (ore, and likely
+anything else built this session using the same pattern) came out looking like a
+near-solid single-color wash instead of sparse, distinct speckles — and *raising*
+the threshold values didn't fix it, because the bug isn't about picking the wrong
+threshold, it's that the call never thresholds anything at all. Confirmed by
+generating standalone test-swatch textures and inspecting the actual pixel output
+directly (Claude can read image files) *before* touching any real game asset —
+much faster than the round-trip of applying it in-game and waiting for a
+screenshot to find out it's still wrong.
+
+**The fix — implement GLSL-style thresholding by hand, don't reach for
+`Mathf.SmoothStep` for this purpose:**
+```csharp
+private static float SmoothThreshold(float x, float edge0, float edge1)
+{
+    float t = Mathf.Clamp01((x - edge0) / (edge1 - edge0));
+    return t * t * (3f - 2f * t);
+}
+```
+Call as `SmoothThreshold(rawNoiseValue, low, high)`, not
+`Mathf.SmoothStep(low, high, rawNoiseValue)`.
+
+**Known to be affected, not yet fixed:** the sky texture's cloud coverage
+(`GenerateSkyTexture.cs`, deleted after running, shipped v0.1.55-dev through
+v0.1.57-dev) used the exact same `Mathf.SmoothStep(low, high, cloudNoise)`
+pattern for both the cloud-coverage mask and the vertical fade band. The clouds
+being persistently faint/hard-to-see across three tuning rounds that night — see
+`BUGS_AND_ENHANCEMENTS.md`'s sky-texture entry — was very likely this exact bug,
+not (only) a frequency/contrast problem as diagnosed at the time. Worth revisiting
+with the corrected math before trying anything else on that backlog item.
