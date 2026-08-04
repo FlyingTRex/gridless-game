@@ -120,11 +120,55 @@ screen's move popup, then couldn't be equipped) that turned out to be the identi
 issue. The new fix is scoped to just the specific item/slot being moved, not a
 blanket refusal.
 
-This only covers callers that go through `Move()`. Anything that calls
-`Inventory.RemoveItem`+`AddItem` (or `PlayerDropping.DropFrom`, which still does this
-internally and has no equipment check of its own) directly on a slot that might hold
-an equippable is still on the hook to check `slot.equipment` first and route through
-the type's own carrier (`PlayerBackpack.Drop`, `PlayerCanteen.Equip`, etc.). Every
-current call site of `DropFrom` happens to already guard against this correctly —
-but that's a property of the callers, not of `DropFrom` itself, so a new call site
-can reintroduce the bug without touching `InventoryTransfer` at all.
+**Update (v0.1.51-dev):** `PlayerDropping.DropFrom` is now equipment-aware too, same
+pattern as `Move()` — it was the last caller that reached for the generic
+`RemoveItem`/`AddItem` pair directly. Any *new* code that reaches for those two
+methods directly on a slot that might hold an equippable is still on the hook to
+check `slot.equipment` first and route through the type's own carrier
+(`PlayerBackpack.Drop`, `PlayerCanteen.Equip`, etc.) — the fix lives in the two call
+sites that had it, not in `Inventory` itself.
+
+## Gotcha: a changed `[SerializeField]` default doesn't apply to existing scene/prefab instances
+
+Unity serializes the field's *current value* onto a GameObject the first time the
+scene/prefab is saved. Changing the C# default afterward only affects **new**
+instances — anything already placed in `TestScene.unity` (or baked into a prefab)
+keeps whatever value was captured at that point, silently overriding the new code
+default with no error or warning. Hit twice in one session (2026-08-03):
+`PlayerVitals.overdrinkSicknessThreshold` (scene had `100` baked in from the
+original field addition; code default changed to `125`, scene kept overriding it
+back to `100`) and `Canteen.fillRange` (same pattern, `2` → `4`). Both looked like
+the code fix didn't work at all when actually it just never took effect.
+
+**How to apply:** after changing a numeric/bool default on an existing
+`[SerializeField]`, grep `Assets/Scenes/*.unity` and any relevant `.prefab` for the
+field name — if it's already serialized there with the old value, the scene/prefab
+needs the same edit, not just the script. This is also why the Editor needs a scene
+reload after a script-only fix that touches a field's default: a currently-open
+scene keeps its in-memory (pre-fix) values until reloaded from disk, so testing
+immediately after a fix that *did* touch the scene value can still show the bug if
+the Editor hasn't picked up the on-disk change yet.
+
+## Gotcha: `GUILayout.Button` fires on *any* mouse button, not just left-click
+
+Unity's legacy IMGUI doesn't filter by mouse button — a right-click (or middle-click)
+lands on a `GUILayout.Button` exactly like a left-click would, as long as the cursor
+is inside its rect on both press and release. This is surprising because right-click
+is also legitimately used elsewhere in this project (`PlayerRenaming`), so players
+reach for it out of habit.
+
+Confirmed as the root cause of a real bug (2026-08-03): `InventoryScreen`'s Back-slot
+equipment row (Unequip/Drop buttons) sits directly above the backpack's nested
+contents grid (`DrawContainerContents`) with very little vertical gap, and the grid's
+own horizontal indent doesn't line up with the row above it — a middle slot in the
+grid can land under the Unequip/Drop button column. A right-click aimed at an item
+*inside* the backpack could silently drop or unequip the backpack itself instead.
+Spacing helped but didn't eliminate it (confirms the mechanism, doesn't fix it).
+
+**The actual fix, not just mitigation:** `InventoryScreen.SafeButton(...)` wraps
+`GUILayout.Button` and only returns `true` when `Event.current.button == 0` (left
+click). Applied to every Equip/Unequip/Drop button in the screen — the ones where an
+accidental trigger changes real state. Reach for this instead of `GUILayout.Button`
+directly for any *new* button in this screen (or any other `OnGUI` panel) whose
+accidental click has a real consequence; plain `GUILayout.Button` is still fine for
+low-stakes clicks (opening a popup, a Cancel button).
