@@ -7,10 +7,25 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Bugs
 
-(none right now)
+- [ ] **No way to move an equipped item (e.g. Canteen) into a backpack.**
+  `InventoryTransfer.Move`/`Inventory.AddEquipmentItem` already support carrying an
+  equipment reference into any `Inventory`, backpack included, but no UI path ever
+  calls it for an equipment-backed slot: `DrawEquipmentSection` draws an
+  `entry.equipment != null` slot as a plain `GUILayout.Box` (not a `Button`, so
+  it's not clickable at all), and `DrawInventorySection`'s equipment branches
+  (Backpack/Canteen/NavigationComputer/PersonalHealthMonitor/Sunglasses) only ever
+  offer Equip/Drop — unlike the plain-item branch, there's no "To Backpack"/"To
+  Storage". Affects every equippable, not just the Canteen. *(Reported by Ben.)*
 
 ## Enhancements
 
+- [ ] **Equip directly from a container.** Same underlying gap as "Eat/Drink
+  directly from a container" below — `DrawContainerContents` (backpack contents
+  and storage boxes alike) treats every item as a generic move-popup button
+  regardless of `entry.equipment`, so an equippable item sitting in a backpack
+  (Sunglasses, a spare Canteen, Navigation Computer, Personal Health Monitor) has
+  no direct Equip button; it has to be moved out to a hand or the main inventory
+  first. *(Reported by Ben.)*
 - [ ] **Eat directly from a container.** Food items sitting in a backpack (or other
   container) can't be eaten in place today — `DrawInventorySection` in
   `InventoryScreen.cs` gives main-inventory items a direct "Eat" button via
