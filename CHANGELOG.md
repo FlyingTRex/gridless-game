@@ -5,12 +5,21 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.51-dev` — must always match `GameVersion` in
+**Current version:** `0.1.52-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.52-dev — Fix: version number clipped off the bottom-left debug panel
+
+The panel's `Rect` (height 56, positioned `Screen.height - 66`) was sized for 2
+label lines back when it only showed Speed/Sprinting and the version. The Stance
+line was added later (stance-system work, this session's merge) without resizing
+the panel, so with 3 lines the bottom one — the version number — overflowed
+`GUILayout.BeginArea`'s bounds and got clipped. Resized to fit 3 lines (height 76,
+`Screen.height - 86`), keeping the same 10px margin on every edge.
 
 ### v0.1.51-dev — Canteen fill dead zone, and a misclick that dropped/unequipped the backpack instead of the item inside it
 

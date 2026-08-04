@@ -199,14 +199,18 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.51-dev";
+    private const string GameVersion = "0.1.52-dev";
 
     private float lastSpeed;
     private bool lastSprinting;
 
     private void OnGUI()
     {
-        var rect = new Rect(10, Screen.height - 66, 300, 56);
+        // Height/Y sized for 3 label lines (Speed/Sprinting, Stance, version)
+        // with a 10px margin on all sides — previously fixed at 56/Screen.height-66
+        // (2 lines' worth) from before the Stance line existed, clipping the
+        // version line off the bottom.
+        var rect = new Rect(10, Screen.height - 86, 300, 76);
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
         GUILayout.Label($"Speed: {lastSpeed:F1} m/s  Sprinting: {lastSprinting}", DebugGUI.Label);
