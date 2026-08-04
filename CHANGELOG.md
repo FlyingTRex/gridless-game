@@ -5,12 +5,24 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.46-dev` — must always match `GameVersion` in
+**Current version:** `0.1.47-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.47-dev — Fix: bank/lockbox popups let the coin type switch mid-transaction
+
+Reported by Ben (filed in `BUGS_AND_ENHANCEMENTS.md`, commit `08d3c89`). In both
+`BankScreen.cs` and `LockboxScreen.cs`, the coin-type table underneath a
+Deposit/Withdraw (or Exchange) popup stayed fully clickable while the popup was open
+— a click that landed on the table instead of the popup silently reassigned
+`pendingType`/`pendingExchangeFrom` and reset the pending amount back to 0, so a
+withdrawal could switch to a different coin type mid-flow without the player
+intending it. Fixed by disabling (`GUI.enabled = false`) every background button on
+the panel — coin table, Exchange buttons, Lockbox Buy row, Close — for the duration
+any popup is open, consistent with the modal role those popups already play.
 
 ### v0.1.46-dev — Second playtest pass: canteen still white, overdrink threshold wrong, Sunglasses orphaned, direct water-source interaction
 

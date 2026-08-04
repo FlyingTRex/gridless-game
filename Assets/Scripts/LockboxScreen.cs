@@ -63,12 +63,18 @@ public class LockboxScreen : MonoBehaviour
     {
         if (!isOpen || current == null) return;
 
+        // Same modal-popup guard as BankScreen — block the table underneath
+        // the Deposit/Withdraw popup so a stray click can't reassign
+        // pendingType out from under it.
+        bool popupOpen = pendingType != null;
+
         var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - PanelHeight) / 2f, PanelWidth, PanelHeight);
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
         GUILayout.Label(current.DisplayName, DebugGUI.Header);
         GUILayout.Label($"Capacity per coin type: {current.CapacityPerType}", DebugGUI.Label);
 
+        GUI.enabled = !popupOpen;
         GUILayout.BeginHorizontal();
         GUILayout.Label("", GUILayout.Width(90));
         GUILayout.Label("Wallet", DebugGUI.Label, GUILayout.Width(60));
@@ -106,6 +112,7 @@ public class LockboxScreen : MonoBehaviour
         if (GUILayout.Button("Close", GUILayout.Width(100)))
             SetOpen(false);
 
+        GUI.enabled = true;
         GUILayout.EndArea();
 
         DrawPendingPopup();

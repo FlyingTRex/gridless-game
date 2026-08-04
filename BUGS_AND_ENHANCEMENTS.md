@@ -7,13 +7,7 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Bugs
 
-- [ ] **Withdraw popup lets the coin type switch mid-transaction.** In
-  `BankScreen.cs`'s `OnGUI`, the coin-type table (Deposit/Withdraw buttons per row)
-  keeps drawing and stays clickable underneath the Deposit/Withdraw popup instead
-  of being disabled while `pendingType != null` — clicking a row button while the
-  popup is already open reassigns `pendingType` (and resets `pendingAmount` back to
-  0) without the player closing the popup first, so a withdrawal can silently
-  switch to a different coin type mid-flow. *(Reported by Ben.)*
+(none right now)
 
 ## Enhancements
 

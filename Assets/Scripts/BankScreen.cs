@@ -86,11 +86,18 @@ public class BankScreen : MonoBehaviour
     {
         if (!isOpen) return;
 
+        // A Deposit/Withdraw/Exchange popup is modal — block every button on
+        // the panel underneath it, otherwise a click that lands on the table
+        // behind the popup silently reassigns pendingType/pendingExchangeFrom
+        // instead of being caught by the popup in front of it.
+        bool popupOpen = pendingType != null || pendingExchangeFrom != null;
+
         var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - PanelHeight) / 2f, PanelWidth, PanelHeight);
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
         GUILayout.Label("Bank", DebugGUI.Header);
 
+        GUI.enabled = !popupOpen;
         GUILayout.BeginHorizontal();
         GUILayout.Label("", GUILayout.Width(90));
         GUILayout.Label("Wallet", DebugGUI.Label, GUILayout.Width(60));
@@ -160,9 +167,9 @@ public class BankScreen : MonoBehaviour
 
             GUILayout.BeginHorizontal();
             GUILayout.Label($"{name} — {capacity}/type — {price} Gold", DebugGUI.Label, GUILayout.Width(300));
-            GUI.enabled = wallet.GetBalance(CoinType.Gold) >= price;
+            GUI.enabled = !popupOpen && wallet.GetBalance(CoinType.Gold) >= price;
             if (GUILayout.Button("Buy", GUILayout.Width(60))) buyClicked = tier;
-            GUI.enabled = true;
+            GUI.enabled = !popupOpen;
             GUILayout.EndHorizontal();
         }
 
@@ -173,6 +180,7 @@ public class BankScreen : MonoBehaviour
         if (GUILayout.Button("Close", GUILayout.Width(100)))
             SetOpen(false);
 
+        GUI.enabled = true;
         GUILayout.EndArea();
 
         DrawDepositWithdrawPopup();
