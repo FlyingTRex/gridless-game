@@ -2479,7 +2479,7 @@ MonoBehaviour:
   drinkAmount: 25
   emptyMaterial: {fileID: 0}
   filledMaterial: {fileID: 0}
-  fillRange: 2
+  fillRange: 4
 --- !u!65 &896003594
 BoxCollider:
   m_ObjectHideFlags: 0

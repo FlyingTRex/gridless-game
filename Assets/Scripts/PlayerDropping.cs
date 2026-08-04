@@ -18,12 +18,40 @@ public class PlayerDropping : MonoBehaviour
 
     // Removes all of `item` from the given inventory and spawns it as a
     // physical pickup in the world in front of the player. Shared by the
-    // main inventory's Drop button and by PlayerLoot, which uses it to
-    // evict a hand slot when making room for a newly picked-up item.
+    // main inventory's Drop button, the inventory screen's move-popup Drop
+    // option, and PlayerLoot, which uses it to evict a hand slot when
+    // making room for a newly picked-up item.
     public void DropFrom(Inventory source, ItemDefinition item)
     {
-        var prefab = item != null && item.worldPickupPrefab != null ? item.worldPickupPrefab : droppedItemPrefab;
-        if (item == null || prefab == null || source == null) return;
+        if (item == null || source == null) return;
+
+        // Equipment-backed slot (Canteen, Backpack, etc.) — release the
+        // real object via its own carried state instead of the generic
+        // RemoveItem+spawn-a-Pickup path below, which would strip the
+        // equipment reference and orphan the physical object (the gotcha
+        // documented in CLAUDE.md).
+        IEquippable equipment = null;
+        foreach (var slot in source.Slots)
+        {
+            if (slot.item == item && slot.equipment != null)
+            {
+                equipment = slot.equipment;
+                break;
+            }
+        }
+
+        if (equipment != null)
+        {
+            source.RemoveEquipmentItem(item);
+            equipment.SetCarried(false, null);
+            var equipmentTransform = (equipment as Component)?.transform;
+            if (equipmentTransform != null)
+                equipmentTransform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+            return;
+        }
+
+        var prefab = item.worldPickupPrefab != null ? item.worldPickupPrefab : droppedItemPrefab;
+        if (prefab == null) return;
 
         int count = source.GetCount(item);
         if (count <= 0 || !source.RemoveItem(item, count)) return;

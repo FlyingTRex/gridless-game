@@ -15,7 +15,11 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
     [SerializeField] private float drinkAmount = 25f;
     [SerializeField] private Material emptyMaterial;
     [SerializeField] private Material filledMaterial;
-    [SerializeField] private float fillRange = 2f;
+    // Must exceed PlayerInteraction.interactRange (3m) — otherwise the F/E
+    // prompt can be visible (in range of the interact raycast) while still
+    // outside this range, so HasNearbyWaterSource() silently fails with no
+    // feedback to the player.
+    [SerializeField] private float fillRange = 4f;
 
     private Rigidbody body;
     private Collider col;

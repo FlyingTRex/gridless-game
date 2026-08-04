@@ -406,41 +406,41 @@ public class InventoryScreen : MonoBehaviour
             if (slot.equipment is Backpack backpack)
             {
                 GUILayout.Label(label, DebugGUI.Label);
-                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                if (SafeButton("Equip", GUILayout.Width(55)))
                     equipClicked = backpack;
-                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                if (SafeButton("Drop", GUILayout.Width(50)))
                     backpackDropClicked = backpack;
             }
             else if (slot.equipment is Canteen canteen)
             {
                 GUILayout.Label(label, DebugGUI.Label);
-                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                if (SafeButton("Equip", GUILayout.Width(55)))
                     canteenEquipClicked = canteen;
-                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                if (SafeButton("Drop", GUILayout.Width(50)))
                     canteenDropClicked = canteen;
             }
             else if (slot.equipment is NavigationComputer navComputer)
             {
                 GUILayout.Label(label, DebugGUI.Label);
-                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                if (SafeButton("Equip", GUILayout.Width(55)))
                     navComputerEquipClicked = navComputer;
-                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                if (SafeButton("Drop", GUILayout.Width(50)))
                     navComputerDropClicked = navComputer;
             }
             else if (slot.equipment is PersonalHealthMonitor healthMonitor)
             {
                 GUILayout.Label(label, DebugGUI.Label);
-                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                if (SafeButton("Equip", GUILayout.Width(55)))
                     healthMonitorEquipClicked = healthMonitor;
-                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                if (SafeButton("Drop", GUILayout.Width(50)))
                     healthMonitorDropClicked = healthMonitor;
             }
             else if (slot.equipment is Sunglasses sunglasses)
             {
                 GUILayout.Label(label, DebugGUI.Label);
-                if (GUILayout.Button("Equip", GUILayout.Width(55)))
+                if (SafeButton("Equip", GUILayout.Width(55)))
                     sunglassesEquipClicked = sunglasses;
-                if (GUILayout.Button("Drop", GUILayout.Width(50)))
+                if (SafeButton("Drop", GUILayout.Width(50)))
                     sunglassesDropClicked = sunglasses;
             }
             else
@@ -451,7 +451,7 @@ public class InventoryScreen : MonoBehaviour
                 if (edible != null && GUILayout.Button(edible.verb, GUILayout.Width(50)))
                     eatClicked = slot.item;
 
-                if (dropping != null && GUILayout.Button("Drop", GUILayout.Width(50)))
+                if (dropping != null && SafeButton("Drop", GUILayout.Width(50)))
                     dropClicked = slot.item;
 
                 if (equippedBackpack != null && GUILayout.Button("To Pack", GUILayout.Width(60)))
@@ -574,14 +574,14 @@ public class InventoryScreen : MonoBehaviour
             {
                 if (slotName == "Back")
                 {
-                    if (GUILayout.Button("Unequip", GUILayout.Width(70))) backpackUnequipClicked = backpackHere;
+                    if (SafeButton("Unequip", GUILayout.Width(70))) backpackUnequipClicked = backpackHere;
                 }
                 else
                 {
-                    if (GUILayout.Button("Equip", GUILayout.Width(55))) backpackEquipClicked = backpackHere;
+                    if (SafeButton("Equip", GUILayout.Width(55))) backpackEquipClicked = backpackHere;
                 }
 
-                if (GUILayout.Button("Drop", GUILayout.Width(50))) backpackDropClicked = backpackHere;
+                if (SafeButton("Drop", GUILayout.Width(50))) backpackDropClicked = backpackHere;
             }
             else if (canteenHere != null)
             {
@@ -591,55 +591,66 @@ public class InventoryScreen : MonoBehaviour
                 GUILayout.Label(liquidLabel, DebugGUI.Label, GUILayout.Width(90));
                 if (GUILayout.Button("Drink", GUILayout.Width(50))) canteenHere.Drink(vitals);
                 if (GUILayout.Button("Fill", GUILayout.Width(45))) canteenHere.Fill(LiquidType.Water);
-                if (GUILayout.Button("Unequip", GUILayout.Width(65))) canteenUnequipClicked = canteenHere;
-                if (GUILayout.Button("Drop", GUILayout.Width(50))) canteenDropClicked = canteenHere;
+                if (SafeButton("Unequip", GUILayout.Width(65))) canteenUnequipClicked = canteenHere;
+                if (SafeButton("Drop", GUILayout.Width(50))) canteenDropClicked = canteenHere;
             }
             else if (navComputerHere != null)
             {
                 bool isWorn = slotName == "Left Wrist" || slotName == "Right Wrist";
                 if (isWorn)
                 {
-                    if (GUILayout.Button("Unequip", GUILayout.Width(70))) navComputerUnequipClicked = navComputerHere;
+                    if (SafeButton("Unequip", GUILayout.Width(70))) navComputerUnequipClicked = navComputerHere;
                 }
                 else
                 {
-                    if (GUILayout.Button("Equip", GUILayout.Width(55))) navComputerEquipClicked = navComputerHere;
+                    if (SafeButton("Equip", GUILayout.Width(55))) navComputerEquipClicked = navComputerHere;
                 }
 
-                if (GUILayout.Button("Drop", GUILayout.Width(50))) navComputerDropClicked = navComputerHere;
+                if (SafeButton("Drop", GUILayout.Width(50))) navComputerDropClicked = navComputerHere;
             }
             else if (healthMonitorHere != null)
             {
                 bool isWorn = slotName == "Left Wrist" || slotName == "Right Wrist";
                 if (isWorn)
                 {
-                    if (GUILayout.Button("Unequip", GUILayout.Width(70))) healthMonitorUnequipClicked = healthMonitorHere;
+                    if (SafeButton("Unequip", GUILayout.Width(70))) healthMonitorUnequipClicked = healthMonitorHere;
                 }
                 else
                 {
-                    if (GUILayout.Button("Equip", GUILayout.Width(55))) healthMonitorEquipClicked = healthMonitorHere;
+                    if (SafeButton("Equip", GUILayout.Width(55))) healthMonitorEquipClicked = healthMonitorHere;
                 }
 
-                if (GUILayout.Button("Drop", GUILayout.Width(50))) healthMonitorDropClicked = healthMonitorHere;
+                if (SafeButton("Drop", GUILayout.Width(50))) healthMonitorDropClicked = healthMonitorHere;
             }
             else if (sunglassesHere != null)
             {
                 if (slotName == "Face")
                 {
-                    if (GUILayout.Button("Unequip", GUILayout.Width(70))) sunglassesUnequipClicked = sunglassesHere;
+                    if (SafeButton("Unequip", GUILayout.Width(70))) sunglassesUnequipClicked = sunglassesHere;
                 }
                 else
                 {
-                    if (GUILayout.Button("Equip", GUILayout.Width(55))) sunglassesEquipClicked = sunglassesHere;
+                    if (SafeButton("Equip", GUILayout.Width(55))) sunglassesEquipClicked = sunglassesHere;
                 }
 
-                if (GUILayout.Button("Drop", GUILayout.Width(50))) sunglassesDropClicked = sunglassesHere;
+                if (SafeButton("Drop", GUILayout.Width(50))) sunglassesDropClicked = sunglassesHere;
             }
 
             GUILayout.EndHorizontal();
 
             if (nestedHolder != null)
+            {
+                // Without this, the container's contents grid sits right
+                // beneath the Back row's Unequip/Drop buttons with almost no
+                // gap — a click aimed at the grid's top row can land on
+                // Unequip/Drop instead, dropping/unequipping the backpack
+                // itself instead of acting on the item inside it. Confirmed
+                // as the cause of two separate reports (2026-08-03): moving
+                // a Canteen out this way dropped the backpack, and moving a
+                // Rock out unequipped it into the main inventory.
+                GUILayout.Space(6);
                 DrawContainerContents(nestedHolder.Inventory, $"{nestedHolder.DisplayName} contents (click an item for options)");
+            }
         }
 
         if (backpackEquipClicked != null) backpackCarrier.Equip(backpackEquipClicked);
@@ -695,4 +706,18 @@ public class InventoryScreen : MonoBehaviour
         }
     }
 
+    // GUILayout.Button responds to any mouse button by default (a Unity
+    // IMGUI quirk) — right-click is also used elsewhere (PlayerRenaming),
+    // and a right-click aimed at a nearby item box that overlaps this
+    // button's rect (see the Back-row/contents-grid layout note above) can
+    // otherwise trigger it by accident. Restricting Equip/Unequip/Drop to
+    // left-click only makes them immune to that regardless of exact pixel
+    // alignment. Confirmed as the fix for two reports (2026-08-03) where a
+    // right-click meant for an item inside a backpack instead
+    // dropped/unequipped the backpack itself.
+    private static bool SafeButton(string label, params GUILayoutOption[] options)
+    {
+        bool clicked = GUILayout.Button(label, options);
+        return clicked && Event.current.button == 0;
+    }
 }

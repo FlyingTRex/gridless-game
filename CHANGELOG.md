@@ -5,12 +5,49 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.46-dev` — must always match `GameVersion` in
+**Current version:** `0.1.51-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.51-dev — Canteen fill dead zone, and a misclick that dropped/unequipped the backpack instead of the item inside it
+
+Third playtest pass on the water-source/inventory work above.
+
+- **Standing close enough to see the Fill prompt didn't mean close enough to
+  actually fill.** `Canteen.fillRange` (2m, measured from the canteen) was smaller
+  than `PlayerInteraction.interactRange` (3m, measured from the camera) — the F/E
+  prompt could be visible while `HasNearbyWaterSource()` still failed, silently, via
+  both the direct F-key interaction and the pre-existing UI Fill button. Raised
+  `fillRange` to 4m so it always exceeds `interactRange` with headroom. Same Unity
+  serialization gotcha as the overdrink threshold: `TestScene.unity`'s Canteen
+  instance had `fillRange: 2` baked in from before the new default existed, so the
+  scene value needed its own fix alongside the code default.
+- **Clicking an item inside a worn backpack sometimes dropped or unequipped the
+  backpack instead.** Two independent reports (a Canteen click dropped it, a Rock
+  click unequipped it into the main inventory) — root cause was layout, not logic:
+  `DrawEquipmentSection`'s Back-slot row (Label + backpack box + Unequip/Drop
+  buttons) sits directly above `DrawContainerContents`' item grid with almost no
+  vertical gap, and the grid's `GUILayout.Space(20)` indent doesn't line up with the
+  row above it — a middle slot in the grid (confirmed: slot 3) can horizontally
+  align under the Unequip/Drop button column. Combined with Unity's `GUILayout.Button`
+  responding to *any* mouse button (not just left-click, a long-standing IMGUI
+  quirk), a right-click aimed at an item could land on the backpack's own
+  Unequip/Drop instead. Fixed two ways: added a 6px gap between the row and the
+  grid (reduced frequency but didn't eliminate it — confirms the diagnosis), and,
+  more robustly, added an `InventoryScreen.SafeButton` helper that requires an
+  actual left-click, applied to every Equip/Unequip/Drop button in the screen. A
+  stray right-click can no longer trigger any of them regardless of exact pixel
+  alignment.
+- **`PlayerDropping.DropFrom` was still the one unguarded generic-removal path.**
+  Flagged in `CLAUDE.md`'s gotcha note earlier this session as a latent risk (every
+  current call site happened to guard it correctly, but the function itself had no
+  check of its own). It's what the move popup's "Drop" option calls — now checks for
+  an `equipment` reference first and releases the real object via `SetCarried(false,
+  null)` instead of stripping the reference and spawning a fake pickup, matching the
+  `InventoryTransfer.Move` fix from the previous entry.
 
 ### v0.1.46-dev — Second playtest pass: canteen still white, overdrink threshold wrong, Sunglasses orphaned, direct water-source interaction
 
