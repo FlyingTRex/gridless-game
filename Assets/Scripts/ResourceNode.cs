@@ -18,6 +18,20 @@ public class ResourceNode : MonoBehaviour, IPunchable
     // actually be held in a hand, not just carried somewhere in inventory.
     [SerializeField] private ItemDefinition requiredTool;
 
+    // Null (default) means no disguise — this node always looks like
+    // chunkPrefab's true resource and always yields it, same as every node
+    // shipped before this. Set both materials to make a node look like
+    // plain rock until the player has a Mining Face Shield equipped, at
+    // which point it swaps to revealedMaterial — same reveal mechanism
+    // already shipped for Sunglasses + the Secret Message Wall, generalized
+    // into a gameplay effect instead of a pure visual one.
+    [SerializeField] private Material hiddenMaterial;
+    [SerializeField] private Material revealedMaterial;
+    // What actually gets spawned if the node is broken while NOT revealed —
+    // the ore goes undetected, so this should be a plain Small Rock chunk
+    // prefab, not the real ore. Ignored entirely when hiddenMaterial is null.
+    [SerializeField] private GameObject hiddenChunkPrefab;
+
     private int hitsTaken;
     private Vector3 spawnPosition;
     private Collider col;
@@ -26,9 +40,17 @@ public class ResourceNode : MonoBehaviour, IPunchable
     // (the timer is held until it's actually broken) or mid-repositioning.
     private float respawnAt = -1f;
 
+    // Looked up once rather than per-frame — this node isn't parented under
+    // Player, so there's no cheap direct reference, same pattern
+    // SecretMessageWall already uses for finding PlayerSunglasses.
+    private PlayerMiningFaceShield shieldWearer;
+
     public string Prompt => requiredTool != null
         ? $"Punch to break (requires {requiredTool.itemName})"
         : "Punch to break";
+
+    private bool IsDisguised => hiddenMaterial != null;
+    private bool IsRevealed => shieldWearer != null && shieldWearer.IsWorn;
 
     private void Awake()
     {
@@ -37,8 +59,21 @@ public class ResourceNode : MonoBehaviour, IPunchable
         renderers = GetComponentsInChildren<Renderer>();
     }
 
+    private void Start()
+    {
+        if (IsDisguised)
+            shieldWearer = FindFirstObjectByType<PlayerMiningFaceShield>();
+    }
+
     private void Update()
     {
+        if (IsDisguised)
+        {
+            var material = IsRevealed ? revealedMaterial : hiddenMaterial;
+            foreach (var r in renderers)
+                r.sharedMaterial = material;
+        }
+
         if (respawnAt < 0f || Time.time < respawnAt) return;
         Respawn();
     }
@@ -55,10 +90,16 @@ public class ResourceNode : MonoBehaviour, IPunchable
         player.GetComponent<PlayerSkills>()?.GainExperience(trainedSkill, skillGain);
         if (hitsTaken < hitsToBreak) return;
 
+        // Checked at the moment it actually breaks, not when punching
+        // started — a node revealed only partway through wouldn't make
+        // sense to then punish, and this matches how every other tier/skill
+        // check in this system is evaluated per-attempt, not locked in early.
+        GameObject prefabToSpawn = (IsDisguised && !IsRevealed) ? hiddenChunkPrefab : chunkPrefab;
+
         for (int i = 0; i < chunkCount; i++)
         {
             Vector3 offset = Random.insideUnitSphere * 0.3f;
-            var chunk = Instantiate(chunkPrefab, transform.position + Vector3.up * 0.2f + offset,
+            var chunk = Instantiate(prefabToSpawn, transform.position + Vector3.up * 0.2f + offset,
                 Random.rotation);
 
             if (chunk.TryGetComponent(out Rigidbody rb))

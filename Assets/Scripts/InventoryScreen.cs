@@ -62,6 +62,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerNavComputer navComputerCarrier;
     private PlayerHealthMonitor healthMonitorCarrier;
     private PlayerSunglasses sunglassesCarrier;
+    private PlayerMiningFaceShield miningShieldCarrier;
     private PlayerCurrency currency;
     private PlayerCoinDrop coinDropper;
     private PlayerVitals vitals;
@@ -107,6 +108,7 @@ public class InventoryScreen : MonoBehaviour
         navComputerCarrier = GetComponent<PlayerNavComputer>();
         healthMonitorCarrier = GetComponent<PlayerHealthMonitor>();
         sunglassesCarrier = GetComponent<PlayerSunglasses>();
+        miningShieldCarrier = GetComponent<PlayerMiningFaceShield>();
         currency = GetComponent<PlayerCurrency>();
         coinDropper = GetComponent<PlayerCoinDrop>();
         vitals = GetComponent<PlayerVitals>();
@@ -411,6 +413,8 @@ public class InventoryScreen : MonoBehaviour
         PersonalHealthMonitor healthMonitorDropClicked = null;
         Sunglasses sunglassesEquipClicked = null;
         Sunglasses sunglassesDropClicked = null;
+        MiningFaceShield miningShieldEquipClicked = null;
+        MiningFaceShield miningShieldDropClicked = null;
         var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
 
         var inv = playerInventory.Inventory;
@@ -461,6 +465,14 @@ public class InventoryScreen : MonoBehaviour
                     sunglassesEquipClicked = sunglasses;
                 if (SafeButton("Drop", GUILayout.Width(50)))
                     sunglassesDropClicked = sunglasses;
+            }
+            else if (slot.equipment is MiningFaceShield miningShield)
+            {
+                GUILayout.Label(label, DebugGUI.Label);
+                if (SafeButton("Equip", GUILayout.Width(55)))
+                    miningShieldEquipClicked = miningShield;
+                if (SafeButton("Drop", GUILayout.Width(50)))
+                    miningShieldDropClicked = miningShield;
             }
             else
             {
@@ -513,6 +525,10 @@ public class InventoryScreen : MonoBehaviour
             sunglassesCarrier.Equip(sunglassesEquipClicked);
         if (sunglassesDropClicked != null)
             sunglassesCarrier.Drop(sunglassesDropClicked);
+        if (miningShieldEquipClicked != null)
+            miningShieldCarrier.Equip(miningShieldEquipClicked);
+        if (miningShieldDropClicked != null)
+            miningShieldCarrier.Drop(miningShieldDropClicked);
     }
 
     private void DrawEquipmentSection()
@@ -531,6 +547,9 @@ public class InventoryScreen : MonoBehaviour
         Sunglasses sunglassesEquipClicked = null;
         Sunglasses sunglassesUnequipClicked = null;
         Sunglasses sunglassesDropClicked = null;
+        MiningFaceShield miningShieldEquipClicked = null;
+        MiningFaceShield miningShieldUnequipClicked = null;
+        MiningFaceShield miningShieldDropClicked = null;
 
         foreach (var slotName in SlotOrder)
         {
@@ -547,6 +566,7 @@ public class InventoryScreen : MonoBehaviour
             NavigationComputer navComputerHere = null;
             PersonalHealthMonitor healthMonitorHere = null;
             Sunglasses sunglassesHere = null;
+            MiningFaceShield miningShieldHere = null;
 
             for (int i = 0; i < slotInventory.Capacity; i++)
             {
@@ -582,6 +602,7 @@ public class InventoryScreen : MonoBehaviour
                     if (entry.equipment is NavigationComputer nc) navComputerHere = nc;
                     if (entry.equipment is PersonalHealthMonitor phm) healthMonitorHere = phm;
                     if (entry.equipment is Sunglasses sg) sunglassesHere = sg;
+                    if (entry.equipment is MiningFaceShield mfs) miningShieldHere = mfs;
                 }
                 else
                 {
@@ -654,6 +675,19 @@ public class InventoryScreen : MonoBehaviour
 
                 if (SafeButton("Drop", GUILayout.Width(50))) sunglassesDropClicked = sunglassesHere;
             }
+            else if (miningShieldHere != null)
+            {
+                if (slotName == "Face")
+                {
+                    if (SafeButton("Unequip", GUILayout.Width(70))) miningShieldUnequipClicked = miningShieldHere;
+                }
+                else
+                {
+                    if (SafeButton("Equip", GUILayout.Width(55))) miningShieldEquipClicked = miningShieldHere;
+                }
+
+                if (SafeButton("Drop", GUILayout.Width(50))) miningShieldDropClicked = miningShieldHere;
+            }
 
             GUILayout.EndHorizontal();
 
@@ -686,6 +720,9 @@ public class InventoryScreen : MonoBehaviour
         if (sunglassesEquipClicked != null) sunglassesCarrier.Equip(sunglassesEquipClicked);
         if (sunglassesUnequipClicked != null) sunglassesCarrier.Unequip(sunglassesUnequipClicked);
         if (sunglassesDropClicked != null) sunglassesCarrier.Drop(sunglassesDropClicked);
+        if (miningShieldEquipClicked != null) miningShieldCarrier.Equip(miningShieldEquipClicked);
+        if (miningShieldUnequipClicked != null) miningShieldCarrier.Unequip(miningShieldUnequipClicked);
+        if (miningShieldDropClicked != null) miningShieldCarrier.Drop(miningShieldDropClicked);
     }
 
     // Draws an inventory's own capacity as a wrapped grid of boxes. Occupied

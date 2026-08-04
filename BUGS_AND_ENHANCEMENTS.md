@@ -43,19 +43,28 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Enhancements
 
-- [ ] **Full crafting/gathering/skills redesign — planned, not built.** See
+- [ ] **Full crafting/gathering/skills redesign — partially built.** See
   `docs/design-brief.md`'s **Crafting, Gathering & Skills Pipeline (2026-08-04)**
   section for the complete plan: 7 new skills (Mining, Woodworking, Stonework,
   Metalworking, Forging, Minting, Sewing, alongside existing Gathering and
   Crafting — 9 total), a weakest-link tier rule (skill vs. material quality), a full
   gather→refine→assemble material web (wood, stone, metal, textiles), tool-quality
-  effects (yield/quality/speed), a hidden-ore/Mining-Face-Shield detection mechanic
-  for Silver/Gold/Platinum, and a new click-once-and-locked interaction model
+  effects (yield/quality/speed), and a new click-once-and-locked interaction model
   that replaces the current punch-to-break mechanic entirely. Large, cross-cutting,
   and *decided in shape but not in exact numbers* — several sub-questions are
-  explicitly still open (see that section's own "Still open" list). Don't start
-  implementing any piece of this without re-reading the full section first — it's
-  too interlocking to build from memory of this one-line summary.
+  explicitly still open (see that section's own "Still open" list).
+  **Shipped so far (v0.1.60-dev):** the full ore ladder (Iron/Silver/Gold/Platinum
+  Ore Nodes) and the Mining Face Shield hidden-ore detection mechanic (visual
+  reveal + yield gating both, not just the visual half) — see `CHANGELOG.md`.
+  **Still not built:** the Mining skill itself as an actual `SkillDefinition`
+  (nodes currently still train `Gathering`, per what already existed, not the
+  newly-decided `Mining` split — that decision hasn't been wired into code yet),
+  every other skill (Woodworking/Stonework/Metalworking/Forging/Minting/Sewing),
+  the weakest-link `CraftTier` determination itself, the full material web beyond
+  ore, and the new click-and-locked interaction model (everything still uses the
+  old instant-hold-E/punch mechanics). Don't start implementing any further piece
+  of this without re-reading the full design-brief section first — it's too
+  interlocking to build from memory of this one-line summary.
 - [ ] **Sky texture could use another pass.** Procedural cloudy skybox shipped
   v0.1.55-dev through v0.1.57-dev (`GenerateSkyTexture.cs`, throwaway —
   `Assets/Data/Sky.mat` + `Assets/Textures/SkyTexture.png` are the persistent

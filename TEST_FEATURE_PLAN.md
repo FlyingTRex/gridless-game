@@ -172,6 +172,31 @@ fix the coordinate in this file rather than assuming the step is wrong.
   break (requires Axe)". With an Axe in hand, takes 4 hits to break into 3 Wood
   chunks; the tree (trunk + foliage) hides and respawns ~3 minutes later, same
   pattern as Rock Node.
+- [ ] **Iron Ore Node (v0.1.60-dev)** at `(4, 0.4, -4)`: same tool-gating and
+  texture check as Copper — visibly identifiable as ore from the start, no
+  Mining Face Shield needed, 2 hits with a Pickaxe to break into 3 Iron Ore.
+- [ ] **Silver/Gold/Platinum Ore Nodes (v0.1.60-dev)** at `(2, 0.4, -6)`,
+  `(4, 0.4, -6)`, `(6, 0.4, -6)`: **without** a Mining Face Shield equipped, each
+  should look and behave exactly like a plain Rock Node — indistinguishable, no
+  visual hint anything's special. **Equip the Mining Face Shield** (Face slot;
+  craft it first — 2 Small Rock + 1 Stick, or find/pick it up near the other
+  wearable gadgets close to spawn) and look at each node again: it should
+  visibly change to a metal-flecked ore texture (Silver = bright silvery-white
+  flecks, Gold = yellow-gold flecks, Platinum = pale cool-white flecks —
+  distinct from each other and from Silver's warmer white).
+  **Regression-style check, this is the important part:** mine one of these
+  nodes *without* the shield equipped (Pickaxe in hand, shield off) — it should
+  take 2 hits and yield **Small Rock, not the real ore** (the ore goes
+  undetected). Unequip nothing else, just put the shield on, and mine a
+  *different* instance of the same ore type (or wait for respawn) — this time
+  it should yield the actual ore (Silver/Gold/Platinum). If a hidden node ever
+  yields real ore *without* the shield equipped, or plain rock *with* it
+  equipped, that's the core mechanic broken, not a minor issue.
+- [ ] **Mining Face Shield equip/unequip/drop (v0.1.60-dev):** same three-button
+  pattern (Equip/Unequip/Drop) as every other Face-slot equippable (Sunglasses),
+  both from the main inventory list and the Equipment section. Worn shield
+  should be invisible from the player's own camera (same `WornEquipment` layer
+  fix every other equippable already has) but visible on an external view.
 - [ ] **Berry Bush** — picking a Berry gives a real inventory item (not an
   instant-eat-on-touch); Eat button only appears in the main inventory list, never
   in a backpack/storage contents view.

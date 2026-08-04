@@ -5,12 +5,64 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.59-dev` — must always match `GameVersion` in
+**Current version:** `0.1.60-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-04
+
+### v0.1.60-dev — Full ore ladder (Iron/Silver/Gold/Platinum) + Mining Face Shield
+
+First real implementation slice out of tonight's planning doc — the hidden-ore
+detection mechanic from the Crafting, Gathering & Skills Pipeline section, built
+in full (visual reveal *and* yield gating, not just the visual half).
+
+- **Iron, Silver, Gold, and Platinum Ore Nodes** added (Copper already existed),
+  each with its own procedurally generated texture (same tileable-noise technique
+  as grass/sky/rock — a shared `GenerateOreTexture` helper this time, just
+  different color palettes per metal) and its own chunk prefab/item, mirroring
+  `CopperOreChunk.prefab`'s structure exactly. Placed in `TestScene` near the
+  existing Copper Ore Node.
+- **Iron stays visible**, same as Copper. **Silver, Gold, and Platinum are
+  hidden** — they render as plain `RockChunk.mat` (indistinguishable from an
+  ordinary Rock Node) until the player has a **Mining Face Shield** equipped, at
+  which point `ResourceNode` swaps their material to the metal's true texture.
+  This is the *exact* reveal mechanism already shipped for Sunglasses + the
+  Secret Message Wall, generalized from a pure visual effect into one with a real
+  gameplay consequence.
+- **Yield gating, not just visual:** `ResourceNode` checks whether the node is
+  revealed *at the moment it actually breaks* (not when punching started) —
+  mining a hidden node without the shield yields `hiddenChunkPrefab`
+  (`RockChunk.prefab`, i.e. plain Small Rock, the ore undetected and lost);
+  with the shield on, it yields the real ore. New `ResourceNode` fields:
+  `hiddenMaterial`, `revealedMaterial`, `hiddenChunkPrefab` — all null by default,
+  so every previously-shipped node (Rock Node, Copper Ore, Tree) is completely
+  unaffected; only a node that explicitly sets all three opts into this behavior.
+- **New `MiningFaceShield`/`PlayerMiningFaceShield`** — structured identically to
+  `Sunglasses.cs`/`PlayerSunglasses.cs` (single Face-slot equippable, same
+  pickup/equip/unequip/drop chain, same `WornEquipment`-layer-while-worn fix from
+  the `CLAUDE.md` equippable checklist), minus the screen-tint overlay — its
+  effect is read externally via a new `IsWorn` accessor instead of drawn by the
+  component itself. Wired into `InventoryScreen` as a sixth equippable type,
+  following the existing Backpack/Canteen/NavComputer/HealthMonitor/Sunglasses
+  pattern exactly (both `DrawInventorySection` and `DrawEquipmentSection`).
+  Craftable (2 Small Rock + 1 Stick, trains Crafting), and one is placed in
+  `TestScene` as a world pickup near the other wearable gadgets.
+
+**Applied a lesson from earlier tonight's stale-reference bug directly:** every
+asset-creation step in this run's generator script returns only a path (a plain
+string, immune to Unity's object-reference staleness), never an object reference
+— the final scene-wiring step opens the scene once and re-fetches *everything*
+fresh via `AssetDatabase.LoadAssetAtPath` right there, rather than trusting
+anything carried in from earlier in the script. Verified every single new/changed
+guid reference directly against its target's `.meta` guid (item↔chunk-prefab both
+directions for all 4 new ore types, hidden/revealed material and hidden-chunk
+references on all 3 disguised nodes, the shield-item reference on
+`PlayerMiningFaceShield`, and the full `PlayerCrafting.recipes` array for stray
+nulls) before trusting the script's own success log — none were stale this time.
+Also a clean duplicate-fileID scan on the resaved scene and a clean batch-mode
+compile.
 
 ### Design planning: Mining skill decided, ore byproducts, hidden-ore detection (docs only)
 
