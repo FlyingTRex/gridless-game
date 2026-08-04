@@ -5899,7 +5899,7 @@ MonoBehaviour:
   chunkPrefab: {fileID: 8584421546452813150, guid: 72c9bb4e4474fa14e807339e95730ef8, type: 3}
   chunkCount: 3
   hitsToBreak: 2
-  scatterForce: 1.4
+  scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
   respawnDelay: 180

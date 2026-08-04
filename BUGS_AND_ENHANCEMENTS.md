@@ -43,6 +43,15 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Enhancements
 
+- [ ] **Apply the Boulder/Rock hybrid shape technique to the ore nodes too,
+  once the rock/boulder look itself is finalized.** Ben's explicit intent
+  (2026-08-04) — the ore nodes (Copper/Iron/Silver/Gold/Platinum) are still
+  plain Sphere primitives. Deliberately not done yet: waiting until the
+  rock/boulder shape (displaced-mesh body + clustered pebbles, `CHANGELOG.md`
+  v0.1.62/63-dev) is confirmed good, since ore would reuse the exact same
+  `GenerateDisplacedSphere`/`BuildClusteredRock`-style technique rather than
+  reinventing it. Note the hidden-ore nodes (Silver/Gold/Platinum) would need
+  this applied to *both* their hidden and revealed materials/meshes.
 - [ ] **Spawn a starting Pickaxe and Axe in the world for now.**
   Ben hit this directly playtesting the ore work: `Pickaxe`/`Axe` are craft-only
   today (2 Small Rock + 1 Stick / 1 Small Rock + 2 Stick), with no world pickup

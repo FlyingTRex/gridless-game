@@ -169,6 +169,14 @@ fix the coordinate in this file rather than assuming the step is wrong.
   Confirm it renders and is visible from every angle walked around it (checks
   whether the untested triangle-winding safety net — `_Cull: Off` on
   `RockChunk.mat` — was actually needed).
+- [ ] **Chunk scatter distance (v0.1.63-dev):** breaking a Boulder or Rock Node
+  should scatter chunks with a visible initial burst that settles down
+  quickly nearby, not chunks that keep rolling/bouncing far away from the
+  break point. **Regression:** v0.1.62-dev's Small Rock/Rock chunks (right
+  after the Cube→Sphere shape swap) rolled much farther than intended —
+  `MediumRockChunk.prefab`'s `Rigidbody` damping had never actually been set
+  (near-zero), and `RockChunk.prefab`'s existing damping was tuned for its
+  old Cube shape, insufficient for a freely-rolling Sphere.
 - [ ] **Rock (the new middle-tier item, v0.1.62-dev):** a pure intermediate
   material — no recipe currently uses it directly, and there's no way yet to
   turn it into Small Rock (not built — see `BUGS_AND_ENHANCEMENTS.md`/

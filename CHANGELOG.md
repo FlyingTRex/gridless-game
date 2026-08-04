@@ -5,12 +5,33 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.62-dev` — must always match `GameVersion` in
+**Current version:** `0.1.63-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-04
+
+### v0.1.63-dev — Fix: Rock/Small Rock chunks bouncing/rolling too far after breaking
+
+User report: chunks scattered way farther than intended after breaking a
+Boulder. Two compounding causes:
+
+- `MediumRockChunk.prefab`'s `Rigidbody` had near-default damping (linear `0`,
+  angular `0.05`) — never actually set when the prefab was created earlier
+  tonight, just left at Unity's defaults.
+- `RockChunk.prefab`'s existing damping (`0.5`/`0.5`) was tuned for its
+  original Cube shape, which settles almost instantly once a flat face
+  touches the ground regardless of damping — a Sphere (what it was swapped to
+  a few versions ago this session) rolls far more freely with much less
+  resistance at the same values, so the same damping that looked fine on a
+  cube now lets it roll for a long distance.
+
+Raised damping on both (`RockChunk`: 1.5/2, `MediumRockChunk`: 2/3) so chunks
+still scatter with a visible initial burst but settle down quickly afterward
+instead of continuing to roll. Also normalized Boulder's `scatterForce` from
+`1.4` down to `1.2`, matching every other `ResourceNode` in the scene (it was
+the one outlier).
 
 ### v0.1.62-dev — Boulder + Rock (new stone tier), Small Rock's chunk shape fixed
 
