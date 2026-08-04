@@ -5,12 +5,48 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.54-dev` — must always match `GameVersion` in
+**Current version:** `0.1.55-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.55-dev — Procedural cloudy sky, replacing the built-in default skybox
+
+Same technique and same request as the grass ground texture (v0.1.53/54-dev),
+applied to the sky. `TestScene`'s `RenderSettings.m_SkyboxMaterial` was pointing at
+Unity's built-in `Default-Skybox` (a `Skybox/Procedural` material, referenced via
+its all-zero-except-`f` built-in-resource guid) — the plain blue gradient visible
+in every prior screenshot, no clouds.
+
+Before writing any code that sets shader properties, ran a throwaway inspection
+script logging `Skybox/Panoramic`'s actual properties/defaults via `ShaderUtil`
+rather than assuming names from memory — this project has hit "guessed shader
+property, silently no-op'd or rendered pink" before (see `CLAUDE.md`'s URP gotcha
+notes), and this shader turned out to have both a `_Mapping` and a separate
+`_Layout` float property that aren't obviously distinguishable without checking.
+Confirmed `_MainTex` is the texture slot, and `_Mapping`/`_ImageType` already
+default to exactly what a standard equirectangular panorama needs (Latitude-
+Longitude / 360 degrees) — so only `_MainTex` needed setting; `_Tint`/`_Exposure`/
+`_Rotation` stay at their neutral shader defaults.
+
+`GenerateSkyTexture.cs` (throwaway, run via batch mode then deleted) generates a
+2048×1024 equirectangular texture: a `Horizon`→`Zenith` blue vertical gradient,
+plus scattered white clouds from the same tileable value-noise function as the
+grass texture — except only wrapped horizontally (`LatticeValue` wraps the U/
+longitude coordinate into a period before hashing, same seamless-by-construction
+trick, but leaves V/latitude unwrapped since top and bottom are poles, never
+adjacent to each other and never need to tile). Cloud coverage is thresholded
+(`SmoothStep`) rather than a smooth haze, so it reads as scattered clouds against
+clear sky rather than uniform overcast, and fades out near the exact zenith and
+below the horizon so clouds don't cap the sky or dip into ground-level view.
+
+Created `Assets/Data/Sky.mat` (new `Skybox/Panoramic` material) and repointed
+`TestScene`'s `RenderSettings.skybox` at it via `EditorSceneManager`/
+`RenderSettings.skybox` in the script, rather than hand-editing the scene YAML —
+verified afterward by cross-checking guids end-to-end (scene → `Sky.mat` →
+`SkyTexture.png`) and a duplicate-fileID scan on the resaved scene (clean).
 
 ### v0.1.54-dev — Fix visible tiling grid in the grass texture with genuinely seamless noise
 

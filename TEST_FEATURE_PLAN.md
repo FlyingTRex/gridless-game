@@ -41,6 +41,16 @@ fix the coordinate in this file rather than assuming the step is wrong.
   amount of large-scale pattern repetition is inherent to any tiled texture at
   a fixed tile size; flag it specifically if it's still distracting rather than
   subtle.
+- [ ] **Sky (v0.1.55-dev):** the sky shows a blue gradient (lighter near the
+  horizon, deeper blue toward the zenith) with scattered white clouds — not the
+  plain flat gradient with no clouds from every earlier screenshot. Look straight
+  up and toward the horizon in a few different directions. **Expected:** clouds
+  fade out before the exact zenith and don't dip below the horizon; no visible
+  hard seam where the texture wraps around (look mostly toward the horizon
+  turning a full circle — the seam, if any, would show as a vertical line clouds
+  don't cross smoothly). Confirm the sky doesn't render pink (would mean the
+  `Skybox/Panoramic` shader isn't actually URP-compatible despite compiling
+  clean — the untested risk called out when this shipped).
 
 ## 1. Movement & Stances
 
