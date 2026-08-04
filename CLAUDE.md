@@ -17,6 +17,18 @@ collision self-heals at merge time, but building a whole duplicate system (see t
 Waterskin/Canteen entry in `CHANGELOG.md`, 2026-08-02) wastes real design effort.
 Add a line before starting non-trivial work; remove it once merged to `origin/main`.
 
+**Backlog lives in `BUGS_AND_ENHANCEMENTS.md`.** Known issues and requested
+features not currently being worked — the space between `WORKING_ON.md` (active)
+and `CHANGELOG.md` (shipped). Move an entry to the changelog once it's actually
+fixed/built.
+
+**Manual test checklist lives in `TEST_FEATURE_PLAN.md`.** Covers every shipped
+player-facing feature with concrete steps/expected results, meant to be walked
+through in a live Play-mode session. Add an entry for new features; update an
+existing entry when behavior changes; add a **Regression** line under an entry
+when a bug slips through it, so the next full pass specifically re-checks that
+failure mode.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:
