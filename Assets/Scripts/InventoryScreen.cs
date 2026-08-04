@@ -27,6 +27,13 @@ public class InventoryScreen : MonoBehaviour
 
     private const float PanelWidth = LabelWidth + BoxWidth * 2f + 220f;
 
+    // User feedback: same readability complaint as the Bank window fixed in
+    // v0.1.49-dev, same fix — GUILayout uses fixed pixel widths throughout,
+    // so growing the panel Rect alone would only add empty padding, not
+    // bigger text/buttons. Scale the whole GUI.matrix around screen center
+    // instead.
+    private const float UiScale = 1.5f;
+
     private static readonly (string Label, CoinType Type)[] CoinDisplayOrder =
     {
         ("Copper", CoinType.Copper),
@@ -138,9 +145,19 @@ public class InventoryScreen : MonoBehaviour
     {
         if (!isOpen) return;
 
+        // Scale the whole screen (panel + scroll view + both popups, drawn
+        // later in this same call) around the screen center, same technique
+        // as BankScreen — grows in place rather than shifting off-center.
+        Matrix4x4 savedMatrix = GUI.matrix;
+        GUIUtility.ScaleAroundPivot(Vector2.one * UiScale, new Vector2(Screen.width / 2f, Screen.height / 2f));
+
         StorageBox.FindNearby(transform.position, storageRange, nearbyStorages);
 
-        float height = Mathf.Min(Screen.height - 40f, 700f);
+        // Height was already screen-responsive (capped to fit) before this
+        // scaling existed — divide the on-screen budget by UiScale so the
+        // *scaled* result still fits, instead of letting a capped-but-now-
+        // 1.5x-bigger panel run off the top/bottom of a smaller display.
+        float height = Mathf.Min((Screen.height - 40f) / UiScale, 700f);
         var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - height) / 2f, PanelWidth, height);
 
         DebugGUI.DrawPanel(rect);
@@ -175,6 +192,8 @@ public class InventoryScreen : MonoBehaviour
 
         DrawPendingMovePopup();
         DrawCoinDropPopup();
+
+        GUI.matrix = savedMatrix;
     }
 
     // Small "where should this go?" dialog shown after clicking an item

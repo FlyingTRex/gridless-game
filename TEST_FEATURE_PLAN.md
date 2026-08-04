@@ -93,6 +93,14 @@ fix the coordinate in this file rather than assuming the step is wrong.
   the ground.
 - [ ] When within `storageRange` (10m) of one or more Storage Boxes, a third
   section auto-appears showing the nearest box's contents.
+- [ ] **Window scale (v0.1.50-dev):** the whole Inventory window — panel, scroll
+  view content, and both popups (move destination, coin drop) — renders 50%
+  larger than the base layout and stays centered on screen, same technique as
+  the Bank window (§11). Confirm it still fits on screen without clipping at a
+  smaller window/resolution (the panel's height cap was adjusted to account for
+  the scale — this is the one thing worth specifically re-checking here that
+  the Bank window didn't need, since Bank's panel size was fixed, not
+  screen-responsive). Buttons should still be clickable at the enlarged size.
 
 ## 4. Gathering & World Interaction
 

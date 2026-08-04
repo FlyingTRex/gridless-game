@@ -5,12 +5,27 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.49-dev` — must always match `GameVersion` in
+**Current version:** `0.1.50-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.50-dev — Inventory window scaled 50% larger for readability
+
+Same request and same fix as the Bank window in v0.1.49-dev: scaled the whole
+`GUI.matrix` by 1.5x around screen center in `InventoryScreen.OnGUI`, covering
+the panel, the scroll view, and both popups (move destination, coin drop)
+automatically since they draw later in the same `OnGUI` call.
+
+One wrinkle Bank didn't have: `InventoryScreen`'s panel height was already
+screen-responsive (`Mathf.Min(Screen.height - 40f, 700f)`) to avoid overflowing
+shorter displays. Left unadjusted, scaling that already-capped height by another
+1.5x could push the panel off the top/bottom of a smaller window. Divided the
+on-screen height budget by `UiScale` before applying the existing cap
+(`Mathf.Min((Screen.height - 40f) / UiScale, 700f)`) so the *post-scale* result
+still respects the original margin instead of the pre-scale one.
 
 ### v0.1.49-dev — Bank window scaled 50% larger for readability
 
