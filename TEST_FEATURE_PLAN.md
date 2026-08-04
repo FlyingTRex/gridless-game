@@ -227,6 +227,13 @@ fix the coordinate in this file rather than assuming the step is wrong.
 
 - [x] **Bank Box** (`(5, 0.3, -20)`, 5m from the Small Storage Box): E opens the
   Bank screen. *(Confirmed 2026-08-03 by Ben.)*
+- [ ] **Window scale (v0.1.49-dev):** the whole Bank window — panel, text,
+  buttons, and both the Deposit/Withdraw and Exchange popups — renders 50%
+  larger than the base layout (480×620 scaled by 1.5x via `GUI.matrix`) and
+  stays centered on screen. Buttons should still be clickable at the enlarged
+  size (mouse hit-testing should track the scale, not the original small
+  coordinates). `LockboxScreen` is unaffected — this only applies to the Bank
+  window.
 - [ ] Lists wallet vs. bank balance per coin type with Deposit/Withdraw buttons.
   New character starts with 25 Gold already in the bank (separate from the wallet
   purse).

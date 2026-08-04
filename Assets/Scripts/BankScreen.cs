@@ -24,6 +24,13 @@ public class BankScreen : MonoBehaviour
     private const float PanelWidth = 480f;
     private const float PanelHeight = 620f;
 
+    // User feedback: the bank window was hard to read. GUILayout uses fixed
+    // pixel widths throughout, so just enlarging PanelWidth/PanelHeight would
+    // only add empty padding, not bigger text/buttons — scaling the whole
+    // GUI matrix around the screen center grows everything (text, buttons,
+    // spacing, and the popups drawn later in this same OnGUI call) together.
+    private const float UiScale = 1.5f;
+
     // Lockbox baseline (CraftTier.Normal): capacity per coin type and
     // Gold price, scaled per tier by CraftTierScale.Modifier.
     private const int LockboxBaseCapacity = 2500;
@@ -85,6 +92,12 @@ public class BankScreen : MonoBehaviour
     private void OnGUI()
     {
         if (!isOpen) return;
+
+        // Scale the whole screen (panel + both popups, drawn later in this
+        // same call) around the screen center so it grows in place rather
+        // than shifting off-center.
+        Matrix4x4 savedMatrix = GUI.matrix;
+        GUIUtility.ScaleAroundPivot(Vector2.one * UiScale, new Vector2(Screen.width / 2f, Screen.height / 2f));
 
         // A Deposit/Withdraw/Exchange popup is modal — block every button on
         // the panel underneath it, otherwise a click that lands on the table
@@ -185,6 +198,8 @@ public class BankScreen : MonoBehaviour
 
         DrawDepositWithdrawPopup();
         DrawExchangePopup();
+
+        GUI.matrix = savedMatrix;
     }
 
     private static int LockboxCapacity(CraftTier tier) =>

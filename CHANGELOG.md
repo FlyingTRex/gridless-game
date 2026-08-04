@@ -5,12 +5,25 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.48-dev` — must always match `GameVersion` in
+**Current version:** `0.1.49-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.49-dev — Bank window scaled 50% larger for readability
+
+User feedback: the Bank window was hard to read. `GUILayout` uses fixed pixel
+widths throughout (`GUILayout.Width(90)` etc.), so just growing `BankScreen`'s
+outer panel `Rect` would only have added empty padding around the same small
+text and buttons — not actually fixed the readability complaint. Instead scaled
+the whole `GUI.matrix` by 1.5x around the screen center at the top of `OnGUI`
+(restored at the end), which grows the panel, its text, its buttons, and both
+popups (Deposit/Withdraw, Exchange — drawn later in the same `OnGUI` call, so
+the scale already applies to them too) proportionally together, all still
+centered on screen. `LockboxScreen` wasn't touched — this request was scoped to
+the Bank window specifically.
 
 ### v0.1.48-dev — Dropped items despawn after 15 minutes
 
