@@ -7,6 +7,30 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Bugs
 
+- [ ] **Procedural tree (v0.1.58-dev) doesn't read as a tree yet.** Confirmed
+  via screenshot: `GenerateTree.cs`'s branching mesh renders and is visible
+  (the untested backface-culling safety net wasn't even needed, or at least
+  didn't hide anything), but the result looks wrong in three specific ways:
+  - **Proportions read as a pole with a ball stuck on top**, not a tree. The
+    trunk barely tapers and stays near-vertical for most of its height —
+    lateral branch spread (32° max deviation per split, `RandomConeDirection`
+    in `GenerateTree.cs`) only becomes visually obvious in the last couple of
+    generations right below the canopy, because each generation's segments
+    are shorter than the last (0.62–0.8× length falloff per level) — spread
+    needs to happen gradually up the whole tree, not compress into the top.
+  - **Foliage reads as a cluster of grapes/balloons**, not a canopy — the
+    sphere clusters at each branch tip are too separated; they need to
+    overlap into one rounded mass (larger radius and/or tighter placement
+    per cluster, or bigger spheres with more overlap between adjacent tips).
+  - **Bark color renders pale grey-tan instead of the brown actually set**
+    (`TreeBark.mat`'s `_BaseColor` is `(0.32, 0.20, 0.11)`). Suspect but
+    unconfirmed: the new procedural sky (v0.1.55/57-dev) may be contributing
+    more ambient light than the old default skybox did, washing out
+    unrelated materials — worth checking `RenderSettings` ambient source/
+    intensity before assuming the material itself is wrong.
+
+  *(Reported by Ben, deferred rather than iterated on immediately —
+  "we will have to work on the trees.")*
 - [ ] **No way to move an equipped item (e.g. Canteen) into a backpack.**
   `InventoryTransfer.Move`/`Inventory.AddEquipmentItem` already support carrying an
   equipment reference into any `Inventory`, backpack included, but no UI path ever
