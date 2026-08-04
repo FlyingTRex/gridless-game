@@ -29,11 +29,15 @@ work) — this is the backlog between the two. Check off and move the entry to
   - Every object is always either **equipped** into a named equipment slot, or
     **stored** in an inventory slot (main inventory / backpack / storage box) —
     eliminate that third, ad-hoc "just sitting in a hand" holding state.
-  - **Pickup:** if a hand is free, the item goes there first; otherwise it goes
-    into an inventory slot. *(Scope question for whoever implements this: does
-    this replace `PlayerLoot`'s existing Backpack-first priority outright, or
-    only fill the gap when no hand is free? Confirm with Ben before changing the
-    order — this is a real behavior change from what's shipped today.)*
+  - **Pickup — decided:** `PlayerLoot`'s existing Backpack-first priority stays
+    unchanged. This rule fills the specific gap in the *current* fallback
+    instead — today, when no backpack is equipped and both hands are already
+    occupied by non-stacking items, the pickup evicts (physically drops)
+    whatever's in Left Hand to make room. Replace that eviction with: route the
+    new item into an inventory slot instead. Full resulting order: Backpack (if
+    equipped) → a free hand (Left, then Right) → an inventory slot → drop to the
+    ground if the inventory is also full (picking something up should never
+    silently fail or destroy value).
   - **Unequip:** the item goes to an inventory slot; if every inventory slot is
     full, drop it to the ground instead of failing. (`PlayerBackpack.Unequip`
     already has this exact fallback chain — extend the same guarantee to every
