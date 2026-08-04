@@ -43,7 +43,7 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Enhancements
 
-- [ ] **Spawn a starting Pickaxe (and likely Axe) in the world for now.**
+- [ ] **Spawn a starting Pickaxe and Axe in the world for now.**
   Ben hit this directly playtesting the ore work: `Pickaxe`/`Axe` are craft-only
   today (2 Small Rock + 1 Stick / 1 Small Rock + 2 Stick), with no world pickup
   instance anywhere — unlike Backpack/Canteen/Sunglasses/Nav Computer/Health
@@ -54,8 +54,8 @@ work) — this is the backlog between the two. Check off and move the entry to
   of needing to know that and craft one first before ever touching ore is real.
   A stopgap for now ("for now" — Ben's words), not necessarily a permanent
   design call once the fuller skills/tools pipeline lands: place one Pickaxe
-  (and probably one Axe, same bootstrapping situation, not yet confirmed) as a
-  world pickup near the other starter gear. *(Reported by Ben.)*
+  **and** one Axe (confirmed — both, same bootstrapping situation) as world
+  pickups near the other starter gear. *(Reported by Ben.)*
 - [ ] **Full crafting/gathering/skills redesign — partially built.** See
   `docs/design-brief.md`'s **Crafting, Gathering & Skills Pipeline (2026-08-04)**
   section for the complete plan: 7 new skills (Mining, Woodworking, Stonework,
