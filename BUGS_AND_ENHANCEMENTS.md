@@ -43,6 +43,18 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Enhancements
 
+- [ ] **Full crafting/gathering/skills redesign — planned, not built.** See
+  `docs/design-brief.md`'s **Crafting, Gathering & Skills Pipeline (2026-08-04)**
+  section for the complete plan: 4 new skills (Woodworking, Stonework,
+  Metalworking, Forging, Minting, Sewing — 6, alongside existing Gathering and
+  Crafting), a weakest-link tier rule (skill vs. material quality), a full
+  gather→refine→assemble material web (wood, stone, metal, textiles), tool-quality
+  effects (yield/quality/speed), and a new click-once-and-locked interaction model
+  that replaces the current punch-to-break mechanic entirely. Large, cross-cutting,
+  and *decided in shape but not in exact numbers* — several sub-questions are
+  explicitly still open (see that section's own "Still open" list). Don't start
+  implementing any piece of this without re-reading the full section first — it's
+  too interlocking to build from memory of this one-line summary.
 - [ ] **Sky texture could use another pass.** Procedural cloudy skybox shipped
   v0.1.55-dev through v0.1.57-dev (`GenerateSkyTexture.cs`, throwaway —
   `Assets/Data/Sky.mat` + `Assets/Textures/SkyTexture.png` are the persistent

@@ -12,6 +12,23 @@ change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-04
 
+### Design planning: full crafting/gathering/skills pipeline (docs only, nothing built)
+
+Extended planning conversation (not a build session) working out the "still open"
+gap flagged when the five `CraftTier` names were first decided: what actually
+determines an item's tier. Landed on a weakest-link rule (the lower of current
+skill level and material quality), then kept expanding — a full gather → refine →
+assemble material web across wood, stone, metal, and textiles; 6 new skills
+(Woodworking, Stonework, Metalworking, Forging, Minting, Sewing); tool-quality
+effects (yield/quality/speed); and a new click-once-and-locked interaction model
+intended to replace the current punch-to-break mechanic entirely.
+
+Written up in full in `docs/design-brief.md`'s new **Crafting, Gathering & Skills
+Pipeline** section, with a pointer entry added to `BUGS_AND_ENHANCEMENTS.md`.
+**Decided in shape, not in exact numbers** — several sub-questions are explicitly
+still open (see that section). Nothing in this plan is implemented yet; no game
+code, scenes, or prefabs changed in this entry, so no version bump.
+
 ### v0.1.59-dev — Rock texture, Copper Ore, and tool-gated gathering (Pickaxe/Axe)
 
 Three-part request: give the rocks a real texture instead of flat grey, add a

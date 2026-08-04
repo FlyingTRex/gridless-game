@@ -367,7 +367,11 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
     five-tier scheme above is the first time concrete tier names are decided anywhere
     in the docs.
   - **Still open:** the exact skill thresholds that unlock each tier, and the concrete
-    degradation-rate/performance numbers per tier.
+    degradation-rate/performance numbers per tier. The general *shape* of the answer
+    (skill vs. material-quality interaction, the full gather/refine/assemble
+    pipeline, tool-quality effects) was worked out 2026-08-04 — see the dedicated
+    **Crafting, Gathering & Skills Pipeline** section below — but exact numbers are
+    still not decided.
 - **Basic building** — start of the building module, shelter tier only. Incorporates
   Ben's **"Equip-to-Define" system**: empty architectural shells become functional
   (workshop, inn, clinic, etc.) based on what equipment is installed inside, rather
@@ -455,6 +459,106 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
   licensing royalties. Extends the crafting/reverse-engineering systems above into
   a player-driven IP economy.
 - **Full transportation tiers** — steamships, cars, planes, beyond the Phase 2 basics.
+
+## Crafting, Gathering & Skills Pipeline (2026-08-04)
+
+Planning session working out the "still open" gap from the Skill-tied crafting
+quality item above (skill thresholds, tool/material effects) — grew into a full
+gather → refine → assemble pipeline covering wood, stone, metal, and textiles, plus
+a new interaction model for every tool-driven action. **Decided in shape, not in
+exact numbers** — see "Still open" at the end. Nothing here is built yet; this is
+the plan to review before any of it becomes actual implementation work.
+
+**Skills (8 total):** `Gathering` (existing), `Woodworking`, `Stonework`,
+`Metalworking`, `Forging`, `Minting`, `Sewing`, `Crafting` (final assembly). A
+`Mining` split out of `Gathering` was discussed and explicitly deferred, not
+decided.
+
+**Core tier rule — weakest link.** A crafted item's `CraftTier` is the *lower* of
+(a) what the relevant skill's current level allows, and (b) the tier of every
+material ingredient that went into it — not an average, not skill alone, not
+materials alone. Skill sets the ceiling on what you're capable of producing at all;
+material quality caps any single result regardless of skill. Applies at every stage
+of the pipeline (refining a material and assembling a final item alike), each stage
+checking its own relevant skill.
+- Floor case: no skill + baseline ("Crude") materials = Crude output.
+- A material's *own* achievable tier, when refined, is likewise capped by the
+  refining skill's current level at that moment — so repeating a refining action
+  with unchanged Crude tools/materials can still climb in output tier over time as
+  skill rises mid-grind (skill is checked per-attempt, not locked in at the start).
+
+**Tool-quality effects.** For any tool used in a refining or gathering action,
+higher tool tier directly improves three things on that action: **yield** (more
+output per attempt), **quality** (higher achievable output tier), and **speed**
+(the action itself completes faster). Applies uniformly across every refining line
+(trim, shape, saw, and eventually smelt/forge/mint) rather than each tool having
+its own bespoke formula. *(Whether tool tier separately boosts skill-gain rate too,
+on top of these three, was raised and explicitly parked — not decided either way.)*
+
+**Interaction model — replaces punch-to-break entirely.** Every tool-driven action
+(gathering *and* refining) becomes: press E once to start (no need to hold it) →
+player is movement-locked until the action completes → a green progress bar shows
+how far along it is → Escape cancels and forfeits progress. This replaces the
+`IPunchable`/left-click/`hitsToBreak` mechanic currently used by Rock Node, Copper
+Ore Node, and the Tree — those would move to the same click-and-locked pattern as
+the new refining actions. Reuses the existing (currently unused by anything)
+`IInteractable.HoldDuration` concept as its foundation rather than inventing a new
+interaction primitive.
+- **Tool requirement is per-node, not universal.** Rock Node stays tool-optional —
+  bare hands work, just slower and lower-yield (worked example: bare hands = 10s
+  for 2 Small Rock; Pickaxe = 8s for 3). Copper Ore and Trees stay **hard-gated** —
+  no tool, no interaction at all, consistent with what's already shipped
+  (`ResourceNode.requiredTool`).
+- Whether *final* Crafting (assembling refined materials into a finished item,
+  currently the Crafting screen's instant "Craft" button) also becomes a timed
+  click-and-locked action, or stays instant/menu-based, was raised and not yet
+  resolved.
+
+**Material web:**
+- **Wood:** Stick →(Knife, Woodworking)→ Trimmed Stick. Tree →(Axe)→ Logs + Twigs
+  (Twigs is a secondary yield alongside Logs) →(Saw, Woodworking)→ Planks.
+  (Renaming note: the chop-tree output shipped this session as an item literally
+  named "Wood" — rename to **Logs** whenever this is implemented.)
+- **Foraging:** Bush →(search)→ Berries, randomized rather than a guaranteed pickup
+  (the existing Berry Bush, made richer — currently a deterministic E-to-pick).
+  Same Bush →(Knife/Axe)→ Twigs as an alternative to searching it.
+- **Textiles:** Twigs →(Woodworking)→ Fiber →(Sewing)→ Fabric →(Crafting)→ Clothing
+  (Shirt, Hat, Pants, Gloves, Boots), Rope, Quiver. Clothing maps onto
+  `PlayerEquipment` slots that exist today but have never been used by anything —
+  Head, Chest, Leg, and Feet have sat empty since the equipment system was built.
+  Gloves doesn't map cleanly to an existing slot (Left/Right Hand are for actively-
+  held tools, not worn gloves) — would likely want Left Arm/Right Arm instead, both
+  also unused so far.
+- **Stone:** Small Rock →(Hammer/rock, Stonework)→ Shaped Rock.
+- **Metal:** Ore Node →(Pickaxe)→ Ore →(Furnace + fuel [Sticks, Logs, etc.],
+  Metalworking)→ Ingot, which branches two ways:
+  - →(Forging)→ Forged Component (a shaped tool/weapon part)
+  - →(Press, Minting)→ Coins — **coins stay plain/fungible, no `CraftTier` on the
+    coin itself**; higher Ingot quality and Press quality instead increase *yield*
+    (more coins per operation), not a quality label on the coin.
+  - Full ore ladder needed eventually: Copper, Iron, Silver, Gold, Platinum —
+    mirrors the existing `CoinType` ladder. **Metal type and `CraftTier` are
+    orthogonal** (a "Crude Iron Knife" and a "Masterwork Iron Knife" are both
+    valid — metal is what it's made of, tier is how well it's made), not merged
+    into one axis.
+  - Furnace is a new placeable *structure*, not a held tool — outlined only
+    (transfer ore + fuel in, get metal out), not designed in detail.
+- **Hunting weapons** (final `Crafting`-skill recipes, not new systemic mechanics):
+  Stick + Rope → Bow; Stick + Rock → Arrows; Fabric → Quiver; Knife + Stick + Rock →
+  Spear. Purpose: enables basic hunting, ties into the design brief's combat pillar
+  and presumably feeds an animals/meat/hide loop down the line (not designed here).
+
+**Still open (explicitly not decided, don't assume defaults):**
+- Actual skill-level thresholds that unlock each `CraftTier`, per skill — each of
+  the 8 skills gets its own curve, not one shared table.
+- Whether tool tier also boosts skill-gain rate, separately from yield/quality/speed.
+- Whether final Crafting (assembly) becomes a timed click-and-locked action or
+  stays the current instant menu-based "Craft" button.
+- Furnace/smelting mechanics beyond "transfer ore + fuel, get metal" — capacity,
+  smelt time, fuel consumption rate, etc.
+- The `Mining` skill split from `Gathering` — named as a future idea, not scoped.
+- Concrete degradation-rate/performance numbers per `CraftTier` (this was already
+  open before this session — see the original Skill-tied crafting quality item).
 
 ## Open Questions / Next Decisions
 
