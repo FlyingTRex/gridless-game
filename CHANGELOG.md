@@ -5,12 +5,38 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.56-dev` — must always match `GameVersion` in
+**Current version:** `0.1.57-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.57-dev — Fix: sky gradient direction was inverted, clouds still not reading as shapes
+
+Second round of user-screenshot feedback on the sky. v0.1.56-dev's gradient
+rendered backwards from intent — a deep blue band sat right at the horizon,
+fading to pale going *up* — the opposite of both the code's intent (`Horizon`
+pale, `Zenith` deep, blended by an assumed v=0-at-nadir/v=1-at-zenith mapping)
+and of real atmospheric haze (pale near the horizon from more scattering,
+deeper blue overhead). Strong, clean evidence `Skybox/Panoramic`'s actual
+v-axis runs opposite to what was assumed. Rather than keep guessing the exact
+convention, flipped `vEff = 1 - v` and used it everywhere instead of raw `v` —
+corrects the observed symptom regardless of the precise underlying cause. This
+also explains why clouds stayed barely visible in v0.1.56-dev: the cloud band
+(meant to fade in right at the horizon) was very likely landing near the true
+zenith instead — exactly where a level-pitched camera never looks.
+
+Also sharpened the cloud shapes themselves: the one cloud visible in the
+previous screenshot was a soft blurry brightening, not a distinct shape.
+Narrowed the coverage threshold (0.46–0.58, was 0.42–0.62) for crisper edges,
+and weighted the coarsest noise octave more heavily (0.65/0.25/0.10, was
+0.55/0.30/0.15) for bigger, more clearly cloud-shaped blobs instead of fine
+speckle blurring the outline.
+
+`SkyTexture.png` regenerated in place again — same file path/guid, `Sky.mat`
+and `TestScene`'s skybox reference needed no changes, reverified via the guid
+chain.
 
 ### v0.1.56-dev — Fix: sky clouds barely visible from a normal camera angle
 

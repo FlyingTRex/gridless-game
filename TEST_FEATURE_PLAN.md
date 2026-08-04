@@ -41,19 +41,26 @@ fix the coordinate in this file rather than assuming the step is wrong.
   amount of large-scale pattern repetition is inherent to any tiled texture at
   a fixed tile size; flag it specifically if it's still distracting rather than
   subtle.
-- [ ] **Sky (v0.1.55-dev, contrast/visibility fixed in v0.1.56-dev):** the sky
-  shows a blue gradient (lighter/more saturated blue near the horizon, deeper
-  blue toward the zenith) with clearly visible scattered white clouds — not
-  the plain flat gradient with no clouds from every earlier screenshot. Check
-  from a normal, level-pitched view first (that's exactly the angle that
-  exposed the v0.1.55-dev bug — clouds were essentially invisible from a
-  typical camera pitch, only the shader-compatibility part worked), then look
-  up toward the zenith and turn a full circle checking for a visible vertical
-  seam line clouds don't cross smoothly. **Regression:** v0.1.55-dev's first
-  pass looked like a flat pale wash with no visible cloud shapes or gradient
-  from a normal viewing angle — confirm that's actually fixed, not just less
-  bad. Also reconfirm no pink rendering (the shader-compatibility risk from
-  v0.1.55-dev, already checked once but worth another glance).
+- [ ] **Sky (v0.1.55-dev; visibility fixed in v0.1.56-dev; gradient direction
+  fixed + clouds sharpened in v0.1.57-dev):** looking toward the horizon at a
+  normal level pitch should show a *pale, lightly saturated* blue near the
+  horizon getting *deeper* blue as you look up toward the zenith — real
+  atmospheric-haze direction, pale near the ground, deep overhead. Clouds
+  should read as distinct white blobs with reasonably crisp edges, not a soft
+  blurry brightening, and should be clearly present at a normal level-pitched
+  view (not just near the zenith). Turn a full circle checking for a visible
+  vertical seam line clouds don't cross smoothly.
+  **Regression history on this one entry — check all three:**
+  1. v0.1.55-dev: no clouds visible at all from a level view, no visible
+     gradient — just a flat pale wash.
+  2. v0.1.56-dev: clouds still not reading as shapes (one soft blurry glow),
+     and the gradient direction was backwards — deep blue *at* the horizon,
+     fading pale going up, opposite of realistic haze.
+  3. v0.1.57-dev (current): both should now be corrected — confirm the
+     gradient direction specifically, since that one was actually inverted
+     rather than just weak.
+  Also reconfirm no pink rendering (the original shader-compatibility risk
+  from v0.1.55-dev).
 
 ## 1. Movement & Stances
 
