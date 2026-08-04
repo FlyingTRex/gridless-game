@@ -215,19 +215,21 @@ fix the coordinate in this file rather than assuming the step is wrong.
 
 ## 11. Banking
 
-- [ ] **Bank Box** (`(5, 0.3, -20)`, 5m from the Small Storage Box): E opens the
-  Bank screen.
+- [x] **Bank Box** (`(5, 0.3, -20)`, 5m from the Small Storage Box): E opens the
+  Bank screen. *(Confirmed 2026-08-03 by Ben.)*
 - [ ] Lists wallet vs. bank balance per coin type with Deposit/Withdraw buttons.
   New character starts with 25 Gold already in the bank (separate from the wallet
   purse).
-- [ ] **Deposit/Withdraw popup:** stepper buttons (±1/±10/Max), live fee preview
+- [x] **Deposit/Withdraw popup:** stepper buttons (±1/±10/Max), live fee preview
   (`max(1, ceil(3% of amount))` charged as an *extra* cost on the source side —
   depositing 100 costs 103 from the wallet, the bank receives exactly 100).
-  Confirm/Cancel resolves the popup.
-- [ ] **Exchange section:** 8 buttons (both directions × 4 adjacent pairs:
+  Confirm/Cancel resolves the popup. *(Withdraw confirmed working with Gold,
+  2026-08-03 by Ben; Deposit and other coin types not yet explicitly re-tested.)*
+- [x] **Exchange section:** 8 buttons (both directions × 4 adjacent pairs:
   Copper↔Iron↔Silver↔Gold↔Platinum), clean 10:1 ratio, same fee model, rounds an
   upgrade's input down to the nearest multiple of 10 rather than ever producing a
-  fractional coin.
+  fractional coin. *(Gold→Silver confirmed working, 2026-08-03 by Ben; other
+  seven direction/pair combinations not yet explicitly re-tested.)*
 - [ ] **Modal popup guard — regression (v0.1.47):** with a Deposit/Withdraw/
   Exchange popup open, click a *different* row's Deposit/Withdraw button (or an
   Exchange button, or Buy on a Lockbox, or the panel's Close button) underneath
