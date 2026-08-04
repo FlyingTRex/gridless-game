@@ -19,6 +19,35 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Enhancements
 
+- [ ] **Simplify item-holding to two states: equipped or inventory-stored — no
+  ad-hoc "held in a hand" third state — plus a despawn timer on dropped items.**
+  Today `PlayerLoot`'s pickup priority is Backpack → Left Hand → Right Hand →
+  evict-into-world (`CHANGELOG.md` v0.1.10-dev/v0.1.15-dev), and a plain picked-up
+  item can sit directly in a hand slot as an in-between state: not equipped (no
+  Equip button was ever pressed) and not really "inventory" either. Requested
+  target design:
+  - Every object is always either **equipped** into a named equipment slot, or
+    **stored** in an inventory slot (main inventory / backpack / storage box) —
+    eliminate that third, ad-hoc "just sitting in a hand" holding state.
+  - **Pickup:** if a hand is free, the item goes there first; otherwise it goes
+    into an inventory slot. *(Scope question for whoever implements this: does
+    this replace `PlayerLoot`'s existing Backpack-first priority outright, or
+    only fill the gap when no hand is free? Confirm with Ben before changing the
+    order — this is a real behavior change from what's shipped today.)*
+  - **Unequip:** the item goes to an inventory slot; if every inventory slot is
+    full, drop it to the ground instead of failing. (`PlayerBackpack.Unequip`
+    already has this exact fallback chain — extend the same guarantee to every
+    equippable: Canteen, Sunglasses, NavigationComputer, PersonalHealthMonitor.)
+  - **Manual drop from inventory:** unchanged — goes straight to the ground.
+  - **New: 15-minute despawn timer on world-dropped items.** Any dropped item
+    (manual drop, unequip-fallback drop, or hand-eviction) disappears from the
+    world if left unpicked for 15 minutes. This is distinct from `Pickup`'s
+    existing `canRespawn`/`respawnDelay` (3 minutes, Stick/Rock Node only) —
+    that mechanic *respawns* a resource point at its original location; this is
+    a separate *despawn* timeout for player-dropped items specifically, so it
+    shouldn't just reuse `canRespawn`/`respawnDelay` as-is.
+
+  *(Reported by Ben.)*
 - [ ] **Equip directly from a container.** Same underlying gap as "Eat/Drink
   directly from a container" below — `DrawContainerContents` (backpack contents
   and storage boxes alike) treats every item as a generic move-popup button
