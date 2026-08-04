@@ -12,6 +12,22 @@ change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-04
 
+### Design planning: Mining skill decided, ore byproducts, hidden-ore detection (docs only)
+
+Follow-up planning pass on the pipeline written up earlier tonight. Resolved the
+previously-deferred `Mining` skill split from `Gathering`: Mining now owns all
+ore-node gathering specifically (Gathering stays scoped to Sticks/Berries/plain
+Rock). Added three new pieces to the Metal line in
+`docs/design-brief.md`'s Crafting, Gathering & Skills Pipeline section: ore nodes
+yield Small Rock alongside their primary ore (mining a vein realistically kicks
+loose waste rock too); base ore yield scales down Copper→Platinum so the ladder
+has real teeth; and a new **Mining Face Shield** (Face-slot equippable) reveals
+Silver/Gold/Platinum nodes that otherwise look like plain rock — same reveal
+mechanism already shipped for Sunglasses + the Secret Message Wall, generalized
+into a real gameplay system, with a Mining-skill-tier-4 bypass once a player
+doesn't need the gear anymore. Updated the `BUGS_AND_ENHANCEMENTS.md` pointer
+entry to match. Still docs-only — nothing implemented, no version bump.
+
 ### Design planning: full crafting/gathering/skills pipeline (docs only, nothing built)
 
 Extended planning conversation (not a build session) working out the "still open"

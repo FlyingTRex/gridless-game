@@ -469,10 +469,13 @@ a new interaction model for every tool-driven action. **Decided in shape, not in
 exact numbers** — see "Still open" at the end. Nothing here is built yet; this is
 the plan to review before any of it becomes actual implementation work.
 
-**Skills (8 total):** `Gathering` (existing), `Woodworking`, `Stonework`,
-`Metalworking`, `Forging`, `Minting`, `Sewing`, `Crafting` (final assembly). A
-`Mining` split out of `Gathering` was discussed and explicitly deferred, not
-decided.
+**Skills (9 total):** `Gathering` (existing — now scoped specifically to Sticks,
+Berries, and plain Rock: general "stuff found on the ground/bushes"), `Mining`
+(new — ore specifically: breaking any Ore Node trains Mining, not Gathering; also
+governs the ore-detection ability below), `Woodworking`, `Stonework`,
+`Metalworking`, `Forging`, `Minting`, `Sewing`, `Crafting` (final assembly). The
+`Mining` split from `Gathering` was raised earlier and initially deferred, then
+decided in a later pass of the same session — no longer open.
 
 **Core tier rule — weakest link.** A crafted item's `CraftTier` is the *lower* of
 (a) what the relevant skill's current level allows, and (b) the tier of every
@@ -530,8 +533,10 @@ interaction primitive.
   held tools, not worn gloves) — would likely want Left Arm/Right Arm instead, both
   also unused so far.
 - **Stone:** Small Rock →(Hammer/rock, Stonework)→ Shaped Rock.
-- **Metal:** Ore Node →(Pickaxe)→ Ore →(Furnace + fuel [Sticks, Logs, etc.],
-  Metalworking)→ Ingot, which branches two ways:
+- **Metal:** Ore Node →(Pickaxe, **Mining**)→ Ore + Small Rock (mining an ore vein
+  realistically kicks loose waste rock too — every ore node yields *both* its
+  primary ore type and Small Rock as a byproduct, not just pure ore) →(Furnace +
+  fuel [Sticks, Logs, etc.], Metalworking)→ Ingot, which branches two ways:
   - →(Forging)→ Forged Component (a shaped tool/weapon part)
   - →(Press, Minting)→ Coins — **coins stay plain/fungible, no `CraftTier` on the
     coin itself**; higher Ingot quality and Press quality instead increase *yield*
@@ -541,6 +546,21 @@ interaction primitive.
     orthogonal** (a "Crude Iron Knife" and a "Masterwork Iron Knife" are both
     valid — metal is what it's made of, tier is how well it's made), not merged
     into one axis.
+  - **Base ore yield scales down as the ladder climbs** — Copper is easy, Platinum
+    yields little without a skilled Miner and good tools to compensate. Rarity and
+    skill-gating pull the same direction on purpose, so late-game metal feels
+    earned rather than just reskinned Copper.
+  - **Silver/Gold/Platinum ore is hidden, not visible.** Nodes containing these
+    look like an ordinary Rock Node at a glance — same reveal mechanism already
+    built for Sunglasses + the Secret Message Wall, generalized into a real
+    gameplay system: a new **Mining Face Shield** (Face-slot equippable) visually
+    marks a hidden-ore node as different when worn, and mining it only actually
+    yields the ore *with* the shield on — without it, the same node just gives
+    Small Rock, ore undetected. **At Mining skill tier 4 (Fine), the shield
+    becomes unnecessary** — enough expertise to recognize ore-bearing rock by eye
+    alone. Copper (and presumably Iron) stay visibly identifiable as ore nodes,
+    same as Copper Ore ships today — this hidden/detection mechanic is specifically
+    for the harder, higher-value metals.
   - Furnace is a new placeable *structure*, not a held tool — outlined only
     (transfer ore + fuel in, get metal out), not designed in detail.
 - **Hunting weapons** (final `Crafting`-skill recipes, not new systemic mechanics):
@@ -550,13 +570,15 @@ interaction primitive.
 
 **Still open (explicitly not decided, don't assume defaults):**
 - Actual skill-level thresholds that unlock each `CraftTier`, per skill — each of
-  the 8 skills gets its own curve, not one shared table.
+  the 9 skills gets its own curve, not one shared table. (This now also covers the
+  Mining-tier-4 shield-bypass threshold specifically, not just `CraftTier` output.)
 - Whether tool tier also boosts skill-gain rate, separately from yield/quality/speed.
 - Whether final Crafting (assembly) becomes a timed click-and-locked action or
   stays the current instant menu-based "Craft" button.
 - Furnace/smelting mechanics beyond "transfer ore + fuel, get metal" — capacity,
   smelt time, fuel consumption rate, etc.
-- The `Mining` skill split from `Gathering` — named as a future idea, not scoped.
+- Exact ore/Small-Rock byproduct ratio per mining action (fixed split vs. random),
+  and the exact per-metal base-yield curve (Copper→Platinum).
 - Concrete degradation-rate/performance numbers per `CraftTier` (this was already
   open before this session — see the original Skill-tied crafting quality item).
 

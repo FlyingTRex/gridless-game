@@ -45,11 +45,12 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 - [ ] **Full crafting/gathering/skills redesign — planned, not built.** See
   `docs/design-brief.md`'s **Crafting, Gathering & Skills Pipeline (2026-08-04)**
-  section for the complete plan: 4 new skills (Woodworking, Stonework,
-  Metalworking, Forging, Minting, Sewing — 6, alongside existing Gathering and
-  Crafting), a weakest-link tier rule (skill vs. material quality), a full
+  section for the complete plan: 7 new skills (Mining, Woodworking, Stonework,
+  Metalworking, Forging, Minting, Sewing, alongside existing Gathering and
+  Crafting — 9 total), a weakest-link tier rule (skill vs. material quality), a full
   gather→refine→assemble material web (wood, stone, metal, textiles), tool-quality
-  effects (yield/quality/speed), and a new click-once-and-locked interaction model
+  effects (yield/quality/speed), a hidden-ore/Mining-Face-Shield detection mechanic
+  for Silver/Gold/Platinum, and a new click-once-and-locked interaction model
   that replaces the current punch-to-break mechanic entirely. Large, cross-cutting,
   and *decided in shape but not in exact numbers* — several sub-questions are
   explicitly still open (see that section's own "Still open" list). Don't start
