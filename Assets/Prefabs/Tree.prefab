@@ -3972,6 +3972,7 @@ GameObject:
   - component: {fileID: 1451366789442943126}
   - component: {fileID: 862444717162389114}
   - component: {fileID: 3035787835374307881}
+  - component: {fileID: 2358977061685397242}
   m_Layer: 0
   m_Name: Tree
   m_TagString: Untagged
@@ -4074,6 +4075,27 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 4300000, guid: e812e6d3d8a7de641bdfecdc71d30dae, type: 2}
+--- !u!114 &2358977061685397242
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4493968444738990189}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ddc2667a1bc01c444aa1c79e5ae9e708, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
+  chunkPrefab: {fileID: 1488879547467099213, guid: d8e6ff7a98244c84db4bc13cf7e4f02b, type: 3}
+  chunkCount: 3
+  hitsToBreak: 4
+  scatterForce: 1.2
+  trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
+  skillGain: 0.5
+  respawnDelay: 180
+  respawnScatter: 0.5
+  requiredTool: {fileID: 11400000, guid: e1f237e285e7a424bb1f2abebd01fef4, type: 2}
 --- !u!1 &4606638619618948302
 GameObject:
   m_ObjectHideFlags: 0

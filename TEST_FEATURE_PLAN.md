@@ -152,6 +152,26 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] **Rock Node** (left-click/punch, `IPunchable`) breaks into 3 physical Small
   Rock chunks that scatter and can be picked up individually — doesn't take one
   punch; confirm it takes the expected number of hits.
+- [ ] **Rock texture (v0.1.59-dev):** Rock Node and every Small Rock/chunk read as
+  mottled grey stone (same tileable-noise technique as the grass texture), not
+  flat solid grey — check both the whole node and its broken-off chunks look
+  consistent with each other (they now share one material).
+- [ ] **Copper Ore Node (v0.1.59-dev)** at `(2, 0.4, -4)`: punching it *without* a
+  Pickaxe held in a hand does nothing (no hit registers, prompt reads "Punch to
+  break (requires Pickaxe)"). With a Pickaxe in either hand, punching works and
+  takes 2 hits to break into 3 Copper Ore chunks — texture should read as
+  grey rock with scattered copper-orange flecks and occasional green patina
+  spots, not flat grey or flat orange.
+- [ ] **Pickaxe / Axe:** craftable from the Crafting screen (2 Small Rock + 1
+  Stick for Pickaxe, 1 Small Rock + 2 Stick for Axe). Carrying one in a
+  backpack/main inventory (not a hand) should **not** satisfy the tool
+  requirement above or below — it specifically has to be held in a hand
+  (`PlayerEquipment.HasInHand`).
+- [ ] **Trees are now harvestable (v0.1.59-dev)** — previously purely decorative.
+  Punching a tree *without* an Axe held does nothing, prompt reads "Punch to
+  break (requires Axe)". With an Axe in hand, takes 4 hits to break into 3 Wood
+  chunks; the tree (trunk + foliage) hides and respawns ~3 minutes later, same
+  pattern as Rock Node.
 - [ ] **Berry Bush** — picking a Berry gives a real inventory item (not an
   instant-eat-on-touch); Eat button only appears in the main inventory list, never
   in a backpack/storage contents view.

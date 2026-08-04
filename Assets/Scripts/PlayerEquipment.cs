@@ -59,4 +59,15 @@ public class PlayerEquipment : MonoBehaviour
 
         return null;
     }
+
+    // Convenience for tool-gated actions (e.g. ResourceNode's requiredTool)
+    // — true only if the item is actually held in a hand right now, not
+    // just carried somewhere in the main inventory or a backpack.
+    public bool HasInHand(ItemDefinition item)
+    {
+        if (item == null) return false;
+        var left = GetSlot("Left Hand");
+        var right = GetSlot("Right Hand");
+        return (left != null && left.GetCount(item) > 0) || (right != null && right.GetCount(item) > 0);
+    }
 }

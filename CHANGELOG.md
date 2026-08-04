@@ -5,12 +5,78 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.58-dev` — must always match `GameVersion` in
+**Current version:** `0.1.59-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-03
+## 2026-08-04
+
+### v0.1.59-dev — Rock texture, Copper Ore, and tool-gated gathering (Pickaxe/Axe)
+
+Three-part request: give the rocks a real texture instead of flat grey, add a
+Copper Ore resource, and add a couple of craftable tools. Design decisions
+confirmed up front rather than assumed: tools (Pickaxe + Axe) actually gate
+gathering — a Pickaxe must be held in a hand to mine Copper Ore, an Axe to chop
+Trees — and Copper Ore is gathered the same punch-to-break way Rock Node
+already works.
+
+- **Rock texture.** Same tileable-noise technique as the grass/sky textures
+  (`CHANGELOG.md` v0.1.53-dev onward) — a mottled grey stone texture applied to
+  `RockChunk.mat`'s `_BaseMap`, which is shared by every loose Small Rock pickup
+  *and* every chunk scattered from breaking Rock Node (they were already the same
+  prefab). Also fixed a design inconsistency found along the way: Rock Node's own
+  sphere had its own separate **embedded scene material** (created directly via
+  `new Material(...)`, serialized inline into `TestScene.unity` rather than as a
+  project asset) with no texture — repointed it to the same `RockChunk.mat` asset
+  so the whole node and its broken chunks now visibly match.
+- **`ResourceNode` gained an optional `requiredTool` (`ItemDefinition`) field.**
+  Null (default) means punch bare-handed works, exactly Rock Node's existing
+  behavior — nothing about it changed. When set, `OnPunch` checks
+  `PlayerEquipment.HasInHand(requiredTool)` (new method — true only if the item is
+  actually held in a hand right now, not just carried in inventory/a backpack)
+  before registering the hit at all. `Prompt` also changes to `"Punch to break
+  (requires X)"` when a tool is required, so the requirement is visible before
+  ever swinging.
+- **Copper Ore** — new `ItemDefinition`, a mottled-rock texture with scattered
+  copper-orange flecks and rare green patina spots (same layered-noise approach,
+  new color mapping), a `CopperOreChunk` prefab (mirrors `RockChunk.prefab`:
+  scaled Cube, `Rigidbody` `ContinuousDynamic`, `Pickup`), and a new "Copper Ore
+  Node" placed in `TestScene` at `(2, 0.4, -4)` — `ResourceNode` with
+  `hitsToBreak: 2` (tougher than Rock Node's 1) and `requiredTool` set to
+  Pickaxe.
+- **Pickaxe and Axe** — plain, non-equippable `ItemDefinition`s (`maxStack: 1`,
+  no custom `worldPickupPrefab` — falls back to the generic dropped-item cube,
+  same deliberate choice Rock Hammer already made) craftable via two new
+  recipes: Pickaxe (2 Small Rock + 1 Stick), Axe (1 Small Rock + 2 Stick), both
+  training Crafting +2, added to `PlayerCrafting.recipes` on the Player.
+- **Trees are now harvestable.** `Tree.prefab` gained a `ResourceNode` component
+  directly on its trunk root (reuses the exact same hide/respawn logic Rock Node
+  already has — `GetComponentsInChildren<Renderer>()` already correctly sweeps up
+  the foliage children too, no changes needed there): `hitsToBreak: 4`,
+  `requiredTool` set to Axe, yields a new **Wood** item via a new `WoodChunk`
+  prefab. Previously the tree prefab (v0.1.58-dev) was purely decorative with no
+  way to interact with it at all.
+
+**A real bug found and fixed during this work, worth its own note — see the new
+"asset references can go stale across `LoadPrefabContents`/`UnloadPrefabContents`"
+gotcha in `CLAUDE.md`:** the first version of the generation script silently wrote
+`requiredTool: {fileID: 0}` on the Copper Ore Node and failed to add the two new
+recipes to `PlayerCrafting.recipes` at all — no exception, no compile error, the
+script logged success. Root cause: those specific references were created earlier
+in the script and used again *after* an unrelated `PrefabUtility.LoadPrefabContents`/
+`UnloadPrefabContents` cycle (adding the `ResourceNode` to `Tree.prefab`), which
+appears able to silently invalidate some in-memory asset references — a new,
+not-fully-understood sibling to the already-documented `OpenScene` staleness
+gotcha. Caught only by directly grepping the saved scene YAML for the expected
+guids rather than trusting the script's own success log, and fixed with two small
+follow-up scripts that re-fetched the references fresh via `AssetDatabase.LoadAssetAtPath`
+immediately before use.
+
+Verified end-to-end: every new/changed guid reference cross-checked directly against
+its target asset's `.meta` guid (not just assumed from the script's intent), a
+duplicate-fileID scan on the twice-resaved scene (clean), and a final clean
+batch-mode compile.
 
 ### v0.1.58-dev — Procedural branching tree, real mesh geometry (not primitive composition)
 

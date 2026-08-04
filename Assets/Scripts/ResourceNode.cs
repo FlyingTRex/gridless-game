@@ -11,6 +11,13 @@ public class ResourceNode : MonoBehaviour, IPunchable
     [SerializeField] private float respawnDelay = 180f;
     [SerializeField] private float respawnScatter = 0.5f;
 
+    // Null (default) means no tool needed — punching bare-handed works,
+    // same as Rock Node's existing behavior. Set to gate a node behind a
+    // specific tool (e.g. Copper Ore requires a Pickaxe, Tree requires an
+    // Axe) — checked via PlayerEquipment.HasInHand, so the tool has to
+    // actually be held in a hand, not just carried somewhere in inventory.
+    [SerializeField] private ItemDefinition requiredTool;
+
     private int hitsTaken;
     private Vector3 spawnPosition;
     private Collider col;
@@ -19,7 +26,9 @@ public class ResourceNode : MonoBehaviour, IPunchable
     // (the timer is held until it's actually broken) or mid-repositioning.
     private float respawnAt = -1f;
 
-    public string Prompt => "Punch to break";
+    public string Prompt => requiredTool != null
+        ? $"Punch to break (requires {requiredTool.itemName})"
+        : "Punch to break";
 
     private void Awake()
     {
@@ -36,6 +45,12 @@ public class ResourceNode : MonoBehaviour, IPunchable
 
     public void OnPunch(GameObject player)
     {
+        if (requiredTool != null)
+        {
+            var equipment = player.GetComponent<PlayerEquipment>();
+            if (equipment == null || !equipment.HasInHand(requiredTool)) return;
+        }
+
         hitsTaken++;
         player.GetComponent<PlayerSkills>()?.GainExperience(trainedSkill, skillGain);
         if (hitsTaken < hitsToBreak) return;

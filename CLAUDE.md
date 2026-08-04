@@ -172,3 +172,39 @@ accidental trigger changes real state. Reach for this instead of `GUILayout.Butt
 directly for any *new* button in this screen (or any other `OnGUI` panel) whose
 accidental click has a real consequence; plain `GUILayout.Button` is still fine for
 low-stakes clicks (opening a popup, a Cancel button).
+
+## Gotcha: asset references can go stale across a `PrefabUtility.LoadPrefabContents`/`UnloadPrefabContents` cycle, not just `OpenScene`
+
+The existing "don't cross an `OpenScene` call" rule above isn't the only operation
+that can silently invalidate an in-memory `ScriptableObject`/`GameObject` reference
+in a batch-mode editor script. Hit for real (2026-08-04, Copper Ore/tools bundle): a
+script created several assets (`ItemDefinition`s, `CraftingRecipe`s) early on, then
+called `PrefabUtility.LoadPrefabContents` / `SaveAsPrefabAsset` / `UnloadPrefabContents`
+on an unrelated prefab (`Tree.prefab`, to add a component to it), then tried to use
+those *earlier* references in a later method — two of them (`ItemDefinition` for a
+required-tool field, two `CraftingRecipe`s being appended to an array) silently
+serialized as `{fileID: 0}` (null) instead of throwing, with **no compile error and
+no exception in the log** — the batch run reported success. A `SerializedProperty`
+array insert on a null reference doesn't throw either; it just writes an empty
+array slot, which went undetected until directly grepping the saved YAML for the
+expected guid and finding it missing.
+
+**Not fully understood, and not consistent:** other references created at the exact
+same point in the script, then also used *after* the same `LoadPrefabContents`/
+`UnloadPrefabContents` cycle, survived fine (e.g. a chunk-prefab reference and a
+`SkillDefinition` used inside the same call that broke the tool reference). No
+confirmed theory for why some survive and others don't — possibly related to
+whether something else keeps the reference "hot" in between, but that's a guess,
+not a verified mechanism.
+
+**How to apply:** don't trust *any* `ScriptableObject`/`GameObject`/`Material`
+reference that was created or loaded before a `PrefabUtility.LoadPrefabContents`/
+`UnloadPrefabContents` cycle (or an `OpenScene` call) if it's used *after* one,
+even within the same method or the same overall script run. Re-fetch via
+`AssetDatabase.LoadAssetAtPath` immediately before the point of use instead of
+carrying the value across the boundary as a variable/parameter. After any script
+that does both prefab-content editing and scene editing in the same run,
+**verify by grepping the saved YAML for the actual expected guid** — don't trust
+"the script logged success with no exceptions" as proof the references landed
+correctly; a stale reference degrades silently to `{fileID: 0}`, not a thrown
+error.
