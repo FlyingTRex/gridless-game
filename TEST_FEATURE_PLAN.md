@@ -113,6 +113,16 @@ fix the coordinate in this file rather than assuming the step is wrong.
   random offset. (Long wait — spot-check the timer logic instead of waiting the
   full 3 minutes every pass, e.g. temporarily shorten `respawnDelay` if verifying
   the exact timing matters.)
+- [ ] **Despawn (v0.1.48-dev):** an item dropped via the inventory's Drop button,
+  or via the hand-eviction fallback (both hands full with non-stacking items, no
+  backpack equipped, picking up something new), disappears from the world after
+  15 minutes if nobody picks it up. Confirm it does *not* apply to world-placed
+  pickups (Sticks, Berry Bush) or `ResourceNode` chunk scatter — those should sit
+  indefinitely (or respawn per the item above), never silently vanish. (Long
+  wait — temporarily shorten `Pickup.DespawnDelay` to verify the exact timing
+  rather than waiting the full 15 minutes every pass.) Also confirm a *partial*
+  pickup (leftover after your inventory fills up) keeps counting down from the
+  original drop time, not reset by the partial pickup.
 
 ## 5. Crafting (O)
 

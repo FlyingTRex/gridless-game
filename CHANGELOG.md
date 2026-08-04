@@ -5,12 +5,35 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.47-dev` — must always match `GameVersion` in
+**Current version:** `0.1.48-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.48-dev — Dropped items despawn after 15 minutes
+
+First slice of the item-holding-redesign backlog entry: just the despawn timer, not
+the pickup-priority/unequip-fallback rework (still open, needs its own pass).
+
+`Pickup` gained a `despawnAt` countdown (15 minutes, `DespawnDelay`) started inside
+`Configure(item, quantity)` — which turns out to be called from exactly one place,
+`PlayerDropping.DropFrom`, so it fires for every item the player actually drops
+(manual Drop button, and the hand-eviction fallback `PlayerLoot` uses when both
+hands are full with no backpack equipped) without needing a separate flag to
+distinguish "dropped" from "world-placed" pickups. World-placed pickups (Sticks,
+Berry Bush) and `ResourceNode`'s scattered chunks never call `Configure`, so they're
+unaffected — they keep whatever `canRespawn` behavior they already had. Deliberately
+a distinct timer from `canRespawn`/`respawnDelay` (3 minutes) — that one restores a
+resource point in place; this one deletes a dropped item outright once nobody's
+picked it up.
+
+**Scope note:** doesn't cover the five equippables (Backpack/Canteen/Sunglasses/
+NavigationComputer/PersonalHealthMonitor) — their `Drop()` methods detach an
+already-existing physical object rather than instantiating a new `Pickup`, so they
+don't go through `Configure` at all. Revisit once/if the equipped-item unequip-
+fallback drop path (still unbuilt) needs the same timer.
 
 ### v0.1.47-dev — Fix: bank/lockbox popups let the coin type switch mid-transaction
 

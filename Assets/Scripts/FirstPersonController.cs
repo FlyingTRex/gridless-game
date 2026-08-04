@@ -199,7 +199,7 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.47-dev";
+    private const string GameVersion = "0.1.48-dev";
 
     private float lastSpeed;
     private bool lastSprinting;
