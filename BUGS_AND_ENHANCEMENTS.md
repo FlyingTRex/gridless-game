@@ -19,6 +19,17 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Enhancements
 
+- [ ] **Sky texture could use another pass.** Procedural cloudy skybox shipped
+  v0.1.55-dev through v0.1.57-dev (`GenerateSkyTexture.cs`, throwaway —
+  `Assets/Data/Sky.mat` + `Assets/Textures/SkyTexture.png` are the persistent
+  result) — gradient direction and basic visibility are now correct per Ben's
+  screenshots, but clouds are still sparse/barely present in a normal view
+  ("this is fine for now," not "this is done"). Worth another round of tuning
+  cloud coverage/density and possibly the cloud shape/softness if it comes up
+  again — same tileable-noise technique as the grass texture, see
+  `CHANGELOG.md`'s v0.1.55/56/57-dev entries for the full history of what was
+  tried (including the inverted-gradient bug already fixed) before changing
+  anything. *(Reported by Ben.)*
 - [ ] **Simplify item-holding to two states: equipped or inventory-stored — no
   ad-hoc "held in a hand" third state.** Today `PlayerLoot`'s pickup priority is
   Backpack → Left Hand → Right Hand → evict-into-world (`CHANGELOG.md`
