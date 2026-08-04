@@ -5,12 +5,43 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.52-dev` — must always match `GameVersion` in
+**Current version:** `0.1.53-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-03
+
+### v0.1.53-dev — Procedural grass texture on the Ground, replacing the flat green color
+
+First texture-image asset in the project — everything until now was a flat
+`_BaseColor` on a primitive. `Ground.mat` (`Universal Render Pipeline/Lit`) had no
+`_BaseMap` assigned at all, just a solid green color; asked how to get a "realistic
+grass" look, offered three routes (procedural in-engine, a supplied/downloaded
+texture, or just explaining the steps) — went with the procedural route.
+
+Throwaway `Assets/Editor/GenerateGrassTexture.cs` (run via batch mode, then
+deleted, per the project's established workflow) generates a 512×512
+`Texture2D`: three-octave `Mathf.PerlinNoise` for large mottled dark/mid/light
+green patches (blended through a `DarkGreen`→`MidGreen`→`LightGreen` gradient),
+plus a higher-frequency noise layer multiplied in as brightness variation to fake
+individual-blade detail on top of the smooth patches. Noise sampling is offset
+away from the origin — `Mathf.PerlinNoise` always returns exactly 0.5 at integer
+coordinates, which otherwise shows up as a visible low-frequency grid artifact.
+
+Saved as `Assets/Textures/GrassTexture.png`, imported with `WrapMode.Repeat` +
+mipmaps + Bilinear filtering, then wired onto `Ground.mat`'s `_BaseMap` with
+`m_Scale` (tiling) set to `(40, 40)` — `Ground` is a Plane scaled `(10, 1, 10)`
+(100×100 world units), so 40 repeats puts each tile at 2.5 units, close enough
+for the blade-detail noise to actually read at ground level without the pattern
+looking like an obvious repeating grid from a distance. `_BaseColor` reset to
+white so it no longer multiplies against (and darkens) the texture's real colors.
+
+**Known limitation:** the noise isn't seamless at the texture's own edges (no
+wrap-around blending was added), so at a tiling factor this high, faint repeat
+seams may be visible up close on flat, uninterrupted ground. Good enough for a
+first pass; a proper tileable-noise version (or a real photo-sourced texture)
+would be the next step if the seams read as distracting in actual play.
 
 ### v0.1.52-dev — Fix: version number clipped off the bottom-left debug panel
 
