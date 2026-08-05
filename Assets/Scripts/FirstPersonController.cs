@@ -39,6 +39,7 @@ public class FirstPersonController : MonoBehaviour
     private CraftingScreen craftingScreen;
     private BankScreen bankScreen;
     private LockboxScreen lockboxScreen;
+    private GameMenuScreen gameMenuScreen;
     private Vector3 velocity;
     private float pitch;
     private MovementStance stance = MovementStance.Standing;
@@ -53,6 +54,7 @@ public class FirstPersonController : MonoBehaviour
         craftingScreen = GetComponent<CraftingScreen>();
         bankScreen = GetComponent<BankScreen>();
         lockboxScreen = GetComponent<LockboxScreen>();
+        gameMenuScreen = GetComponent<GameMenuScreen>();
     }
 
     private void OnEnable()
@@ -91,6 +93,7 @@ public class FirstPersonController : MonoBehaviour
                 craftingScreen?.Close();
                 bankScreen?.Close();
                 lockboxScreen?.Close();
+                gameMenuScreen?.Close();
             }
         }
     }
@@ -199,7 +202,7 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.63-dev";
+    private const string GameVersion = "0.1.64-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

@@ -5,12 +5,38 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.63-dev` — must always match `GameVersion` in
+**Current version:** `0.1.64-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-04
+
+### v0.1.64-dev — Full-screen tabbed game menu (` key): Player/Audio/Graphics/Controls/Credits
+
+New `GameMenuScreen`, toggled with `` ` `` (backtick/grave) — same open/close/
+cursor-lock convention as every other screen (only opens while the cursor is
+already locked, so it can't stack on top of Inventory/Crafting/Skills/Bank/
+Lockbox), wired into `FirstPersonController`'s Escape-close list alongside
+them. First tabbed-navigation UI in the project — five tabs drawn as buttons
+across the top of a full-screen panel, switching which section renders below.
+
+- **Player** — deliberately left blank per explicit instruction, reserved for
+  a future decision on what belongs here (Vitals? Skills? something else?)
+  rather than guessing and having to undo it. No `PlayerVitals`/`PlayerSkills`
+  dependency on the component at all right now, consistent with not adding
+  code for something not actually used yet.
+- **Audio** / **Graphics** — both honest placeholders ("no system exists yet
+  — nothing to configure") rather than fake sliders that wouldn't control
+  anything real. Neither an audio system nor a graphics/quality-settings
+  system exists anywhere in the project yet.
+- **Controls** — a flat, alphabetized (by key name, not grouped by category)
+  reference list of every real key binding in the game today: `` ` ``, C, E,
+  Escape, F, I, Left Mouse Button, Left Shift, Mouse Movement, O, Right Mouse
+  Button, Space, U, WASD, X, Z. Per the request, this list is meant to be kept
+  current — update `GameMenuScreen.ControlsList` whenever a new key mapping
+  is added anywhere in the game.
+- **Credits** — "Tekim" and "the T-Rex," exactly as given, placeholder for now.
 
 ### v0.1.63-dev — Fix: Rock/Small Rock chunks bouncing/rolling too far after breaking
 

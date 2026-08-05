@@ -4947,6 +4947,7 @@ GameObject:
   - component: {fileID: 1681626257}
   - component: {fileID: 1681626259}
   - component: {fileID: 1681626260}
+  - component: {fileID: 1681626261}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -5448,6 +5449,18 @@ MonoBehaviour:
   shieldItem: {fileID: 11400000, guid: bd145eb22399f79429ccf56bd3920fd7, type: 2}
   dropDistance: 1.2
   dropHeight: 1
+--- !u!114 &1681626261
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ceb419e18029a3f43b83719ed54c35d3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameMenuScreen
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0

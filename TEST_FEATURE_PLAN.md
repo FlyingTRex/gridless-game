@@ -427,11 +427,29 @@ fix the coordinate in this file rather than assuming the step is wrong.
 
 ## 14. Screen Management
 
-- [ ] Only one of Inventory/Crafting/Skills/Bank/Lockbox/rename can be open at a
-  time — opening one while another is open (via its hotkey or an E/right-click
-  interaction) should not stack or corrupt state.
+- [ ] Only one of Inventory/Crafting/Skills/Bank/Lockbox/rename/Game Menu can
+  be open at a time — opening one while another is open (via its hotkey or an
+  E/right-click interaction) should not stack or corrupt state.
 - [ ] Escape always closes whichever screen is open and re-locks the cursor,
   regardless of which screen it is or how it was opened.
 - [ ] While any screen is open (cursor unlocked), WASD/Space/mouse-look do
   nothing to the player — including while typing in the rename text box (no
   accidental jump from typing a space).
+
+## 15. Game Menu (` key)
+
+- [ ] **`` ` `` (backtick/grave)** opens/closes a full-screen menu with 5 tabs
+  across the top: Player, Audio, Graphics, Controls, Credits. Same rules as
+  every other screen — Escape also closes it, and it only opens while the
+  cursor is already locked (can't stack on another open screen).
+- [ ] **Player tab** is intentionally blank right now (just a header) — not a
+  bug, a deliberate placeholder pending a future decision on content.
+- [ ] **Audio** and **Graphics tabs** each show a plain "nothing to configure
+  yet" message — also intentional, since neither system exists in the game.
+- [ ] **Controls tab** lists every real key binding, alphabetized by key name:
+  `` ` ``, C, E, Escape, F, I, Left Mouse Button, Left Shift, Mouse Movement,
+  O, Right Mouse Button, Space, U, WASD, X, Z — each with a plain-language
+  description of what it does. Cross-check this against what's actually bound
+  in the game right now; flag anything missing or stale (see `CLAUDE.md`'s
+  standing rule to keep this list updated whenever a new key mapping ships).
+- [ ] **Credits tab** shows "Tekim" and "the T-Rex."

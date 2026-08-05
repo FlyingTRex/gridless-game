@@ -76,6 +76,11 @@ Read these directly rather than trusting a summary — they're actively evolving
   release. Doc-only commits (design docs, changelog, this file) don't need a bump.
   Both collaborators' Claude sessions should follow this — the in-game number and the
   changelog are meant to be cross-checkable at a glance, without digging into git.
+- **Update `GameMenuScreen.ControlsList` whenever a new key mapping is added**
+  anywhere in the game (`` ` `` to open — Player/Audio/Graphics/Controls/Credits
+  tabs, added 2026-08-04). The Controls tab is meant to always reflect every real
+  binding, alphabetized by key name; a new hotkey isn't done until this list
+  says so too, same spirit as the changelog/version-bump rule above.
 
 ## Checklist: adding a new `IEquippable` (worn item)
 
