@@ -1,11 +1,12 @@
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
-// Full inventory + equipment management screen, toggled with I. Combines
-// what used to be separate always-on panels (Inventory, Backpack, Canteen)
-// into one screen, so the normal HUD stays clean and all inventory state
-// lives in one place, scrollable so it can't overflow the window.
+// Full inventory + equipment management content, drawn as the Inventory tab
+// inside PlayerMenuScreen (Tab key). Used to be its own screen toggled with
+// I; folded in 2026-08-04 so Inventory/Skills/Crafting all live under one
+// key instead of three. Combines what used to be separate always-on panels
+// (Inventory, Backpack, Canteen) into one place, scrollable so it can't
+// overflow the window.
 [RequireComponent(typeof(PlayerEquipment))]
 [RequireComponent(typeof(PlayerInventory))]
 public class InventoryScreen : MonoBehaviour
@@ -27,13 +28,6 @@ public class InventoryScreen : MonoBehaviour
 
     private const float PanelWidth = LabelWidth + BoxWidth * 2f + 220f;
 
-    // User feedback: same readability complaint as the Bank window fixed in
-    // v0.1.49-dev, same fix — GUILayout uses fixed pixel widths throughout,
-    // so growing the panel Rect alone would only add empty padding, not
-    // bigger text/buttons. Scale the whole GUI.matrix around screen center
-    // instead.
-    private const float UiScale = 1.5f;
-
     private static readonly (string Label, CoinType Type)[] CoinDisplayOrder =
     {
         ("Copper", CoinType.Copper),
@@ -51,6 +45,11 @@ public class InventoryScreen : MonoBehaviour
     // currency header never gets clipped by it.
     private const float CurrencySectionHeight = 80f;
 
+    // Rough vertical space PlayerMenuScreen's tab bar + Close button + their
+    // margins take up around this content — reserved the same way, so the
+    // scroll view never runs off the bottom of the full-screen menu.
+    private const float ChromeReserve = 180f;
+
     [SerializeField] private float storageRange = 10f;
 
     private PlayerEquipment equipment;
@@ -66,15 +65,14 @@ public class InventoryScreen : MonoBehaviour
     private PlayerCurrency currency;
     private PlayerCoinDrop coinDropper;
     private PlayerVitals vitals;
-    private bool isOpen;
     private Vector2 scrollPos;
 
-    // Recomputed once per OnGUI call (see FindNearbyStorageBoxes) — every
-    // StorageBox within storageRange, nearest first. Read by the inventory
-    // section (for the "To Storage" button), the storage section itself
-    // (shows the nearest one's contents), and the move popup's storage
-    // picker (lets the player choose by name when more than one is in
-    // range).
+    // Recomputed once per DrawContent() call (see FindNearbyStorageBoxes) —
+    // every StorageBox within storageRange, nearest first. Read by the
+    // inventory section (for the "To Storage" button), the storage section
+    // itself (shows the nearest one's contents), and the move popup's
+    // storage picker (lets the player choose by name when more than one is
+    // in range).
     private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
     // Set when the player clicks any item box in the Equipment section —
@@ -95,8 +93,6 @@ public class InventoryScreen : MonoBehaviour
     private CoinType? pendingDropCoinType;
     private int pendingDropAmount;
 
-    public bool IsOpen => isOpen;
-
     private void Awake()
     {
         equipment = GetComponent<PlayerEquipment>();
@@ -114,68 +110,42 @@ public class InventoryScreen : MonoBehaviour
         vitals = GetComponent<PlayerVitals>();
     }
 
-    private void Update()
+    // Called by PlayerMenuScreen while its Inventory tab is active.
+    public void DrawContent()
     {
-        if (Keyboard.current == null || !Keyboard.current.iKey.wasPressedThisFrame) return;
-
-        // Always allow closing. Only allow opening from normal gameplay —
-        // not while some other screen (e.g. PlayerRenaming) already has
-        // the cursor unlocked, which would stack this on top of it.
-        if (isOpen || Cursor.lockState == CursorLockMode.Locked)
-            SetOpen(!isOpen);
-    }
-
-    // Called by FirstPersonController when Escape re-locks the cursor, so
-    // the two toggles can't drift out of sync with each other.
-    public void Close() => SetOpen(false);
-
-    private void SetOpen(bool value)
-    {
-        isOpen = value;
-        if (!value)
-        {
-            pendingMoveItem = null;
-            pendingMoveSource = null;
-            choosingStorage = false;
-            pendingDropCoinType = null;
-        }
-        Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
-        Cursor.visible = value;
-    }
-
-    private void OnGUI()
-    {
-        if (!isOpen) return;
-
-        // Scale the whole screen (panel + scroll view + both popups, drawn
-        // later in this same call) around the screen center, same technique
-        // as BankScreen — grows in place rather than shifting off-center.
-        Matrix4x4 savedMatrix = GUI.matrix;
-        GUIUtility.ScaleAroundPivot(Vector2.one * UiScale, new Vector2(Screen.width / 2f, Screen.height / 2f));
-
         StorageBox.FindNearby(transform.position, storageRange, nearbyStorages);
-
-        // Height was already screen-responsive (capped to fit) before this
-        // scaling existed — divide the on-screen budget by UiScale so the
-        // *scaled* result still fits, instead of letting a capped-but-now-
-        // 1.5x-bigger panel run off the top/bottom of a smaller display.
-        float height = Mathf.Min((Screen.height - 40f) / UiScale, 700f);
-        var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - height) / 2f, PanelWidth, height);
-
-        DebugGUI.DrawPanel(rect);
-        GUILayout.BeginArea(rect);
 
         DrawCurrencySection();
         GUILayout.Space(10);
 
-        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(height - 60f - CurrencySectionHeight));
+        float scrollHeight = Mathf.Min(Screen.height - ChromeReserve - CurrencySectionHeight, 640f);
+        scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(scrollHeight));
 
         GUILayout.Label("Inventory", DebugGUI.Header);
         DrawInventorySection();
 
         GUILayout.Space(10);
         GUILayout.Label("Equipment", DebugGUI.Header);
-        DrawEquipmentSection();
+
+        GUILayout.BeginHorizontal();
+        GUILayout.BeginVertical();
+        var wornContainer = DrawEquipmentSection();
+        GUILayout.EndVertical();
+
+        // A worn container's (currently only a Backpack, on Back) own
+        // contents render in a side column instead of directly under its
+        // equipment row — used to expand inline there, which pushed every
+        // later slot row down by an unpredictable amount and made the list
+        // harder to scan. The row itself just shows "Equipped" now (see
+        // DrawEquipmentSection).
+        if (wornContainer != null)
+        {
+            GUILayout.Space(20);
+            GUILayout.BeginVertical();
+            DrawContainerContents(wornContainer.Inventory, $"{wornContainer.DisplayName} contents (click an item for options)");
+            GUILayout.EndVertical();
+        }
+        GUILayout.EndHorizontal();
 
         if (nearbyStorages.Count > 0)
         {
@@ -186,16 +156,27 @@ public class InventoryScreen : MonoBehaviour
         }
 
         GUILayout.EndScrollView();
+    }
 
-        if (GUILayout.Button("Close", GUILayout.Width(100)))
-            SetOpen(false);
-
-        GUILayout.EndArea();
-
+    // Called by PlayerMenuScreen right after ending its own full-screen
+    // BeginArea, only while the Inventory tab is active — these are
+    // absolutely-positioned popups (screen-centered) that need to sit on
+    // top of, not nested inside, the tab content area.
+    public void DrawPopups()
+    {
         DrawPendingMovePopup();
         DrawCoinDropPopup();
+    }
 
-        GUI.matrix = savedMatrix;
+    // Called by PlayerMenuScreen when the whole Tab menu closes, so a
+    // still-open "where should this go?" or coin-drop popup doesn't stay
+    // stuck open the next time the menu is reopened.
+    public void ResetPopups()
+    {
+        pendingMoveItem = null;
+        pendingMoveSource = null;
+        choosingStorage = false;
+        pendingDropCoinType = null;
     }
 
     // Small "where should this go?" dialog shown after clicking an item
@@ -531,8 +512,12 @@ public class InventoryScreen : MonoBehaviour
             miningShieldCarrier.Drop(miningShieldDropClicked);
     }
 
-    private void DrawEquipmentSection()
+    // Returns the currently-worn container (a Backpack on Back, today the
+    // only case), if any, so DrawContent() can render its contents in a
+    // side column instead of inline under the row here.
+    private IInventoryHolder DrawEquipmentSection()
     {
+        IInventoryHolder wornContainer = null;
         Backpack backpackEquipClicked = null;
         Backpack backpackUnequipClicked = null;
         Backpack backpackDropClicked = null;
@@ -573,7 +558,15 @@ public class InventoryScreen : MonoBehaviour
                 if (i < occupied.Count)
                 {
                     var entry = occupied[i];
-                    string label = entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
+
+                    // A worn container's own contents render in a side
+                    // column (see DrawContent()) rather than the item's
+                    // full name/count here — "Equipped" is enough since the
+                    // detail is visible right next to it.
+                    bool isWornContainer = entry.equipment is IInventoryHolder && slotName == "Back";
+                    string label = isWornContainer
+                        ? "Equipped"
+                        : entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
 
                     if (entry.equipment == null)
                     {
@@ -692,18 +685,7 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.EndHorizontal();
 
             if (nestedHolder != null)
-            {
-                // Without this, the container's contents grid sits right
-                // beneath the Back row's Unequip/Drop buttons with almost no
-                // gap — a click aimed at the grid's top row can land on
-                // Unequip/Drop instead, dropping/unequipping the backpack
-                // itself instead of acting on the item inside it. Confirmed
-                // as the cause of two separate reports (2026-08-03): moving
-                // a Canteen out this way dropped the backpack, and moving a
-                // Rock out unequipped it into the main inventory.
-                GUILayout.Space(6);
-                DrawContainerContents(nestedHolder.Inventory, $"{nestedHolder.DisplayName} contents (click an item for options)");
-            }
+                wornContainer = nestedHolder;
         }
 
         if (backpackEquipClicked != null) backpackCarrier.Equip(backpackEquipClicked);
@@ -723,6 +705,8 @@ public class InventoryScreen : MonoBehaviour
         if (miningShieldEquipClicked != null) miningShieldCarrier.Equip(miningShieldEquipClicked);
         if (miningShieldUnequipClicked != null) miningShieldCarrier.Unequip(miningShieldUnequipClicked);
         if (miningShieldDropClicked != null) miningShieldCarrier.Drop(miningShieldDropClicked);
+
+        return wornContainer;
     }
 
     // Draws an inventory's own capacity as a wrapped grid of boxes. Occupied

@@ -6,9 +6,10 @@ using UnityEngine.InputSystem;
 // open/close/cursor-lock convention as every other screen (Inventory,
 // Crafting, Skills, Bank, Lockbox): only opens while the cursor is already
 // locked, so it can't stack on top of another open screen.
+[RequireComponent(typeof(AdminSpawnScreen))]
 public class GameMenuScreen : MonoBehaviour
 {
-    private enum Tab { Player, Audio, Graphics, Controls, Credits }
+    private enum Tab { Player, Audio, Graphics, Controls, Credits, Admin }
 
     // Alphabetized by the key/binding's display name (not grouped by
     // category) — a flat reference list, per the request. Update this
@@ -20,14 +21,12 @@ public class GameMenuScreen : MonoBehaviour
         ("E", "Interact (pick up / open / use)"),
         ("Escape", "Close the open screen / toggle cursor lock"),
         ("F", "Secondary interact (e.g. Fill Canteen at a water source)"),
-        ("I", "Toggle Inventory screen"),
         ("Left Mouse Button", "Punch (break a resource node)"),
         ("Left Shift (hold)", "Sprint"),
         ("Mouse Movement", "Look around"),
-        ("O", "Toggle Crafting screen"),
         ("Right Mouse Button", "Rename a world object"),
         ("Space", "Jump"),
-        ("U", "Toggle Skills screen"),
+        ("Tab", "Open the player menu (Inventory / Skills / Crafting)"),
         ("W A S D", "Move"),
         ("X", "Toggle Kneel stance"),
         ("Z", "Toggle Prone stance"),
@@ -39,8 +38,14 @@ public class GameMenuScreen : MonoBehaviour
 
     private bool isOpen;
     private Tab currentTab = Tab.Player;
+    private AdminSpawnScreen adminSpawnScreen;
 
     public bool IsOpen => isOpen;
+
+    private void Awake()
+    {
+        adminSpawnScreen = GetComponent<AdminSpawnScreen>();
+    }
 
     private void Update()
     {
@@ -82,6 +87,7 @@ public class GameMenuScreen : MonoBehaviour
             case Tab.Graphics: DrawGraphicsTab(); break;
             case Tab.Controls: DrawControlsTab(); break;
             case Tab.Credits: DrawCreditsTab(); break;
+            case Tab.Admin: adminSpawnScreen.DrawContent(); break;
         }
 
         GUILayout.FlexibleSpace();
@@ -96,7 +102,7 @@ public class GameMenuScreen : MonoBehaviour
         GUILayout.BeginHorizontal();
         foreach (Tab tab in Enum.GetValues(typeof(Tab)))
         {
-            var style = tab == currentTab ? DebugGUI.Header : DebugGUI.Label;
+            var style = tab == currentTab ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
             if (GUILayout.Button(tab.ToString(), style, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
                 currentTab = tab;
         }

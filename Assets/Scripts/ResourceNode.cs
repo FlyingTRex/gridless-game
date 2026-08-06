@@ -11,12 +11,20 @@ public class ResourceNode : MonoBehaviour, IPunchable
     [SerializeField] private float respawnDelay = 180f;
     [SerializeField] private float respawnScatter = 0.5f;
 
-    // Null (default) means no tool needed — punching bare-handed works,
-    // same as Rock Node's existing behavior. Set to gate a node behind a
-    // specific tool (e.g. Copper Ore requires a Pickaxe, Tree requires an
-    // Axe) — checked via PlayerEquipment.HasInHand, so the tool has to
-    // actually be held in a hand, not just carried somewhere in inventory.
-    [SerializeField] private ItemDefinition requiredTool;
+    // Null/empty (default) means no tool needed — punching bare-handed
+    // works, same as Rock Node's existing behavior. Populate to gate a node
+    // behind a specific tool (e.g. Copper Ore requires a Pickaxe, Tree
+    // requires an Axe) — checked via PlayerEquipment.HasInHand, so the tool
+    // has to actually be held in a hand, not just carried somewhere in
+    // inventory. An array, not a single item, because a tool now comes in
+    // 5 CraftTiers as of 2026-08-05 — any one of them satisfies the gate,
+    // not just one specific tier's exact asset.
+    [SerializeField] private ItemDefinition[] requiredTools;
+
+    // Display name for the tool in Prompt below (e.g. "Pickaxe") —
+    // independent of which exact tier is actually equipped, since any tier
+    // in requiredTools satisfies the gate.
+    [SerializeField] private string requiredToolLabel;
 
     // Null (default) means no disguise — this node always looks like
     // chunkPrefab's true resource and always yields it, same as every node
@@ -45,9 +53,11 @@ public class ResourceNode : MonoBehaviour, IPunchable
     // SecretMessageWall already uses for finding PlayerSunglasses.
     private PlayerMiningFaceShield shieldWearer;
 
-    public string Prompt => requiredTool != null
-        ? $"Punch to break (requires {requiredTool.itemName})"
+    public string Prompt => HasToolRequirement
+        ? $"Punch to break (requires {requiredToolLabel})"
         : "Punch to break";
+
+    private bool HasToolRequirement => requiredTools != null && requiredTools.Length > 0;
 
     private bool IsDisguised => hiddenMaterial != null;
     private bool IsRevealed => shieldWearer != null && shieldWearer.IsWorn;
@@ -80,10 +90,10 @@ public class ResourceNode : MonoBehaviour, IPunchable
 
     public void OnPunch(GameObject player)
     {
-        if (requiredTool != null)
+        if (HasToolRequirement)
         {
             var equipment = player.GetComponent<PlayerEquipment>();
-            if (equipment == null || !equipment.HasInHand(requiredTool)) return;
+            if (equipment == null || !HasAnyRequiredToolInHand(equipment)) return;
         }
 
         hitsTaken++;
@@ -111,6 +121,15 @@ public class ResourceNode : MonoBehaviour, IPunchable
 
         SetVisible(false);
         respawnAt = Time.time + respawnDelay;
+    }
+
+    private bool HasAnyRequiredToolInHand(PlayerEquipment equipment)
+    {
+        foreach (var tool in requiredTools)
+        {
+            if (tool != null && equipment.HasInHand(tool)) return true;
+        }
+        return false;
     }
 
     // Same spot it started at, with a small random horizontal shift, fully

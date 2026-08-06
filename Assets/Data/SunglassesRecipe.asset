@@ -17,5 +17,5 @@ MonoBehaviour:
     count: 1
   outputItem: {fileID: 11400000, guid: accd20e48c401a145a38cd1e9f8bb5ed, type: 2}
   outputCount: 1
-  trainedSkill: {fileID: 11400000, guid: 47cc22c6ae0afcfa9e4951f5dd4e1445, type: 2}
+  trainedSkill: {fileID: 0}
   skillGain: 2

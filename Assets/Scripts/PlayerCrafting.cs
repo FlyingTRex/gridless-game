@@ -10,9 +10,11 @@ public class PlayerCrafting : MonoBehaviour
     private PlayerInventory inventory;
     private PlayerSkills skills;
     private PlayerBackpack backpackCarrier;
+    private PlayerEquipment equipment;
     private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
-    // Read by CraftingScreen (toggled with O) to render the recipe list.
+    // Read by CraftingScreen (the Crafting tab of PlayerMenuScreen, Tab key)
+    // to render the recipe list.
     public IReadOnlyList<CraftingRecipe> Recipes => recipes;
 
     private void Awake()
@@ -20,6 +22,7 @@ public class PlayerCrafting : MonoBehaviour
         inventory = GetComponent<PlayerInventory>();
         skills = GetComponent<PlayerSkills>();
         backpackCarrier = GetComponent<PlayerBackpack>();
+        equipment = GetComponent<PlayerEquipment>();
     }
 
     // Every Inventory a recipe is allowed to draw materials from: the main
@@ -39,7 +42,7 @@ public class PlayerCrafting : MonoBehaviour
             yield return box.Inventory;
     }
 
-    // Read by CraftingScreen to show how much of an ingredient you
+    // Read by CraftingScreen's DrawContent() to show how much of an ingredient you
     // actually have access to, matching what HasIngredients/TryCraft use —
     // not just what's in the main inventory.
     public int GetAvailableCount(ItemDefinition item)
@@ -64,9 +67,26 @@ public class PlayerCrafting : MonoBehaviour
         return true;
     }
 
+    // True if recipe has no tool requirement, or any one of its
+    // requiredTools is currently held in a hand (not consumed — same "any
+    // tier counts" check ResourceNode uses for Pickaxe/Axe gating).
+    public bool HasRequiredTool(CraftingRecipe recipe)
+    {
+        if (recipe?.requiredTools == null || recipe.requiredTools.Length == 0) return true;
+        if (equipment == null) return false;
+
+        foreach (var tool in recipe.requiredTools)
+        {
+            if (tool != null && equipment.HasInHand(tool)) return true;
+        }
+
+        return false;
+    }
+
     public bool TryCraft(CraftingRecipe recipe)
     {
         if (recipe == null || recipe.outputItem == null || recipe.ingredients == null) return false;
+        if (!HasRequiredTool(recipe)) return false;
 
         // Checked before removing any ingredient so a full inventory can't
         // consume materials without being able to hold the output.

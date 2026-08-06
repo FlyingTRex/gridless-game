@@ -53,7 +53,7 @@ public class PlayerRenaming : MonoBehaviour
 
     // Called by FirstPersonController when Escape re-locks the cursor, so
     // the two toggles can't drift out of sync with each other (mirrors
-    // InventoryScreen.Close()).
+    // PlayerMenuScreen.Close()).
     public void Close()
     {
         target = null;

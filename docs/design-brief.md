@@ -469,13 +469,57 @@ a new interaction model for every tool-driven action. **Decided in shape, not in
 exact numbers** — see "Still open" at the end. Nothing here is built yet; this is
 the plan to review before any of it becomes actual implementation work.
 
-**Skills (9 total):** `Gathering` (existing — now scoped specifically to Sticks,
-Berries, and plain Rock: general "stuff found on the ground/bushes"), `Mining`
-(new — ore specifically: breaking any Ore Node trains Mining, not Gathering; also
-governs the ore-detection ability below), `Woodworking`, `Stonework`,
-`Metalworking`, `Forging`, `Minting`, `Sewing`, `Crafting` (final assembly). The
-`Mining` split from `Gathering` was raised earlier and initially deferred, then
-decided in a later pass of the same session — no longer open.
+**Skills (8 total, plus a separate weapon-usage tier — see below):**
+`Gathering` (existing — now scoped specifically to Sticks, Berries, and plain
+Rock: general "stuff found on the ground/bushes"), `Mining` (new — ore
+specifically: breaking any Ore Node trains Mining, not Gathering; also governs
+the ore-detection ability below), `Woodworking`, `Stonework`, `Metalworking`,
+`Forging`, `Minting`, `Sewing`. The `Mining` split from `Gathering` was raised
+earlier and initially deferred, then decided in a later pass of the same
+session — no longer open. `Crafting` (final assembly) was originally a 9th
+skill here — **retired 2026-08-05**, see the discipline-sort rule immediately
+below for why.
+
+**Which discipline claims a finished item — resolved 2026-08-05.** Every
+finished item is governed by exactly one of the six material-discipline skills
+above (not `Crafting`, which no longer exists as a category), determined by
+its *defining* material — not every ingredient, just the one that conceptually
+makes the item what it is. A stone head/edge defines a Knife/Hammer/Axe/
+Pickaxe → `Stonework`, even though all four also consume a Stick. A wood body/
+stave defines a Bow → `Woodworking`, even once rope/fiber is involved. This is
+why `Crafting` retired: once every item sorts cleanly by defining material,
+there's no leftover catch-all category left for it to cover. **Shipped
+same-day, v0.1.70-dev:** `Crafting.asset` deleted, the 6 discipline skills
+created, all 20 tool recipes repointed to `Stonework`. The 5 items without a
+clean defining material (Sunglasses, Nav Computer, Health Monitor, Mining
+Face Shield, Canteen) didn't get force-fit into a discipline — they train no
+skill at all for now ("just to test ideas up front," not designed with this
+rule in mind).
+
+**Dual skill tracks.** Crafting an item trains two things from the same
+action: the broad discipline skill (e.g. `Woodworking`), and a narrow
+per-item-family proficiency specific to that exact item (e.g. Bow-making,
+distinct from Spear-making even though both are `Woodworking`). The broad
+skill isn't just a `CraftTier` ceiling (per the weakest-link rule below) — it's
+also a **recipe unlock gate**: some recipes aren't attemptable at all until the
+discipline skill clears a threshold, not just capped to a lower tier if
+attempted early. Per-item proficiency is new data, not yet designed —
+`PlayerSkills` today is one float per `SkillDefinition`, which fits the broad
+half; the narrow half needs a second dimension nothing currently tracks (keyed
+per item-family, not per named skill, so not a `SkillDefinition` at all).
+
+**Weapon usage skills — resolved 2026-08-05.** Using a weapon — combat or
+hunting, no split between the two, decided explicitly (the physical act
+doesn't meaningfully differ) — trains a skill determined by weapon *type*,
+entirely separate from the discipline that *crafting* it trains. Granular, not
+one umbrella "Weapon Skills": **Archery**, **Spear**, **Sword**, **Gun**,
+**Bare-handed** — five independent skills. E.g. crafting a Bow trains
+`Woodworking` (its defining material); shooting it, at anything, trains
+`Archery`. Far downstream of anything buildable today — no combat or hunting
+system exists yet (same reason Spear/Bow were deferred from the 2026-08-05
+tool-tier batch, see `CHANGELOG.md` v0.1.69-dev) — captured here so the
+eventual system has a settled shape to build toward rather than being designed
+from scratch later.
 
 **Core tier rule — weakest link.** A crafted item's `CraftTier` is the *lower* of
 (a) what the relevant skill's current level allows, and (b) the tier of every
@@ -511,15 +555,21 @@ interaction primitive.
   bare hands work, just slower and lower-yield (worked example: bare hands = 10s
   for 2 Small Rock; Pickaxe = 8s for 3). Copper Ore and Trees stay **hard-gated** —
   no tool, no interaction at all, consistent with what's already shipped
-  (`ResourceNode.requiredTool`).
+  (`ResourceNode.requiredTools` — generalized to accept any tier of a tool
+  2026-08-05, see `CHANGELOG.md` v0.1.69-dev).
 - Whether *final* Crafting (assembling refined materials into a finished item,
   currently the Crafting screen's instant "Craft" button) also becomes a timed
   click-and-locked action, or stays instant/menu-based, was raised and not yet
   resolved.
 
 **Material web:**
-- **Wood:** Stick →(Knife, Woodworking)→ Trimmed Stick. Tree →(Axe)→ Logs + Twigs
-  (Twigs is a secondary yield alongside Logs) →(Saw, Woodworking)→ Planks.
+- **Wood:** Stick →(Knife, Woodworking)→ Trimmed Stick. **Shipped v0.1.71-dev**
+  — full 5-`CraftTier` treatment (Ben's call, not staged as a single item
+  first), via the Crafting tab rather than the click-and-locked model below
+  (that's still unbuilt) — a `CraftingRecipe` with a Knife (any tier) as a
+  held-not-consumed `requiredTools` entry, consuming 1 Stick, training
+  Woodworking. Tree →(Axe)→ Logs + Twigs (Twigs is a secondary yield
+  alongside Logs) →(Saw, Woodworking)→ Planks — still unbuilt.
   (Renaming note: the chop-tree output shipped this session as an item literally
   named "Wood" — rename to **Logs** whenever this is implemented.)
 - **Foraging:** Bush →(search)→ Berries, randomized rather than a guaranteed pickup
@@ -563,15 +613,27 @@ interaction primitive.
     for the harder, higher-value metals.
   - Furnace is a new placeable *structure*, not a held tool — outlined only
     (transfer ore + fuel in, get metal out), not designed in detail.
-- **Hunting weapons** (final `Crafting`-skill recipes, not new systemic mechanics):
-  Stick + Rope → Bow; Stick + Rock → Arrows; Fabric → Quiver; Knife + Stick + Rock →
-  Spear. Purpose: enables basic hunting, ties into the design brief's combat pillar
-  and presumably feeds an animals/meat/hide loop down the line (not designed here).
+- **Hunting weapons** (final assembly recipes, not new systemic mechanics —
+  Woodworking-discipline now that `Crafting` retired, see the 2026-08-05
+  discipline-sort update above): Stick + Rope → Bow; Stick + Rock → Arrows;
+  Fabric → Quiver; Knife + Stick + Rock → Spear. Crafting these trains
+  Woodworking; *using* them trains the separate weapon-usage skills above
+  (Archery for Bow, Spear for Spear). Purpose: enables basic hunting, ties
+  into the design brief's combat pillar and presumably feeds an animals/meat/
+  hide loop down the line (not designed here).
 
 **Still open (explicitly not decided, don't assume defaults):**
 - Actual skill-level thresholds that unlock each `CraftTier`, per skill — each of
-  the 9 skills gets its own curve, not one shared table. (This now also covers the
+  the 8 skills gets its own curve, not one shared table. (This now also covers the
   Mining-tier-4 shield-bypass threshold specifically, not just `CraftTier` output.)
+- The recipe-unlock thresholds themselves (2026-08-05) — how much of a discipline
+  skill, specifically, before a given item's recipe becomes attemptable at all.
+- The data/UI shape for narrow per-item proficiency (2026-08-05) — not a
+  `SkillDefinition`, keyed per item-family instead; nothing about how it's
+  tracked, displayed, or how quickly it climbs has been designed.
+- The weapon-usage skills (Archery/Spear/Sword/Gun/Bare-handed, 2026-08-05) don't
+  mean anything without an actual combat/hunting system, which doesn't exist and
+  isn't designed here — only the skill *shape* is settled, nothing mechanical.
 - Whether tool tier also boosts skill-gain rate, separately from yield/quality/speed.
 - Whether final Crafting (assembly) becomes a timed click-and-locked action or
   stays the current instant menu-based "Craft" button.

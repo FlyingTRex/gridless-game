@@ -33,10 +33,8 @@ public class FirstPersonController : MonoBehaviour
 
     private CharacterController controller;
     private PlayerVitals vitals;
-    private InventoryScreen inventoryScreen;
     private PlayerRenaming renaming;
-    private SkillsScreen skillsScreen;
-    private CraftingScreen craftingScreen;
+    private PlayerMenuScreen playerMenuScreen;
     private BankScreen bankScreen;
     private LockboxScreen lockboxScreen;
     private GameMenuScreen gameMenuScreen;
@@ -48,10 +46,8 @@ public class FirstPersonController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         vitals = GetComponent<PlayerVitals>();
-        inventoryScreen = GetComponent<InventoryScreen>();
         renaming = GetComponent<PlayerRenaming>();
-        skillsScreen = GetComponent<SkillsScreen>();
-        craftingScreen = GetComponent<CraftingScreen>();
+        playerMenuScreen = GetComponent<PlayerMenuScreen>();
         bankScreen = GetComponent<BankScreen>();
         lockboxScreen = GetComponent<LockboxScreen>();
         gameMenuScreen = GetComponent<GameMenuScreen>();
@@ -87,10 +83,8 @@ public class FirstPersonController : MonoBehaviour
             // cursor and the screen's own open/closed state disagreeing.
             if (!wasLocked)
             {
-                inventoryScreen?.Close();
                 renaming?.Close();
-                skillsScreen?.Close();
-                craftingScreen?.Close();
+                playerMenuScreen?.Close();
                 bankScreen?.Close();
                 lockboxScreen?.Close();
                 gameMenuScreen?.Close();
@@ -133,8 +127,8 @@ public class FirstPersonController : MonoBehaviour
         if (keyboard == null) return;
 
         // Same guard as HandleLook — while any screen has the cursor
-        // unlocked (Inventory, Crafting, Skills, renaming a world object),
-        // WASD/Space shouldn't move or jump the player. Previously only
+        // unlocked (the player menu, renaming a world object), WASD/Space
+        // shouldn't move or jump the player. Previously only
         // look was gated, so e.g. typing a space into the rename box's
         // text field also triggered a jump.
         if (Cursor.lockState != CursorLockMode.Locked) return;
@@ -202,7 +196,7 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.64-dev";
+    private const string GameVersion = "0.1.72-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

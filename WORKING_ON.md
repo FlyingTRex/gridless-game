@@ -12,4 +12,4 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-(none right now)
+- 2026-08-05 — Ben (Claude session) — Tiering Knife/Hammer/Axe/Pickaxe across all 5 CraftTiers (consolidating the existing Rock Knife/Rock Hammer/Axe/Pickaxe as the Crude tier), plus generalizing ResourceNode's tool gating to accept any tier.

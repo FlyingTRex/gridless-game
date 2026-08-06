@@ -3,10 +3,10 @@ using UnityEngine;
 
 // A stationary world container (a chest/box placed in the level). Doesn't
 // implement IInteractable — there's no pickup/use prompt. Instead
-// InventoryScreen auto-detects any box within range every frame the I
-// screen is open and draws its contents alongside the player's own
-// inventory, so storing/retrieving items just means walking up and
-// pressing I.
+// InventoryScreen auto-detects any box within range every frame the Inventory
+// tab of PlayerMenuScreen is open and draws its contents alongside the
+// player's own inventory, so storing/retrieving items just means walking up
+// and pressing Tab.
 public class StorageBox : MonoBehaviour, IRenameable
 {
     // Every enabled box registers here so InventoryScreen can find nearby

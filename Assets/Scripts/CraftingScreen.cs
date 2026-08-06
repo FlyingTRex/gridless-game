@@ -1,23 +1,33 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
 
-// Crafting recipe list, toggled with O. Was previously an inline "(craft
-// X)" button next to a matching item in InventoryScreen's main list;
-// pulled out into its own screen, listing every known recipe (not just
-// ones you currently happen to be holding the input for) alongside how
-// many of the input you have on hand.
+// Crafting recipe list — drawn as the Crafting tab inside PlayerMenuScreen
+// (Tab key). Used to be its own screen toggled with O; folded in
+// 2026-08-04 so Inventory/Skills/Crafting all live under one key instead of
+// three. Lists every known recipe (not just ones you currently happen to be
+// holding the input for) alongside how many of the input you have on hand.
+//
+// Sub-tabbed by discipline (2026-08-05) — a flat list stopped scaling once
+// the recipe count jumped from ~9 to 25 with the tool tiers. `disciplines`
+// is an explicit, hand-maintained list (like GameMenuScreen.ControlsList or
+// PlayerCrafting.recipes) rather than discovered dynamically, so a
+// discipline with zero recipes still shows its own tab with an honest
+// placeholder instead of silently not existing. Recipes with no
+// `trainedSkill` (gadgets that don't have a clean defining material — see
+// docs/design-brief.md's 2026-08-05 discipline-sort update) land in the
+// fixed "Other" tab.
 [RequireComponent(typeof(PlayerCrafting))]
 [RequireComponent(typeof(PlayerInventory))]
 public class CraftingScreen : MonoBehaviour
 {
-    private const float PanelWidth = 460f;
-    private const float PanelHeight = 320f;
+    private const float TabWidth = 130f;
+    private const float TabHeight = 28f;
+    private const int OtherTabIndex = -1;
+
+    [SerializeField] private SkillDefinition[] disciplines;
 
     private PlayerCrafting crafting;
     private PlayerInventory playerInventory;
-    private bool isOpen;
-
-    public bool IsOpen => isOpen;
+    private int currentDisciplineIndex;
 
     private void Awake()
     {
@@ -25,48 +35,34 @@ public class CraftingScreen : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
     }
 
-    private void Update()
+    // Called by PlayerMenuScreen while its Crafting tab is active.
+    public void DrawContent()
     {
-        if (Keyboard.current == null || !Keyboard.current.oKey.wasPressedThisFrame) return;
-
-        // Always allow closing. Only allow opening from normal gameplay —
-        // not while some other screen already has the cursor unlocked,
-        // which would stack this on top of it.
-        if (isOpen || Cursor.lockState == CursorLockMode.Locked)
-            SetOpen(!isOpen);
-    }
-
-    // Called by FirstPersonController when Escape re-locks the cursor, so
-    // the two toggles can't drift out of sync with each other.
-    public void Close() => SetOpen(false);
-
-    private void SetOpen(bool value)
-    {
-        isOpen = value;
-        Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
-        Cursor.visible = value;
-    }
-
-    private void OnGUI()
-    {
-        if (!isOpen) return;
-
-        var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - PanelHeight) / 2f, PanelWidth, PanelHeight);
-        DebugGUI.DrawPanel(rect);
-        GUILayout.BeginArea(rect);
         GUILayout.Label("Crafting", DebugGUI.Header);
+        DrawDisciplineTabs();
+        GUILayout.Space(10);
+
+        SkillDefinition wantSkill = currentDisciplineIndex != OtherTabIndex && disciplines != null
+            && currentDisciplineIndex >= 0 && currentDisciplineIndex < disciplines.Length
+            ? disciplines[currentDisciplineIndex]
+            : null;
 
         CraftingRecipe craftClicked = null;
         var recipes = crafting.Recipes;
+        bool any = false;
         if (recipes != null)
         {
             foreach (var recipe in recipes)
             {
                 if (recipe == null || recipe.outputItem == null || recipe.ingredients == null || recipe.ingredients.Length == 0)
                     continue;
+                if (recipe.trainedSkill != wantSkill) continue;
+
+                any = true;
 
                 bool hasEnough = crafting.HasIngredients(recipe);
                 bool hasSpace = playerInventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount);
+                bool hasTool = crafting.HasRequiredTool(recipe);
 
                 string needs = "";
                 foreach (var ingredient in recipe.ingredients)
@@ -77,6 +73,8 @@ public class CraftingScreen : MonoBehaviour
                 }
 
                 string label = $"{recipe.outputItem.itemName}  (needs {needs})";
+                if (recipe.requiredTools != null && recipe.requiredTools.Length > 0)
+                    label += hasTool ? $"  [{recipe.requiredToolLabel} in hand]" : $"  — requires {recipe.requiredToolLabel} in hand";
                 if (hasEnough && !hasSpace)
                     label += "  — inventory full";
 
@@ -87,7 +85,7 @@ public class CraftingScreen : MonoBehaviour
                 // silently does nothing when the recipe can't be made —
                 // the missing feedback that made a failed craft look like
                 // nothing happened at all.
-                GUI.enabled = hasEnough && hasSpace;
+                GUI.enabled = hasEnough && hasSpace && hasTool;
                 if (GUILayout.Button("Craft", GUILayout.Width(60)))
                     craftClicked = recipe;
                 GUI.enabled = true;
@@ -96,12 +94,32 @@ public class CraftingScreen : MonoBehaviour
             }
         }
 
+        if (!any)
+            GUILayout.Label("No recipes yet.", DebugGUI.Label);
+
         if (craftClicked != null)
             crafting.TryCraft(craftClicked);
+    }
 
-        if (GUILayout.Button("Close", GUILayout.Width(100)))
-            SetOpen(false);
+    private void DrawDisciplineTabs()
+    {
+        GUILayout.BeginHorizontal();
 
-        GUILayout.EndArea();
+        if (disciplines != null)
+        {
+            for (int i = 0; i < disciplines.Length; i++)
+            {
+                if (disciplines[i] == null) continue;
+                var style = currentDisciplineIndex == i ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
+                if (GUILayout.Button(disciplines[i].skillName, style, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
+                    currentDisciplineIndex = i;
+            }
+        }
+
+        var otherStyle = currentDisciplineIndex == OtherTabIndex ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
+        if (GUILayout.Button("Other", otherStyle, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
+            currentDisciplineIndex = OtherTabIndex;
+
+        GUILayout.EndHorizontal();
     }
 }

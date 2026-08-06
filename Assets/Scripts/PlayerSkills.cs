@@ -8,8 +8,8 @@ public class PlayerSkills : MonoBehaviour
 
     private readonly Dictionary<SkillDefinition, float> levels = new Dictionary<SkillDefinition, float>();
 
-    // Read by SkillsScreen (toggled with U) to render the level list —
-    // this component no longer draws its own UI.
+    // Read by SkillsScreen (the Skills tab of PlayerMenuScreen, Tab key) to
+    // render the level list — this component no longer draws its own UI.
     public IReadOnlyDictionary<SkillDefinition, float> Levels => levels;
 
     public float GetLevel(SkillDefinition skill) =>

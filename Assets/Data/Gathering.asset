@@ -13,3 +13,4 @@ MonoBehaviour:
   m_Name: Gathering
   m_EditorClassIdentifier: Assembly-CSharp::SkillDefinition
   skillName: Gathering
+  category: 0

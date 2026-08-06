@@ -50,16 +50,26 @@ public class PlayerDropping : MonoBehaviour
             return;
         }
 
-        var prefab = item.worldPickupPrefab != null ? item.worldPickupPrefab : droppedItemPrefab;
-        if (prefab == null) return;
-
         int count = source.GetCount(item);
         if (count <= 0 || !source.RemoveItem(item, count)) return;
 
-        Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
-        var dropped = Instantiate(prefab, position, Quaternion.identity);
+        SpawnPickup(item, count);
+    }
 
-        if (dropped.TryGetComponent(out Pickup pickup))
+    // Instantiates item's world pickup prefab (or the generic fallback) at
+    // dropDistance/dropHeight in front of the player and configures it.
+    // Shared by DropFrom above (removing from an inventory first) and
+    // AdminSpawnScreen's dev/test spawn tool (no inventory involved at
+    // all — conjures the item from nothing).
+    public void SpawnPickup(ItemDefinition item, int count = 1)
+    {
+        var prefab = item.worldPickupPrefab != null ? item.worldPickupPrefab : droppedItemPrefab;
+        if (prefab == null) return;
+
+        Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        var spawned = Instantiate(prefab, position, Quaternion.identity);
+
+        if (spawned.TryGetComponent(out Pickup pickup))
             pickup.Configure(item, count);
     }
 }

@@ -5,12 +5,248 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.64-dev` — must always match `GameVersion` in
+**Current version:** `0.1.72-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
+## 2026-08-06
+
+### v0.1.72-dev — Trimmed the default startup scene
+
+Ben's planning pass: reviewed everything that spawns in `TestScene.unity`
+at startup (29 named spawn points, later corrected to 33 actual root
+objects once queried precisely) and cut it down to reduce clutter.
+
+**Removed from `TestScene.unity`** (deleted outright, not disabled):
+5 Coins (Copper/Iron/Silver/Gold/Platinum), Secret Wall, Navigation
+Computer, Personal Health Monitor, Sunglasses, Mining Face Shield,
+Silver/Gold/Platinum Ore Nodes, the larger Storage Box (Small Storage Box
+kept), and 3 of the 4 Trees (1 kept). Backpack and Canteen were the two
+gadgets explicitly kept as starter gear. Silver/Gold/Platinum Ore Nodes
+specifically are needed again later for testing, not gone for good.
+
+Verified via Unity's own `GetRootGameObjects()` (not raw YAML grep — Trees
+are prefab instances and don't literally contain `m_Name: Tree` in the
+scene file, which produced a false "0 Trees remain" alarm mid-task before
+querying the scene directly resolved it): 33 → 16 root objects, exactly
+matching the 17 removed.
+
+### v0.1.71-dev — First material-web refining step: Stick + Knife → Trimmed Stick (trains Woodworking)
+
+First real content in the **Woodworking** discipline tab, which has sat
+empty since it was created a few hours earlier this same day — Stick
+→(Knife, Woodworking)→ Trimmed Stick, straight from the material web in
+`docs/design-brief.md`.
+
+- **`CraftingRecipe` gained `requiredTools[]`/`requiredToolLabel`** — a
+  recipe can now require a tool *held in a hand, not consumed*, on top of
+  its normal consumed `ingredients`. Same "any tier counts" convention as
+  `ResourceNode.requiredTools` (any of the 5 Knife tiers satisfies it, not
+  just one specific tier). `PlayerCrafting` gained a `PlayerEquipment`
+  reference and `HasRequiredTool()`; `TryCraft` checks it up front, and
+  `CraftingScreen` greys out Craft and shows `— requires Knife in hand`
+  when it's not met, same visual pattern as the existing
+  materials/inventory-space gating.
+- **5 new Trimmed Stick items + recipes** (Crude through Masterwork,
+  Ben's call — full tier treatment from the start this time, not staged
+  in as a single item first). Same "identical recipe across all 5 tiers"
+  placeholder approach as yesterday's tool tiers: each costs 1 Stick +
+  any Knife in hand, differing only in which tier's item comes out.
+  Trains `Woodworking` (`skillGain: 2`, matching every other recipe's
+  default).
+- Both throwaway batch-mode runs hit a stale `bee_backend` lock from an
+  earlier run that hadn't fully released — a Unity process sat idle for
+  several minutes producing no output before failing. No project files
+  were affected; killing the orphaned process and retrying compiled
+  clean. Worth watching for again: if a batch-mode run goes unusually
+  quiet, check for a lingering `Unity`/`bee_backend` process before
+  assuming the run itself is broken.
+
+### v0.1.70-dev — Discipline sub-tabs for Crafting/Skills, folder-tab styling, Crafting skill retired
+
+Implements the discipline-sort model from today's earlier planning
+conversation (see `docs/design-brief.md`'s 2026-08-05 Pipeline update) —
+both the backend skill/recipe repointing and the UI to actually make a
+25-recipe flat list navigable.
+
+- **`SkillDefinition` gained a `category` field** (`SkillCategory`:
+  Gathering / CraftingDiscipline / Combat) — which sub-tab of `SkillsScreen`
+  a skill's level shows under.
+- **6 new discipline skills**: Woodworking, Stonework, Metalworking,
+  Forging, Minting, Sewing (all `CraftingDiscipline` category). `Gathering`
+  migrated to the `Gathering` category (field didn't exist on it before
+  today).
+- **`Crafting` skill retired and deleted** (`Crafting.asset` removed —
+  verified zero remaining references first, not just assumed). Every item
+  now sorts into exactly one discipline by its defining material, so the
+  generic catch-all no longer has anything left to cover. All 20 tool
+  recipes (Knife/Hammer/Axe/Pickaxe × 5 tiers) repointed to **Stonework**
+  — all four are stone-headed tools today. The 5 gadget recipes
+  (Sunglasses, Nav Computer, Health Monitor, Mining Face Shield, Canteen)
+  now train **no skill at all** (`trainedSkill = null`) rather than being
+  force-fit into a discipline that was never designed for them — Ben's
+  call, they were "just to test ideas up front anyway."
+- **`CraftingScreen` sub-tabbed by discipline** — one tab per discipline
+  skill (`disciplines[]`, an explicit hand-maintained list like
+  `GameMenuScreen.ControlsList`, not discovered dynamically, so an empty
+  discipline still gets its own tab with an honest "No recipes yet."
+  placeholder) plus a fixed **Other** tab for the 5 no-skill gadget
+  recipes.
+- **`SkillsScreen` sub-tabbed by `SkillCategory`** — Gathering / Crafting
+  Disciplines / Combat. Combat is permanently empty today (no weapon
+  skills exist, no combat system to train them) — same honest-placeholder
+  treatment as `GameMenuScreen`'s Audio/Graphics tabs.
+- **File-folder tab styling** (`DebugGUI.TabSelected`/`TabUnselected`) —
+  Ben's ask, applied consistently to all four tab bars in the game
+  (`GameMenuScreen`, `PlayerMenuScreen`, and the two new sub-tab bars).
+  The selected tab shares `DrawPanel`'s exact background color and sits
+  flush against it (no border between tab and content); inactive tabs use
+  a visibly darker, receded surface. Replaces the old bold-vs-plain-text
+  distinction everywhere it was used. Pure procedural `GUIStyle`/solid-color
+  textures, no imported graphics — first pass, will need the usual
+  screenshot-feedback round to actually judge how it reads.
+
+### v0.1.69-dev — Knife/Hammer/Axe/Pickaxe now come in all 5 CraftTiers
+
+First implementation slice of the "next session" plan logged yesterday —
+preceded by a planning conversation (see that plan's entry in
+`BUGS_AND_ENHANCEMENTS.md` for the forks it resolved and why). Scope for
+today, deliberately: get the data/UI scaffolding in place, not tune real
+values. Spear and Bow are **not** part of this — deferred, since neither
+has a function yet (no combat system) and Bow's designed recipe needs the
+unbuilt Rope/Textiles chain; revisit once combat exists.
+
+- **`ItemDefinition` gained a `tier` field** (`CraftTier`, defaults to
+  `Normal`) — every item now has one, meaningful for the ones that
+  actually come in a 5-tier ladder. Needed groundwork for the eventual
+  weakest-link crafting rule, which has to read an ingredient's own tier.
+- **Consolidated the 4 existing tools as the Crude tier**, not left as
+  parallel duplicates: `Rock Knife`→`Crude Knife`, `Rock Hammer`→
+  `Crude Hammer`, `Axe`→`Crude Axe`, `Pickaxe`→`Crude Pickaxe` (renamed via
+  `AssetDatabase.RenameAsset`, so GUIDs — and every existing reference —
+  stayed intact). Added the other 4 tiers per tool as new assets: 16 new
+  `ItemDefinition`s + 16 new `CraftingRecipe`s, 20 of each total.
+- **Recipes are intentionally identical across all 5 tiers of a tool**
+  right now (Ben's call) — every tier costs the same ingredients as today's
+  Crude version. There's no gate yet stopping you from crafting a
+  Masterwork Knife as easily as a Crude one; that's expected, not a bug —
+  the weakest-link rule that would actually enforce tier progression isn't
+  built. Pure scaffolding for now.
+- **All 20 recipes train the existing `Crafting` skill**, same as before —
+  no new Woodworking/Stonework/Forging assets created. Raised during
+  planning (Hammer alone plausibly touches Forging, Woodworking, *and*
+  Stonework) and explicitly deferred rather than guess at a mapping nobody
+  was confident in; easy to repoint later once the refining pipeline
+  exists and settles which skill(s) each tool actually trains.
+- **`ResourceNode.requiredTool` (single item) → `requiredTools[]` (any of
+  these satisfy the gate) + `requiredToolLabel` (display string for the
+  prompt).** Necessary fix, not optional: the old single-reference field
+  would've only recognized *one* of the 5 Pickaxe/Axe tiers once they
+  split, silently breaking ore/tree gating for the other four. Re-wired
+  all 5 Ore Nodes (any Pickaxe tier) and `Tree.prefab` (any Axe tier) to
+  the new array; Rock Node and Boulder correctly stay tool-optional
+  (empty array).
+- **`PlayerMenuScreen`'s Skills and Crafting tabs now scroll** — added
+  ahead of the Crafting tab's recipe count jumping from ~9 to 25, which
+  would otherwise run off the bottom of the screen. Inventory's tab keeps
+  its own existing scroll view (pinned currency row) rather than getting
+  double-wrapped.
+
+### v0.1.68-dev — Admin tab: spawn any item in front of the player (Editor-only)
+
+New **Admin** tab on `GameMenuScreen` (` key) — Ben's ask, queued up
+yesterday as prep for testing tomorrow's batch of new craft-tier tools
+without having to craft each one from zero first.
+
+- New `AdminSpawnScreen`, holding the Admin tab's actual content (same
+  split as PlayerMenuScreen's tabs each owning their own component).
+  Lists every `ItemDefinition` asset in the project, alphabetized, each
+  with a **Spawn** button that materializes one directly in front of the
+  player.
+- `PlayerDropping` gained a `SpawnPickup(item, count = 1)` method —
+  extracted from the tail end of `DropFrom` (instantiate the item's
+  `worldPickupPrefab`, or the generic fallback, and `Pickup.Configure` it)
+  so Admin-spawning reuses the exact same "materialize a physical item"
+  logic a manual Drop already uses, rather than duplicating it. `DropFrom`
+  itself is unchanged in behavior, just calls the extracted method now.
+- **Editor-only, deliberately:** the item list is discovered via
+  `AssetDatabase.FindAssets("t:ItemDefinition")`, which only exists inside
+  the Editor — auto-discovery means a newly-created item (like tomorrow's
+  tool tiers) just shows up with nothing to remember to register, unlike
+  `GameMenuScreen.ControlsList` or `PlayerCrafting`'s recipes array. The
+  whole class is wrapped `#if UNITY_EDITOR` with a plain "Editor-only"
+  message on the `#else` side, so a standalone build still compiles —
+  this was never meant to ship, purely a testing aid.
+- **Known gap, not fixed here:** the handful of `IEquippable`-carrier
+  items (Backpack, Canteen, Sunglasses, Nav Computer, Health Monitor,
+  Mining Face Shield) don't have a real `worldPickupPrefab` of their own
+  (their physical form is a dedicated prefab, not the generic
+  `Pickup`-based path) — spawning one here falls back to the generic
+  dropped-item prefab and adds a plain, non-equippable stack rather than
+  a working item. Not a blocker for tomorrow's tool work (those are plain
+  stackable items), but worth a follow-up if the Admin tab needs to cover
+  gadgets too.
+
+### v0.1.67-dev — Worn backpack contents move to a side column in the Inventory tab
+
+Ben's ask: the Equipment section's rows got hard to scan whenever a
+Backpack was worn on Back, since its full contents grid rendered inline
+directly under that row, pushing every later slot (Left Arm, Right Arm,
+...) down by an unpredictable amount.
+
+- `DrawEquipmentSection()` now returns the currently-worn container
+  (`IInventoryHolder`, today only ever a worn Backpack) instead of drawing
+  its contents inline. `DrawContent()` lays the equipment list and that
+  container's contents out side by side (`GUILayout.BeginHorizontal`) —
+  the equipment column stays a uniform single-column list regardless of
+  what's worn.
+- The Back row's box now just reads **"Equipped"** instead of the item
+  name — the actual contents are visible right next to it in the new
+  column, so repeating "Backpack" there was redundant.
+- Side effect: this also removes the tight-spacing hazard the 2026-08-03
+  fix (`SafeButton`, left-click-only) was originally guarding against —
+  the contents grid no longer sits close enough beneath Unequip/Drop to
+  make a stray click land on the wrong one. `SafeButton` itself stays, no
+  reason to relax it.
+
+### v0.1.66-dev — Darker panel background for readability
+
+`DebugGUI.DrawPanel`'s shared background alpha raised from 0.65 to 0.92 —
+Ben flagged the new Tab/` menus reading as too washed-out against a bright
+sky. Since every screen (Bank, Lockbox, Inventory, Skills, Crafting,
+GameMenuScreen, PlayerMenuScreen, plus the bottom-left debug HUD) draws
+through this one shared 1x1 texture, the fix applies everywhere at once.
+
 ## 2026-08-04
+
+### v0.1.65-dev — Consolidated Inventory/Skills/Crafting into one Tab-key Player Menu
+
+New `PlayerMenuScreen`, toggled with **Tab** — same full-screen tabbed
+pattern as `GameMenuScreen` (` key), four tabs: Player (blank, same
+placeholder treatment as the ` menu's Player tab), Inventory, Skills,
+Crafting. Replaces the three independently-hotkeyed screens (I/U/O) that
+existed before — each one's own Update()/isOpen/OnGUI/hotkey was stripped
+out and its content turned into a `DrawContent()` method that
+`PlayerMenuScreen` calls into for whichever tab is active, so the
+underlying logic (fields, dependencies, popups) didn't need to move, only
+its screen chrome.
+
+- `InventoryScreen` also gained `DrawPopups()` (its screen-centered move/
+  coin-drop popups, drawn after `PlayerMenuScreen` ends its own full-screen
+  area, only while the Inventory tab is active) and `ResetPopups()` (called
+  when the whole menu closes, so a still-open popup doesn't stay stuck open
+  next time it's reopened).
+- Dropped the v0.1.50-dev 50%-`GUI.matrix`-scale boost on the Inventory
+  content — the Tab menu is already a full-screen area, much larger than
+  the old floating window that scale was compensating for. Flagged in
+  `TEST_FEATURE_PLAN.md` to re-check readability; easy to reintroduce
+  scoped to just that tab if it reads too small in practice.
+- `GameMenuScreen.ControlsList` updated per the standing rule: removed the
+  now-gone I/U/O rows, added a `Tab` row.
+- `FirstPersonController` now holds a single `playerMenuScreen` reference
+  (in place of the old `inventoryScreen`/`skillsScreen`/`craftingScreen`
+  fields) in its Escape-close list.
 
 ### v0.1.64-dev — Full-screen tabbed game menu (` key): Player/Audio/Graphics/Controls/Credits
 

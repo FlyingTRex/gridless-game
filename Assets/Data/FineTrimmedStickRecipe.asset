@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92d301792e8030a012592c540fbc7d6b, type: 3}
+  m_Name: FineTrimmedStickRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
+  ingredients:
+  - item: {fileID: 11400000, guid: d492f069a86086445a701543be636fce, type: 2}
+    count: 1
+  outputItem: {fileID: 11400000, guid: 181db6f2fa84f994c890ffa540bd1e27, type: 2}
+  outputCount: 1
+  trainedSkill: {fileID: 11400000, guid: a05cd28340d5c8b41bcf4af8f1892fe0, type: 2}
+  skillGain: 2
+  requiredTools:
+  - {fileID: 11400000, guid: b770c40f049e6c548d471825e1df0ada, type: 2}
+  - {fileID: 11400000, guid: cab50ab63360c6a4980d65ff4194a603, type: 2}
+  - {fileID: 11400000, guid: 9b1ad9cc97308904386310222340b53a, type: 2}
+  - {fileID: 11400000, guid: b67b3678beead1e4780de292a0cdbf7a, type: 2}
+  - {fileID: 11400000, guid: 895e12c4910884d418218d6e5edb27f2, type: 2}
+  requiredToolLabel: Knife

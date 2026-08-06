@@ -31,6 +31,23 @@ work) — this is the backlog between the two. Check off and move the entry to
 
   *(Reported by Ben, deferred rather than iterated on immediately —
   "we will have to work on the trees.")*
+- [ ] **Crafted items land in the plain main inventory instead of a free hand
+  or an equipped container's slot.** Surfaced 2026-08-05 when Ben crafted a
+  Pickaxe and couldn't find it — it wasn't missing, `PlayerCrafting.TryCraft`
+  had correctly placed it in the main inventory's "uncategorized" list
+  (verified: recipe/item data all wired correctly, this is a real behavior,
+  not a data bug). Ben's expectation was that it should've gone to a free
+  hand or an equipped container's inventory slot instead, matching the
+  intended end state of "Simplify item-holding to two states" below — that
+  item is about the *pickup* path specifically (Backpack → free hand →
+  inventory slot → drop), and *crafting* output was never actually brought
+  in line with it; `TryCraft` has unconditionally targeted the main
+  inventory since before this session, documented as intentional at the
+  time (see the Crafting-tab test-plan section). Logging as a bug now since
+  that's no longer the wanted behavior — fix should route crafted output
+  through the same equip-or-store priority once "Simplify item-holding to
+  two states" is built, rather than hardcoding straight to main inventory.
+  *(Reported by Ben.)*
 - [ ] **No way to move an equipped item (e.g. Canteen) into a backpack.**
   `InventoryTransfer.Move`/`Inventory.AddEquipmentItem` already support carrying an
   equipment reference into any `Inventory`, backpack included, but no UI path ever
@@ -43,6 +60,44 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Enhancements
 
+- [x] **Knife/Hammer/Axe/Pickaxe across all 5 CraftTiers — shipped
+  2026-08-05, see `CHANGELOG.md` v0.1.69-dev.** Originally scoped 2026-08-04
+  as "six base tools" (including Spear and Bow); a planning pass the next
+  day resolved several open forks before building:
+  - **Spear and Bow deferred entirely**, not part of this batch — neither
+    has a function yet (no combat/damage/projectile system exists
+    anywhere), and Bow's design-brief recipe (Stick + Rope) needs the
+    unbuilt Textiles chain (Fiber/Fabric/Rope, Sewing skill). Revisit once
+    combat exists and there's a real reason to give them stats.
+  - **Consolidated, not duplicated:** the existing `Rock Knife`/
+    `Rock Hammer`/`Axe`/`Pickaxe` became the Crude tier in place (renamed,
+    same GUIDs) rather than sitting alongside 30 brand-new parallel items.
+  - **Recipes are identical across all 5 tiers of a tool for now** — pure
+    scaffolding, no real progression gate yet. See the weakest-link item
+    below for what's still needed to make tiers actually mean something.
+  - **Skill wiring deferred, not guessed at:** all 20 recipes train the
+    existing `Crafting` skill rather than inventing Woodworking/Stonework/
+    Forging assignments now — raised during planning that a Hammer alone
+    plausibly touches at least 3 different future skills, with no way to
+    know today which is right. Revisit once the refining pipeline (which
+    is what would actually exercise those skills) is built.
+  - `Admin spawn tab — shipped 2026-08-05` (`AdminSpawnScreen.cs`, Admin
+    tab on the `` ` `` menu) landed first specifically to make testing this
+    batch easier. See the follow-up item just below for its one known gap.
+    *(Reported by Ben.)*
+- [ ] **Admin spawn tab can't spawn a working equippable gadget.**
+  `AdminSpawnScreen` (shipped v0.1.68-dev) spawns any `ItemDefinition` via
+  `PlayerDropping.SpawnPickup`, which instantiates `worldPickupPrefab` (or a
+  generic fallback) and calls `Pickup.Configure`. That's correct for plain
+  stackable items, but Backpack/Canteen/Sunglasses/Nav Computer/Health
+  Monitor/Mining Face Shield are `IEquippable` carriers whose real physical
+  form is a dedicated prefab, not the generic `Pickup` path — spawning one
+  from the Admin tab today produces a plain, non-equippable inventory stack
+  instead. Not urgent (those already have pre-placed world pickups near
+  spawn per `TEST_FEATURE_PLAN.md` §7, and tomorrow's tool batch doesn't need
+  it), but worth fixing if the Admin tab needs to cover gadgets too — likely
+  means giving each one a real `worldPickupPrefab` pointing at its own
+  carrier prefab instead of relying on the generic fallback.
 - [ ] **Apply the Boulder/Rock hybrid shape technique to the ore nodes too,
   once the rock/boulder look itself is finalized.** Ben's explicit intent
   (2026-08-04) — the ore nodes (Copper/Iron/Silver/Gold/Platinum) are still
@@ -53,7 +108,8 @@ work) — this is the backlog between the two. Check off and move the entry to
   reinventing it. Note the hidden-ore nodes (Silver/Gold/Platinum) would need
   this applied to *both* their hidden and revealed materials/meshes.
 - [ ] **Spawn a starting Pickaxe and Axe in the world for now.**
-  Ben hit this directly playtesting the ore work: `Pickaxe`/`Axe` are craft-only
+  Ben hit this directly playtesting the ore work: `Crude Pickaxe`/`Crude Axe`
+  (renamed from `Pickaxe`/`Axe` in v0.1.69-dev, same recipe) are craft-only
   today (2 Small Rock + 1 Stick / 1 Small Rock + 2 Stick), with no world pickup
   instance anywhere — unlike Backpack/Canteen/Sunglasses/Nav Computer/Health
   Monitor, which all have at least one pre-placed near spawn so a fresh
@@ -66,15 +122,38 @@ work) — this is the backlog between the two. Check off and move the entry to
   **and** one Axe (confirmed — both, same bootstrapping situation) as world
   pickups near the other starter gear. *(Reported by Ben.)*
 - [ ] **Full crafting/gathering/skills redesign — partially built.** See
-  `docs/design-brief.md`'s **Crafting, Gathering & Skills Pipeline (2026-08-04)**
-  section for the complete plan: 7 new skills (Mining, Woodworking, Stonework,
-  Metalworking, Forging, Minting, Sewing, alongside existing Gathering and
-  Crafting — 9 total), a weakest-link tier rule (skill vs. material quality), a full
-  gather→refine→assemble material web (wood, stone, metal, textiles), tool-quality
-  effects (yield/quality/speed), and a new click-once-and-locked interaction model
-  that replaces the current punch-to-break mechanic entirely. Large, cross-cutting,
-  and *decided in shape but not in exact numbers* — several sub-questions are
-  explicitly still open (see that section's own "Still open" list).
+  `docs/design-brief.md`'s **Crafting, Gathering & Skills Pipeline (2026-08-04,
+  amended 2026-08-05)** section for the complete plan: 7 new refining skills
+  (Mining, Woodworking, Stonework, Metalworking, Forging, Minting, Sewing),
+  alongside existing Gathering — **8 total**, `Crafting` having retired as a
+  distinct skill on 2026-08-05 (see next) — a weakest-link tier rule
+  (skill vs. material quality), a full gather→refine→assemble material web
+  (wood, stone, metal, textiles), tool-quality effects (yield/quality/speed),
+  and a new click-once-and-locked interaction model that replaces the current
+  punch-to-break mechanic entirely. Large, cross-cutting, and *decided in shape
+  but not in exact numbers* — several sub-questions are explicitly still open
+  (see that section's own "Still open" list).
+  **New 2026-08-05:** a planning conversation following the tool-tier work
+  above resolved three more open questions — every finished item now sorts
+  into exactly one discipline skill by its *defining* material (not every
+  ingredient); crafting an item trains that broad discipline *and* a narrow
+  per-item proficiency together, with the broad skill also gating recipe
+  unlocks, not just `CraftTier`; and a new, separate weapon-usage skill tier
+  (Archery/Spear/Sword/Gun/Bare-handed) was named for whenever combat/hunting
+  eventually exists. See the design-brief section for the full reasoning.
+  **The discipline-sort half shipped same-day, v0.1.70-dev:** `Crafting`
+  retired, 6 new discipline `SkillDefinition`s created, all 25 recipes
+  repointed (20 tools → Stonework, 5 gadgets → no skill), and both
+  `CraftingScreen`/`SkillsScreen` got sub-tabs to make the now much-longer
+  lists navigable. **Still purely design, nothing built:** the narrow
+  per-item-proficiency track (no data structure exists for it yet) and the
+  weapon-usage skill tier (needs a combat system that doesn't exist).
+  **First real material-web step shipped v0.1.71-dev:** Stick + Knife (held,
+  not consumed) → Trimmed Stick, trains Woodworking — the first thing to
+  ever populate that tab. `CraftingRecipe` gained a `requiredTools[]`/
+  `requiredToolLabel` pair for this (a tool held but not consumed, distinct
+  from `ingredients`), same "any tier counts" convention as
+  `ResourceNode.requiredTools`.
   **Shipped so far:** the full ore ladder (Iron/Silver/Gold/Platinum Ore Nodes)
   and the Mining Face Shield hidden-ore detection mechanic (visual reveal +
   yield gating both, not just the visual half) — v0.1.60/61-dev. Also
@@ -87,9 +166,10 @@ work) — this is the backlog between the two. Check off and move the entry to
   **Still not built:** the Mining skill itself as an actual `SkillDefinition`
   (nodes currently still train `Gathering`, per what already existed, not the
   newly-decided `Mining` split — that decision hasn't been wired into code yet),
-  every other skill (Woodworking/Stonework/Metalworking/Forging/Minting/Sewing),
+  four of the six discipline skills (Metalworking/Forging/Minting/Sewing —
+  Woodworking and Stonework both now have real actions training them),
   the weakest-link `CraftTier` determination itself, the full material web beyond
-  ore/stone, the randomized-size-on-spawn/yield-scaling/duration-scaling design
+  wood/stone (metal, textiles), the randomized-size-on-spawn/yield-scaling/duration-scaling design
   for Boulder/Rock, Rock → Small Rock refinement, and the new click-and-locked
   interaction model (everything still uses the old instant-hold-E/punch
   mechanics). Don't start implementing any further piece of this without

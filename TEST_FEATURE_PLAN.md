@@ -29,6 +29,18 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] Project opens directly into `TestScene` on a fresh clone (no blank `Untitled`
   scene). **Expected:** ground plane, player, and world objects visible immediately
   on Play.
+- **Startup scene trimmed 2026-08-06** (Ben's call, to declutter): the
+  5 Coins, Secret Wall, Navigation Computer, Personal Health Monitor,
+  Sunglasses, Mining Face Shield, Silver/Gold/Platinum Ore Nodes, the
+  larger Storage Box, and 3 of the 4 Trees no longer spawn by default —
+  removed from `TestScene.unity`, not disabled. Sections below that test
+  these will fail at their stated coordinates; use the **Admin** tab
+  (`` ` `` menu) to spawn any `ItemDefinition`-based one instead (gadgets,
+  ore chunks aren't items so this doesn't cover the Ore Nodes themselves —
+  those still need re-adding to the scene to test again). **Secret Wall
+  specifically can't be spawned via Admin at all** — it's a structural
+  world object, not an `ItemDefinition`/`Pickup` — testing it requires
+  manually re-adding it to the scene.
 - [ ] Bottom-left debug panel shows `Gridless <version>` matching `CHANGELOG.md`'s
   "Current version" line and `FirstPersonController.GameVersion`.
 - [ ] **Ground texture (v0.1.53-dev, tiling fixed in v0.1.54-dev):** the ground
@@ -61,8 +73,10 @@ fix the coordinate in this file rather than assuming the step is wrong.
      rather than just weak.
   Also reconfirm no pink rendering (the original shader-compatibility risk
   from v0.1.55-dev).
-- [ ] **Trees (v0.1.58-dev):** 4 `Tree.prefab` instances are placed around
-  `(6,0,6)`, `(-6,0,8)`, `(9,0,-3)`, `(-8,0,-6)` — walk to at least one and
+- [ ] **Trees (v0.1.58-dev):** originally 4 `Tree.prefab` instances around
+  `(6,0,6)`, `(-6,0,8)`, `(9,0,-3)`, `(-8,0,-6)` — **3 removed 2026-08-06**
+  to declutter the startup scene, 1 remains (exact position may not match
+  the list above — check the scene rather than assuming). Walk to it and
   confirm: the trunk/branches render as a real branching shape (not a
   cylinder or a blob), visible and correctly lit **from every angle walked
   around it** (this specifically checks whether the untested triangle-winding
@@ -113,22 +127,31 @@ fix the coordinate in this file rather than assuming the step is wrong.
   self-limiting — confirm it actually clears once Thirst drops back to 50% and
   Health stops draining.
 
-## 3. Inventory Screen (I)
+## 3. Player Menu (Tab) — Inventory Tab
 
-- [ ] **I** opens/closes the Inventory screen; **Escape** also closes it (and
-  re-locks the cursor) — the two never disagree about open/closed state.
-- [ ] I only opens while the cursor is already locked (can't stack on top of
-  another open screen — try pressing I while Crafting/Skills/Bank/Lockbox/rename
-  is open; nothing should happen).
-- [ ] Main inventory list (4 slots) shows carried items with Eat/Drink (if
+- [ ] **Tab** opens/closes the full-screen Player Menu (Player/Inventory/Skills/
+  Crafting tabs across the top); **Escape** also closes it (and re-locks the
+  cursor) — the two never disagree about open/closed state.
+- [ ] Tab only opens while the cursor is already locked (can't stack on top of
+  another open screen — try pressing Tab while Bank/Lockbox/rename/Game Menu is
+  open; nothing should happen).
+- [ ] **Player tab** is intentionally blank right now (just a header) — same
+  placeholder treatment as the `` ` `` menu's Player tab, not a bug.
+- [ ] Clicking the **Inventory** tab: main inventory list (4 slots) shows carried items with Eat/Drink (if
   edible/drinkable), Craft (if a known recipe), Drop, To Pack, To Storage buttons
   as applicable.
 - [ ] Equipment section lists all 14 slots (Head, Face ×2, Neck, Chest, Back, Left/
   Right Arm, Left/Right Wrist, Left/Right Hand, Waist, Leg, Feet) — empty ones show
   "Empty", occupied ones show the item name plus Equip/Unequip/Drop as applicable.
-- [ ] Equipping a container (Backpack) into Back shows a nested contents grid
-  underneath that row; clicking an item there opens the move popup (Drop / To Left
-  Hand / To Right Hand / To Inventory / To Storage — options only show if not
+- [ ] **Worn container side column (v0.1.67-dev):** equipping a container
+  (Backpack) into Back shows its box reading **"Equipped"** (not the item
+  name) and its contents grid appears in a separate column to the right of
+  the equipment list, not inline underneath the Back row. **Regression
+  check:** every other equipment slot row (Left Arm, Right Arm, etc.) stays
+  at a fixed, uniform height regardless of whether a Backpack is worn —
+  confirm nothing shifts position when you equip/unequip it. Clicking an
+  item in the side column still opens the move popup (Drop / To Left Hand /
+  To Right Hand / To Inventory / To Storage — options only show if not
   already the source).
 - [ ] Currency row (5 boxes: Copper/Iron/Silver/Gold/Platinum) shows live wallet
   balances; clicking a box opens a quantity popup (±1/±10/All + Drop) — dropping
@@ -136,14 +159,13 @@ fix the coordinate in this file rather than assuming the step is wrong.
   the ground.
 - [ ] When within `storageRange` (10m) of one or more Storage Boxes, a third
   section auto-appears showing the nearest box's contents.
-- [ ] **Window scale (v0.1.50-dev):** the whole Inventory window — panel, scroll
-  view content, and both popups (move destination, coin drop) — renders 50%
-  larger than the base layout and stays centered on screen, same technique as
-  the Bank window (§11). Confirm it still fits on screen without clipping at a
-  smaller window/resolution (the panel's height cap was adjusted to account for
-  the scale — this is the one thing worth specifically re-checking here that
-  the Bank window didn't need, since Bank's panel size was fixed, not
-  screen-responsive). Buttons should still be clickable at the enlarged size.
+- [ ] **Full-screen layout (2026-08-04):** Inventory content (and its move/
+  coin-drop popups) now renders inside the Player Menu's full-screen area
+  instead of its own floating window — the previous 50%-scale (`GUI.matrix`)
+  boost from v0.1.50-dev was dropped since the menu itself is already much
+  larger than the old floating panel. Flag if text/buttons read as too small
+  now that it shares space with the tab bar — the scale can be reintroduced
+  for this tab specifically if so.
 
 ## 4. Gathering & World Interaction
 
@@ -189,11 +211,24 @@ fix the coordinate in this file rather than assuming the step is wrong.
   takes 2 hits to break into 3 Copper Ore chunks — texture should read as
   grey rock with scattered copper-orange flecks and occasional green patina
   spots, not flat grey or flat orange.
-- [ ] **Pickaxe / Axe:** craftable from the Crafting screen (2 Small Rock + 1
-  Stick for Pickaxe, 1 Small Rock + 2 Stick for Axe). Carrying one in a
-  backpack/main inventory (not a hand) should **not** satisfy the tool
-  requirement above or below — it specifically has to be held in a hand
-  (`PlayerEquipment.HasInHand`).
+- [ ] **Knife/Hammer/Axe/Pickaxe now come in all 5 CraftTiers
+  (v0.1.69-dev):** craftable from the Crafting tab as `Crude Knife` through
+  `Masterwork Knife` (and same for Hammer/Axe/Pickaxe) — 20 recipes total.
+  What used to be the single `Rock Knife`/`Rock Hammer`/`Axe`/`Pickaxe` are
+  now specifically the **Crude** tier (renamed in place, same recipe as
+  before: 2 Small Rock + 1 Stick for Pickaxe, 1 Small Rock + 2 Stick for
+  Axe, etc.). **Known, expected placeholder behavior — not a bug:** every
+  tier of a given tool currently costs the *exact same* ingredients (no
+  weakest-link rule enforcing real materials yet), so all 5 tiers of e.g.
+  Knife are craftable side by side right away with nothing gating the
+  higher ones. Carrying any of them in a backpack/main inventory (not a
+  hand) should **not** satisfy a tool requirement below — still has to be
+  held in a hand (`PlayerEquipment.HasInHand`).
+- [ ] **Tool gating now accepts any tier (v0.1.69-dev):** the Copper Ore
+  check above, and every other Pickaxe/Axe-gated node below, should accept
+  **any** of the 5 Pickaxe/Axe tiers held in a hand, not just one specific
+  one — spot-check at least two different tiers (e.g. Crude Pickaxe and
+  Masterwork Pickaxe) against the same node to confirm both work.
 - [ ] **Trees are now harvestable (v0.1.59-dev)** — previously purely decorative.
   Punching a tree *without* an Axe held does nothing, prompt reads "Punch to
   break (requires Axe)". With an Axe in hand, takes 4 hits to break into 3 Wood
@@ -260,11 +295,9 @@ fix the coordinate in this file rather than assuming the step is wrong.
   pickup (leftover after your inventory fills up) keeps counting down from the
   original drop time, not reset by the partial pickup.
 
-## 5. Crafting (O)
+## 5. Player Menu (Tab) — Crafting Tab
 
-- [ ] **O** opens/closes the Crafting screen (same open/close/Escape rules as
-  Inventory).
-- [ ] Lists every known recipe (not just ones you currently have materials for),
+- [ ] Clicking the **Crafting** tab lists every known recipe (not just ones you currently have materials for),
   each showing every ingredient with "have N" counts.
 - [ ] Craft button greys out when short on materials or when the main inventory
   has no room for the output — label appends "— inventory full" specifically when
@@ -272,16 +305,63 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] Crafting draws materials from the main inventory first, then an equipped
   Backpack, then nearby Storage Boxes (within range) in distance order — confirm
   a recipe reads "have N" correctly when materials are split across all three.
-- [ ] Crafted output always lands in the main inventory, never the backpack, even
-  if the inputs came from there (this is intentional, not a bug).
-- [ ] Spot-check at least one multi-ingredient recipe (Rock Hammer: 1 Stick + 1
-  Small Rock) and one single-ingredient recipe (Rock Knife: Small Rock).
+- [ ] Crafted output currently always lands in the main inventory, never the
+  backpack or a free hand, even if the inputs came from there. **No longer
+  considered correct as of 2026-08-05** — logged as a bug in
+  `BUGS_AND_ENHANCEMENTS.md` (should route through the same equip-or-store
+  priority as pickup once that's built), just not fixed yet.
+- [ ] Spot-check at least one multi-ingredient recipe (Crude Hammer: 1 Stick + 1
+  Small Rock) and one single-ingredient recipe (Crude Knife: Small Rock).
+- [ ] **List now scrolls (v0.1.69-dev):** confirm the Crafting tab scrolls
+  to reach the bottom entries of a long discipline instead of running off
+  the screen, and that the tab bar/Close button stay fixed above/below the
+  scroll area.
+- [ ] **Discipline sub-tabs (v0.1.70-dev):** a second row of tabs —
+  Woodworking, Stonework, Metalworking, Forging, Minting, Sewing, Other —
+  sits below the "Crafting" header. All 20 Knife/Hammer/Axe/Pickaxe recipes
+  (every tier) should appear under **Stonework** specifically, not spread
+  across tabs or left in a default list. **Other** should hold the 5 gadget
+  recipes (Sunglasses, Nav Computer, Health Monitor, Mining Face Shield,
+  Canteen) — these no longer train any skill when crafted (confirm no
+  skill level changes in the Skills tab after crafting one). **Woodworking**
+  now has 5 recipes too (Trimmed Stick, v0.1.71-dev — see below); Metalworking/
+  Forging/Minting/Sewing should still be empty and show "No recipes yet."
+  rather than a blank panel or an error.
+- [ ] **Tool-in-hand requirement (v0.1.71-dev):** the 5 Trimmed Stick
+  recipes (Crude through Masterwork, under **Woodworking**) each need 1
+  Stick *and* any tier of Knife held in a hand — the Knife is **not**
+  consumed. Without a Knife in hand, the label reads `— requires Knife in
+  hand` and Craft is greyed out even with a Stick available. Equip a Knife
+  to a hand and it should read `[Knife in hand]` instead and Craft should
+  enable (assuming a Stick is also available). Confirm the Knife is still
+  in your hand — not consumed — after crafting. Crafting any tier trains
+  **Woodworking** (check the Skills tab, Crafting Disciplines category).
+- [ ] **Folder-tab look (v0.1.70-dev):** the selected discipline tab should
+  read as visually connected to the recipe list below it (matching
+  background, no seam), while unselected tabs look visibly separate/
+  receded behind it. Same visual language should now also appear on the
+  top-level Player Menu tabs, the ` Game Menu tabs, and the Skills tab's
+  category tabs below — check all four for consistency, not just this one.
 
-## 6. Skills (U)
+## 6. Player Menu (Tab) — Skills Tab
 
-- [ ] **U** opens/closes the Skills screen (same rules as Inventory/Crafting).
-- [ ] Lists each skill (Gathering, Mining, Crafting, ...) with its current level
-  (0–100).
+- [ ] Clicking the **Skills** tab shows three category tabs — **Gathering**,
+  **Crafting Disciplines**, **Combat** — each listing the skills in that
+  category with their current level (0–100). `Crafting` no longer exists
+  as a skill (retired v0.1.70-dev, see `CHANGELOG.md`) — don't expect to
+  see it anywhere.
+- [ ] **Gathering** tab: shows `Gathering` (and `Mining`, once that split is
+  actually built — not yet, still just `Gathering` today).
+- [ ] **Crafting Disciplines** tab: shows `Stonework` once you've crafted at
+  least one tool (Knife/Hammer/Axe/Pickaxe, any tier), and `Woodworking`
+  once you've carved at least one Trimmed Stick (v0.1.71-dev) — the
+  remaining four disciplines (Metalworking, Forging, Minting, Sewing) won't
+  appear at all until something actually trains them, which nothing does
+  yet. If you haven't crafted anything, this tab should show "No skills
+  trained yet." rather than an empty blank panel.
+- [ ] **Combat** tab: always shows "No skills yet — combat/hunting isn't
+  built." — there's no combat system and no weapon skills exist, so this
+  tab can never have content today. Not a bug.
 - [ ] Levels rise from relevant actions (gathering Sticks, breaking the Rock Node,
   crafting) with visibly diminishing gains as level rises — a handful of early
   actions shouldn't jump a skill anywhere near 100.
@@ -427,9 +507,9 @@ fix the coordinate in this file rather than assuming the step is wrong.
 
 ## 14. Screen Management
 
-- [ ] Only one of Inventory/Crafting/Skills/Bank/Lockbox/rename/Game Menu can
-  be open at a time — opening one while another is open (via its hotkey or an
-  E/right-click interaction) should not stack or corrupt state.
+- [ ] Only one of Player Menu/Bank/Lockbox/rename/Game Menu can be open at a
+  time — opening one while another is open (via its hotkey or an E/right-click
+  interaction) should not stack or corrupt state.
 - [ ] Escape always closes whichever screen is open and re-locks the cursor,
   regardless of which screen it is or how it was opened.
 - [ ] While any screen is open (cursor unlocked), WASD/Space/mouse-look do
@@ -438,18 +518,28 @@ fix the coordinate in this file rather than assuming the step is wrong.
 
 ## 15. Game Menu (` key)
 
-- [ ] **`` ` `` (backtick/grave)** opens/closes a full-screen menu with 5 tabs
-  across the top: Player, Audio, Graphics, Controls, Credits. Same rules as
-  every other screen — Escape also closes it, and it only opens while the
-  cursor is already locked (can't stack on another open screen).
+- [ ] **`` ` `` (backtick/grave)** opens/closes a full-screen menu with 6 tabs
+  across the top: Player, Audio, Graphics, Controls, Credits, Admin. Same
+  rules as every other screen — Escape also closes it, and it only opens
+  while the cursor is already locked (can't stack on another open screen).
 - [ ] **Player tab** is intentionally blank right now (just a header) — not a
   bug, a deliberate placeholder pending a future decision on content.
 - [ ] **Audio** and **Graphics tabs** each show a plain "nothing to configure
   yet" message — also intentional, since neither system exists in the game.
 - [ ] **Controls tab** lists every real key binding, alphabetized by key name:
-  `` ` ``, C, E, Escape, F, I, Left Mouse Button, Left Shift, Mouse Movement,
-  O, Right Mouse Button, Space, U, WASD, X, Z — each with a plain-language
+  `` ` ``, C, E, Escape, F, Left Mouse Button, Left Shift, Mouse Movement,
+  Right Mouse Button, Space, Tab, WASD, X, Z — each with a plain-language
   description of what it does. Cross-check this against what's actually bound
   in the game right now; flag anything missing or stale (see `CLAUDE.md`'s
   standing rule to keep this list updated whenever a new key mapping ships).
 - [ ] **Credits tab** shows "Tekim" and "the T-Rex."
+- [ ] **Admin tab (v0.1.68-dev, Editor Play Mode only):** lists every
+  `ItemDefinition` in the project alphabetically, each with a Spawn button.
+  Clicking Spawn drops one directly in front of the player (same physical
+  behavior as a manual inventory Drop) — pick a plain stackable item (e.g.
+  Stick, Rock, Pickaxe) and confirm it appears ~1m ahead and can be picked
+  up normally. **Refresh List** re-scans for newly-created items without
+  needing to re-enter Play Mode. **Known gap:** spawning an equippable
+  gadget (Backpack/Canteen/Sunglasses/Nav Computer/Health Monitor/Mining
+  Face Shield) produces a plain inventory stack that can't actually be
+  equipped — not fixed yet, see `BUGS_AND_ENHANCEMENTS.md`.

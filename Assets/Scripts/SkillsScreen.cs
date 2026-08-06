@@ -1,63 +1,69 @@
+using System;
 using UnityEngine;
-using UnityEngine.InputSystem;
 
-// Skill levels, toggled with U. Was previously an always-on bottom-left
-// panel drawn directly by PlayerSkills; pulled out into its own screen so
-// it follows the same open/close convention as Inventory (I) and Crafting
-// (O) instead of always taking up HUD space.
+// Skill levels — drawn as the Skills tab inside PlayerMenuScreen (Tab key).
+// Used to be its own screen toggled with U; folded in 2026-08-04 so
+// Inventory/Skills/Crafting all live under one key instead of three.
+// Sub-tabbed by SkillCategory (2026-08-05) — a flat list stopped scaling
+// once the skill roster grew past a handful, same reasoning as Crafting's
+// discipline sub-tabs.
 [RequireComponent(typeof(PlayerSkills))]
 public class SkillsScreen : MonoBehaviour
 {
-    private const float PanelWidth = 260f;
-    private const float PanelHeight = 260f;
+    private const float TabWidth = 170f;
+    private const float TabHeight = 28f;
 
     private PlayerSkills skills;
-    private bool isOpen;
-
-    public bool IsOpen => isOpen;
+    private SkillCategory currentCategory = SkillCategory.Gathering;
 
     private void Awake()
     {
         skills = GetComponent<PlayerSkills>();
     }
 
-    private void Update()
+    // Called by PlayerMenuScreen while its Skills tab is active.
+    public void DrawContent()
     {
-        if (Keyboard.current == null || !Keyboard.current.uKey.wasPressedThisFrame) return;
-
-        // Always allow closing. Only allow opening from normal gameplay —
-        // not while some other screen already has the cursor unlocked,
-        // which would stack this on top of it.
-        if (isOpen || Cursor.lockState == CursorLockMode.Locked)
-            SetOpen(!isOpen);
-    }
-
-    // Called by FirstPersonController when Escape re-locks the cursor, so
-    // the two toggles can't drift out of sync with each other.
-    public void Close() => SetOpen(false);
-
-    private void SetOpen(bool value)
-    {
-        isOpen = value;
-        Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
-        Cursor.visible = value;
-    }
-
-    private void OnGUI()
-    {
-        if (!isOpen) return;
-
-        var rect = new Rect((Screen.width - PanelWidth) / 2f, (Screen.height - PanelHeight) / 2f, PanelWidth, PanelHeight);
-        DebugGUI.DrawPanel(rect);
-        GUILayout.BeginArea(rect);
         GUILayout.Label("Skills", DebugGUI.Header);
+        DrawCategoryTabs();
+        GUILayout.Space(10);
 
+        bool any = false;
         foreach (var pair in skills.Levels)
+        {
+            if (pair.Key == null || pair.Key.category != currentCategory) continue;
             GUILayout.Label($"{pair.Key.skillName}: {pair.Value:F1}", DebugGUI.Label);
+            any = true;
+        }
 
-        if (GUILayout.Button("Close", GUILayout.Width(100)))
-            SetOpen(false);
-
-        GUILayout.EndArea();
+        if (!any)
+            GUILayout.Label(EmptyMessage(currentCategory), DebugGUI.Label);
     }
+
+    private void DrawCategoryTabs()
+    {
+        GUILayout.BeginHorizontal();
+        foreach (SkillCategory category in Enum.GetValues(typeof(SkillCategory)))
+        {
+            var style = category == currentCategory ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
+            if (GUILayout.Button(CategoryLabel(category), style, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
+                currentCategory = category;
+        }
+        GUILayout.EndHorizontal();
+    }
+
+    private static string CategoryLabel(SkillCategory category) => category switch
+    {
+        SkillCategory.CraftingDiscipline => "Crafting Disciplines",
+        _ => category.ToString(),
+    };
+
+    // Combat gets an honest placeholder, same treatment as GameMenuScreen's
+    // Audio/Graphics tabs — no combat/hunting system exists yet, so nothing
+    // could ever train a Combat-category skill today.
+    private static string EmptyMessage(SkillCategory category) => category switch
+    {
+        SkillCategory.Combat => "No skills yet — combat/hunting isn't built.",
+        _ => "No skills trained yet.",
+    };
 }
