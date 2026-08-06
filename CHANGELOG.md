@@ -5,12 +5,45 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.72-dev` — must always match `GameVersion` in
+**Current version:** `0.1.73-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-06
+
+### v0.1.73-dev — Stick's visual replaced with a real branch model
+
+First non-comparison use of an externally-sourced model in this project —
+everything before this (the AI-generated berry bush, the Big Tree) was
+placed for side-by-side visual review only, not actually wired into
+gameplay. This one replaces the Stick item's placeholder box mesh
+everywhere it appears: `Assets/Prefabs/StickPickup.prefab` (used when a
+Stick is dropped or freshly spawned) and the two pre-placed "Stick
+Pickup"/"Stick Pickup 2" world objects in `TestScene.unity` — confirmed
+these were never actual prefab instances of `StickPickup.prefab` despite
+looking identical, so both had to be updated independently, not just the
+prefab.
+
+- Model: "Tree branch by Poly by Google" (CC-BY, via Poly Pizza) —
+  `Assets/Models/TreeBranch_PolyByGoogle.glb`, 610 vertices, single mesh.
+  Attribution tracked in `Assets/Models/THIRD_PARTY_CREDITS.md`, still
+  needs to land in `GameMenuScreen`'s Credits tab before release.
+- The model's long axis was vertical (Y) on import; rotated 90° on X to
+  lie flat along Z instead, then scaled so its length matches the old
+  placeholder's (0.6). Real bug caught before it shipped: the affected
+  GameObjects had a **non-uniform** root scale (`(0.1, 0.1, 0.6)`, sizing
+  the old box mesh+collider together) — naively parenting the new model
+  under that would have multiplied its own scale by the parent's
+  non-uniform one, badly distorting it. Fixed by resetting each root's
+  scale to identity and explicitly preserving the `BoxCollider`'s
+  original world-space size on the collider itself instead of relying on
+  transform scale to produce it.
+- See CLAUDE.md's new bounding-box-placement gotcha (added earlier this
+  session, prompted by the Big Tree sinking into the ground) — the same
+  "don't assume an imported model's pivot/orientation matches what you
+  expect" discipline applied here too, verified in-script before
+  committing to the prefab/scene rather than eyeballed.
 
 ### v0.1.72-dev — Trimmed the default startup scene
 

@@ -12,4 +12,4 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-(none right now)
+- 2026-08-06 — Ben (Claude session) — Evaluating Tripo3D AI model generation as a possible art pipeline; see Tools/Tripo3D/README.md for full notes. Nothing wired into the game beyond one test model in TestScene.unity, but flagging in case this overlaps with anything you're doing on assets.

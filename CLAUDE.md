@@ -260,3 +260,38 @@ being persistently faint/hard-to-see across three tuning rounds that night — s
 `BUGS_AND_ENHANCEMENTS.md`'s sky-texture entry — was very likely this exact bug,
 not (only) a frequency/contrast problem as diagnosed at the time. Worth revisiting
 with the corrected math before trying anything else on that backlog item.
+
+## Gotcha: an imported model's pivot is not reliably at its base — check actual mesh bounds before placing it at `y = 0`
+
+Hit for real (2026-08-06): a third-party `.glb` (`Big Tree by 3Donimus`, from
+Poly Pizza — same applies to AI-generated `.glb`s, e.g. via the Tripo3D
+tooling in `Tools/Tripo3D/`) was instantiated in `TestScene.unity` at
+`(x, 0, z)`, same convention as every hand-placed procedural object in this
+project. It rendered sunk into the ground — roughly a third of the model
+below the visible terrain. **Cause:** unlike this project's own procedural
+meshes (always authored/generated with their pivot at the base), an
+imported third-party or AI-generated model's pivot can be anywhere — center
+of the bounding box is a common default for scan/export/generation
+pipelines that don't know or care about a "base" — so `y = 0` doesn't mean
+"sitting on the ground," it means "the model's origin point is at ground
+level," which is a different thing entirely.
+
+**Symptom:** the object visually clips into the ground/terrain by some
+fraction of its height, worse the further off-base the pivot is. Easy to
+misread as a scale or terrain-collision problem instead of a pivot problem.
+
+**The fix — measure actual world-space bounds across every renderer, don't
+guess or eyeball an offset:**
+```csharp
+var renderers = instance.GetComponentsInChildren<Renderer>();
+Bounds worldBounds = renderers[0].bounds;
+foreach (var r in renderers) worldBounds.Encapsulate(r.bounds);
+
+float groundOffset = -worldBounds.min.y; // how far below y=0 the mesh's lowest point currently sits
+instance.transform.position += new Vector3(0f, groundOffset, 0f);
+```
+Applies to **every** imported model placed in a scene going forward, not
+just this one — procedural objects built in this project don't need this
+(their pivot is already correct by construction), but anything pulled in
+from outside (Tripo3D, Poly Pizza, or any future source) should have its
+bounds checked before assuming `y = 0` is correct.

@@ -87,3 +87,9 @@ venv/
 .env
 
 # Large binary assets are tracked via Git LFS — see .gitattributes
+
+# Tripo3D-generated models are unreviewed output, not source content —
+# keep them out of git until someone deliberately moves a chosen one into
+# Assets/. The .env holding the API key is already covered by the bare
+# .env rule above.
+/Tools/Tripo3D/Output/

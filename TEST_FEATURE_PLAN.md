@@ -171,6 +171,12 @@ fix the coordinate in this file rather than assuming the step is wrong.
 
 - [ ] **Sticks** (E, instant pickup) go straight to inventory/hands per the loot
   priority below.
+- [ ] **Stick visual (v0.1.73-dev):** both pre-placed "Stick Pickup" world
+  objects and any freshly-dropped Stick should render as the imported
+  branch model (real bark texture, natural shape), not the old plain box.
+  Check it sits at a reasonable size/orientation lying roughly along the
+  ground — flag if it looks stretched, floating, or rotated oddly, since
+  this was a hand-computed scale/rotation fit, not an exact art pass.
 - [ ] **Rock Node** (left-click/punch, `IPunchable`) breaks into 3 physical Small
   Rock chunks that scatter and can be picked up individually — doesn't take one
   punch; confirm it takes the expected number of hits.
