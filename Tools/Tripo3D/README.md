@@ -198,7 +198,37 @@ balances, only within one.
   is also confirmed pay-before-you-go (a separate purchased credit pool,
   same two-balance pattern as Tripo3D) if it's worth revisiting later via
   that route instead of the web app.
-- **Open question, not resolved:** whether this pipeline is worth using
-  as a regular part of asset production, or stays a one-off experiment.
-  Nothing about it is wired into any build/import automation — every step
-  so far has been a deliberate, manual one-at-a-time call.
+- **Backpack — first real gameplay integration, not just comparison
+  (v0.1.74-dev).** Prompted for a "photorealistic small crude leather
+  backpack" and generated the *same prompt text* through both paths to
+  compare them directly:
+  - **Tripo Studio web UI**, single concept image first (10 credits) to
+    check composition before committing to a 3D model — first attempt
+    put a person wearing the backpack (not asked for), fixed by adding
+    explicit negative constraints ("no person, no model, no human,"
+    "product photography... alone," "isolated on a plain white
+    background"). Resulting image and 3D model: no metal hardware,
+    rope-laced closure, deliberately crude look.
+  - **API** (`generation/text-to-model`, same prompt text): produced a
+    visibly different result — has a metal buckle and snap studs, reads
+    more polished/less "crude" than the web UI version.
+
+  **Same prompt, two different pipelines, two different results** — a
+  concrete answer to "is the API a viable substitute for the web UI,"
+  and the answer is no, not for identical output; treat them as
+  different tools that happen to share a prompt box. Used the **API**
+  version (`Assets/Models/CrudeLeatherBackpack.glb`) to replace the
+  existing 5-scaled-cube placeholder backpack model in both
+  `Assets/Prefabs/Backpack.prefab` and the standalone "Backpack"
+  GameObject in `TestScene.unity`. Commercial use is covered under the
+  pay-as-you-go API account per Tripo3D's licensing (see above) — no
+  attribution requirement, unlike the CC-BY third-party models tracked
+  in `Assets/Models/THIRD_PARTY_CREDITS.md`.
+- **Open question, mostly resolved for one-off asset swaps, still open
+  for regular production use:** the Backpack swap shows the API path
+  can go from prompt to a real in-game asset in one sitting, with usable
+  commercial licensing and no export paywall (unlike Tripo Studio).
+  Still nothing wired into any build/import automation — every step so
+  far has been a deliberate, manual one-at-a-time call — and it's still
+  unproven whether prompt-to-result consistency is good enough to lean
+  on for a large batch of assets rather than one-off hero pieces.

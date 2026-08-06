@@ -379,6 +379,12 @@ fix the coordinate in this file rather than assuming the step is wrong.
   if everything else is full (never no-ops); Drop removes it and its contents move
   with the physical object. Worn Backpack is invisible from the player's own
   camera (no first-person clipping) but visible to an external view.
+- [ ] **Backpack visual (v0.1.74-dev):** the world-placed Backpack (and any
+  dropped copy) should render as the Tripo3D-generated leather backpack
+  model (metal buckle/studs, crude-leather look), not the old 5-cube
+  placeholder. Check it sits at a reasonable size/orientation and doesn't
+  look stretched or float above the ground — this was a hand-computed
+  scale fit (0.53x), not an exact art pass.
 - [ ] **Canteen** (near spawn, ~`(-1, 0.3, 1.5)`): Equip to Left/Right Hand or
   Waist. **Fill** only works within `fillRange` (2m) of a `WaterSource` (Water
   Puddle) — walking away and trying to Fill should fail/not appear. Filled Canteen

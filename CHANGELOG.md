@@ -5,12 +5,40 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.73-dev` — must always match `GameVersion` in
+**Current version:** `0.1.74-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-06
+
+### v0.1.74-dev — Backpack's visual replaced with an AI-generated model
+
+First use of a Tripo3D API-generated (not just third-party CC-BY) model
+actually wired into gameplay, and the first head-to-head test of API vs.
+Tripo Studio web-UI output on the exact same prompt — see
+`Tools/Tripo3D/README.md` for the full comparison writeup. The web UI
+version came out rope-laced with no metal hardware; the API version (used
+here) has a metal buckle and snap studs and reads more polished. Both
+generated from the same "crude leather backpack" text prompt.
+
+- Model: `Assets/Models/CrudeLeatherBackpack.glb` (Tripo3D API,
+  commercial use included per API/pay-as-you-go terms — see
+  `Tools/Tripo3D/README.md`).
+- Replaces the 5-scaled-cube placeholder (Body/Flap/StrapLeft/
+  StrapRight/Pocket) on both the scene's standalone "Backpack"
+  GameObject in `TestScene.unity` (the actual functional one — equip/
+  drop reparents this same instance under `BackpackAnchor` rather than
+  instantiating from a prefab) and `Assets/Prefabs/Backpack.prefab`.
+  Confirmed via guid search that the prefab is otherwise unreferenced
+  anywhere in the project, but kept in sync in case that changes later.
+- Scaled by 0.53 to match the old placeholder's measured height
+  (renderer bounds, per the CLAUDE.md pivot/bounding-box gotcha); no
+  rotation or centering offset needed — the new model was already
+  centered on its local origin.
+- Root transform's scale was already uniform `(1,1,1)` here, so none of
+  the non-uniform-scale/collider-preservation care the Stick swap needed
+  applied.
 
 ### v0.1.73-dev — Stick's visual replaced with a real branch model
 
