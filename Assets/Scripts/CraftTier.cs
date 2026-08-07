@@ -34,4 +34,21 @@ public static class CraftTierScale
         CraftTier.Masterwork => 5f,
         _ => 1f,
     };
+
+    // Minimum level (0-100, see PlayerSkills.MaxLevel) in a recipe's
+    // trainedSkill required to craft that tier. Crude is deliberately 0 —
+    // not 1 — since skill starts at 0 and today's only way to gain most
+    // disciplines (Stonework/Woodworking/Sewing) is crafting the exact
+    // items this gate would restrict; requiring >=1 at Crude would make a
+    // fresh character unable to ever craft a first item in that discipline
+    // at all. Ben's call, 2026-08-07.
+    public static int SkillRequirement(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => 0,
+        CraftTier.Rudimentary => 10,
+        CraftTier.Normal => 25,
+        CraftTier.Fine => 50,
+        CraftTier.Masterwork => 100,
+        _ => 0,
+    };
 }

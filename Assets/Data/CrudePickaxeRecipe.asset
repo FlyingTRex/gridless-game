@@ -19,5 +19,11 @@ MonoBehaviour:
     count: 1
   outputItem: {fileID: 11400000, guid: 8c8bffd4f2b0e6c4f8379a9e0885f999, type: 2}
   outputCount: 1
+  bonusItem: {fileID: 0}
+  bonusCount: 1
+  lowerTierItem: {fileID: 0}
+  higherTierItem: {fileID: 11400000, guid: ed897480adfbf404981a30c0c3e003e1, type: 2}
   trainedSkill: {fileID: 11400000, guid: fa96de57c0851de4da5b1a735048ffff, type: 2}
   skillGain: 2
+  requiredTools: []
+  requiredToolLabel: 

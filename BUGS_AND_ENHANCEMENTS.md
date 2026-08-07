@@ -7,6 +7,18 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Bugs
 
+- [ ] **Wood is now completely un-gatherable.** Side effect of the tree
+  chopping rework (`CHANGELOG.md` v0.1.83-dev, Log replacing the tree's
+  old direct Wood-chunk drop, per Ben's call): `WoodChunk.prefab` is no
+  longer referenced by anything (confirmed via guid search — only its own
+  `.meta` and `Wood.asset`'s self-referential `worldPickupPrefab` pointer
+  match now), so the `Wood` item has no spawn path left in the game at
+  all. Not urgent — nothing currently consumes Wood as a crafting
+  ingredient either, so nothing is actually blocked — but worth deciding
+  whether `WoodChunk.prefab`/`Wood.asset` should be removed outright, or
+  Wood repurposed as a real ingredient somewhere (e.g. a heavier
+  structural material distinct from Plank) before this reads as
+  intentional dead content rather than an oversight.
 - [ ] **Procedural tree (v0.1.58-dev) doesn't read as a tree yet.** Confirmed
   via screenshot: `GenerateTree.cs`'s branching mesh renders and is visible
   (the untested backface-culling safety net wasn't even needed, or at least
@@ -89,10 +101,14 @@ work) — this is the backlog between the two. Check off and move the entry to
 
   - **Recipes deliberately NOT built this pass** — Ben's call: hold off
     until there's a real Fiber → Cloth / Leather material chain instead of
-    faking it with placeholder ingredients. See the new Textiles/Leather
-    item below. Only the Normal tier has a working world pickup today;
-    the other 4 tiers exist as data only, unreachable in play until a
-    recipe (and the equippable-crafting-output fix below) exist.
+    faking it with placeholder ingredients. See the Textiles/Leather item
+    below. Only the Normal tier has a working world pickup today; the
+    other 4 tiers exist as data only, unreachable in play until a recipe
+    exists — the equippable-crafting-output fix landed 2026-08-07
+    (v0.1.79-dev), but wasn't applied to this ladder specifically, only to
+    the new, separate `Crude Fiber Backpack` (see the Textiles/Leather
+    item below — Ben's explicit call to keep it distinct from this
+    ladder rather than filling in `Crude Backpack` here).
   *(Reported by Ben.)*
 - [x] **Belt — new equippable, worn at Waist, holds generic attachment
   points instead of a normal inventory — shipped 2026-08-06 (Normal tier
@@ -107,12 +123,15 @@ work) — this is the backlog between the two. Check off and move the entry to
   - Point count scales with the Belt's own `CraftTier`, hand-picked (like
     Lockbox) rather than fit to the existing `CraftTierScale.Modifier()`
     ratio, since 2→12 doesn't match that curve: Crude 2, Rudimentary 4,
-    Normal 6, Fine 9, Masterwork 12. **Only the Normal tier (6 points)
-    actually exists in play** — one `BeltItem.asset` (Normal), one world
-    pickup near Canteen's starter-gear spot. No recipe (same Fiber →
-    Cloth / Leather blocker as Backpack) and no Crude/Rudimentary/Fine/
-    Masterwork variants yet — revisit once there's a real reason to (a
-    material chain to gate them on).
+    Normal 6, Fine 9, Masterwork 12. **Normal tier renamed to `Fiber
+    Belt` 2026-08-07 (v0.1.79-dev)** — establishes "Fiber Belt" as the
+    ladder's actual base name (not just "Belt"), and **`Crude Fiber Belt`
+    shipped the same day** — first tier with a real recipe (8x Fiber, 2
+    points, trains Sewing), and the first-ever crafted equippable that
+    actually works (see the equippable-crafting-output fix in the
+    Textiles/Leather item below). Rudimentary/Fine/Masterwork Fiber Belt
+    still don't exist — revisit once there's a reason to (a fancier
+    material, e.g. Rope/Cloth/Leather, to gate them on).
   - **Attachments, in the order they'd likely get built:** Canteen (built
     — can now carry on a belt point as an alternative to a hand), Knife
     Scabbard (holds exactly 1 Knife, any tier, nothing else), Pouch (grants
@@ -163,11 +182,59 @@ work) — this is the backlog between the two. Check off and move the entry to
   the still-open "full material web beyond wood/stone (metal, textiles)"
   gap already logged under "Full crafting/gathering/skills redesign"
   below, and gives the empty `Sewing` skill (exists as a `SkillDefinition`,
-  zero recipes train it today) its first real reason to exist. Open
-  questions, not decided: where Fiber comes from (a gatherable plant?),
-  where Leather comes from (implies hunting/animals, which don't exist at
-  all yet — or some other source?), and the actual Fiber → Cloth refining
-  recipe/skill-gain numbers. *(Reported by Ben.)*
+  zero recipes train it today) its first real reason to exist.
+  **"Where Fiber comes from" answered 2026-08-07 (`CHANGELOG.md`
+  v0.1.77-dev):** all 5 `TrimmedStick` recipes now also yield 1 Fiber
+  (guaranteed, flat across tiers) — trimming a branch with a Knife leaves
+  you with usable fiber alongside the Trimmed Stick. Ben's framing: "if we
+  use the rock knife on the tree branch... outcome would be maybe some
+  fiber and the trimmed stick." **Rope/Cloth recipes shipped 2026-08-07
+  (`CHANGELOG.md` v0.1.78-dev):** `RopeRecipe` (5x Fiber → 1 Rope) and
+  `ClothRecipe` (10x Fiber → 1 Cloth), both training `Sewing` directly
+  (skillGain 2, no intermediate step) — the first two recipes to ever
+  populate that skill. **First real starter gear shipped 2026-08-07
+  (`CHANGELOG.md` v0.1.79-dev):** `Crude Fiber Belt` (8x Fiber, 2 points)
+  and a new, distinct `Crude Fiber Backpack` (15x Fiber, capacity 4) —
+  see the Belt and Backpack entries below for the full detail. Also
+  required fixing `PlayerCrafting.TryCraft` so a crafted equippable
+  actually works (see the Admin-spawn-tab entry above — same root cause,
+  only the crafting side is fixed). **Still open:** where Leather comes
+  from (implies hunting/animals, which don't exist at all yet — or some
+  other source?), and Rudimentary/Fine/Masterwork tiers of either new
+  Fiber item.
+  *(Reported by Ben.)*
+- [x] **Skill-gated crafting tiers — shipped 2026-08-07, see
+  `CHANGELOG.md` v0.1.80-dev.** Ben's call: use skill level 1/10/25/50/100
+  to denote the 5 `CraftTier`s. Real bootstrap deadlock caught before
+  building: skills start at 0, and the only way to gain most disciplines
+  (Stonework/Woodworking/Sewing) is crafting the exact items this gate
+  would restrict — requiring Crude ≥ 1 would make a fresh character
+  unable to ever craft a first item in that discipline at all. **Resolved:
+  Crude requires 0** (no real gate, same as today), curve applies from
+  Rudimentary up: Rudimentary 10, Normal 25, Fine 50, Masterwork 100.
+  - New `CraftTierScale.SkillRequirement(tier)`, alongside the existing
+    `Modifier(tier)`. `PlayerCrafting.HasRequiredSkill(recipe)` checks
+    `recipe.trainedSkill`'s current level against it (recipes with no
+    `trainedSkill`, e.g. the 5 gadgets, are unaffected — same as
+    `HasRequiredTool`'s pattern). Wired into `TryCraft` and
+    `CraftingScreen`'s enabled/label logic (`— requires Stonework 25`,
+    same style as the tool-requirement label).
+  - **Real bug caught before it shipped:** `Rope`/`Cloth` never had an
+    explicit `tier` set, silently defaulting to `CraftTier.Normal` —
+    would have required Sewing ≥ 25 just to make basic Rope, breaking the
+    very recipes meant to build up Sewing in the first place. Fixed by
+    setting both to `tier: 0` explicitly (they're single-tier items with
+    no real ladder, so Crude/0 — meaning "no gate" — is the correct
+    value, not a real tier claim).
+  - Verified via a scripted read-back of all 34 recipes confirming every
+    tier's required level resolved correctly, not just that individual
+    values parsed.
+  - **Immediate effect:** the previously-documented "known, expected
+    placeholder behavior" of all 5 tool tiers being craftable side by
+    side with nothing gating the player (see the Knife/Hammer/Axe/Pickaxe
+    entry below) is now real gating, not a placeholder — a fresh
+    character can only craft Crude tools until Stonework reaches 10.
+  *(Reported by Ben.)*
 - [x] **Knife/Hammer/Axe/Pickaxe across all 5 CraftTiers — shipped
   2026-08-05, see `CHANGELOG.md` v0.1.69-dev.** Originally scoped 2026-08-04
   as "six base tools" (including Spear and Bow); a planning pass the next
@@ -181,8 +248,13 @@ work) — this is the backlog between the two. Check off and move the entry to
     `Rock Hammer`/`Axe`/`Pickaxe` became the Crude tier in place (renamed,
     same GUIDs) rather than sitting alongside 30 brand-new parallel items.
   - **Recipes are identical across all 5 tiers of a tool for now** — pure
-    scaffolding, no real progression gate yet. See the weakest-link item
-    below for what's still needed to make tiers actually mean something.
+    scaffolding. **Skill-side gating shipped 2026-08-07 (`CHANGELOG.md`
+    v0.1.80-dev):** crafting a given tier now requires trainedSkill at or
+    above `CraftTierScale.SkillRequirement(tier)` (Crude 0, Rudimentary
+    10, Normal 25, Fine 50, Masterwork 100) — a real progression gate now
+    exists. Ingredient-quality-side of weakest-link (below) still doesn't
+    — every tier still costs identical ingredients, so skill is the only
+    thing gating tier today, not material quality too.
   - **Skill wiring deferred, not guessed at:** all 20 recipes train the
     existing `Crafting` skill rather than inventing Woodworking/Stonework/
     Forging assignments now — raised during planning that a Hammer alone
@@ -206,17 +278,21 @@ work) — this is the backlog between the two. Check off and move the entry to
   it), but worth fixing if the Admin tab needs to cover gadgets too — likely
   means giving each one a real `worldPickupPrefab` pointing at its own
   carrier prefab instead of relying on the generic fallback.
-  **Same root cause hit again from the crafting side, 2026-08-06:**
-  `PlayerCrafting.TryCraft` always calls `inventory.AddItem(...)` — also a
-  plain stackable add with no `.equipment` reference. Surfaced while
-  scoping Backpack/Belt recipes (`CHANGELOG.md` v0.1.75-dev) — even with a
-  real recipe, a "crafted" Backpack/Belt would land as an inert,
-  non-wearable stack. Whatever fix lands here (likely: when
+  **Same root cause hit again from the crafting side, 2026-08-06 —
+  crafting-side FIXED 2026-08-07 (`CHANGELOG.md` v0.1.79-dev), Admin-spawn
+  side still open.** `PlayerCrafting.TryCraft` used to always call
+  `inventory.AddItem(...)` too — also a plain stackable add with no
+  `.equipment` reference, surfaced while scoping Backpack/Belt recipes
+  (v0.1.75-dev). Fixed via a new `AddCraftedOutput` helper: when
   `recipe.outputItem.worldPickupPrefab` has an `IEquippable`, instantiate
-  it stashed and add via `AddEquipmentItem` instead of `AddItem`) should
-  cover both the Admin-spawn and crafting-output cases at once, since
-  they're the same underlying gap. Blocks Backpack/Belt from ever getting
-  working recipes, not just a nice-to-have.
+  it stashed and add via `AddEquipmentItem` instead of `AddItem` — exactly
+  the mechanism this entry originally speculated about, and what made
+  `Crude Fiber Belt`/`Crude Fiber Backpack` (v0.1.79-dev) the first
+  working crafted equippables. **`AdminSpawnScreen`/`PlayerDropping.
+  SpawnPickup` is a separate code path and was NOT touched** — spawning a
+  gadget from the Admin tab still produces a non-equippable stack today.
+  Same underlying idea would fix it (check for `IEquippable` on
+  `worldPickupPrefab` there too) but wasn't done as part of this pass.
 - [ ] **Apply the Boulder/Rock hybrid shape technique to the ore nodes too,
   once the rock/boulder look itself is finalized.** Ben's explicit intent
   (2026-08-04) — the ore nodes (Copper/Iron/Silver/Gold/Platinum) are still
@@ -285,10 +361,13 @@ work) — this is the backlog between the two. Check off and move the entry to
   **Still not built:** the Mining skill itself as an actual `SkillDefinition`
   (nodes currently still train `Gathering`, per what already existed, not the
   newly-decided `Mining` split — that decision hasn't been wired into code yet),
-  four of the six discipline skills (Metalworking/Forging/Minting/Sewing —
-  Woodworking and Stonework both now have real actions training them),
-  the weakest-link `CraftTier` determination itself, the full material web beyond
-  wood/stone (metal, textiles), the randomized-size-on-spawn/yield-scaling/duration-scaling design
+  three of the six discipline skills (Metalworking/Forging/Minting —
+  Woodworking, Stonework, and Sewing all now have real actions training them
+  as of v0.1.78/79-dev), the **ingredient-quality half** of the weakest-link
+  `CraftTier` determination (the **skill half** shipped 2026-08-07,
+  v0.1.80-dev — see the Knife/Hammer/Axe/Pickaxe entry above), the full
+  material web beyond wood/stone (metal, textiles — though Fiber/Rope/Cloth
+  are now a real start, v0.1.77/78-dev), the randomized-size-on-spawn/yield-scaling/duration-scaling design
   for Boulder/Rock, Rock → Small Rock refinement, and the new click-and-locked
   interaction model (everything still uses the old instant-hold-E/punch
   mechanics). Don't start implementing any further piece of this without

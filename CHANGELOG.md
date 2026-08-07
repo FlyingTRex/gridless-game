@@ -5,10 +5,310 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.76-dev` — must always match `GameVersion` in
+**Current version:** `0.1.84-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-07
+
+### v0.1.84-dev — Stick Pickup now grants 10 at once (playtest convenience)
+
+Ben's ask: needed enough Sticks on hand to actually exercise the Trimmed
+Stick tiers (5 recipes, each consuming 1 Stick, now also risking loss
+entirely on a Bad/Spectacular chance-of-creation failure — see
+v0.1.82-dev) without repeatedly walking back to re-gather one at a time.
+
+- `TestScene.unity`'s "Stick Pickup" (`(2, 0.15, 3)`) now grants 10 per
+  grab (`Pickup.quantity` 1 → 10), verified via a scripted scene
+  read-back. "Stick Pickup 2" left untouched at 1, so there's still a
+  normal single-Stick pickup to test that path too. Both still respawn
+  after 180s, unchanged.
+- Playtest convenience, not a balance decision — easy to revert or retune
+  once actual playtesting is done.
+
+### v0.1.83-dev — Tree chopping: Tree → Log(s) → Plank (+ chance of a Stick)
+
+Ben's ask, reshaped an existing (undocumented-as-such) mechanic rather
+than building from scratch: Tree.prefab already had a `ResourceNode` —
+4 Axe hits, drop 3 Wood chunks, hide-then-respawn. Replaced with a real
+two-stage chop, matching how Boulder → Rock → Small Rock already works
+for stone.
+
+- **New `Tree.cs`** (not a `ResourceNode` reuse — deliberately different
+  shape): 3 Axe hits (down from 4) drop `logCount` (3) `Log` instances
+  scattered nearby, then the tree visual swaps to a **Stump** child
+  instead of fully disappearing. `Awake()` caches every `Renderer` under
+  the object except the Stump's own as "the tree" — no need to hand-wire
+  dozens of the procedural mesh's "Leaf Cluster" children individually.
+  Stump regrows into a full tree after `regrowDelay` (180s, same number
+  the old `ResourceNode` used) — decided in conversation to keep trees a
+  renewable resource like every other `ResourceNode`, not a one-time
+  removal.
+- **`Log.prefab`** (new): a placeholder cylinder, physically scattered by
+  the falling tree, chopped down like any other `ResourceNode` — 2 Axe
+  hits → 2 `PlankChunk` (new `Plank` item, new `ItemDefinition`, plain
+  untiered material) — **plus a new 30% chance of also dropping a Stick**
+  (reusing the existing item/model rather than inventing a redundant
+  "Branch" — Stick already got a real branch model this session,
+  v0.1.73-dev). Trains Woodworking (refining raw wood), while the Tree
+  chop itself still trains Gathering (raw extraction) — same discipline
+  split as everything else.
+- **`ResourceNode.cs` gained two small, generically reusable additions**
+  (not Tree/Log-specific) to make the Log stage possible:
+  - `bonusChunkPrefab`/`bonusChunkChance` — an optional chance-based
+    extra spawn alongside the guaranteed `chunkPrefab`/`chunkCount`,
+    rolled once per break. Unlike `CraftingRecipe.bonusItem` (always
+    guaranteed), this one is a real roll — could be reused later for
+    e.g. ore nodes occasionally yielding a gem.
+  - `respawnDelay <= 0` now destroys the node outright instead of
+    scheduling a respawn — needed since a `Log` is itself a one-off
+    spawn from the tree, with no sensible "same spot" to respawn at the
+    way a fixed Boulder/ore node has. Every existing `ResourceNode`
+    already has a positive `respawnDelay`, so this is additive, not a
+    behavior change for anything else.
+- Verified end-to-end via a scripted read-back of the rebuilt
+  `Tree.prefab` and `Log.prefab`/`PlankChunk.prefab` — confirmed the old
+  `ResourceNode` is actually gone (not just added-alongside), the Stump
+  starts inactive, and every field (tool list, skills, chunk counts,
+  bonus chance) resolved to the intended value, not just that references
+  parsed.
+
+**First-pass numbers, not deeply tuned:** log count (3), Log's own hit
+count (2), Plank yield (2), Stick chance (30%). Easy to retune later —
+none of this shape depends on the exact values.
+
+### v0.1.82-dev — Chance-of-creation: crafting can now succeed brilliantly, barely fail, or go badly wrong
+
+Ben's framing ("I'm feeling mean"): every craft now rolls between five
+outcomes instead of always just succeeding — a real risk/reward layer on
+top of v0.1.80-dev's skill gate, using the same skill-margin math.
+
+- **Five outcomes**, resolved after ingredients are already spent (a bad
+  or spectacular failure is "the materials were wasted," not "the attempt
+  silently didn't happen"):
+  - **Brilliant success** — produces the *next tier up* (`CraftingRecipe.
+    higherTierItem`, new field) instead of what was attempted.
+  - **Success** — the intended item, as always.
+  - **Barely fail** — produces the *next tier down*
+    (`lowerTierItem`) instead.
+  - **Bad failure** — materials lost, nothing produced.
+  - **Spectacular failure** — materials lost, the held tool breaks (only
+    for recipes with a real `requiredTools` list — just Trimmed Stick
+    today; skipped everywhere else, per Ben's call), and 10 direct health
+    damage via a new `PlayerVitals.Damage(amount)` (the game only had a
+    healing API before this).
+- **Both edge cases resolve to plain Success**, decided in conversation:
+  Crude has no `lowerTierItem` (nowhere lower — "barely fail" just
+  works), Masterwork has no `higherTierItem` (nowhere higher — "brilliant
+  success" just works), and every single-tier item (Rope, Cloth, Crude
+  Fiber Belt/Backpack, all 5 gadgets) has neither, so the same collapse
+  applies uniformly without needing a separate "is this item tiered?"
+  flag.
+- **Odds scale with skill margin** — how far `trainedSkill`'s level is
+  above the tier's `CraftTierScale.SkillRequirement`, capped at 20 points
+  (`RiskMarginCap`). At margin 0 (just barely qualified): ~63% Success,
+  ~20% Barely Fail, ~12% Bad Failure, ~3% Spectacular, ~2% Brilliant. At
+  margin ≥20 (well-practiced): ~85% Success, ~4%/~1%/~0% for the three
+  failure-side outcomes, ~10% Brilliant. First-pass numbers, not deeply
+  tuned. Recipes with no `trainedSkill` (the 5 gadgets) skip the roll
+  entirely and always succeed plainly, same as before this system
+  existed.
+- New `CraftingRecipe.lowerTierItem`/`higherTierItem` populated across
+  all 25 existing ladder recipes (4 tools × 5 tiers + Trimmed Stick × 5)
+  via a batch-mode script, verified against every single one (not just a
+  sample) — confirmed Crude/Masterwork boundaries are null in the right
+  direction and every middle tier points at its actual neighbors, plus a
+  20,000-trial simulated-roll check at several margins confirming the
+  live distribution matches the intended curve.
+- Outcome messages (Brilliant/Barely-Fail-with-a-real-downgrade/Bad/
+  Spectacular) show as a new on-screen message on `PlayerCrafting`, same
+  pattern as `PlayerSkills`' skill-up toast but positioned just below it
+  (`y=110`) so both can show at once without overlapping. Plain Success
+  stays silent, same as before.
+
+### v0.1.81-dev — Positive, randomized message when a skill improves — special line on tier unlock
+
+Ben's ask, refined twice in conversation: echo a statement when a craft
+skill improves (previously the only feedback was checking the Skills tab
+manually), then made positive/celebratory and randomized rather than one
+fixed line, then given a distinct message specifically for the moment a
+gain unlocks a new `CraftTier` — the natural pairing with v0.1.80-dev's
+skill-gated tiers.
+
+- `PlayerSkills.GainExperience` fires on every gain that actually raises
+  the level (silent at MaxLevel 100, where diminishing returns make
+  `newLevel == current` — no false "increased" message once capped).
+  Picks a random line from one of two pools:
+  - **`MessageTemplates`** (6 variants, e.g. "Congratulations! You have
+    increased your {skill} skill to {level}!") for an ordinary gain.
+  - **`TierUnlockTemplates`** (2 variants per tier) instead, specifically
+    when the gain crosses a `CraftTierScale.SkillRequirement` threshold
+    for the first time (10/25/50/100 — Rudimentary/Normal/Fine/
+    Masterwork). No entry for Crude — its threshold is 0, so there's
+    never a real "just unlocked Crude" crossing to celebrate.
+  - Crossing-detection compares `current`/`newLevel` directly (not just
+    the rounded display), so a gain like 9.6 → 11.4 correctly fires the
+    Rudimentary line even though neither endpoint is a whole number.
+    Verified via a throwaway script simulating repeated gains and
+    checking the exact message at each step, including that boundary.
+- Drawn as a 3-second on-screen message, top-center at `y=70` — placed
+  just below where `PlayerNavComputer`'s compass sits (`y=10` to `y=62`
+  when worn) so the two never overlap regardless of whether a Navigation
+  Computer happens to be equipped.
+- No queue — a gain while a message is already showing replaces it and
+  resets the timer, rather than stacking. Rapid repeat crafting (e.g. 10
+  Crude Knives in a row) will mostly just keep refreshing the same
+  message rather than showing 10 in sequence.
+
+### v0.1.80-dev — Skill-gated crafting tiers (1/10/25/50/100)
+
+Ben's call: use skill level 1, 10, 25, 50, 100 to denote the 5 `CraftTier`s
+— crafting a given tier now actually requires having trained for it, not
+just having the ingredients and (where applicable) a tool in hand.
+
+- **Real deadlock caught and resolved before building:** skills start at
+  0, and the only way to gain most disciplines today
+  (Stonework/Woodworking/Sewing) is crafting the exact items this gate
+  would restrict. Requiring Crude ≥ 1 would mean a fresh character could
+  never craft a first item in that discipline at all — nothing else
+  feeds these skills yet. **Resolved: Crude requires 0** (no real gate,
+  identical to today's behavior); the curve applies starting at
+  Rudimentary: Rudimentary 10, Normal 25, Fine 50, Masterwork 100.
+- New `CraftTierScale.SkillRequirement(tier)` alongside the existing
+  `Modifier(tier)`. New `PlayerCrafting.HasRequiredSkill(recipe)` checks
+  `recipe.trainedSkill`'s current level against it — recipes with no
+  `trainedSkill` (the 5 gadgets: Canteen/Sunglasses/Nav Computer/Health
+  Monitor/Mining Face Shield) are completely unaffected, same pattern as
+  `HasRequiredTool`. Wired into `TryCraft` (blocks the craft) and
+  `CraftingScreen` (greys out the button, shows `— requires Stonework
+  25`-style label).
+- **Real bug caught before it shipped:** `Rope`/`Cloth` never had an
+  explicit `tier` set on their `ItemDefinition`s, silently defaulting to
+  `CraftTier.Normal` — would have required Sewing ≥ 25 just to make
+  basic Rope, breaking the very recipes meant to build up Sewing from
+  zero in the first place. Fixed by setting both explicitly to `tier: 0`
+  — they're single-tier items with no real ladder, so "Crude" here just
+  means "no gate," not a real quality claim.
+- Verified via a scripted read-back of all 34 recipes in
+  `PlayerCrafting.Recipes`, confirming every single one's resolved
+  required-skill level (not just that the new fields parsed) — every
+  Crude/Rudimentary/Normal/Fine/Masterwork tool and Trimmed Stick tier,
+  Rope/Cloth, Crude Fiber Belt/Backpack, and all 5 gadgets.
+
+**Immediate effect:** closes out the previously-documented "known,
+expected placeholder behavior" that all 5 tiers of every tool were
+craftable side by side with nothing gating the higher ones
+(`TEST_FEATURE_PLAN.md`) — a fresh character can now only craft Crude
+tools until Stonework reaches 10. **Still open:** the *ingredient*-quality
+half of the weakest-link rule (every tier still costs identical
+ingredients) — skill is the only thing gating tier today.
+
+### v0.1.79-dev — Crude Fiber Belt / Crude Fiber Backpack: first real starter gear recipes
+
+Ben's framing: now that Fiber exists, a real starter Belt and Backpack
+should be craftable from it. First recipes ever to output actual
+equipment (not a plain stackable), which required fixing a real
+architecture gap along the way.
+
+- **Fixed: `PlayerCrafting.TryCraft` couldn't produce a working
+  equippable.** It always called `inventory.AddItem(...)` — a plain
+  stackable add with no `.equipment` reference — so any equippable output
+  would have landed as an inert, non-wearable stack. New
+  `AddCraftedOutput` helper: if `outputItem.worldPickupPrefab` has an
+  `IEquippable` component, instantiate it, `Stash()` it, and add it via
+  `AddEquipmentItem` instead. Applies to `bonusItem` too, though nothing
+  uses that combination yet. **Only fixes the crafting-output side** of
+  the gap logged in `BUGS_AND_ENHANCEMENTS.md` — the Admin spawn tab's
+  matching bug (`PlayerDropping.SpawnPickup`, a different code path) is
+  still separately broken; corrected that entry rather than claiming both
+  fixed.
+- **`Belt` renamed to `Fiber Belt`** (guid unchanged, so the existing
+  world pickup and `PlayerCanteen`'s belt-attachment logic didn't need
+  touching) — establishes "Fiber Belt" as the ladder's base name per
+  Ben's call, so future tiers read `Crude Fiber Belt` … `Masterwork Fiber
+  Belt`, consistent with `CraftTierNames`.
+- **New `Crude Fiber Belt`** — 8x Fiber → 1 Crude Fiber Belt, 2 attachment
+  points (matches the already-decided Crude-tier point count), trains
+  Sewing. First Belt tier to ever have a recipe.
+- **New `Crude Fiber Backpack`** — a *distinct* item from the existing
+  `Backpack` ladder (Ben's explicit call, not filling in the existing
+  recipe-less `Crude Backpack`) — 15x Fiber → 1 Crude Fiber Backpack,
+  capacity 4 (matches the existing Crude-tier capacity number). Trains
+  Sewing.
+- Both new items got real `.prefab` assets for the first time (previous
+  world pickups were standalone scene GameObjects, not reusable prefabs)
+  — `Assets/Prefabs/CrudeFiberBelt.prefab` /
+  `Assets/Prefabs/CrudeFiberBackpack.prefab`, needed so
+  `ItemDefinition.worldPickupPrefab` has something to instantiate.
+  Placeholder flat-box visuals reused from the existing Belt/Backpack
+  placeholders (`Backpack.mat` tint) — no dedicated art pass, and
+  thematically a woven-fiber item probably shouldn't share a leather
+  material long-term.
+- Fiber costs (8 / 15) and Sewing `skillGain: 2` are first-pass numbers,
+  not deeply tuned — same "reasonable starting point, adjust after
+  playtesting" spirit as everything else in the tool tiers.
+
+**Still open:** Rudimentary/Fine/Masterwork Fiber Belt and the
+corresponding Fiber Backpack tiers aren't built — this pass only covers
+the Crude "starter" tier of each, per the original ask. Leather sourcing
+and the original (non-Fiber) Backpack ladder's recipes remain unbuilt too.
+
+### v0.1.78-dev — Rope and Cloth recipes, both trained by Sewing
+
+Next link in the Fiber chain, right after Fiber itself landed. Both new
+recipes are pure Fiber refinement — no tool required, no byproduct.
+
+- New `Rope.asset`/`Cloth.asset` `ItemDefinition`s — plain stackable
+  materials (no tier), same shape as Fiber/Stick/Wood.
+- `RopeRecipe`: 5x Fiber → 1 Rope. `ClothRecipe`: 10x Fiber → 1 Cloth.
+  Both train **Sewing** (`skillGain: 2`, matching the flat rate every
+  other base recipe uses) — the first two recipes to ever train that
+  skill, which existed as an empty `SkillDefinition` since the discipline
+  split (v0.1.70-dev) with nothing populating it. Already listed in
+  `CraftingScreen`'s discipline tabs, so no scene wiring needed there.
+- Both added to `PlayerCrafting.recipes` on the Player GameObject in
+  `TestScene.unity` (32 recipes now, up from 30). Verified via a throwaway
+  batch-mode script that opened the scene and read back
+  `PlayerCrafting.Recipes` directly — confirmed ingredient counts, output
+  items, and `trainedSkill` all resolved correctly, not just that the
+  guids parsed.
+
+**Still open:** Leather sourcing (implies hunting/animals — doesn't exist
+at all yet), and the actual Backpack/Belt recipes now that Cloth (and
+maybe Rope, for straps/drawstrings) exist as real ingredients. See
+`BUGS_AND_ENHANCEMENTS.md`.
+
+### v0.1.77-dev — Trimming a Stick now also yields Fiber
+
+First real step on the Fiber → Cloth / Leather material chain flagged as a
+blocker for Backpack/Belt recipes (`BUGS_AND_ENHANCEMENTS.md`). Ben's
+framing: trimming a branch with a knife should realistically leave you
+with some usable fiber, not just the trimmed stick.
+
+- `CraftingRecipe` gained an optional secondary output — `bonusItem`/
+  `bonusCount` (default null/1) — alongside the existing `outputItem`/
+  `outputCount`. Guaranteed when set, same as every other recipe in the
+  game; no randomness introduced. Most recipes don't need it and leave it
+  unset.
+- All 5 `TrimmedStick` recipes (Crude through Masterwork) now also output
+  1 Fiber, flat across every tier — deliberately not scaled like the
+  point/capacity curves elsewhere, since the Trimmed Stick recipes
+  themselves are still identical scaffolding across tiers with no real
+  differentiation yet.
+- New `Fiber.asset` `ItemDefinition` — plain stackable raw material (no
+  tier, no world pickup), same shape as Stick/Wood.
+- `PlayerCrafting.TryCraft` checks space for and adds the bonus output
+  alongside the primary one; `CraftingScreen`'s recipe list now shows it
+  (`Trimmed Stick + 1x Fiber  (needs ...)`) and factors it into the
+  "inventory full" check.
+- No scene/prefab changes needed — this only touches recipe data and the
+  crafting scripts, since Fiber has no physical world presence yet (only
+  produced as crafting output).
+
+**Still open:** this only answers "where does Fiber come from" — the
+Fiber → Cloth refining step, a Leather source, and any real recipe for
+Backpack/Belt are all still unbuilt. See `BUGS_AND_ENHANCEMENTS.md`.
 
 ## 2026-08-06
 

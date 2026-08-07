@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
   m_Name: BeltItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Belt
+  itemName: Fiber Belt
   maxStack: 1
   tier: 2
   worldPickupPrefab: {fileID: 0}

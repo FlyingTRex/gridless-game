@@ -8,8 +8,22 @@ public class ResourceNode : MonoBehaviour, IPunchable
     [SerializeField] private float scatterForce = 1.2f;
     [SerializeField] private SkillDefinition trainedSkill;
     [SerializeField] private float skillGain = 0.5f;
+    // <= 0 means this node doesn't respawn at all — it's destroyed
+    // outright when broken instead. For a node that's itself a one-off
+    // spawn (e.g. a Log dropped by a chopped Tree — see Tree.cs), there's
+    // no sensible "same spot" to respawn at the way a fixed Boulder/ore
+    // node has.
     [SerializeField] private float respawnDelay = 180f;
     [SerializeField] private float respawnScatter = 0.5f;
+
+    // Optional extra spawn alongside the guaranteed chunkPrefab/chunkCount
+    // — rolled once per break, independently of chunkCount. Null (default,
+    // 0 chance) means no bonus, same "most nodes don't need this"
+    // convention as CraftingRecipe.bonusItem — but unlike that one, this
+    // IS a real chance (e.g. chopping a Log has a chance of also yielding
+    // a Stick/branch), not a guarantee.
+    [SerializeField] private GameObject bonusChunkPrefab;
+    [SerializeField, Range(0f, 1f)] private float bonusChunkChance = 0f;
 
     // Null/empty (default) means no tool needed — punching bare-handed
     // works, same as Rock Node's existing behavior. Populate to gate a node
@@ -107,20 +121,31 @@ public class ResourceNode : MonoBehaviour, IPunchable
         GameObject prefabToSpawn = (IsDisguised && !IsRevealed) ? hiddenChunkPrefab : chunkPrefab;
 
         for (int i = 0; i < chunkCount; i++)
-        {
-            Vector3 offset = Random.insideUnitSphere * 0.3f;
-            var chunk = Instantiate(prefabToSpawn, transform.position + Vector3.up * 0.2f + offset,
-                Random.rotation);
+            SpawnChunk(prefabToSpawn);
 
-            if (chunk.TryGetComponent(out Rigidbody rb))
-            {
-                Vector3 dir = (Random.insideUnitSphere + Vector3.up).normalized;
-                rb.AddForce(dir * scatterForce, ForceMode.Impulse);
-            }
+        if (bonusChunkPrefab != null && Random.value < bonusChunkChance)
+            SpawnChunk(bonusChunkPrefab);
+
+        if (respawnDelay <= 0f)
+        {
+            Destroy(gameObject);
+            return;
         }
 
         SetVisible(false);
         respawnAt = Time.time + respawnDelay;
+    }
+
+    private void SpawnChunk(GameObject prefab)
+    {
+        Vector3 offset = Random.insideUnitSphere * 0.3f;
+        var chunk = Instantiate(prefab, transform.position + Vector3.up * 0.2f + offset, Random.rotation);
+
+        if (chunk.TryGetComponent(out Rigidbody rb))
+        {
+            Vector3 dir = (Random.insideUnitSphere + Vector3.up).normalized;
+            rb.AddForce(dir * scatterForce, ForceMode.Impulse);
+        }
     }
 
     private bool HasAnyRequiredToolInHand(PlayerEquipment equipment)

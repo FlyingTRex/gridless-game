@@ -61,8 +61,11 @@ public class CraftingScreen : MonoBehaviour
                 any = true;
 
                 bool hasEnough = crafting.HasIngredients(recipe);
-                bool hasSpace = playerInventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount);
+                bool hasSpace = playerInventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount)
+                    && (recipe.bonusItem == null || playerInventory.Inventory.HasSpaceFor(recipe.bonusItem, recipe.bonusCount));
                 bool hasTool = crafting.HasRequiredTool(recipe);
+                bool hasSkill = crafting.HasRequiredSkill(recipe);
+                int requiredSkill = recipe.outputItem != null ? CraftTierScale.SkillRequirement(recipe.outputItem.tier) : 0;
 
                 string needs = "";
                 foreach (var ingredient in recipe.ingredients)
@@ -72,9 +75,14 @@ public class CraftingScreen : MonoBehaviour
                     needs += $"{ingredient.count}x {ingredient.item.itemName} (have {crafting.GetAvailableCount(ingredient.item)})";
                 }
 
-                string label = $"{recipe.outputItem.itemName}  (needs {needs})";
+                string label = $"{recipe.outputItem.itemName}";
+                if (recipe.bonusItem != null)
+                    label += $" + {recipe.bonusCount}x {recipe.bonusItem.itemName}";
+                label += $"  (needs {needs})";
                 if (recipe.requiredTools != null && recipe.requiredTools.Length > 0)
                     label += hasTool ? $"  [{recipe.requiredToolLabel} in hand]" : $"  — requires {recipe.requiredToolLabel} in hand";
+                if (requiredSkill > 0 && !hasSkill)
+                    label += $"  — requires {recipe.trainedSkill.skillName} {requiredSkill}";
                 if (hasEnough && !hasSpace)
                     label += "  — inventory full";
 
@@ -85,7 +93,7 @@ public class CraftingScreen : MonoBehaviour
                 // silently does nothing when the recipe can't be made —
                 // the missing feedback that made a failed craft look like
                 // nothing happened at all.
-                GUI.enabled = hasEnough && hasSpace && hasTool;
+                GUI.enabled = hasEnough && hasSpace && hasTool && hasSkill;
                 if (GUILayout.Button("Craft", GUILayout.Width(60)))
                     craftClicked = recipe;
                 GUI.enabled = true;

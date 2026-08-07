@@ -102,6 +102,15 @@ public class PlayerVitals : MonoBehaviour
         stamina = Mathf.Clamp(stamina - amount, 0f, 100f);
     }
 
+    // Direct health loss (e.g. a spectacular crafting failure) — distinct
+    // from the passive starvation/overdrink damage in Update(), which
+    // that own logic applies via a lower-bound clamp; this uses the same
+    // clamp so callers can't push health negative.
+    public void Damage(float amount)
+    {
+        health = Mathf.Max(0f, health - amount);
+    }
+
     public void Restore(VitalType vital, float amount)
     {
         switch (vital)

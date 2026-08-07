@@ -211,6 +211,29 @@ fix the coordinate in this file rather than assuming the step is wrong.
   `CHANGELOG.md` for the scope boundary). Its dropped/world visual should be
   the same "lumpy body + small pebbles" hybrid shape as the Boulder, just
   smaller (4 pebbles vs. Boulder's 8).
+- [ ] **Tree chopping (v0.1.83-dev):** the Tree at spawn requires an Axe
+  in hand (prompt reads "Chop (requires Axe)", punching bare-handed does
+  nothing — same tool-gating as ore nodes). 3 hits drops 3 `Log`
+  instances scattered nearby with physics (should tumble briefly then
+  settle, not roll away indefinitely), and the tree itself should swap to
+  a visibly different, shorter **Stump** shape rather than fully
+  disappearing — confirm the stump is still a solid physical obstacle
+  (can't walk through it). Chopping trains **Gathering**. After ~180s the
+  stump should regrow back into a full tree (long wait — consider
+  temporarily shortening `Tree.regrowDelay` to verify without the full
+  wait). Punching the stump itself (before it regrows) should do
+  nothing — prompt should read "Stump (regrowing)", not the normal chop
+  prompt.
+- [ ] **Log chopping (v0.1.83-dev):** each dropped Log also requires an
+  Axe (same tool-gating). 2 hits should destroy the Log outright (not
+  hide-and-respawn like other `ResourceNode`s — a Log is a one-off
+  spawn, there's nothing to respawn) and drop 2 **Plank** (new item).
+  Chopping a Log trains **Woodworking**, not Gathering — confirm the
+  Skills tab reflects the split correctly (Tree chop → Gathering rises,
+  Log chop → Woodworking rises). Roughly 3 in 10 Log chops should also
+  drop a **Stick** (reusing the existing branch-model item, not a
+  separate "Branch") — chop several Logs across a full playtest and
+  confirm this is a real, visible chance, not always/never happening.
 - [ ] **Copper Ore Node (v0.1.59-dev)** at `(2, 0.4, -4)`: punching it *without* a
   Pickaxe held in a hand does nothing (no hit registers, prompt reads "Punch to
   break (requires Pickaxe)"). With a Pickaxe in either hand, punching works and
@@ -225,11 +248,68 @@ fix the coordinate in this file rather than assuming the step is wrong.
   before: 2 Small Rock + 1 Stick for Pickaxe, 1 Small Rock + 2 Stick for
   Axe, etc.). **Known, expected placeholder behavior — not a bug:** every
   tier of a given tool currently costs the *exact same* ingredients (no
-  weakest-link rule enforcing real materials yet), so all 5 tiers of e.g.
-  Knife are craftable side by side right away with nothing gating the
-  higher ones. Carrying any of them in a backpack/main inventory (not a
+  weakest-link ingredient-quality rule yet) — only the skill side is
+  gated now (see the Skill-gated crafting entry below), not material
+  quality. Carrying any of them in a backpack/main inventory (not a
   hand) should **not** satisfy a tool requirement below — still has to be
   held in a hand (`PlayerEquipment.HasInHand`).
+- [ ] **Skill-gated crafting tiers (v0.1.80-dev):** on a fresh character
+  (Stonework 0), only Crude Knife/Hammer/Axe/Pickaxe and Crude Trimmed
+  Stick should be craftable — Rudimentary/Normal/Fine/Masterwork should
+  show greyed out with a `— requires Stonework 10` (or 25/50/100, or
+  `Woodworking`/`Sewing` for the other disciplines) label and Craft
+  disabled, even with enough ingredients and the right tool in hand. Craft
+  enough Crude items to push Stonework past 10 and confirm Rudimentary
+  unlocks (Skills tab should show the rising level). Rope/Cloth and Crude
+  Fiber Belt/Backpack should stay craftable from Sewing 0 — they're
+  single-tier items with no real ladder, not actually gated despite
+  defaulting to/being tagged with a `CraftTier` value. The 5 gadget
+  recipes (Canteen/Sunglasses/Nav Computer/Health Monitor/Mining Face
+  Shield) have no `trainedSkill` and should be completely unaffected —
+  always craftable regardless of any skill level.
+- [ ] **Skill-up messages (v0.1.81-dev):** every successful craft that
+  actually raises a skill's level should show a brief (~3s) positive
+  message top-center (e.g. "Congratulations! You have increased your
+  Stonework skill to 4.0!") — wording should vary across repeated crafts
+  (6 possible ordinary-gain lines), not always the same sentence. Craft
+  enough Crude items to cross Stonework 10 (Rudimentary) and confirm the
+  message changes to a distinct, more celebratory line mentioning
+  "Rudimentary tier unlocked" — same for Normal (25), Fine (50), and
+  Masterwork (100) if you push a skill that far. No special message
+  should ever appear for "unlocking Crude" (threshold is 0 — nothing to
+  cross). Message should sit just below the compass when a Navigation
+  Computer is worn, never overlapping it. Craft twice in quick succession
+  (before the 3s expires) and confirm the second message replaces the
+  first rather than both showing at once. At MaxLevel (100, essentially
+  unreachable in a normal playtest but worth noting) no message should
+  appear since there's no real gain left to report.
+- [ ] **Chance-of-creation crafting (v0.1.82-dev):** craft a batch of
+  Crude tools/Trimmed Stick (low skill margin, riskiest odds — roughly
+  63% Success / 20% Barely Fail / 12% Bad Failure / 3% Spectacular / 2%
+  Brilliant) and confirm all 5 outcomes are actually reachable, not just
+  Success: some crafts should silently succeed as normal (no message),
+  some should show Bad/Spectacular Failure messages. **Crude specifically
+  has nowhere lower to downgrade to**, so confirm it never shows a
+  "Close, but not quite" downgrade message — only ever a plain Success or
+  one of the other outcomes, even on a Barely Fail roll. Push a skill well
+  past a tier's threshold (margin 20+, e.g. Stonework 30+ crafting
+  Rudimentary) and confirm failures/downgrades get noticeably rarer and
+  a "Incredible! You crafted a [higher tier item]" brilliant-success
+  message becomes reachable, producing the next tier up in your
+  inventory. **Bad Failure:** confirm ingredients are gone and nothing
+  is added. **Spectacular Failure:** confirm ingredients are gone, you
+  take visible health damage (check the vitals HUD if a Health Monitor
+  is worn), and — only when crafting Trimmed Stick specifically (the
+  only recipe with a required tool today) — the Knife held in your hand
+  actually disappears from that hand slot. Crafting a tool (Knife/Hammer/
+  Axe/Pickaxe) on Spectacular Failure should NOT break anything (no tool
+  required for those recipes) — just materials lost + damage. Confirm
+  Masterwork tools never show a "brilliant success" upgrade message
+  (nowhere higher to go) even though the roll can still land there
+  internally. Message should appear just below the skill-up message
+  (`y=110` vs `y=70`) — craft something that both raises a skill's level
+  AND has a notable chance outcome, and confirm both messages show at
+  once without overlapping.
 - [ ] **Tool gating now accepts any tier (v0.1.69-dev):** the Copper Ore
   check above, and every other Pickaxe/Axe-gated node below, should accept
   **any** of the 5 Pickaxe/Axe tiers held in a hand, not just one specific
@@ -342,6 +422,32 @@ fix the coordinate in this file rather than assuming the step is wrong.
   enable (assuming a Stick is also available). Confirm the Knife is still
   in your hand — not consumed — after crafting. Crafting any tier trains
   **Woodworking** (check the Skills tab, Crafting Disciplines category).
+- [ ] **Fiber byproduct (v0.1.77-dev):** crafting any tier of Trimmed
+  Stick should show `Trimmed Stick + 1x Fiber  (needs ...)` in the recipe
+  list, and produce 1 Fiber in the main inventory alongside the Trimmed
+  Stick every time — guaranteed, not a chance. If the main inventory is
+  full enough that the Fiber wouldn't fit (even if the Trimmed Stick
+  alone would), the recipe should show "— inventory full" and Craft
+  should stay disabled, same as any other space-check failure.
+- [ ] **Rope/Cloth (v0.1.78-dev, Sewing tab):** with 5+ Fiber, `Rope`
+  should show as `Rope  (needs 5x Fiber (have N))` and craft into 1 Rope;
+  with 10+ Fiber, `Cloth` similarly craft into 1 Cloth. Both should be
+  greyed out/uncraftable below their Fiber threshold, and both should
+  train **Sewing** — check the Skills tab afterward to confirm it now
+  appears with a nonzero level (see the Skills tab section below, this is
+  the first thing that ever trains it).
+- [ ] **Crude Fiber Belt / Crude Fiber Backpack (v0.1.79-dev, Sewing
+  tab):** with 8+ Fiber, craft a `Crude Fiber Belt` — this should be the
+  **first-ever crafted equippable that actually works**: check it lands
+  in the main inventory as a real equippable (Equip button available, not
+  a dead stackable entry), and equipping it puts it on Waist with 2
+  attachment points, same as the found `Fiber Belt`. With 15+ Fiber, craft
+  a `Crude Fiber Backpack` the same way — Equip should put it on Back
+  with 4 inventory slots. Both are placeholder flat-box visuals, not a
+  final art pass. **Regression check:** the existing found `Fiber Belt`
+  (near `(-2, 0.3, 1.5)`, was named plain "Belt" before v0.1.79-dev) and
+  the pre-placed `Backpack` should still work exactly as before — this
+  change shouldn't have touched either.
 - [ ] **Folder-tab look (v0.1.70-dev):** the selected discipline tab should
   read as visually connected to the recipe list below it (matching
   background, no seam), while unselected tabs look visibly separate/
@@ -359,12 +465,13 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] **Gathering** tab: shows `Gathering` (and `Mining`, once that split is
   actually built — not yet, still just `Gathering` today).
 - [ ] **Crafting Disciplines** tab: shows `Stonework` once you've crafted at
-  least one tool (Knife/Hammer/Axe/Pickaxe, any tier), and `Woodworking`
-  once you've carved at least one Trimmed Stick (v0.1.71-dev) — the
-  remaining four disciplines (Metalworking, Forging, Minting, Sewing) won't
-  appear at all until something actually trains them, which nothing does
-  yet. If you haven't crafted anything, this tab should show "No skills
-  trained yet." rather than an empty blank panel.
+  least one tool (Knife/Hammer/Axe/Pickaxe, any tier), `Woodworking` once
+  you've carved at least one Trimmed Stick (v0.1.71-dev), and `Sewing`
+  once you've crafted a Rope or Cloth (v0.1.78-dev) — the remaining three
+  disciplines (Metalworking, Forging, Minting) still won't appear at all
+  until something actually trains them, which nothing does yet. If you
+  haven't crafted anything, this tab should show "No skills trained yet."
+  rather than an empty blank panel.
 - [ ] **Combat** tab: always shows "No skills yet — combat/hunting isn't
   built." — there's no combat system and no weapon skills exist, so this
   tab can never have content today. Not a bug.
