@@ -50,29 +50,46 @@ public class PlayerNavComputer : MonoBehaviour
         return true;
     }
 
-    // Moves the computer onto a wrist slot from wherever it currently is
-    // (a regular inventory slot, or a hand if PlayerLoot put it there).
-    public bool Equip(NavigationComputer navComputer)
+    // Every wrist slot currently free — read by InventoryScreen to decide
+    // whether Equip can commit immediately (0 or 1 option) or needs to ask
+    // the player which wrist they want (both free).
+    public System.Collections.Generic.List<string> AvailableDestinations(NavigationComputer navComputer)
     {
-        if (navComputer == null) return false;
-
-        string currentSlot = FindSlot(navComputer);
-
+        var result = new System.Collections.Generic.List<string>();
         foreach (var wristSlot in WristSlots)
         {
             var slot = equipment.GetSlot(wristSlot);
-            if (slot == null || !slot.AddEquipmentItem(navComputerItem, navComputer)) continue;
-
-            if (currentSlot != null)
-                equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(navComputerItem);
-            else
-                playerInventory.Inventory.RemoveEquipmentItem(navComputerItem);
-
-            navComputer.SetCarried(true, transform);
-            return true;
+            if (slot != null && slot.Slots.Count < slot.Capacity) result.Add(wristSlot);
         }
+        return result;
+    }
 
-        return false;
+    // Moves the computer onto a wrist slot from wherever it currently is
+    // (see AvailableDestinations for the order).
+    public bool Equip(NavigationComputer navComputer)
+    {
+        var destinations = AvailableDestinations(navComputer);
+        return destinations.Count > 0 && EquipTo(navComputer, destinations[0]);
+    }
+
+    // Moves the computer onto a specific wrist the player chose (see
+    // InventoryScreen's Equip destination popup) rather than picking one
+    // automatically.
+    public bool EquipTo(NavigationComputer navComputer, string destination)
+    {
+        if (navComputer == null || destination == null) return false;
+
+        string currentSlot = FindSlot(navComputer);
+        var slot = equipment.GetSlot(destination);
+        if (slot == null || !slot.AddEquipmentItem(navComputerItem, navComputer)) return false;
+
+        if (currentSlot != null)
+            equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(navComputerItem);
+        else
+            playerInventory.Inventory.RemoveEquipmentItem(navComputerItem);
+
+        navComputer.SetCarried(true, transform);
+        return true;
     }
 
     // Moves the computer from a wrist back into a regular inventory slot.

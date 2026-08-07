@@ -95,7 +95,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74e23c6d22b81d9edacc1f91fba165ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Backpack
-  backpackName: Rough Backpack
+  itemDefinition: {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
   capacity: 8
 --- !u!1001 &8390244967371647152
 PrefabInstance:

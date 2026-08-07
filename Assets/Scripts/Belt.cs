@@ -1,26 +1,30 @@
 using UnityEngine;
 
+// Worn at Waist. Unlike Backpack, a Belt has no general-purpose storage of
+// its own — Points is a fixed number of generic attachment slots (any
+// IEquippable attachment consumes exactly 1, regardless of kind), scaling
+// with the Belt's own CraftTier (see BUGS_AND_ENHANCEMENTS.md's Belt entry
+// for the full design). Today the only attachment that actually exists is
+// a Canteen (see PlayerCanteen) — Scabbard/Pouch/Holster are still open
+// design questions, not built.
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
-public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
+public class Belt : MonoBehaviour, IInteractable, IInventoryHolder
 {
-    // Excluded from the player's own camera (see Main Camera's cullingMask in
-    // TestScene) so worn gear doesn't fill the screen if you turn to look at
-    // your own back. Only applied while worn — SetCarried resets it to Default
-    // on drop/unequip so a world-sitting backpack stays visible.
+    // See Backpack.cs for why worn gear sits on this layer.
     private const int DefaultLayer = 0;
     private const int WornEquipmentLayer = 8;
 
     [SerializeField] private ItemDefinition itemDefinition;
-    [SerializeField] private int capacity = 8;
+    [SerializeField] private int points = 6;
 
-    private Inventory inventory;
+    private Inventory pointsInventory;
     private Rigidbody body;
     private Collider col;
 
-    public Inventory Inventory => inventory;
+    public Inventory Inventory => pointsInventory;
     public ItemDefinition ItemDefinition => itemDefinition;
-    public string DisplayName => itemDefinition != null ? itemDefinition.itemName : "Backpack";
+    public string DisplayName => itemDefinition != null ? itemDefinition.itemName : "Belt";
 
     public string Prompt => $"Pick up {DisplayName}";
     public bool IsInstant => true;
@@ -28,28 +32,23 @@ public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
 
     private void Awake()
     {
-        inventory = new Inventory(capacity);
+        pointsInventory = new Inventory(points);
         body = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
     }
 
     public void Complete(GameObject player)
     {
-        var carrier = player.GetComponent<PlayerBackpack>();
+        var carrier = player.GetComponent<PlayerBelt>();
         carrier?.PickUp(this);
     }
 
-    // Fully hides the object while it's stashed in a regular inventory slot
-    // rather than sitting in the world or worn on the back.
     public void Stash()
     {
         transform.SetParent(null, false);
         gameObject.SetActive(false);
     }
 
-    // Worn on the back (visible, non-collidable, follows the player) when
-    // anchor is set, or released back into the world as a normal physical
-    // object when anchor is null.
     public void SetCarried(bool value, Transform anchor)
     {
         gameObject.SetActive(true);

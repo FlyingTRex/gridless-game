@@ -10,7 +10,6 @@ public class PlayerBackpack : MonoBehaviour
     // regardless of which of these it landed in.
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
-    [SerializeField] private ItemDefinition backpackItem;
     [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
@@ -36,10 +35,10 @@ public class PlayerBackpack : MonoBehaviour
     {
         if (backpack == null) return false;
 
-        if (loot != null && loot.ReceiveEquipment(backpackItem, backpack))
+        if (loot != null && loot.ReceiveEquipment(backpack.ItemDefinition, backpack))
             return true;
 
-        if (!playerInventory.Inventory.AddEquipmentItem(backpackItem, backpack)) return false;
+        if (!playerInventory.Inventory.AddEquipmentItem(backpack.ItemDefinition, backpack)) return false;
 
         backpack.Stash();
         return true;
@@ -54,12 +53,12 @@ public class PlayerBackpack : MonoBehaviour
 
         string currentSlot = FindSlot(backpack);
         var slot = equipment.GetSlot(BackSlot);
-        if (slot == null || !slot.AddEquipmentItem(backpackItem, backpack)) return false;
+        if (slot == null || !slot.AddEquipmentItem(backpack.ItemDefinition, backpack)) return false;
 
         if (currentSlot != null)
-            equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(backpackItem);
+            equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(backpack.ItemDefinition);
         else
-            playerInventory.Inventory.RemoveEquipmentItem(backpackItem);
+            playerInventory.Inventory.RemoveEquipmentItem(backpack.ItemDefinition);
 
         backpack.SetCarried(true, carrySlot != null ? carrySlot : transform);
         return true;
@@ -75,9 +74,9 @@ public class PlayerBackpack : MonoBehaviour
         string slotName = FindSlot(backpack);
         if (backpack == null || slotName == null) return false;
 
-        if (playerInventory.Inventory.AddEquipmentItem(backpackItem, backpack))
+        if (playerInventory.Inventory.AddEquipmentItem(backpack.ItemDefinition, backpack))
         {
-            equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpackItem);
+            equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpack.ItemDefinition);
             backpack.Stash();
             return true;
         }
@@ -87,9 +86,9 @@ public class PlayerBackpack : MonoBehaviour
             var hand = equipment.GetSlot(handSlotName);
             if (hand == null || handSlotName == slotName) continue;
 
-            if (hand.AddEquipmentItem(backpackItem, backpack))
+            if (hand.AddEquipmentItem(backpack.ItemDefinition, backpack))
             {
-                equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpackItem);
+                equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpack.ItemDefinition);
                 backpack.SetCarried(true, transform);
                 return true;
             }
@@ -107,9 +106,9 @@ public class PlayerBackpack : MonoBehaviour
 
         string slotName = FindSlot(backpack);
         if (slotName != null)
-            equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpackItem);
+            equipment.GetSlot(slotName)?.RemoveEquipmentItem(backpack.ItemDefinition);
         else
-            playerInventory.Inventory.RemoveEquipmentItem(backpackItem);
+            playerInventory.Inventory.RemoveEquipmentItem(backpack.ItemDefinition);
 
         backpack.SetCarried(false, null);
         backpack.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;

@@ -50,29 +50,46 @@ public class PlayerHealthMonitor : MonoBehaviour
         return true;
     }
 
-    // Moves the monitor onto a wrist slot from wherever it currently is (a
-    // regular inventory slot, or a hand if PlayerLoot put it there).
-    public bool Equip(PersonalHealthMonitor monitor)
+    // Every wrist slot currently free — read by InventoryScreen to decide
+    // whether Equip can commit immediately (0 or 1 option) or needs to ask
+    // the player which wrist they want (both free).
+    public System.Collections.Generic.List<string> AvailableDestinations(PersonalHealthMonitor monitor)
     {
-        if (monitor == null) return false;
-
-        string currentSlot = FindSlot(monitor);
-
+        var result = new System.Collections.Generic.List<string>();
         foreach (var wristSlot in WristSlots)
         {
             var slot = equipment.GetSlot(wristSlot);
-            if (slot == null || !slot.AddEquipmentItem(monitorItem, monitor)) continue;
-
-            if (currentSlot != null)
-                equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(monitorItem);
-            else
-                playerInventory.Inventory.RemoveEquipmentItem(monitorItem);
-
-            monitor.SetCarried(true, transform);
-            return true;
+            if (slot != null && slot.Slots.Count < slot.Capacity) result.Add(wristSlot);
         }
+        return result;
+    }
 
-        return false;
+    // Moves the monitor onto a wrist slot from wherever it currently is
+    // (see AvailableDestinations for the order).
+    public bool Equip(PersonalHealthMonitor monitor)
+    {
+        var destinations = AvailableDestinations(monitor);
+        return destinations.Count > 0 && EquipTo(monitor, destinations[0]);
+    }
+
+    // Moves the monitor onto a specific wrist the player chose (see
+    // InventoryScreen's Equip destination popup) rather than picking one
+    // automatically.
+    public bool EquipTo(PersonalHealthMonitor monitor, string destination)
+    {
+        if (monitor == null || destination == null) return false;
+
+        string currentSlot = FindSlot(monitor);
+        var slot = equipment.GetSlot(destination);
+        if (slot == null || !slot.AddEquipmentItem(monitorItem, monitor)) return false;
+
+        if (currentSlot != null)
+            equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(monitorItem);
+        else
+            playerInventory.Inventory.RemoveEquipmentItem(monitorItem);
+
+        monitor.SetCarried(true, transform);
+        return true;
     }
 
     // Moves the monitor from a wrist back into a regular inventory slot.

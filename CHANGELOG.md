@@ -5,12 +5,126 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.74-dev` — must always match `GameVersion` in
+**Current version:** `0.1.76-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-06
+
+### v0.1.76-dev — Equip destination picker for multi-slot equippables
+
+Ben's follow-up thought right after the Belt landed: now that Canteen can
+go to Left Hand, Right Hand, *or* a worn Belt's attachment points,
+clicking Equip silently picking whichever one the carrier tried first
+isn't good enough — the player should see the real options and choose.
+Same gap already existed for NavigationComputer/PersonalHealthMonitor
+(Left Wrist or Right Wrist), just less noticeable with only 2 options.
+
+- `PlayerCanteen`/`PlayerNavComputer`/`PlayerHealthMonitor` each gained
+  `AvailableDestinations(item)` (every currently-free slot that would
+  actually accept the item right now) and `EquipTo(item, destination)`
+  (commit to one specific destination, instead of `Equip`'s old
+  first-match-wins loop). `Equip(item)` is now a thin wrapper —
+  `AvailableDestinations(item)[0]` through `EquipTo` — so existing callers
+  keep working unchanged.
+- Backpack/Belt/Sunglasses/MiningFaceShield **don't** get this treatment —
+  each only ever has exactly one possible destination (Back/Waist/Face),
+  so there's nothing to choose between; their Equip buttons still equip
+  immediately, same as before.
+- `InventoryScreen.cs`: new `TryEquipWithChoice` overloads (one per
+  multi-destination type) replace the direct `.Equip()` calls at both
+  click sites — the main inventory list, and a not-yet-worn item sitting
+  in a hand slot in the Equipment section. 0 or 1 available destinations
+  still equips immediately; 2+ opens a new popup (`DrawPendingEquipPopup`,
+  same visual pattern as the existing "where should this go?" move popup)
+  listing them as buttons.
+- **Doesn't close** the two related, still-open gaps in
+  `BUGS_AND_ENHANCEMENTS.md` ("No way to move an equipped item into a
+  backpack" and "Equip directly from a container") — those are about
+  different actions (moving an already-equipped item elsewhere, and
+  equipping straight from a container's contents) that this popup doesn't
+  touch. Related, not the same fix.
+
+### v0.1.75-dev — Backpack retiered, new Belt equippable (design-only recipes)
+
+Built the two pieces from the same design conversation logged in
+`BUGS_AND_ENHANCEMENTS.md`: Backpack folded into the 5-tier `CraftTier`
+ladder, and a new Belt equippable with generic attachment points. Neither
+got a real recipe this pass — see "Still open" below for why.
+
+**Backpack:**
+- `Backpack.cs` gained an `itemDefinition` field (replacing the hardcoded
+  `backpackName` string) so a physical Backpack instance can point at any
+  tier's `ItemDefinition` — previously `PlayerBackpack` only ever
+  recognized a single hardcoded `backpackItem`, which couldn't represent
+  multiple coexisting tiers. `PlayerBackpack`'s Pick Up/Equip/Unequip/Drop
+  now all read `backpack.ItemDefinition` instead.
+- `RoughBackpackItem.asset` renamed to `BackpackItem.asset`, `itemName`
+  "Rough Backpack" → "Backpack" (Normal tier, no prefix, per the existing
+  `CraftTierNames` convention — same as `Rock Knife` → `Crude Knife`).
+  Same guid, so the existing world pickup and `Assets/Prefabs/
+  Backpack.prefab` (still orphaned/unreferenced, kept in sync anyway)
+  didn't need re-linking.
+- New `ItemDefinition`s for the other 4 tiers: `CrudeBackpackItem`,
+  `RudimentaryBackpackItem`, `FineBackpackItem`, `MasterworkBackpackItem` —
+  capacity table from the design conversation (4/6/8/12/16). **Data only
+  for now** — no recipe, no world pickup, nothing can spawn them yet
+  (see "Still open").
+
+**Belt (new):**
+- `Belt.cs` (new, mirrors `Backpack.cs`): worn at Waist, holds a fixed
+  number of generic attachment points (`points = 6` for this Normal-tier
+  instance) as its own `Inventory` rather than general storage — any
+  attachment consumes exactly 1 point regardless of kind.
+- `PlayerBelt.cs` (new, mirrors `PlayerBackpack.cs`): Pick Up/Equip/
+  Unequip/Drop into the Waist slot.
+- `PlayerCanteen.cs` reworked: a worn Belt now occupies the body's actual
+  `Waist` `PlayerEquipment` slot, so a bare Canteen's fallback chain
+  changed from `Left Hand → Right Hand → Waist` to `Left Hand → Right
+  Hand → the equipped Belt's attachment points` (not a named
+  `PlayerEquipment` slot, so this needed its own branch rather than
+  reusing the old string-array slot list).
+- `InventoryScreen.cs`: Equip/Drop buttons for a Belt sitting in the main
+  inventory, Equip/Unequip/Drop + a nested contents side-column for the
+  Waist slot (reusing the same `DrawContainerContents`/wornContainer path
+  Backpack's Back slot already had — widened from Back-only to Back-or-
+  Waist).
+- New `BeltItem.asset` (Normal tier) + one world pickup (simple flat-box
+  placeholder, no dedicated art this pass, tinted with the existing
+  `Backpack.mat`) placed near Canteen's starter-gear spot at
+  `(-2, 0.3, 1.5)`.
+
+**Still open, deliberately not built this pass:**
+- **No recipes for Backpack or Belt.** Ben's call mid-build: hold off
+  until there's a real Fiber → Cloth textile chain and a way to source
+  Leather, rather than faking it with placeholder ingredients (Stick/Wood)
+  the way the tool tiers did. New backlog item in
+  `BUGS_AND_ENHANCEMENTS.md` for that material chain.
+- **Crafting can't produce a working equippable at all yet, independent of
+  the above.** Discovered mid-build: `PlayerCrafting.TryCraft` always
+  calls `inventory.AddItem(...)` — a plain stackable add with no
+  `.equipment` reference — so even with a recipe, a "crafted" Backpack/
+  Belt would land as an inert, non-wearable stack. Same root cause as the
+  already-logged "Admin spawn tab can't spawn a working equippable
+  gadget" bug. Logged as its own BUGS item; needs fixing before either
+  recipe can actually work.
+- **Only one worn container's contents show in the Inventory tab's side
+  column at a time.** `InventoryScreen.DrawEquipmentSection`'s
+  `wornContainer` is a single value, last-writer-wins across the
+  `SlotOrder` loop — if both a Backpack (Back) and a Belt (Waist) are worn
+  simultaneously, only the Belt's points render in the side column (Waist
+  comes after Back in `SlotOrder`); the Backpack's contents don't disappear
+  functionally, just visually. Pre-existing code only ever needed to
+  support one worn container before Belt existed. Logged in
+  `BUGS_AND_ENHANCEMENTS.md`.
+- Only the Normal-tier Backpack is reachable in play today (the existing
+  world pickup) — Crude/Rudimentary/Fine/Masterwork `ItemDefinition`s
+  exist as data but have no spawn path (no recipe, not pre-placed, Admin
+  spawn tab doesn't work for equippables either). Intentional — no point
+  building world pickups/prefabs for tiers nothing can craft yet.
+- Attachment types beyond a bare Canteen (Scabbard/Pouch/Holster) are
+  still just the open design question already logged, not built.
 
 ### v0.1.74-dev — Backpack's visual replaced with an AI-generated model
 

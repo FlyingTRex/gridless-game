@@ -57,9 +57,117 @@ work) — this is the backlog between the two. Check off and move the entry to
   (Backpack/Canteen/NavigationComputer/PersonalHealthMonitor/Sunglasses) only ever
   offer Equip/Drop — unlike the plain-item branch, there's no "To Backpack"/"To
   Storage". Affects every equippable, not just the Canteen. *(Reported by Ben.)*
+- [ ] **Only one worn container's contents show in the Inventory tab's side
+  column at a time.** Surfaced 2026-08-06 building Belt (`CHANGELOG.md`
+  v0.1.75-dev), the first time a second concurrently-worn `IInventoryHolder`
+  became possible (Backpack on Back, Belt on Waist). `InventoryScreen.
+  DrawEquipmentSection`'s `wornContainer` is a single value, overwritten
+  every time `SlotOrder`'s loop hits another worn container — Waist comes
+  after Back in `SlotOrder`, so a worn Belt always wins and the Backpack's
+  contents silently stop rendering in the side column while both are worn
+  (the Backpack itself is unaffected functionally — its contents are still
+  there, just not visible in that column). Fix would mean rendering a side
+  column per worn container instead of just the last one found.
 
-## Enhancements
+- [x] **Backpack — folded into the 5-tier CraftTier ladder, capacity scales
+  by tier — shipped 2026-08-06, see `CHANGELOG.md` v0.1.75-dev.** Grew out
+  of the Belt discussion just below: same "container capacity scales with
+  crafted tier" idea, applied to Backpack.
+  - **Renamed**, not just cosmetic: `"Rough Backpack"` → plain `Backpack`
+    (Normal, no prefix, per `CraftTierNames`' convention), alongside new
+    `Crude Backpack`/`Rudimentary Backpack`/`Fine Backpack`/`Masterwork
+    Backpack` `ItemDefinition`s.
+  - **Capacity curve, shipped as designed:**
 
+    | Tier | Capacity |
+    |---|---|
+    | Crude | 4 |
+    | Rudimentary | 6 |
+    | Normal | 8 |
+    | Fine | 12 |
+    | Masterwork | 16 |
+
+  - **Recipes deliberately NOT built this pass** — Ben's call: hold off
+    until there's a real Fiber → Cloth / Leather material chain instead of
+    faking it with placeholder ingredients. See the new Textiles/Leather
+    item below. Only the Normal tier has a working world pickup today;
+    the other 4 tiers exist as data only, unreachable in play until a
+    recipe (and the equippable-crafting-output fix below) exist.
+  *(Reported by Ben.)*
+- [x] **Belt — new equippable, worn at Waist, holds generic attachment
+  points instead of a normal inventory — shipped 2026-08-06 (Normal tier
+  only), see `CHANGELOG.md` v0.1.75-dev.**
+  - Equipping a Belt occupies the `Waist` slot in `PlayerEquipment`, which
+    replaces Canteen's old direct-to-Waist fallback — a bare Canteen's
+    carry locations are now Left Hand → Right Hand → the equipped Belt's
+    attachment points, not the body's Waist slot directly.
+  - Attachment points are **generic**, not typed — any attachment
+    (Canteen, Knife Scabbard, Pouch, Holster) consumes exactly 1 point
+    regardless of kind.
+  - Point count scales with the Belt's own `CraftTier`, hand-picked (like
+    Lockbox) rather than fit to the existing `CraftTierScale.Modifier()`
+    ratio, since 2→12 doesn't match that curve: Crude 2, Rudimentary 4,
+    Normal 6, Fine 9, Masterwork 12. **Only the Normal tier (6 points)
+    actually exists in play** — one `BeltItem.asset` (Normal), one world
+    pickup near Canteen's starter-gear spot. No recipe (same Fiber →
+    Cloth / Leather blocker as Backpack) and no Crude/Rudimentary/Fine/
+    Masterwork variants yet — revisit once there's a real reason to (a
+    material chain to gate them on).
+  - **Attachments, in the order they'd likely get built:** Canteen (built
+    — can now carry on a belt point as an alternative to a hand), Knife
+    Scabbard (holds exactly 1 Knife, any tier, nothing else), Pouch (grants
+    1-3 general-item storage slots — sized independently of the Belt's own
+    tier, so a Crude Belt can carry a 3-pocket Pouch), Holster (deferred —
+    no ranged/melee weapon exists yet to holster).
+  - **Explicitly open, not decided:** whether attachments themselves get
+    quality tiers that change their function, not just belt-slot
+    occupancy — Ben's example: a higher-tier Canteen could hold more
+    water than a Crude one. Same question would presumably apply to
+    Scabbard/Pouch/Holster once those exist (does a Masterwork Scabbard do
+    anything a Crude one doesn't?). Left as a question for whenever
+    attachments actually get built, not resolved now.
+  - **Ties into Encumbrance (design-brief.md Phase 1, not built —
+    `ItemDefinition` has no weight field yet):** once carried weight
+    affects movement/stamina, belt capacity stops being a free number —
+    a bigger Belt is presumably heavier to wear, and a full Canteen/loaded
+    Pouch weighs more than an empty one. Gives a real capacity-vs-mobility
+    trade instead of just "more slots is strictly better." Same logic
+    applies to Backpack's flat 8 slots once weight exists. Third lever
+    already named in design-brief.md's Phase 1 encumbrance item, not new
+    here: carry capacity/movement efficiency also improve as
+    Strength/Athletics grows through use (Pillar 2's skill-via-use model)
+    — so a heavy belt+pouch loadout is viable for a character who's
+    trained for it, not just a flat gear tax on everyone equally.
+  *(Reported by Ben.)*
+- [x] **Equip destination picker for multi-slot equippables — shipped
+  2026-08-06, see `CHANGELOG.md` v0.1.76-dev.** Ben's follow-up right
+  after Belt landed: Canteen can now go to Left Hand, Right Hand, or a
+  worn Belt's points, and clicking Equip silently picking the first match
+  isn't good enough. `PlayerCanteen`/`PlayerNavComputer`/
+  `PlayerHealthMonitor` (the only 3 equippables with more than one
+  possible destination) gained `AvailableDestinations`/`EquipTo`; a new
+  popup in `InventoryScreen.cs` shows the real options when there are 2+,
+  and still equips immediately with 0 or 1 (no needless click for
+  Backpack/Belt/Sunglasses/Mining Face Shield, which only ever have one
+  destination each). **Related but NOT the same fix as** "No way to move
+  an equipped item into a backpack" and "Equip directly from a container"
+  (both under Bugs, above) — those are about different actions (moving an
+  already-equipped item elsewhere, and equipping straight from a
+  container's contents) and are both still open. *(Reported by Ben.)*
+- [ ] **Fiber → Cloth textile chain, and a way to source Leather — needed
+  before Backpack/Belt (or any future Sewing-discipline item) can get real
+  recipes.** Ben's call, 2026-08-06, made mid-build on the Backpack/Belt
+  retier: rather than faking their recipes with placeholder ingredients
+  (Stick/Wood, the way the tool tiers did as pure scaffolding), hold off
+  until there's an actual textile/leather material web. Ties directly into
+  the still-open "full material web beyond wood/stone (metal, textiles)"
+  gap already logged under "Full crafting/gathering/skills redesign"
+  below, and gives the empty `Sewing` skill (exists as a `SkillDefinition`,
+  zero recipes train it today) its first real reason to exist. Open
+  questions, not decided: where Fiber comes from (a gatherable plant?),
+  where Leather comes from (implies hunting/animals, which don't exist at
+  all yet — or some other source?), and the actual Fiber → Cloth refining
+  recipe/skill-gain numbers. *(Reported by Ben.)*
 - [x] **Knife/Hammer/Axe/Pickaxe across all 5 CraftTiers — shipped
   2026-08-05, see `CHANGELOG.md` v0.1.69-dev.** Originally scoped 2026-08-04
   as "six base tools" (including Spear and Bow); a planning pass the next
@@ -98,6 +206,17 @@ work) — this is the backlog between the two. Check off and move the entry to
   it), but worth fixing if the Admin tab needs to cover gadgets too — likely
   means giving each one a real `worldPickupPrefab` pointing at its own
   carrier prefab instead of relying on the generic fallback.
+  **Same root cause hit again from the crafting side, 2026-08-06:**
+  `PlayerCrafting.TryCraft` always calls `inventory.AddItem(...)` — also a
+  plain stackable add with no `.equipment` reference. Surfaced while
+  scoping Backpack/Belt recipes (`CHANGELOG.md` v0.1.75-dev) — even with a
+  real recipe, a "crafted" Backpack/Belt would land as an inert,
+  non-wearable stack. Whatever fix lands here (likely: when
+  `recipe.outputItem.worldPickupPrefab` has an `IEquippable`, instantiate
+  it stashed and add via `AddEquipmentItem` instead of `AddItem`) should
+  cover both the Admin-spawn and crafting-output cases at once, since
+  they're the same underlying gap. Blocks Backpack/Belt from ever getting
+  working recipes, not just a nice-to-have.
 - [ ] **Apply the Boulder/Rock hybrid shape technique to the ore nodes too,
   once the rock/boulder look itself is finalized.** Ben's explicit intent
   (2026-08-04) — the ore nodes (Copper/Iron/Silver/Gold/Platinum) are still

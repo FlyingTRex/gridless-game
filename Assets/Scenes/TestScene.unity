@@ -791,7 +791,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 74e23c6d22b81d9edacc1f91fba165ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Backpack
-  backpackName: Rough Backpack
+  itemDefinition: {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
   capacity: 8
 --- !u!65 &495862661
 BoxCollider:
@@ -1903,6 +1903,161 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -6651787564133937811, guid: 66642456e557df546850ccf999508d64, type: 3}
   m_PrefabInstance: {fileID: 907120991}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &937812849
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 937812855}
+  - component: {fileID: 937812854}
+  - component: {fileID: 937812853}
+  - component: {fileID: 937812852}
+  - component: {fileID: 937812851}
+  - component: {fileID: 937812850}
+  m_Layer: 0
+  m_Name: Belt
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &937812850
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 937812849}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7f12fa4a5124c90478d27665aa90d57c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Belt
+  itemDefinition: {fileID: 11400000, guid: be09b3f17801453d8980fe67710700c8, type: 2}
+  points: 6
+--- !u!54 &937812851
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 937812849}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!23 &937812852
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 937812849}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: c1b3fcb10a723bb15c4c5ce3fe7585fd, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 1
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!65 &937812853
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 937812849}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!33 &937812854
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 937812849}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &937812855
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 937812849}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -2, y: 0.3, z: 1.5}
+  m_LocalScale: {x: 0.5, y: 0.08, z: 0.35}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &959131543
 GameObject:
   m_ObjectHideFlags: 0
@@ -2886,6 +3041,7 @@ GameObject:
   - component: {fileID: 1681626261}
   - component: {fileID: 1681626262}
   - component: {fileID: 1681626263}
+  - component: {fileID: 1681626264}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -3100,7 +3256,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e33c9272f6fc9ca319f4e34dca71568a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerBackpack
-  backpackItem: {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
   carrySlot: {fileID: 1841832236}
   dropDistance: 1.2
   dropHeight: 1
@@ -3174,7 +3329,7 @@ MonoBehaviour:
   canteenItem: {fileID: 11400000, guid: d9c6f1fc6d85bc78d70c6a72969f4ab1, type: 2}
   leftHandSlotAnchor: {fileID: 0}
   rightHandSlotAnchor: {fileID: 0}
-  waistSlotAnchor: {fileID: 0}
+  beltSlotAnchor: {fileID: 0}
   dropDistance: 1.2
   dropHeight: 1
 --- !u!114 &1681626245
@@ -3451,6 +3606,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 277d3099d121fc44694e234b359a0456, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AdminSpawnScreen
+--- !u!114 &1681626264
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fa7f721df08ace459a83507593e89db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBelt
+  carrySlot: {fileID: 0}
+  dropDistance: 1.2
+  dropHeight: 1
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0
@@ -4408,3 +4578,4 @@ SceneRoots:
   - {fileID: 1731778770}
   - {fileID: 350239311}
   - {fileID: 447213213}
+  - {fileID: 937812855}

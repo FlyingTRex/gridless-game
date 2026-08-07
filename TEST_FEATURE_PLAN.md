@@ -385,8 +385,41 @@ fix the coordinate in this file rather than assuming the step is wrong.
   placeholder. Check it sits at a reasonable size/orientation and doesn't
   look stretched or float above the ground — this was a hand-computed
   scale fit (0.53x), not an exact art pass.
-- [ ] **Canteen** (near spawn, ~`(-1, 0.3, 1.5)`): Equip to Left/Right Hand or
-  Waist. **Fill** only works within `fillRange` (2m) of a `WaterSource` (Water
+- [ ] **Backpack retiered (v0.1.75-dev):** the world-placed Backpack now
+  reads as plain "Backpack" (not "Rough Backpack") in every prompt/label —
+  it's the Normal tier of a new 5-tier ladder, capacity unchanged at 8.
+  Crude/Rudimentary/Fine/Masterwork Backpack data exists but has **no
+  spawn path yet** (no recipe, not pre-placed, Admin spawn tab doesn't
+  work for equippables) — nothing to test there until a recipe lands.
+- [ ] **Belt (new, v0.1.75-dev, world pickup near `(-2, 0.3, 1.5)`):**
+  Equip puts it on Waist; Unequip/Drop follow the same fallback rules as
+  Backpack. Placeholder flat-box visual only, no dedicated art yet. With a
+  Belt worn, equip a Canteen — it should now be able to clip onto one of
+  the Belt's 6 attachment points once both hands are already occupied
+  (previously it would have gone to the body's Waist slot directly; that
+  path no longer exists once a Belt is worn — see the Canteen entry
+  below). **Known display gap:** if a Backpack (Back) and Belt (Waist) are
+  both worn at once, only one of their contents shows in the Inventory
+  tab's side column at a time (Belt wins) — logged in
+  `BUGS_AND_ENHANCEMENTS.md`, not a functional loss, just not visible
+  there.
+- [ ] **Canteen (v0.1.75-dev, no longer clips to bare Waist):** Equip to
+  Left/Right Hand, or — only if a Belt is currently worn — one of its
+  attachment points. Without a Belt worn, a Canteen with both hands full
+  should fail to equip (previously it would have fallen back to Waist
+  directly).
+- [ ] **Equip destination picker (v0.1.76-dev):** with both hands free
+  *and* a Belt worn, clicking Equip on a Canteen sitting in the main
+  inventory should pop up a small "Equip Canteen to:" list (Left Hand /
+  Right Hand / Belt) instead of silently picking one — click one to
+  commit, or Cancel to back out with nothing equipped. Same check for
+  NavigationComputer/PersonalHealthMonitor with both wrists free (list
+  shows Left Wrist / Right Wrist). With only one destination free (e.g.
+  one hand already occupied), Equip should commit immediately with no
+  popup — confirm that path still works too. Backpack/Belt/Sunglasses/
+  Mining Face Shield are unaffected (each has only one destination) —
+  their Equip buttons should still equip immediately, no popup.
+  **Fill** only works within `fillRange` (2m) of a `WaterSource` (Water
   Puddle) — walking away and trying to Fill should fail/not appear. Filled Canteen
   visibly tints blue; empty is gray/neutral — check this both in the inventory
   panel and on the physical dropped object. **Drink** restores Thirst (see §2 for

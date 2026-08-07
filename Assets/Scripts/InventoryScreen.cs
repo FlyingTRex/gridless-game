@@ -57,6 +57,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerDropping dropping;
     private PlayerEating eating;
     private PlayerBackpack backpackCarrier;
+    private PlayerBelt beltCarrier;
     private PlayerCanteen canteenCarrier;
     private PlayerNavComputer navComputerCarrier;
     private PlayerHealthMonitor healthMonitorCarrier;
@@ -93,6 +94,16 @@ public class InventoryScreen : MonoBehaviour
     private CoinType? pendingDropCoinType;
     private int pendingDropAmount;
 
+    // Set when an Equip click has more than one valid destination (e.g. a
+    // Canteen with both hands free and a Belt worn) — opens a popup
+    // listing them instead of committing to whichever one the carrier
+    // would have picked automatically. Left null (and Equip commits
+    // immediately) when there's only 0 or 1 option, since there's nothing
+    // to choose between.
+    private System.Collections.Generic.List<string> pendingEquipDestinations;
+    private System.Action<string> pendingEquipChoose;
+    private string pendingEquipLabel;
+
     private void Awake()
     {
         equipment = GetComponent<PlayerEquipment>();
@@ -100,6 +111,7 @@ public class InventoryScreen : MonoBehaviour
         dropping = GetComponent<PlayerDropping>();
         eating = GetComponent<PlayerEating>();
         backpackCarrier = GetComponent<PlayerBackpack>();
+        beltCarrier = GetComponent<PlayerBelt>();
         canteenCarrier = GetComponent<PlayerCanteen>();
         navComputerCarrier = GetComponent<PlayerNavComputer>();
         healthMonitorCarrier = GetComponent<PlayerHealthMonitor>();
@@ -132,7 +144,7 @@ public class InventoryScreen : MonoBehaviour
         var wornContainer = DrawEquipmentSection();
         GUILayout.EndVertical();
 
-        // A worn container's (currently only a Backpack, on Back) own
+        // A worn container's (a Backpack on Back, or a Belt on Waist) own
         // contents render in a side column instead of directly under its
         // equipment row — used to expand inline there, which pushed every
         // later slot row down by an unpredictable amount and made the list
@@ -165,6 +177,7 @@ public class InventoryScreen : MonoBehaviour
     public void DrawPopups()
     {
         DrawPendingMovePopup();
+        DrawPendingEquipPopup();
         DrawCoinDropPopup();
     }
 
@@ -176,6 +189,9 @@ public class InventoryScreen : MonoBehaviour
         pendingMoveItem = null;
         pendingMoveSource = null;
         choosingStorage = false;
+        pendingEquipDestinations = null;
+        pendingEquipChoose = null;
+        pendingEquipLabel = null;
         pendingDropCoinType = null;
     }
 
@@ -208,6 +224,87 @@ public class InventoryScreen : MonoBehaviour
             pendingMoveSource = null;
             choosingStorage = false;
         }
+    }
+
+    // Equip destination picker — only shown when an Equip click found more
+    // than one valid place to put the item (see the TryEquipWithChoice
+    // overloads below); 0 or 1 options never reach here, since there's
+    // nothing to choose between.
+    private void DrawPendingEquipPopup()
+    {
+        if (pendingEquipDestinations == null || pendingEquipChoose == null) return;
+
+        const float width = 220f;
+        float height = 70f + pendingEquipDestinations.Count * 30f;
+        var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
+
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label($"Equip {pendingEquipLabel} to:", DebugGUI.Header);
+
+        string chosen = null;
+        foreach (var destination in pendingEquipDestinations)
+        {
+            if (GUILayout.Button(destination))
+                chosen = destination;
+        }
+
+        bool cancel = GUILayout.Button("Cancel");
+        GUILayout.EndArea();
+
+        if (chosen != null)
+            pendingEquipChoose(chosen);
+
+        if (chosen != null || cancel)
+        {
+            pendingEquipDestinations = null;
+            pendingEquipChoose = null;
+            pendingEquipLabel = null;
+        }
+    }
+
+    // Equips immediately if there's 0 or 1 valid destination (nothing to
+    // choose); opens the Equip destination popup instead if there are 2+.
+    private void TryEquipWithChoice(Canteen canteen)
+    {
+        var destinations = canteenCarrier.AvailableDestinations(canteen);
+        if (destinations.Count <= 1)
+        {
+            if (destinations.Count == 1) canteenCarrier.EquipTo(canteen, destinations[0]);
+            return;
+        }
+
+        pendingEquipDestinations = destinations;
+        pendingEquipLabel = canteen.DisplayName;
+        pendingEquipChoose = destination => canteenCarrier.EquipTo(canteen, destination);
+    }
+
+    private void TryEquipWithChoice(NavigationComputer navComputer)
+    {
+        var destinations = navComputerCarrier.AvailableDestinations(navComputer);
+        if (destinations.Count <= 1)
+        {
+            if (destinations.Count == 1) navComputerCarrier.EquipTo(navComputer, destinations[0]);
+            return;
+        }
+
+        pendingEquipDestinations = destinations;
+        pendingEquipLabel = navComputer.DisplayName;
+        pendingEquipChoose = destination => navComputerCarrier.EquipTo(navComputer, destination);
+    }
+
+    private void TryEquipWithChoice(PersonalHealthMonitor monitor)
+    {
+        var destinations = healthMonitorCarrier.AvailableDestinations(monitor);
+        if (destinations.Count <= 1)
+        {
+            if (destinations.Count == 1) healthMonitorCarrier.EquipTo(monitor, destinations[0]);
+            return;
+        }
+
+        pendingEquipDestinations = destinations;
+        pendingEquipLabel = monitor.DisplayName;
+        pendingEquipChoose = destination => healthMonitorCarrier.EquipTo(monitor, destination);
     }
 
     // Normal destination list. Returns true once the popup should close.
@@ -386,6 +483,8 @@ public class InventoryScreen : MonoBehaviour
         ItemDefinition eatClicked = null;
         Backpack equipClicked = null;
         Backpack backpackDropClicked = null;
+        Belt beltEquipClicked = null;
+        Belt beltDropClicked = null;
         Canteen canteenEquipClicked = null;
         Canteen canteenDropClicked = null;
         NavigationComputer navComputerEquipClicked = null;
@@ -414,6 +513,14 @@ public class InventoryScreen : MonoBehaviour
                     equipClicked = backpack;
                 if (SafeButton("Drop", GUILayout.Width(50)))
                     backpackDropClicked = backpack;
+            }
+            else if (slot.equipment is Belt belt)
+            {
+                GUILayout.Label(label, DebugGUI.Label);
+                if (SafeButton("Equip", GUILayout.Width(55)))
+                    beltEquipClicked = belt;
+                if (SafeButton("Drop", GUILayout.Width(50)))
+                    beltDropClicked = belt;
             }
             else if (slot.equipment is Canteen canteen)
             {
@@ -490,16 +597,20 @@ public class InventoryScreen : MonoBehaviour
             backpackCarrier.Equip(equipClicked);
         if (backpackDropClicked != null)
             backpackCarrier.Drop(backpackDropClicked);
+        if (beltEquipClicked != null)
+            beltCarrier.Equip(beltEquipClicked);
+        if (beltDropClicked != null)
+            beltCarrier.Drop(beltDropClicked);
         if (canteenEquipClicked != null)
-            canteenCarrier.Equip(canteenEquipClicked);
+            TryEquipWithChoice(canteenEquipClicked);
         if (canteenDropClicked != null)
             canteenCarrier.Drop(canteenDropClicked);
         if (navComputerEquipClicked != null)
-            navComputerCarrier.Equip(navComputerEquipClicked);
+            TryEquipWithChoice(navComputerEquipClicked);
         if (navComputerDropClicked != null)
             navComputerCarrier.Drop(navComputerDropClicked);
         if (healthMonitorEquipClicked != null)
-            healthMonitorCarrier.Equip(healthMonitorEquipClicked);
+            TryEquipWithChoice(healthMonitorEquipClicked);
         if (healthMonitorDropClicked != null)
             healthMonitorCarrier.Drop(healthMonitorDropClicked);
         if (sunglassesEquipClicked != null)
@@ -521,6 +632,9 @@ public class InventoryScreen : MonoBehaviour
         Backpack backpackEquipClicked = null;
         Backpack backpackUnequipClicked = null;
         Backpack backpackDropClicked = null;
+        Belt beltEquipClicked = null;
+        Belt beltUnequipClicked = null;
+        Belt beltDropClicked = null;
         Canteen canteenUnequipClicked = null;
         Canteen canteenDropClicked = null;
         NavigationComputer navComputerEquipClicked = null;
@@ -547,6 +661,7 @@ public class InventoryScreen : MonoBehaviour
             var occupied = slotInventory.Slots;
             IInventoryHolder nestedHolder = null;
             Backpack backpackHere = null;
+            Belt beltHere = null;
             Canteen canteenHere = null;
             NavigationComputer navComputerHere = null;
             PersonalHealthMonitor healthMonitorHere = null;
@@ -563,7 +678,7 @@ public class InventoryScreen : MonoBehaviour
                     // column (see DrawContent()) rather than the item's
                     // full name/count here — "Equipped" is enough since the
                     // detail is visible right next to it.
-                    bool isWornContainer = entry.equipment is IInventoryHolder && slotName == "Back";
+                    bool isWornContainer = entry.equipment is IInventoryHolder && (slotName == "Back" || slotName == "Waist");
                     string label = isWornContainer
                         ? "Equipped"
                         : entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
@@ -585,12 +700,13 @@ public class InventoryScreen : MonoBehaviour
                         GUILayout.Box(label, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight));
                     }
 
-                    // A backpack only exposes its own storage (and can
+                    // A backpack/belt only exposes its own storage (and can
                     // only be Unequipped, as opposed to Equipped) once
-                    // it's actually worn on Back — holding one in a hand
-                    // doesn't make it usable storage yet.
-                    if (entry.equipment is IInventoryHolder holder && slotName == "Back") nestedHolder = holder;
+                    // it's actually worn on Back/Waist — holding one in a
+                    // hand doesn't make it usable storage yet.
+                    if (entry.equipment is IInventoryHolder holder && (slotName == "Back" || slotName == "Waist")) nestedHolder = holder;
                     if (entry.equipment is Backpack bp) backpackHere = bp;
+                    if (entry.equipment is Belt bt) beltHere = bt;
                     if (entry.equipment is Canteen ct) canteenHere = ct;
                     if (entry.equipment is NavigationComputer nc) navComputerHere = nc;
                     if (entry.equipment is PersonalHealthMonitor phm) healthMonitorHere = phm;
@@ -615,6 +731,19 @@ public class InventoryScreen : MonoBehaviour
                 }
 
                 if (SafeButton("Drop", GUILayout.Width(50))) backpackDropClicked = backpackHere;
+            }
+            else if (beltHere != null)
+            {
+                if (slotName == "Waist")
+                {
+                    if (SafeButton("Unequip", GUILayout.Width(70))) beltUnequipClicked = beltHere;
+                }
+                else
+                {
+                    if (SafeButton("Equip", GUILayout.Width(55))) beltEquipClicked = beltHere;
+                }
+
+                if (SafeButton("Drop", GUILayout.Width(50))) beltDropClicked = beltHere;
             }
             else if (canteenHere != null)
             {
@@ -691,12 +820,15 @@ public class InventoryScreen : MonoBehaviour
         if (backpackEquipClicked != null) backpackCarrier.Equip(backpackEquipClicked);
         if (backpackUnequipClicked != null) backpackCarrier.Unequip(backpackUnequipClicked);
         if (backpackDropClicked != null) backpackCarrier.Drop(backpackDropClicked);
+        if (beltEquipClicked != null) beltCarrier.Equip(beltEquipClicked);
+        if (beltUnequipClicked != null) beltCarrier.Unequip(beltUnequipClicked);
+        if (beltDropClicked != null) beltCarrier.Drop(beltDropClicked);
         if (canteenUnequipClicked != null) canteenCarrier.Unequip(canteenUnequipClicked);
         if (canteenDropClicked != null) canteenCarrier.Drop(canteenDropClicked);
-        if (navComputerEquipClicked != null) navComputerCarrier.Equip(navComputerEquipClicked);
+        if (navComputerEquipClicked != null) TryEquipWithChoice(navComputerEquipClicked);
         if (navComputerUnequipClicked != null) navComputerCarrier.Unequip(navComputerUnequipClicked);
         if (navComputerDropClicked != null) navComputerCarrier.Drop(navComputerDropClicked);
-        if (healthMonitorEquipClicked != null) healthMonitorCarrier.Equip(healthMonitorEquipClicked);
+        if (healthMonitorEquipClicked != null) TryEquipWithChoice(healthMonitorEquipClicked);
         if (healthMonitorUnequipClicked != null) healthMonitorCarrier.Unequip(healthMonitorUnequipClicked);
         if (healthMonitorDropClicked != null) healthMonitorCarrier.Drop(healthMonitorDropClicked);
         if (sunglassesEquipClicked != null) sunglassesCarrier.Equip(sunglassesEquipClicked);
