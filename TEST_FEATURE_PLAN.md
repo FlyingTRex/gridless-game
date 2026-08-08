@@ -31,16 +31,16 @@ fix the coordinate in this file rather than assuming the step is wrong.
   on Play.
 - **Startup scene trimmed 2026-08-06** (Ben's call, to declutter): the
   5 Coins, Secret Wall, Navigation Computer, Personal Health Monitor,
-  Sunglasses, Mining Face Shield, Silver/Gold/Platinum Ore Nodes, the
-  larger Storage Box, and 3 of the 4 Trees no longer spawn by default —
-  removed from `TestScene.unity`, not disabled. Sections below that test
-  these will fail at their stated coordinates; use the **Admin** tab
-  (`` ` `` menu) to spawn any `ItemDefinition`-based one instead (gadgets,
-  ore chunks aren't items so this doesn't cover the Ore Nodes themselves —
-  those still need re-adding to the scene to test again). **Secret Wall
-  specifically can't be spawned via Admin at all** — it's a structural
-  world object, not an `ItemDefinition`/`Pickup` — testing it requires
-  manually re-adding it to the scene.
+  Sunglasses, the larger Storage Box, and 3 of the 4 Trees no longer
+  spawn by default — removed from `TestScene.unity`, not disabled.
+  Sections below that test these will fail at their stated coordinates;
+  use the **Admin** tab (`` ` `` menu) to spawn any `ItemDefinition`-based
+  one instead. **Secret Wall specifically can't be spawned via Admin at
+  all** — it's a structural world object, not an `ItemDefinition`/
+  `Pickup` — testing it requires manually re-adding it to the scene.
+  (Mining Face Shield and the Silver/Gold/Platinum Ore Nodes were also
+  trimmed here, but got rebuilt and re-added to the scene in v0.1.120-dev
+  — see that section below, no longer affected by this trim.)
 - [ ] Bottom-left debug panel shows `Gridless <version>` matching `CHANGELOG.md`'s
   "Current version" line and `FirstPersonController.GameVersion`.
 - [ ] **Ground texture (v0.1.53-dev, tiling fixed in v0.1.54-dev):** the ground
@@ -153,6 +153,38 @@ fix the coordinate in this file rather than assuming the step is wrong.
   item in the side column still opens the move popup (Drop / To Left Hand /
   To Right Hand / To Inventory / To Storage — options only show if not
   already the source).
+- [ ] **"QTY: N" label + icon overlay in contents grid slots (v0.1.108-dev,
+  icon rendering fixed v0.1.109-dev, empty-slot text dropped
+  v0.1.110-dev):** in a worn container's contents grid or a nearby
+  StorageBox's, each occupied slot shows a small "QTY: N" label
+  directly below it, matching that slot's actual count (Small Rock
+  stacks are the easiest test — put several in a backpack). Should be
+  **blank** (no "QTY:" text, not "QTY: 1") for a non-stackable item,
+  still reserving the same row height either way. Confirmed working
+  by Ben: the Small Rock icon renders correctly in its slot (fixed in
+  v0.1.109-dev after an earlier version silently dropped the icon and
+  truncated the text instead — see CHANGELOG.md). **Empty slots in
+  this grid are a plain gray box with no "Empty" text** — this is
+  scoped to the contents grid only; the equipment slot list's own
+  "Empty" labels (Head/Face/Neck/...) are unchanged, still show the
+  word. The main Inventory list and move popup are also unaffected.
+  **Regression caught by Ben immediately after v0.1.110-dev:** the
+  first version of the empty-box change rendered as literally
+  nothing — no visible box at all, capacity impossible to gauge —
+  because `GUI.skin.box`'s default runtime look had too little
+  contrast to show up without text inside it. Fixed in v0.1.111-dev
+  with an explicit `DebugGUI.Slot` background color, now used for
+  both empty and occupied slots — confirm every slot in the grid
+  (empty or occupied) reads as a clearly visible gray box against the
+  panel behind it.
+- [ ] **Hover tooltip on icon-only slots (v0.1.112-dev):** hovering the
+  mouse over a contents-grid slot that shows only an icon (Small
+  Rock, once it has any) should pop a small floating label near the
+  cursor with the item's name — confirm it appears/disappears as the
+  mouse enters/leaves the slot, and that it's positioned near the
+  actual cursor (not clipped or stuck somewhere else). Slots without
+  an icon (still showing text) should NOT show a tooltip — redundant
+  there, name's already visible.
 - [ ] Currency row (5 boxes: Copper/Iron/Silver/Gold/Platinum) shows live wallet
   balances; clicking a box opens a quantity popup (±1/±10/All + Drop) — dropping
   spawns physical coins in front of the player that scatter and don't fall through
@@ -180,23 +212,72 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] **Rock Node** (left-click/punch, `IPunchable`) breaks into 3 physical Small
   Rock chunks that scatter and can be picked up individually — doesn't take one
   punch; confirm it takes the expected number of hits.
-- [ ] **Rock texture (v0.1.59-dev):** Rock Node and every Small Rock/chunk read as
-  mottled grey stone (same tileable-noise technique as the grass texture), not
-  flat solid grey — check both the whole node and its broken-off chunks look
-  consistent with each other (they now share one material).
+- [ ] **Rock Node visual (v0.1.86-dev):** should render as the Poly Pizza
+  "Stone" model (CC-BY), not the old plain grey sphere — check it sits
+  on the ground without floating or sinking, and that its footprint is
+  roughly where the old sphere's collider was (same punch/interact range
+  as before, collider itself unchanged).
+- [ ] **Rock Node position (moved v0.1.88-dev):** now at `(-2, 0.35, 8)`,
+  not `(-2, 0.35, 3)` — moved further from Boulder (~4.48 units apart
+  now vs. ~2.24 before) after a playtest report that Boulder/Rock Node/
+  Big Tree were crowding each other at game start.
+- [ ] **Rock Chunk visual (v0.1.87-dev):** the Small Rock pieces that
+  scatter when Rock Node breaks should render as a smaller, distinctly
+  different-proportioned version of the Stone model (not a plain grey
+  sphere, and not just a miniature clone of Rock Node's shape — check it
+  looks like a genuinely different chunk, not identical geometry at a
+  different size). Should still physically collide/be pickupable at
+  roughly the same size as before.
+- [ ] **Rock texture (v0.1.59-dev, superseded by the Stone model swap
+  above for Rock Node/Rock Chunk specifically):** this entry originally
+  covered a shared procedural "RockTexture" material — Rock Node and
+  Rock Chunk now use the imported Stone model's own material instead, so
+  judge them by the new model's look, not this texture. Boulder/Rock
+  (the bigger tier) may still be relevant here if untouched — check
+  what's actually using `RockTexture.png` before assuming this entry
+  still applies as originally written.
 - [ ] **Small Rock chunk shape (v0.1.62-dev):** broken/dropped Small Rock pieces
   should read as a rounded sphere shape, not an obvious cube. **Regression:**
   `RockChunk.prefab` was a plain scaled Cube from the very start of the
   project — should now look and collide (roll, not slide/skid on flat faces)
   like a sphere.
-- [ ] **Boulder (v0.1.62-dev)** at `(-4, 0.6, 4)`: should read as one irregular,
-  lumpy rock shape (not a smooth sphere) with several small pebble bumps
-  scattered on its surface, not several separate balls obviously glued
-  together. Bare-handed punching works (no tool required, same as Rock Node)
-  — takes 2 hits, yields 3 **Rock** (a new item, distinct from Small Rock).
-  Confirm it renders and is visible from every angle walked around it (checks
-  whether the untested triangle-winding safety net — `_Cull: Off` on
-  `RockChunk.mat` — was actually needed).
+- [ ] **Stick icon (v0.1.114-dev):** wherever a Stick appears in
+  inventory UI it should show a small rendered picture (a thin
+  branch/twig, matching the actual `StickPickup.prefab` model) next
+  to its name/count instead of text-only. First item baked via the
+  new `IconBaker` tool rather than a bespoke script — same visual
+  quality expected as the earlier hand-scripted icons.
+- [ ] **Small Rock icon (v0.1.107-dev):** wherever a Small Rock appears
+  in inventory UI (main inventory list, an equipment slot if somehow
+  equipped, a container's contents grid, the move popup header) it
+  should show a small rendered picture (pale rock/pebble shape,
+  matching the actual `RockChunk.prefab` model) next to its name/count
+  instead of text-only. Second item in the game with an icon, after
+  the Backpack — confirm every other item without one still looks
+  unchanged (text-only).
+- [ ] **Boulder (v0.1.62-dev, visual replaced v0.1.87-dev)** at
+  `(-4, 0.6, 4)`: now renders as the "Rock by Quaternius" model (public
+  domain), not the old procedural displaced-mesh-plus-pebbles shape —
+  confirm it's visible from every angle, sits at roughly the same spot/
+  depth as before (grounded to match the old visual's exact footprint,
+  not just eyeballed), and reads as one cohesive rock, not disconnected
+  pieces. Bare-handed punching works (no tool required, same as Rock
+  Node) — takes 2 hits, scatters 3 Rock chunks nearby (see next entry —
+  as of v0.1.90-dev these are punchable, not a direct pickup).
+  **Confirmed working (v0.1.88-dev):** an earlier playtest reported
+  being unable to break the Boulder at all, traced to it standing too
+  close to Rock Node (~2.24 units); moving Rock Node to `(-2, 0.35, 8)`
+  in v0.1.88-dev resolved it — Ben broke the Boulder successfully on
+  retest.
+- [ ] **Rock chunk (`MediumRockChunk.prefab`, punchable as of v0.1.90-dev):**
+  the pieces that scatter when Boulder breaks render as the Stone model
+  (CC-BY, fixed v0.1.89-dev after a regression where they still showed
+  the old grey fused-pebble cluster) and are **not directly pickupable**
+  — walking up to one should NOT offer a "Pick up" prompt. Punching one
+  (bare-handed, 1 hit) breaks it into 2 **Small Rock**, same as Rock
+  Node's own break. Confirm the chunk physically launches/settles when
+  Boulder first breaks (still has its `Rigidbody`), and that punching a
+  settled chunk doesn't require any tool.
 - [ ] **Chunk scatter distance (v0.1.63-dev):** breaking a Boulder or Rock Node
   should scatter chunks with a visible initial burst that settles down
   quickly nearby, not chunks that keep rolling/bouncing far away from the
@@ -205,12 +286,13 @@ fix the coordinate in this file rather than assuming the step is wrong.
   `MediumRockChunk.prefab`'s `Rigidbody` damping had never actually been set
   (near-zero), and `RockChunk.prefab`'s existing damping was tuned for its
   old Cube shape, insufficient for a freely-rolling Sphere.
-- [ ] **Rock (the new middle-tier item, v0.1.62-dev):** a pure intermediate
-  material — no recipe currently uses it directly, and there's no way yet to
-  turn it into Small Rock (not built — see `BUGS_AND_ENHANCEMENTS.md`/
-  `CHANGELOG.md` for the scope boundary). Its dropped/world visual should be
-  the same "lumpy body + small pebbles" hybrid shape as the Boulder, just
-  smaller (4 pebbles vs. Boulder's 8).
+- [ ] **"Rock" item (`MediumRock.asset`, orphaned as of v0.1.90-dev):**
+  no longer spawned or consumed anywhere — Boulder's chunk now breaks
+  straight into Small Rock instead of granting a Rock item first (Ben's
+  call). Should NOT appear anywhere in inventory, crafting, or Admin's
+  item-spawn list behaving as if it still has a purpose; if you spot it
+  referenced anywhere, that's stale. See `BUGS_AND_ENHANCEMENTS.md` for
+  the open question of whether to delete or repurpose it.
 - [ ] **Tree chopping (v0.1.83-dev):** the Tree at spawn requires an Axe
   in hand (prompt reads "Chop (requires Axe)", punching bare-handed does
   nothing — same tool-gating as ore nodes). 3 hits drops 3 `Log`
@@ -224,6 +306,18 @@ fix the coordinate in this file rather than assuming the step is wrong.
   wait). Punching the stump itself (before it regrows) should do
   nothing — prompt should read "Stump (regrowing)", not the normal chop
   prompt.
+- [ ] **Big Tree by 3Donimus is now choppable (v0.1.91-dev)** at
+  `(10, 3.99, 10)`: same mechanic as the real Tree above — 3 hits with
+  an Axe, drops 3 Logs, trains Gathering. **Difference from the real
+  Tree:** no Stump visual exists for it, so it fully disappears when
+  chopped (rather than swapping to a stump) and reappears after ~180s.
+  **Confirmed working (v0.1.92-dev):** the first version's
+  `CapsuleCollider` had a math error placing it ~3.6 units above the
+  actual tree (floating in the canopy/above it), which Ben caught by
+  testing — punches landed on nothing. Fixed by matching the
+  collider's world-space Y range directly against the tree's measured
+  renderer bounds. Confirm punches now land normally when aimed at the
+  visible trunk.
 - [ ] **Log chopping (v0.1.83-dev):** each dropped Log also requires an
   Axe (same tool-gating). 2 hits should destroy the Log outright (not
   hide-and-respawn like other `ResourceNode`s — a Log is a one-off
@@ -234,12 +328,57 @@ fix the coordinate in this file rather than assuming the step is wrong.
   drop a **Stick** (reusing the existing branch-model item, not a
   separate "Branch") — chop several Logs across a full playtest and
   confirm this is a real, visible chance, not always/never happening.
-- [ ] **Copper Ore Node (v0.1.59-dev)** at `(2, 0.4, -4)`: punching it *without* a
-  Pickaxe held in a hand does nothing (no hit registers, prompt reads "Punch to
-  break (requires Pickaxe)"). With a Pickaxe in either hand, punching works and
-  takes 2 hits to break into 3 Copper Ore chunks — texture should read as
-  grey rock with scattered copper-orange flecks and occasional green patina
-  spots, not flat grey or flat orange.
+- [ ] **Copper Ore Node (v0.1.59-dev, real shape v0.1.117-dev, resized
+  bigger v0.1.119-dev)** at `(2, 0.4, -4)`: punching it *without* a
+  Pickaxe held in a hand does nothing (no hit registers, prompt reads
+  "Punch to break (requires Pickaxe)"). With a Pickaxe in either hand,
+  punching works and takes 2 hits to break into 3 Copper Ore chunks.
+  This is a real irregular rock shape (`Rock_Quaternius.glb`, the same
+  mesh Boulder uses), not the old plain sphere — texture should read
+  as grey rock with scattered copper-orange flecks and occasional
+  green patina spots distributed evenly across the surface (not one
+  big smear or streak — that was a real bug caught and fixed before
+  this ever shipped, see CHANGELOG.md v0.1.117-dev for the UV/tiling
+  explanation). As of v0.1.119-dev it's noticeably bigger
+  (`1.15x1.06x1.30`, up from matching the old sphere's `0.8` size) —
+  confirm punching still works reliably at the new size (the collider
+  was resized to match at the same time, fixing a separate gap where
+  it had been left too small for the visual).
+- [ ] **Iron Ore Node (v0.1.119-dev, same treatment as Copper):** at
+  `(4, 0.4, -4)`, same real-mesh/texture treatment as Copper Ore Node,
+  but deliberately **flatter and wider** (`1.50x0.85x1.60`) instead of
+  matching Copper's proportions — should read as a visibly different,
+  squatter silhouette standing next to Copper Ore Node, not a same-
+  shape recolor. Same tool-gating (Pickaxe, 2 hits) and texture check
+  (dark rock with scattered rust-orange flecks, evenly distributed —
+  same UV-tiling fix as Copper was applied here too).
+- [ ] **Iron Ore chunk is now punchable too, breaks into Iron
+  (v0.1.119-dev):** same treatment as Copper Ore chunk → Copper —
+  punching a scattered Iron Ore chunk (bare-handed, 1 hit) breaks it
+  into 2 of a new **Iron** item. Built with the Copper pickup-bug
+  lesson already applied, so this one should work correctly the first
+  time — confirm the Iron pieces can actually be picked up. Both
+  `IronOre` and `Iron` should show small icons wherever they appear in
+  inventory UI. **Note:** Iron has no crafting recipe using it yet
+  (see `BUGS_AND_ENHANCEMENTS.md`) — built ahead of the crafting need,
+  not a bug.
+- [ ] **Copper Ore chunk is now punchable too, breaks into Copper
+  (v0.1.117-dev, pickup bug fixed v0.1.118-dev):** the "Copper Ore"
+  pieces that scatter when Copper Ore Node breaks are no longer
+  directly pickupable — same treatment Boulder's Rock chunk got in
+  v0.1.90-dev. Punching one (bare-handed, 1 hit) breaks it into 2 of a
+  brand-new **Copper** item — confirm these Copper pieces can actually
+  be picked up (E to interact) once they land; the first version
+  spawned them permanently un-pickupable (`Pickup.item` left null,
+  same bug class as the Stick-bonus-chunk issue in
+  `BUGS_AND_ENHANCEMENTS.md`). Both Copper Ore Node's chunk and the
+  new Copper chunk should render as the same rock-shape-plus-copper-
+  texture family, each visibly smaller/differently proportioned than
+  the tier above it (Ore Node > Copper Ore chunk > Copper). Both
+  `CopperOre` and `Copper` should show small icons wherever they
+  appear in inventory UI. **Note:** Copper has no crafting recipe
+  using it yet (see `BUGS_AND_ENHANCEMENTS.md`) — built ahead of the
+  crafting need, not a bug.
 - [ ] **Knife/Hammer/Axe/Pickaxe now come in all 5 CraftTiers
   (v0.1.69-dev):** craftable from the Crafting tab as `Crude Knife` through
   `Masterwork Knife` (and same for Hammer/Axe/Pickaxe) — 20 recipes total.
@@ -253,6 +392,15 @@ fix the coordinate in this file rather than assuming the step is wrong.
   quality. Carrying any of them in a backpack/main inventory (not a
   hand) should **not** satisfy a tool requirement below — still has to be
   held in a hand (`PlayerEquipment.HasInHand`).
+- [ ] **Crude Knife real visual + icon (v0.1.115-dev):** craft or find a
+  Crude Knife — its world/held model should be a real AI-generated
+  knapped stone knife (dark, textured blade with a handle/crossguard),
+  not the old plain grey capsule placeholder. Should also show a small
+  icon (a dark diagonal blade shape) wherever it appears in inventory
+  UI. Note: it has a full handle despite the "Crude Knife" recipe using
+  only Small Rock (no wood) — a known, accepted mismatch between the
+  generated model and the recipe's implied bare-blade design, not a
+  bug to fix.
 - [ ] **Skill-gated crafting tiers (v0.1.80-dev):** on a fresh character
   (Stonework 0), only Crude Knife/Hammer/Axe/Pickaxe and Crude Trimmed
   Stick should be craftable — Rudimentary/Normal/Fine/Masterwork should
@@ -320,44 +468,63 @@ fix the coordinate in this file rather than assuming the step is wrong.
   break (requires Axe)". With an Axe in hand, takes 4 hits to break into 3 Wood
   chunks; the tree (trunk + foliage) hides and respawns ~3 minutes later, same
   pattern as Rock Node.
-- [ ] **Iron Ore Node (v0.1.60-dev; texture fixed in v0.1.61-dev)** at
-  `(4, 0.4, -4)`: same tool-gating and texture check as Copper — visibly
-  identifiable as ore from the start, no Mining Face Shield needed, 2 hits with
-  a Pickaxe to break into 3 Iron Ore. **Regression:** v0.1.60-dev's texture
-  rendered as a near-solid reddish-brown blob with no visible rock/fleck
-  contrast — should now read as dark rock with distinct rust-colored flecks.
-- [ ] **Copper Ore Node (texture fixed in v0.1.61-dev):** re-check this one too
-  even though it shipped earlier — v0.1.60-dev's texture bug affected it too
-  (rendered as a near-solid green blob). Should now read as dark rock with
-  distinct copper-orange flecks and sparser green patina spots.
-- [ ] **Silver/Gold/Platinum Ore Nodes (v0.1.60-dev; texture fixed in
-  v0.1.61-dev)** at `(2, 0.4, -6)`,
-  `(4, 0.4, -6)`, `(6, 0.4, -6)`: **without** a Mining Face Shield equipped, each
-  should look and behave exactly like a plain Rock Node — indistinguishable, no
-  visual hint anything's special. **Equip the Mining Face Shield** (Face slot;
-  craft it first — 2 Small Rock + 1 Stick, or find/pick it up near the other
-  wearable gadgets close to spawn) and look at each node again: it should
-  visibly change to a metal-flecked ore texture (Silver = bright silvery-white
-  flecks, Gold = yellow-gold flecks, Platinum = pale cool-white flecks —
-  distinct from each other and from Silver's warmer white). **Regression:**
-  v0.1.60-dev's Silver/Platinum textures were both near-solid pale blobs, nearly
-  indistinguishable from the hidden/rock state even when correctly revealed —
-  the reveal *logic* was actually working the whole time, but the visual result
-  looked broken because the texture itself lacked contrast. Confirm the change
-  now actually reads as obviously different, not just technically different.
-  **Regression-style check, this is the important part:** mine one of these
-  nodes *without* the shield equipped (Pickaxe in hand, shield off) — it should
-  take 2 hits and yield **Small Rock, not the real ore** (the ore goes
-  undetected). Unequip nothing else, just put the shield on, and mine a
-  *different* instance of the same ore type (or wait for respawn) — this time
-  it should yield the actual ore (Silver/Gold/Platinum). If a hidden node ever
-  yields real ore *without* the shield equipped, or plain rock *with* it
-  equipped, that's the core mechanic broken, not a minor issue.
-- [ ] **Mining Face Shield equip/unequip/drop (v0.1.60-dev):** same three-button
-  pattern (Equip/Unequip/Drop) as every other Face-slot equippable (Sunglasses),
-  both from the main inventory list and the Equipment section. Worn shield
-  should be invisible from the player's own camera (same `WornEquipment` layer
-  fix every other equippable already has) but visible on an external view.
+- [ ] **Silver/Gold/Platinum Ore Nodes (rebuilt v0.1.120-dev, mid-tier
+  added v0.1.121-dev — the originals shipped v0.1.60-dev but were
+  removed in the 2026-08-06 startup-scene trim; this replaces that whole
+  section)** at `Silver Ore Node (6, 0.4, -4)`, `Gold Ore Node (8, 0.4,
+  -4)`, `Platinum Ore Node (10, 0.4, -4)`: **without** a Mining Face
+  Shield equipped, each should look and behave exactly like a plain
+  Rock/Boulder node — same generic `Rock_Quaternius` grey rock texture,
+  no visual hint anything's special. Sizes are deliberately distinct per
+  metal (confirm the three read as different silhouettes, not
+  same-shape recolors): Gold smallest (`0.70x0.65x0.72`), Silver medium
+  (`1.00x0.95x1.05`), Platinum largest (`1.80x1.15x1.35`). **Equip the
+  Mining Face Shield** (Face slot; craft it — 2 Small Rock + 1 Stick —
+  or pick up the one sitting at `(6, 0.5, -6)`) and look at each node
+  again: it should visibly change to that metal's `*OreRevealed`
+  texture. **This is the important check:** mine one of these nodes
+  *without* the shield equipped (Pickaxe in hand, shield off) — it
+  should take 2 hits and yield **Small Rock** (via `RockChunk.prefab`
+  as the `hiddenChunkPrefab`), not the real ore — the ore goes
+  undetected. Put the shield on and mine a *different* instance of the
+  same ore type (or wait for the 180s respawn) — this time it should
+  yield 3 of the metal's punchable ore chunk (`SilverOreChunk`/
+  `GoldOreChunk`/`PlatinumOreChunk` — now the **mid tier**, matching
+  Copper/Iron's structure, same `Rock_Quaternius`+texture treatment).
+  If a hidden node ever yields real ore *without* the shield equipped,
+  or plain rock *with* it equipped, that's the core mechanic broken,
+  not a minor issue.
+- [ ] **Silver/Gold/Platinum Ore chunk is now punchable too, breaks
+  into the actual Ore item (v0.1.121-dev)** — same treatment as Copper/
+  Iron's mid tier: punching a scattered `SilverOreChunk`/`GoldOreChunk`/
+  `PlatinumOreChunk` (bare-handed, 1 hit) breaks it into 2 of a new
+  smaller final piece (`SilverOrePiece`/`GoldOrePiece`/
+  `PlatinumOrePiece.prefab`), which is what actually grants the
+  `SilverOre`/`GoldOre`/`PlatinumOre` item on pickup — confirm these
+  pieces can actually be picked up (E to interact), same "built with the
+  Copper pickup-bug lesson already applied" expectation as Iron.
+  `SilverOre`/`GoldOre`/`PlatinumOre` should show small icons wherever
+  they appear in inventory UI (previously text-only, then re-baked
+  against this new final piece specifically). **Regression check —
+  scatter/bounce:** v0.1.120-dev's first pass had pieces flying off
+  before they could be reached (near-zero `Rigidbody` damping on the
+  original pre-existing prefabs); fixed to match `CopperChunk`'s
+  damping in v0.1.121-dev, **confirmed by Ben's playtest** — pieces
+  now settle close to where the chunk broke instead of rolling/
+  bouncing away. **Note:** unlike Copper/Iron, there's still no
+  separate refined "Silver"/"Gold"/"Platinum" bar item beyond this — the
+  final piece grants the same `SilverOre`/`GoldOre`/`PlatinumOre` item
+  the mid-tier chunk used to grant directly in v0.1.120-dev, just gated
+  behind an extra punch now.
+- [ ] **Mining Face Shield now has a world pickup (v0.1.120-dev —
+  previously craft-only)**: one sits at `(6, 0.5, -6)` in `TestScene`, a
+  flattened dark disc/visor shape (placeholder primitive, no custom
+  model generated for it yet). Picking it up and equipping/unequipping/
+  dropping uses the same three-button pattern as every other Face-slot
+  equippable (Sunglasses). Worn shield should be invisible from the
+  player's own camera (same `WornEquipment` layer fix every other
+  equippable already has) but visible on an external view. Should show
+  a small icon in inventory UI.
 - [ ] **Berry Bush** — picking a Berry gives a real inventory item (not an
   instant-eat-on-touch); Eat button only appears in the main inventory list, never
   in a backpack/storage contents view.
@@ -370,16 +537,33 @@ fix the coordinate in this file rather than assuming the step is wrong.
   random offset. (Long wait — spot-check the timer logic instead of waiting the
   full 3 minutes every pass, e.g. temporarily shorten `respawnDelay` if verifying
   the exact timing matters.)
-- [ ] **Despawn (v0.1.48-dev):** an item dropped via the inventory's Drop button,
-  or via the hand-eviction fallback (both hands full with non-stacking items, no
-  backpack equipped, picking up something new), disappears from the world after
-  15 minutes if nobody picks it up. Confirm it does *not* apply to world-placed
-  pickups (Sticks, Berry Bush) or `ResourceNode` chunk scatter — those should sit
-  indefinitely (or respawn per the item above), never silently vanish. (Long
-  wait — temporarily shorten `Pickup.DespawnDelay` to verify the exact timing
-  rather than waiting the full 15 minutes every pass.) Also confirm a *partial*
-  pickup (leftover after your inventory fills up) keeps counting down from the
-  original drop time, not reset by the partial pickup.
+- [ ] **Despawn (v0.1.48-dev, retimed + expanded v0.1.85-dev):** an item
+  dropped via the inventory's Drop button, or via the hand-eviction
+  fallback (both hands full with non-stacking items, no backpack
+  equipped, picking up something new), disappears from the world after
+  **2 minutes** (down from 15) if nobody picks it up. Confirm it does
+  *not* apply to world-placed pickups (Sticks, Berry Bush) or
+  `ResourceNode` chunk scatter (Logs, Planks, ore chunks, etc.) — those
+  should sit indefinitely (or respawn per the item above), never
+  silently vanish. Also confirm a *partial* pickup (leftover after your
+  inventory fills up) keeps counting down from the original drop time,
+  not reset by the partial pickup.
+- [ ] **Despawn now also covers equipment and coins (v0.1.85-dev):** drop
+  a worn Backpack/Belt/Canteen/Sunglasses/Nav Computer/Health Monitor/
+  Mining Face Shield (via the Equipment section's Drop button) and
+  confirm it also disappears after 2 minutes if left unpicked — this
+  previously never despawned at all. Drop some coins and confirm the
+  same. **Critical regression check:** drop a Backpack, pick it back up
+  well within 2 minutes, then **equip it and wait past the 2-minute
+  mark** — confirm it does NOT get destroyed while worn. This is the
+  specific bug the fix was designed around (an already-expired timer
+  firing the instant a re-equipped item reactivates) — if a worn
+  Backpack vanishes mid-playthrough, this is the first place to look.
+  Same check for an item that gets dropped, picked up, and left sitting
+  in a hand (not re-equipped) past 2 minutes — should also survive.
+  (Long waits — temporarily shorten the relevant `despawnDelay` field to
+  verify exact timing rather than waiting the full 2 minutes every
+  pass.)
 
 ## 5. Player Menu (Tab) — Crafting Tab
 
@@ -436,18 +620,72 @@ fix the coordinate in this file rather than assuming the step is wrong.
   train **Sewing** — check the Skills tab afterward to confirm it now
   appears with a nonzero level (see the Skills tab section below, this is
   the first thing that ever trains it).
+- [ ] **Rope real visual + icon (v0.1.116-dev):** craft a Rope (5+
+  Fiber, Sewing tab) and drop it — should appear in the world as a
+  real AI-generated tan coiled bundle, not invisible/using some
+  generic fallback shape (it had no visual at all before this). Should
+  also show a small icon (a coiled tan shape) wherever it appears in
+  inventory UI.
 - [ ] **Crude Fiber Belt / Crude Fiber Backpack (v0.1.79-dev, Sewing
-  tab):** with 8+ Fiber, craft a `Crude Fiber Belt` — this should be the
-  **first-ever crafted equippable that actually works**: check it lands
-  in the main inventory as a real equippable (Equip button available, not
-  a dead stackable entry), and equipping it puts it on Waist with 2
-  attachment points, same as the found `Fiber Belt`. With 15+ Fiber, craft
-  a `Crude Fiber Backpack` the same way — Equip should put it on Back
-  with 4 inventory slots. Both are placeholder flat-box visuals, not a
-  final art pass. **Regression check:** the existing found `Fiber Belt`
-  (near `(-2, 0.3, 1.5)`, was named plain "Belt" before v0.1.79-dev) and
-  the pre-placed `Backpack` should still work exactly as before — this
-  change shouldn't have touched either.
+  tab; Crude Fiber Belt gets a real model v0.1.122-dev):** with 8+
+  Fiber, craft a `Crude Fiber Belt` — this should be the **first-ever
+  crafted equippable that actually works**: check it lands in the main
+  inventory as a real equippable (Equip button available, not a dead
+  stackable entry), and equipping it puts it on Waist with 2 attachment
+  points, same as the found `Fiber Belt`. As of v0.1.122-dev it should
+  show a real green woven-grass ring model (Tripo3D-generated) both as
+  a world pickup and worn, not the old flat grey box, plus a small icon
+  wherever it appears in inventory UI. With 15+ Fiber, craft a `Crude
+  Fiber Backpack` the same way — Equip should put it on Back with 4
+  inventory slots; this one is **still a placeholder flat-box visual**,
+  not yet given a real model. **Regression check:** the existing found
+  `Fiber Belt` (near `(-2, 0.3, 1.5)`, was named plain "Belt" before
+  v0.1.79-dev, a separate tier-2 item on its own standalone prefab, not
+  a `CrudeFiberBelt.prefab` instance) should still show its old
+  placeholder grey-box visual, unaffected by the v0.1.122-dev model
+  swap — and the pre-placed `Backpack` should still work exactly as
+  before too.
+- [ ] **Backpack icons (v0.1.93-dev, corrected v0.1.94-dev):** there are
+  two separate Backpack items, each with its own icon now — don't
+  confuse them:
+  - **`Backpack`** (`BackpackItem.asset`, the plain pre-placed one near
+    `(0, 0.3, 2.5)`, visual is `Backpack.prefab`/`CrudeLeatherBackpack.glb`):
+    icon shows visible straps, more detailed than the Fiber one.
+  - **`Crude Fiber Backpack`** (`CrudeFiberBackpackItem.asset`, the
+    Sewing-craftable one): icon is a simpler brown angular shape,
+    matching its lower-detail model.
+  Either way, confirm the icon appears next to the item wherever it
+  renders — as an unequipped stack in the main Inventory list, in the
+  Equipment section's "Back" slot box once equipped, inside a
+  container's contents grid, and in the move popup's header. Every
+  other item should look unchanged (still text-only, no icon). Confirm
+  the icon is small and proportional (32x32 baked size) and doesn't
+  distort any row/box/button size or overlap the Equip/Drop/Unequip
+  buttons next to it.
+- [ ] **Icon-only in every equipment slot (v0.1.95/96-dev):** any item
+  with an icon shows icon-only (no text) everywhere in the Equipment
+  section — a hand-held Backpack shows just its picture (not
+  "Backpack"), and a worn Back/Waist container shows just its picture
+  (not "Equipped"). Items without an icon (Belt, everything else)
+  still show their old text exactly as before.
+- [ ] **Equipment slot list + Back preview/contents panels, side by side,
+  each with their own header (v0.1.95-dev through v0.1.106-dev — see
+  CHANGELOG.md for the full iteration history):** two visibly bordered
+  dark panels (`DebugGUI.Panel`) sit **side by side in one row** — no
+  header above the row as a whole anymore. The left panel (equipment
+  slot list: Head/Face/.../Back/..., always present) has its own
+  **"Equipment"** header drawn inside it. The right panel (96x96
+  preview icon — crisp/detailed, straps/buckle visible on the
+  Backpack, not blurry — plus that container's own "___ contents"
+  grid) has its own **"Inventory"** header drawn inside it, and only
+  appears at all when something's worn on Back or Waist (a worn Belt's
+  contents still show, just without a preview picture, since Belt has
+  no icon yet). The **main inventory list above these two panels now
+  has no header at all** — "Inventory" moved down onto the right
+  panel instead, per Ben's call. Confirm there's a visible gap between
+  the two panels, each sizes to fit only its own content, and the
+  right panel disappears entirely (not just going blank) when nothing's
+  worn on Back/Waist.
 - [ ] **Folder-tab look (v0.1.70-dev):** the selected discipline tab should
   read as visually connected to the recipe list below it (matching
   background, no seam), while unselected tabs look visibly separate/
@@ -505,16 +743,38 @@ fix the coordinate in this file rather than assuming the step is wrong.
   the Belt's 6 attachment points once both hands are already occupied
   (previously it would have gone to the body's Waist slot directly; that
   path no longer exists once a Belt is worn — see the Canteen entry
-  below). **Known display gap:** if a Backpack (Back) and Belt (Waist) are
-  both worn at once, only one of their contents shows in the Inventory
-  tab's side column at a time (Belt wins) — logged in
-  `BUGS_AND_ENHANCEMENTS.md`, not a functional loss, just not visible
-  there.
+  below). **Display gap fixed v0.1.124-dev, merged into one panel
+  v0.1.125-dev:** a Backpack (Back) and Belt (Waist) worn at the same
+  time now both show their contents as two stacked rows inside the
+  single "Inventory" panel (each with its own preview icon + "X
+  contents" label), instead of only one winning and hiding the other.
+  Confirm: equip both, drop an item into each, and check both rows stay
+  visible and correctly labeled ("Backpack contents" / "Crude Fiber Belt
+  contents" or similar) at the same time.
 - [ ] **Canteen (v0.1.75-dev, no longer clips to bare Waist):** Equip to
   Left/Right Hand, or — only if a Belt is currently worn — one of its
   attachment points. Without a Belt worn, a Canteen with both hands full
   should fail to equip (previously it would have fallen back to Waist
   directly).
+- [ ] **Canteen/Belt carry anchors (v0.1.123-dev — previously invisible
+  when worn):** `PlayerCanteen`'s hand/belt anchors and `PlayerBelt`'s
+  own carry anchor were never wired up — a worn Belt and anything
+  equipped to a hand or the Belt's attachment points were parented at
+  the player's exact pivot point instead of a real carry position,
+  effectively invisible even though fully functional in the Equipment/
+  contents UI. Now wired to the existing `HandAnchor`/`BeltAnchor`
+  transforms on the Player. Confirm: a worn Belt is visible at roughly
+  waist height on the body (not the player's feet/center); a Canteen
+  equipped to Left Hand, Right Hand, or a worn Belt's attachment point
+  is now actually visible from an external view in each case, not just
+  logically equipped. **Partially confirmed:** Ben's retest showed the
+  Belt equip working functionally (Waist row, Unequip/Drop present) but
+  surfaced a *different* pre-existing bug — the Canteen didn't appear in
+  the Inventory tab's contents panel because a Backpack was also worn,
+  which hid the Belt's own contents panel entirely (fixed separately,
+  v0.1.124-dev, see the entry above). Still worth a final pass
+  confirming the Canteen is now visible both in-world (this entry) and
+  in the contents panel (the entry above) at the same time.
 - [ ] **Equip destination picker (v0.1.76-dev):** with both hands free
   *and* a Belt worn, clicking Equip on a Canteen sitting in the main
   inventory should pop up a small "Equip Canteen to:" list (Left Hand /
@@ -684,7 +944,22 @@ fix the coordinate in this file rather than assuming the step is wrong.
   description of what it does. Cross-check this against what's actually bound
   in the game right now; flag anything missing or stale (see `CLAUDE.md`'s
   standing rule to keep this list updated whenever a new key mapping ships).
-- [ ] **Credits tab** shows "Tekim" and "the T-Rex."
+- [ ] **Credits tab (updated v0.1.89-dev):** shows the credits image
+  (`tekim_trex.png`) centered horizontally at the top, sized to 90% of
+  screen width and also capped to 50% of screen height (whichever
+  binds first, proportionally), then a single centered line reading
+  "Tekim & The T-Rex" below it, then a "Third-Party Assets" section
+  listing "Tree branch by Poly by Google [CC-BY] via Poly Pizza",
+  "Stone by Poly by Google [CC-BY] via Poly Pizza", and (as of
+  v0.1.91-dev, once it became choppable and stopped being
+  comparison-only) "Big Tree by 3Donimus [CC-BY] via Poly Pizza" —
+  exact text, not paraphrased (compare against
+  `Assets/Models/THIRD_PARTY_CREDITS.md`). **Regression caught by
+  Ben:** the v0.1.88-dev
+  width-only sizing let the image grow tall enough to push the name
+  line/attribution list/Close button off-screen with no way to scroll
+  back — confirm the whole tab (image through Close button) stays
+  visible at once.
 - [ ] **Admin tab (v0.1.68-dev, Editor Play Mode only):** lists every
   `ItemDefinition` in the project alphabetically, each with a Spawn button.
   Clicking Spawn drops one directly in front of the player (same physical

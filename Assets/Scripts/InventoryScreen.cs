@@ -23,8 +23,18 @@ public class InventoryScreen : MonoBehaviour
     private const float LabelWidth = 110f;
 
     private const float SubBoxWidth = 70f;
-    private const float SubBoxHeight = 30f;
+    // Was 30f — smaller than the 32x32 icon it now needs to hold, before
+    // even accounting for padding. Bumped up so an icon actually fits.
+    private const float SubBoxHeight = 44f;
     private const int SubBoxesPerRow = 6;
+
+    // A bigger standalone preview of whatever's worn on Back/Waist, drawn
+    // once per worn container right under its own "Inventory" header —
+    // Ben's request, distinct from the small icon shown next to that
+    // slot's row itself further down. Was Back-only until v0.1.124-dev;
+    // renamed (from BackPreview*) when it became per-container.
+    private const float ContainerPreviewSize = 96f;
+    private const float ContainerPreviewPadding = 8f;
 
     private const float PanelWidth = LabelWidth + BoxWidth * 2f + 220f;
 
@@ -133,30 +143,60 @@ public class InventoryScreen : MonoBehaviour
         float scrollHeight = Mathf.Min(Screen.height - ChromeReserve - CurrencySectionHeight, 640f);
         scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(scrollHeight));
 
-        GUILayout.Label("Inventory", DebugGUI.Header);
         DrawInventorySection();
 
         GUILayout.Space(10);
-        GUILayout.Label("Equipment", DebugGUI.Header);
+
+        // Worn containers need to be known before the slot list draws —
+        // used to decide whether the single "Inventory" panel appears at
+        // all, and how many preview+contents rows it stacks inside itself.
+        // See GetWornContainers() for why this can't just be
+        // DrawEquipmentSection()'s old return value.
+        var wornContainers = GetWornContainers();
 
         GUILayout.BeginHorizontal();
-        GUILayout.BeginVertical();
-        var wornContainer = DrawEquipmentSection();
+
+        // Slot list panel — always present. "Equipment" now labels this
+        // panel specifically, not the row as a whole (see the "Inventory"
+        // label on the panel to its right, moved down from where it used
+        // to sit above DrawInventorySection() — Ben's call).
+        GUILayout.BeginVertical(DebugGUI.Panel);
+        GUILayout.Label("Equipment", DebugGUI.Header);
+        DrawEquipmentSection();
         GUILayout.EndVertical();
 
-        // A worn container's (a Backpack on Back, or a Belt on Waist) own
-        // contents render in a side column instead of directly under its
-        // equipment row — used to expand inline there, which pushed every
-        // later slot row down by an unpredictable amount and made the list
-        // harder to scan. The row itself just shows "Equipped" now (see
-        // DrawEquipmentSection).
-        if (wornContainer != null)
+        // Single "Inventory" panel beside the slot list, holding one
+        // preview+contents row per worn container (Backpack on Back,
+        // Belt on Waist) stacked vertically inside it — not a separate
+        // bordered panel per container (tried that first, v0.1.124-dev;
+        // Ben's call to merge them into one panel instead once he saw two
+        // side by side). Still 0 rows (no panel at all) when nothing's
+        // worn on Back or Waist.
+        if (wornContainers.Count > 0)
         {
             GUILayout.Space(20);
-            GUILayout.BeginVertical();
-            DrawContainerContents(wornContainer.Inventory, $"{wornContainer.DisplayName} contents (click an item for options)");
+            GUILayout.BeginVertical(DebugGUI.Panel);
+            GUILayout.Label("Inventory", DebugGUI.Header);
+
+            for (int i = 0; i < wornContainers.Count; i++)
+            {
+                var (slotName, holder) = wornContainers[i];
+
+                GUILayout.BeginHorizontal();
+                DrawContainerPreview(GetSlotPreviewIcon(slotName));
+                GUILayout.Space(20);
+                GUILayout.BeginVertical();
+                DrawContainerContents(holder.Inventory, $"{holder.DisplayName} contents (click an item for options)");
+                GUILayout.EndVertical();
+                GUILayout.EndHorizontal();
+
+                if (i < wornContainers.Count - 1)
+                    GUILayout.Space(10);
+            }
+
             GUILayout.EndVertical();
         }
+
         GUILayout.EndHorizontal();
 
         if (nearbyStorages.Count > 0)
@@ -179,6 +219,27 @@ public class InventoryScreen : MonoBehaviour
         DrawPendingMovePopup();
         DrawPendingEquipPopup();
         DrawCoinDropPopup();
+        DrawTooltip();
+    }
+
+    // Unity's runtime IMGUI (unlike the Editor's) never draws GUI.tooltip
+    // on its own — setting a GUIContent's tooltip just makes the string
+    // available, nothing renders it without this. Drawn from DrawPopups()
+    // rather than inside the scroll view in DrawContent(), same reasoning
+    // as the other popups there: needs to sit on top of everything,
+    // unclipped by the scroll rect, positioned in real screen space.
+    private void DrawTooltip()
+    {
+        if (string.IsNullOrEmpty(GUI.tooltip)) return;
+
+        var content = new GUIContent(GUI.tooltip);
+        var size = DebugGUI.Label.CalcSize(content);
+        var mousePos = Event.current.mousePosition;
+        const float padding = 5f;
+        var rect = new Rect(mousePos.x + 12f, mousePos.y + 12f, size.x + padding * 2f, size.y + padding * 2f);
+
+        DebugGUI.DrawPanel(rect);
+        GUI.Label(rect, content, DebugGUI.Label);
     }
 
     // Called by PlayerMenuScreen when the whole Tab menu closes, so a
@@ -212,7 +273,7 @@ public class InventoryScreen : MonoBehaviour
 
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
-        GUILayout.Label(pendingMoveItem.itemName, DebugGUI.Header);
+        GUILayout.Label(ItemContent(pendingMoveItem, pendingMoveItem.itemName), DebugGUI.Header);
 
         bool resolved = choosingStorage ? DrawStoragePicker() : DrawMoveDestinations();
 
@@ -503,12 +564,13 @@ public class InventoryScreen : MonoBehaviour
         {
             var slot = slots[i];
             string label = $"{slot.item.itemName} x{slot.count}";
+            var content = ItemContent(slot.item, label);
 
             GUILayout.BeginHorizontal();
 
             if (slot.equipment is Backpack backpack)
             {
-                GUILayout.Label(label, DebugGUI.Label);
+                GUILayout.Label(content, DebugGUI.Label);
                 if (SafeButton("Equip", GUILayout.Width(55)))
                     equipClicked = backpack;
                 if (SafeButton("Drop", GUILayout.Width(50)))
@@ -516,7 +578,7 @@ public class InventoryScreen : MonoBehaviour
             }
             else if (slot.equipment is Belt belt)
             {
-                GUILayout.Label(label, DebugGUI.Label);
+                GUILayout.Label(content, DebugGUI.Label);
                 if (SafeButton("Equip", GUILayout.Width(55)))
                     beltEquipClicked = belt;
                 if (SafeButton("Drop", GUILayout.Width(50)))
@@ -524,7 +586,7 @@ public class InventoryScreen : MonoBehaviour
             }
             else if (slot.equipment is Canteen canteen)
             {
-                GUILayout.Label(label, DebugGUI.Label);
+                GUILayout.Label(content, DebugGUI.Label);
                 if (SafeButton("Equip", GUILayout.Width(55)))
                     canteenEquipClicked = canteen;
                 if (SafeButton("Drop", GUILayout.Width(50)))
@@ -532,7 +594,7 @@ public class InventoryScreen : MonoBehaviour
             }
             else if (slot.equipment is NavigationComputer navComputer)
             {
-                GUILayout.Label(label, DebugGUI.Label);
+                GUILayout.Label(content, DebugGUI.Label);
                 if (SafeButton("Equip", GUILayout.Width(55)))
                     navComputerEquipClicked = navComputer;
                 if (SafeButton("Drop", GUILayout.Width(50)))
@@ -540,7 +602,7 @@ public class InventoryScreen : MonoBehaviour
             }
             else if (slot.equipment is PersonalHealthMonitor healthMonitor)
             {
-                GUILayout.Label(label, DebugGUI.Label);
+                GUILayout.Label(content, DebugGUI.Label);
                 if (SafeButton("Equip", GUILayout.Width(55)))
                     healthMonitorEquipClicked = healthMonitor;
                 if (SafeButton("Drop", GUILayout.Width(50)))
@@ -548,7 +610,7 @@ public class InventoryScreen : MonoBehaviour
             }
             else if (slot.equipment is Sunglasses sunglasses)
             {
-                GUILayout.Label(label, DebugGUI.Label);
+                GUILayout.Label(content, DebugGUI.Label);
                 if (SafeButton("Equip", GUILayout.Width(55)))
                     sunglassesEquipClicked = sunglasses;
                 if (SafeButton("Drop", GUILayout.Width(50)))
@@ -556,7 +618,7 @@ public class InventoryScreen : MonoBehaviour
             }
             else if (slot.equipment is MiningFaceShield miningShield)
             {
-                GUILayout.Label(label, DebugGUI.Label);
+                GUILayout.Label(content, DebugGUI.Label);
                 if (SafeButton("Equip", GUILayout.Width(55)))
                     miningShieldEquipClicked = miningShield;
                 if (SafeButton("Drop", GUILayout.Width(50)))
@@ -564,7 +626,7 @@ public class InventoryScreen : MonoBehaviour
             }
             else
             {
-                GUILayout.Label(label, DebugGUI.Label);
+                GUILayout.Label(content, DebugGUI.Label);
 
                 var edible = eating != null ? eating.FindEdible(slot.item) : null;
                 if (edible != null && GUILayout.Button(edible.verb, GUILayout.Width(50)))
@@ -623,12 +685,80 @@ public class InventoryScreen : MonoBehaviour
             miningShieldCarrier.Drop(miningShieldDropClicked);
     }
 
-    // Returns the currently-worn container (a Backpack on Back, today the
-    // only case), if any, so DrawContent() can render its contents in a
-    // side column instead of inline under the row here.
-    private IInventoryHolder DrawEquipmentSection()
+    // Fixed-size framed box showing a bigger icon of whatever's worn in a
+    // given container slot (Back or Waist), centered directly under that
+    // container's own "Inventory" header — drawn as its own row, nothing
+    // at all (no row, no space) when there's no icon to show, rather than
+    // an empty frame. Uses the default GUILayout.Box skin (same
+    // visibly-bordered look as every other slot box on this screen, e.g.
+    // the "Empty" boxes) rather than DebugGUI's near-black full-screen
+    // panel overlay — that one only reads clearly sitting on top of an
+    // already-dark panel; standing alone against the 3D game view behind
+    // it, it was nearly invisible.
+    private void DrawContainerPreview(Sprite icon)
     {
-        IInventoryHolder wornContainer = null;
+        if (icon == null) return;
+
+        // No self-centering here — DrawContent() already wraps this call
+        // (plus DrawContainerContents beside it) in one FlexibleSpace-
+        // centered row, so centering it again internally would fight that.
+        GUILayout.Box(GUIContent.none, GUILayout.Width(ContainerPreviewSize), GUILayout.Height(ContainerPreviewSize));
+        var rect = GUILayoutUtility.GetLastRect();
+
+        var iconRect = new Rect(
+            rect.x + ContainerPreviewPadding, rect.y + ContainerPreviewPadding,
+            rect.width - ContainerPreviewPadding * 2f, rect.height - ContainerPreviewPadding * 2f);
+        GUI.DrawTexture(iconRect, icon.texture, ScaleMode.ScaleToFit);
+    }
+
+    // previewIcon (a separately-baked, higher-resolution image) is
+    // preferred over icon here — icon is only baked ~32x32 for inline-row
+    // use, and stretching that up to fill this much bigger box looks
+    // visibly blurry.
+    private Sprite GetSlotPreviewIcon(string slotName)
+    {
+        var slot = equipment.GetSlot(slotName);
+        if (slot == null || slot.Slots.Count == 0) return null;
+        var item = slot.Slots[0].item;
+        return item.previewIcon != null ? item.previewIcon : item.icon;
+    }
+
+    // Non-drawing lookup of every worn container (Back and/or Waist)
+    // currently holding an IInventoryHolder equipment (Backpack, Belt) —
+    // needed before the slot list draws, to know how many contents panels
+    // to lay out beside it. Used to return only the first match found
+    // (Back beat Waist, silently hiding whichever one lost — Ben's report,
+    // 2026-08-08: equipping a Belt while a Backpack was worn made the
+    // Backpack's contents panel disappear even though the Backpack itself
+    // was unaffected). Now returns all of them, in SlotOrder-relative
+    // (Back, then Waist) order.
+    private List<(string SlotName, IInventoryHolder Holder)> GetWornContainers()
+    {
+        var result = new List<(string, IInventoryHolder)>();
+
+        foreach (var slotName in new[] { "Back", "Waist" })
+        {
+            var slotInventory = equipment.GetSlot(slotName);
+            if (slotInventory == null) continue;
+
+            foreach (var entry in slotInventory.Slots)
+            {
+                if (entry.equipment is IInventoryHolder holder)
+                {
+                    result.Add((slotName, holder));
+                    break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // Draws the equipment slot list (Head/Face/.../Back/...). The worn
+    // container's own contents used to render via this method's return
+    // value — see GetWornContainer() above for why that moved.
+    private void DrawEquipmentSection()
+    {
         Backpack backpackEquipClicked = null;
         Backpack backpackUnequipClicked = null;
         Backpack backpackDropClicked = null;
@@ -659,7 +789,6 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.Label(slotName, DebugGUI.Label, GUILayout.Width(LabelWidth));
 
             var occupied = slotInventory.Slots;
-            IInventoryHolder nestedHolder = null;
             Backpack backpackHere = null;
             Belt beltHere = null;
             Canteen canteenHere = null;
@@ -675,13 +804,19 @@ public class InventoryScreen : MonoBehaviour
                     var entry = occupied[i];
 
                     // A worn container's own contents render in a side
-                    // column (see DrawContent()) rather than the item's
-                    // full name/count here — "Equipped" is enough since the
-                    // detail is visible right next to it.
+                    // An item with an icon shows icon-only in this section,
+                    // no text — a hand slot shouldn't say "Backpack" next
+                    // to its own picture, and a worn container on Back/
+                    // Waist shouldn't say "Equipped" either. Items without
+                    // an icon keep the old text (name/count normally,
+                    // "Equipped" specifically for a worn container — its
+                    // own contents render in the side column, see
+                    // DrawContent()).
                     bool isWornContainer = entry.equipment is IInventoryHolder && (slotName == "Back" || slotName == "Waist");
-                    string label = isWornContainer
-                        ? "Equipped"
-                        : entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
+                    string label = entry.item.icon != null
+                        ? ""
+                        : (isWornContainer ? "Equipped" : entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : ""));
+                    var content = ItemContent(entry.item, label);
 
                     if (entry.equipment == null)
                     {
@@ -689,7 +824,7 @@ public class InventoryScreen : MonoBehaviour
                         // equip slot (e.g. something picked up into a
                         // hand) — click it to open the same "where should
                         // this go?" popup as backpack contents.
-                        if (GUILayout.Button(label, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight)))
+                        if (GUILayout.Button(content, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight)))
                         {
                             pendingMoveItem = entry.item;
                             pendingMoveSource = slotInventory;
@@ -697,14 +832,9 @@ public class InventoryScreen : MonoBehaviour
                     }
                     else
                     {
-                        GUILayout.Box(label, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight));
+                        GUILayout.Box(content, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight));
                     }
 
-                    // A backpack/belt only exposes its own storage (and can
-                    // only be Unequipped, as opposed to Equipped) once
-                    // it's actually worn on Back/Waist — holding one in a
-                    // hand doesn't make it usable storage yet.
-                    if (entry.equipment is IInventoryHolder holder && (slotName == "Back" || slotName == "Waist")) nestedHolder = holder;
                     if (entry.equipment is Backpack bp) backpackHere = bp;
                     if (entry.equipment is Belt bt) beltHere = bt;
                     if (entry.equipment is Canteen ct) canteenHere = ct;
@@ -812,9 +942,6 @@ public class InventoryScreen : MonoBehaviour
             }
 
             GUILayout.EndHorizontal();
-
-            if (nestedHolder != null)
-                wornContainer = nestedHolder;
         }
 
         if (backpackEquipClicked != null) backpackCarrier.Equip(backpackEquipClicked);
@@ -837,8 +964,6 @@ public class InventoryScreen : MonoBehaviour
         if (miningShieldEquipClicked != null) miningShieldCarrier.Equip(miningShieldEquipClicked);
         if (miningShieldUnequipClicked != null) miningShieldCarrier.Unequip(miningShieldUnequipClicked);
         if (miningShieldDropClicked != null) miningShieldCarrier.Drop(miningShieldDropClicked);
-
-        return wornContainer;
     }
 
     // Draws an inventory's own capacity as a wrapped grid of boxes. Occupied
@@ -859,20 +984,73 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.Space(20);
             for (int col = 0; col < SubBoxesPerRow && drawn < capacity; col++, drawn++)
             {
+                GUILayout.BeginVertical(GUILayout.Width(SubBoxWidth));
+
                 if (drawn < contents.Count)
                 {
                     var entry = contents[drawn];
-                    string label = entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
-                    if (GUILayout.Button(label, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight)))
+                    bool clicked;
+
+                    if (entry.item.icon != null)
+                    {
+                        // GUIContent's icon+text combo (still used below for
+                        // items with no icon) breaks down at this box's
+                        // size — the icon didn't render at all and the text
+                        // just truncated ("ill Rock x9"). Drawing the icon
+                        // as a separate overlay on top of a plain box,
+                        // rather than through GUIContent, sidesteps that
+                        // entirely — same technique the Back preview box
+                        // already uses successfully. DebugGUI.Slot (an
+                        // explicit solid-color background, not
+                        // GUI.skin.box's default runtime look) keeps this
+                        // visibly readable against the panel behind it.
+                        // Tooltip (item name) makes up for this slot no
+                        // longer showing any text of its own now that it's
+                        // icon-only — Ben's request.
+                        var iconContent = new GUIContent(string.Empty, entry.item.itemName);
+                        clicked = GUILayout.Button(iconContent, DebugGUI.Slot, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight));
+                        var slotRect = GUILayoutUtility.GetLastRect();
+                        const float iconPadding = 6f;
+                        var iconRect = new Rect(
+                            slotRect.x + iconPadding, slotRect.y + iconPadding,
+                            slotRect.width - iconPadding * 2f, slotRect.height - iconPadding * 2f);
+                        GUI.DrawTexture(iconRect, entry.item.icon.texture, ScaleMode.ScaleToFit);
+                    }
+                    else
+                    {
+                        string label = entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
+                        clicked = GUILayout.Button(label, DebugGUI.Slot, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight));
+                    }
+
+                    if (clicked)
                     {
                         pendingMoveItem = entry.item;
                         pendingMoveSource = inventory;
                     }
+
+                    // Blank for a non-stackable item (maxStack <= 1, e.g. a
+                    // Backpack) rather than always showing "QTY: 1" — Ben's
+                    // call. Still drawn (as an empty label) either way so
+                    // every column reserves the same row height.
+                    string qtyLabel = entry.item.maxStack > 1 ? $"QTY: {entry.count}" : "";
+                    GUILayout.Label(qtyLabel, DebugGUI.Label, GUILayout.Width(SubBoxWidth));
                 }
                 else
                 {
-                    GUILayout.Box("Empty", GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight));
+                    // Plain gray box, no "Empty" text — Ben's call,
+                    // scoped to this grid specifically (the equipment
+                    // slot list's own "Empty" labels are unchanged).
+                    // DebugGUI.Slot (an explicit solid-color background)
+                    // instead of GUI.skin.box's default, which turned out
+                    // to have too little contrast to be visible at all
+                    // without any text/content inside it — Ben's report:
+                    // capacity became impossible to see once "Empty" was
+                    // removed and nothing replaced its visibility.
+                    GUILayout.Box(GUIContent.none, DebugGUI.Slot, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight));
+                    GUILayout.Label("", DebugGUI.Label, GUILayout.Width(SubBoxWidth));
                 }
+
+                GUILayout.EndVertical();
             }
             GUILayout.EndHorizontal();
         }
@@ -891,5 +1069,16 @@ public class InventoryScreen : MonoBehaviour
     {
         bool clicked = GUILayout.Button(label, options);
         return clicked && Event.current.button == 0;
+    }
+
+    // Wraps a label with an item's icon (ItemDefinition.icon) when it has
+    // one, so every place an item renders — inventory rows, equipment
+    // slots, container grids, the move popup — picks it up automatically
+    // instead of needing its own icon-drawing logic. Most items still have
+    // no icon set, so this is a no-op text-only GUIContent for them, same
+    // as before the field existed.
+    private static GUIContent ItemContent(ItemDefinition item, string text)
+    {
+        return item.icon != null ? new GUIContent(text, item.icon.texture) : new GUIContent(text);
     }
 }

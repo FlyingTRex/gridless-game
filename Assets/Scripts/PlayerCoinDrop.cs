@@ -21,6 +21,11 @@ public class PlayerCoinDrop : MonoBehaviour
     [SerializeField] private float dropHeight = 1f;
     [SerializeField] private float scatterForce = 0.4f;
     [SerializeField] private float coinSpacing = 0.05f;
+    // Matches Pickup.DespawnDelay. No cancellation needed anywhere — Coin
+    // destroys its own GameObject immediately on a successful pickup
+    // (Coin.cs), so there's no "worn/stashed" state for a lingering
+    // Despawn to wrongly fire against later, unlike equipment.
+    [SerializeField] private float despawnDelay = 120f;
 
     private PlayerCurrency currency;
 
@@ -88,5 +93,8 @@ public class PlayerCoinDrop : MonoBehaviour
         rb.AddForce(dir * scatterForce, ForceMode.Impulse);
 
         go.AddComponent<Coin>().Configure(type, 1);
+
+        var despawn = go.AddComponent<Despawn>();
+        despawn.delay = despawnDelay;
     }
 }

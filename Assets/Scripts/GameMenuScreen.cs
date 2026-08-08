@@ -36,6 +36,18 @@ public class GameMenuScreen : MonoBehaviour
     private const float TabHeight = 32f;
     private const float KeyColumnWidth = 190f;
 
+    // 90% of the full screen width, per Ben's call — height is derived
+    // from the actual source texture's own aspect ratio at draw time
+    // rather than a hardcoded ratio, so it stays correct if the image is
+    // ever swapped for a different one. Also capped by
+    // CreditsImageMaxHeightFraction: GUILayout doesn't clip or scroll on
+    // its own, so a width-only fit could grow tall enough to push the
+    // attribution lines and Close button off-screen with no way back.
+    private const float CreditsImageWidthFraction = 0.9f;
+    private const float CreditsImageMaxHeightFraction = 0.5f;
+
+    [SerializeField] private Texture2D creditsImage;
+
     private bool isOpen;
     private Tab currentTab = Tab.Player;
     private AdminSpawnScreen adminSpawnScreen;
@@ -147,7 +159,40 @@ public class GameMenuScreen : MonoBehaviour
     private void DrawCreditsTab()
     {
         GUILayout.Label("Credits", DebugGUI.Header);
-        GUILayout.Label("Tekim", DebugGUI.Label);
-        GUILayout.Label("the T-Rex", DebugGUI.Label);
+
+        if (creditsImage != null)
+        {
+            float aspect = (float)creditsImage.height / creditsImage.width;
+            float imageWidth = Screen.width * CreditsImageWidthFraction;
+            float imageHeight = imageWidth * aspect;
+
+            float maxHeight = Screen.height * CreditsImageMaxHeightFraction;
+            if (imageHeight > maxHeight)
+            {
+                imageHeight = maxHeight;
+                imageWidth = imageHeight / aspect;
+            }
+
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(creditsImage, GUILayout.Width(imageWidth), GUILayout.Height(imageHeight));
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            GUILayout.Space(10);
+        }
+
+        GUILayout.BeginHorizontal();
+        GUILayout.FlexibleSpace();
+        GUILayout.Label("Tekim & The T-Rex", DebugGUI.Label);
+        GUILayout.FlexibleSpace();
+        GUILayout.EndHorizontal();
+
+        // Exact required attribution text per Assets/Models/THIRD_PARTY_CREDITS.md
+        // — only entries actively shipping in the game go here.
+        GUILayout.Space(10);
+        GUILayout.Label("Third-Party Assets", DebugGUI.Header);
+        GUILayout.Label("Tree branch by Poly by Google [CC-BY] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("Stone by Poly by Google [CC-BY] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("Big Tree by 3Donimus [CC-BY] via Poly Pizza", DebugGUI.Label);
     }
 }

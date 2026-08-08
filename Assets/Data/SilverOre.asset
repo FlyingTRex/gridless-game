@@ -14,4 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Silver Ore
   maxStack: 20
-  worldPickupPrefab: {fileID: 5319916492979526695, guid: 86ac897dcca2921438e39462b3a0e376, type: 3}
+  tier: 2
+  worldPickupPrefab: {fileID: 7409899034568346477, guid: 335cc36208bae724683d087251c88056, type: 3}
+  icon: {fileID: 21300000, guid: f487f7483357ad4489169b1b724f8409, type: 3}
+  previewIcon: {fileID: 0}

@@ -18,7 +18,7 @@ public class Pickup : MonoBehaviour, IInteractable
     // fallback, or hand-eviction on pickup) despawns from the world if left
     // unpicked this long. Distinct from respawnDelay above — this deletes
     // a dropped item outright rather than restoring a resource point.
-    private const float DespawnDelay = 900f; // 15 minutes
+    private const float DespawnDelay = 120f; // 2 minutes
 
     private Vector3 spawnPosition;
     private Collider col;

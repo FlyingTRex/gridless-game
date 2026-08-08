@@ -15,6 +15,10 @@ public class PlayerHealthMonitor : MonoBehaviour
     [SerializeField] private ItemDefinition monitorItem;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
+    // Matches Pickup.DespawnDelay — see Despawn.cs for why
+    // PersonalHealthMonitor.Stash()/SetCarried(true, ...) cancel this on
+    // pickup, not this script.
+    [SerializeField] private float despawnDelay = 120f;
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
@@ -139,6 +143,8 @@ public class PlayerHealthMonitor : MonoBehaviour
 
         monitor.SetCarried(false, null);
         monitor.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        var despawn = monitor.gameObject.AddComponent<Despawn>();
+        despawn.delay = despawnDelay;
     }
 
     // Searches the wrists, then the hands, for the given monitor instance.

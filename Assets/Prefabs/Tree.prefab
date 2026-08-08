@@ -4175,9 +4175,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 4493968444738990189}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 12cdf241c6fa58b438103cd8da08b9cb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Tree
+  m_Script: {fileID: 11500000, guid: 3d124392257bdde4894eef32c360a173, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::ChoppableTree
   logPrefab: {fileID: 100000, guid: 35caf777577e41fe9cf07bd97be822bb, type: 3}
   logCount: 3
   hitsToChop: 3

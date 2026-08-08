@@ -35,6 +35,7 @@ public class Sunglasses : MonoBehaviour, IInteractable, IEquippable
     // rather than sitting in the world or worn on the face.
     public void Stash()
     {
+        Despawn.CancelOn(gameObject);
         transform.SetParent(null, false);
         gameObject.SetActive(false);
     }
@@ -44,6 +45,8 @@ public class Sunglasses : MonoBehaviour, IInteractable, IEquippable
     // when anchor is null.
     public void SetCarried(bool value, Transform anchor)
     {
+        if (value) Despawn.CancelOn(gameObject);
+
         gameObject.SetActive(true);
         col.enabled = !value;
         body.isKinematic = value;

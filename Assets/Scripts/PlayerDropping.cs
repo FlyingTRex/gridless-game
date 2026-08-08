@@ -6,6 +6,11 @@ public class PlayerDropping : MonoBehaviour
     [SerializeField] private GameObject droppedItemPrefab;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
+    // Matches Pickup.DespawnDelay — equipment has no despawn concept of
+    // its own (unlike Pickup), so a Despawn component is attached here
+    // instead. Each equippable's own Stash() destroys it again the moment
+    // it's picked back up (see Despawn.cs for why that matters).
+    [SerializeField] private float equipmentDespawnDelay = 120f;
 
     private PlayerInventory playerInventory;
 
@@ -46,7 +51,11 @@ public class PlayerDropping : MonoBehaviour
             equipment.SetCarried(false, null);
             var equipmentTransform = (equipment as Component)?.transform;
             if (equipmentTransform != null)
+            {
                 equipmentTransform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+                var despawn = equipmentTransform.gameObject.AddComponent<Despawn>();
+                despawn.delay = equipmentDespawnDelay;
+            }
             return;
         }
 

@@ -10,16 +10,25 @@ public static class DebugGUI
     private static readonly Color PanelColor = new Color(0f, 0f, 0f, 0.92f);
     private static readonly Color TabUnselectedColor = new Color(0.12f, 0.12f, 0.13f, 0.85f);
     private static readonly Color TabUnselectedHoverColor = new Color(0.2f, 0.2f, 0.22f, 0.9f);
+    // Meaningfully lighter than PanelColor so a slot box actually reads as
+    // a distinct box against a Panel background — GUI.skin.box's default
+    // runtime look turned out to have too little contrast there to be
+    // visible at all (confirmed by Ben: empty contents-grid slots
+    // rendered as nothing once their "Empty" text was removed).
+    private static readonly Color SlotColor = new Color(0.3f, 0.3f, 0.32f, 1f);
 
     private static Texture2D panelBackground;
     private static Texture2D tabSelectedBackground;
     private static Texture2D tabUnselectedBackground;
     private static Texture2D tabUnselectedHoverBackground;
+    private static Texture2D slotBackground;
     private static GUIStyle labelStyle;
     private static GUIStyle headerStyle;
     private static GUIStyle warningStyle;
     private static GUIStyle tabSelectedStyle;
     private static GUIStyle tabUnselectedStyle;
+    private static GUIStyle panelStyle;
+    private static GUIStyle slotStyle;
 
     public static void DrawPanel(Rect rect)
     {
@@ -27,6 +36,59 @@ public static class DebugGUI
             panelBackground = SolidTexture(PanelColor);
 
         GUI.DrawTexture(rect, panelBackground);
+    }
+
+    // Same background as DrawPanel, but as a GUIStyle for
+    // GUILayout.BeginVertical/BeginHorizontal — the group auto-sizes to
+    // fit whatever's drawn inside it and the background follows, instead
+    // of needing the caller to pre-compute a Rect by hand. Use this when a
+    // section of content (e.g. InventoryScreen's equipment slot list, or
+    // its Back-preview + contents pair) needs to read as its own distinct
+    // panel rather than floating directly on the 3D game view behind it.
+    public static GUIStyle Panel
+    {
+        get
+        {
+            if (panelStyle == null)
+            {
+                if (panelBackground == null) panelBackground = SolidTexture(PanelColor);
+                panelStyle = new GUIStyle();
+                panelStyle.normal.background = panelBackground;
+                panelStyle.padding = new RectOffset(15, 15, 15, 15);
+                // A bare `new GUIStyle()` defaults to stretching to fill
+                // whatever width/height GUILayout offers rather than
+                // shrink-wrapping its content — without this, the panel
+                // expands to the full row/screen instead of just framing
+                // what's actually drawn inside it.
+                panelStyle.stretchWidth = false;
+                panelStyle.stretchHeight = false;
+            }
+            return panelStyle;
+        }
+    }
+
+    // Explicit solid-color background for an individual item/empty slot
+    // (e.g. InventoryScreen's contents grid boxes) — an actual texture
+    // background rather than relying on GUI.skin.box's default runtime
+    // appearance, which proved too low-contrast to read against a dark
+    // panel. Use with GUILayout.Box/Button so capacity stays visible even
+    // when a slot has nothing in it.
+    public static GUIStyle Slot
+    {
+        get
+        {
+            if (slotStyle == null)
+            {
+                if (slotBackground == null) slotBackground = SolidTexture(SlotColor);
+                slotStyle = new GUIStyle();
+                slotStyle.normal.background = slotBackground;
+                slotStyle.hover.background = slotBackground;
+                slotStyle.active.background = slotBackground;
+                slotStyle.stretchWidth = false;
+                slotStyle.stretchHeight = false;
+            }
+            return slotStyle;
+        }
     }
 
     private static Texture2D SolidTexture(Color color)

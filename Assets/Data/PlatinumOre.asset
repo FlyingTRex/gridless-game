@@ -14,4 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Platinum Ore
   maxStack: 20
-  worldPickupPrefab: {fileID: 6339605321079903036, guid: f0ef6a9a140afcb4ebe2ba6b2a706257, type: 3}
+  tier: 2
+  worldPickupPrefab: {fileID: 984886332502731566, guid: 3418e49da177b7547bcfeff5e28740a1, type: 3}
+  icon: {fileID: 21300000, guid: d1aed28d631bcee49b99de794c2db7be, type: 3}
+  previewIcon: {fileID: 0}

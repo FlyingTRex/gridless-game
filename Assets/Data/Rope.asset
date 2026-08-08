@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Rope
   maxStack: 20
   tier: 0
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 3045584525389050286, guid: 10280808bdb3f064890ba05c3c47f979, type: 3}
+  icon: {fileID: 21300000, guid: 3d45eb0e7419dd44482f061648772338, type: 3}
+  previewIcon: {fileID: 0}

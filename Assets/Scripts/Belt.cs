@@ -45,12 +45,15 @@ public class Belt : MonoBehaviour, IInteractable, IInventoryHolder
 
     public void Stash()
     {
+        Despawn.CancelOn(gameObject);
         transform.SetParent(null, false);
         gameObject.SetActive(false);
     }
 
     public void SetCarried(bool value, Transform anchor)
     {
+        if (value) Despawn.CancelOn(gameObject);
+
         gameObject.SetActive(true);
         col.enabled = !value;
         body.isKinematic = value;

@@ -232,3 +232,63 @@ balances, only within one.
   far has been a deliberate, manual one-at-a-time call — and it's still
   unproven whether prompt-to-result consistency is good enough to lean
   on for a large batch of assets rather than one-off hero pieces.
+- **Crude Stone Knife (v0.1.115-dev) — 4 failed attempts, then 2 real
+  ones.** The first 4 `generation/text-to-model` calls (2026-08-07, for
+  the prompt `"a crude knapped stone knife blade, no handle, low-poly"`
+  and a trivial `"a rock"` test) all failed instantly with a generic
+  `500`/"Unknown error on server side" — confirmed not a client-side
+  bug (request body matched Tripo3D's own current docs exactly) and
+  concluded to be a systemic outage on their end; no fix possible from
+  our side, request IDs logged for potential support contact. Retried
+  hours later with a photorealistic prompt — the API actually accepted
+  the task this time (no more 500s) but hit Tripo3D's own **20-minute
+  server-side processing timeout** (`error_code: 2018`) right at the
+  finish line; balance wasn't charged for it, and the 2D concept
+  preview it did produce along the way looked far more ornate/engraved
+  than "crude" called for. Retried once more with a simplified prompt
+  (`"a photorealistic crude knapped flint knife blade, no handle,
+  plain and unadorned, sharp chipped edge, rough grey stone texture"`)
+  — succeeded cleanly this time, genuinely faster (99% within ~2
+  minutes vs. the earlier attempt's 24% after 5), and read as
+  convincingly crude/knapped rather than a fantasy artifact. **Known
+  limitation, accepted as-is:** despite "no handle" in every attempt's
+  prompt, the model always comes back with a full handle/crossguard —
+  Tripo3D appears to default "knife" toward a hilted shape regardless
+  of that instruction. Imported as `Assets/Models/CrudeStoneKnife.glb`
+  (43MB — by far the largest model in the project; same "actual output
+  is much higher-poly than prompted" pattern as the berry bush) and
+  swapped in for the old placeholder Capsule primitive in
+  `Assets/Prefabs/RockKnifePickup.prefab` (the Crude Knife's world
+  pickup, referenced by `CrudeKnife.asset`), sized to match the old
+  placeholder's footprint (`0.08 x 0.05 x 0.35`).
+- **Grass belt (v0.1.122-dev) — hit the 20-minute server-side timeout,
+  then quietly succeeded anyway.** Prompt: `"a green woven grass belt,
+  plant fiber cordage wrapped in a coil, isolated on a plain
+  background, no person, no model, low-poly game asset"`. The client
+  script's own poll loop gave up after sitting at `progress: 99` past
+  its timeout (same failure mode as the Crude Stone Knife's first real
+  attempt), but polling `GET /v3/tasks/{task_id}` directly a few
+  minutes later showed `"status": "success"` — the task had actually
+  finished server-side, the client just wasn't watching anymore.
+  Downloaded the `model_url` immediately (5-minute expiry after
+  success). Came back as a closed woven ring/wreath rather than an open
+  strap with overlapping ends — accepted as-is (Ben's call) rather than
+  spending another 20 credits chasing an exact strap shape. Imported as
+  `Assets/Models/GrassBelt.glb`, replacing the flat grey Cube
+  placeholder on `Assets/Prefabs/CrudeFiberBelt.prefab`. **Practical
+  takeaway:** a client-side "did not succeed" error from
+  `Generate-Model.ps1` isn't necessarily a real failure — worth a
+  direct `GET /v3/tasks/{id}` check before assuming credits were wasted
+  and retrying from scratch.
+- **Rope coil (v0.1.116-dev) — clean on the first attempt.** Prompt:
+  `"a photorealistic small coil of rope, hemp fiber texture, tightly
+  wound, isolated on a plain background"`. No 500s, no timeout, no
+  unwanted extra geometry like the knife's handle — just a tidy
+  bundled coil, matching the prompt directly. 20 credits. Imported as
+  `Assets/Models/RopeCoil.glb`. `Rope.asset` never had a
+  `worldPickupPrefab` at all (no old placeholder to replace), so this
+  needed a brand-new `Assets/Prefabs/RopeCoilPickup.prefab` built from
+  scratch rather than a swap — same `Pickup`/`Rigidbody`/`BoxCollider`
+  shape as `StickPickup.prefab`, model uniformly scaled to a 0.28
+  max-dimension target (no old footprint to match, so this was picked
+  to match the size range of other small hand-carried pickups).

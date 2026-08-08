@@ -7,6 +7,43 @@ work) — this is the backlog between the two. Check off and move the entry to
 
 ## Bugs
 
+- [ ] **Silver/Gold/Platinum still don't have a refined "bar" item the
+  way Copper/Iron do** (v0.1.121-dev gave them the missing punchable
+  mid-tier, matching Copper/Iron structurally, but the final tier still
+  yields the existing `SilverOre`/`GoldOre`/`PlatinumOre` item directly,
+  not a further-refined material). Worth deciding whether these three
+  should eventually get a true refined tier too (a smelting recipe
+  consuming the raw Ore?), or whether raw Ore is the intended final form
+  for these three specifically (more currency/jewelry-flavored than
+  Copper/Iron's tool-material role) — not an oversight, just an open
+  design question same as the ones below.
+- [ ] **New "Iron" item (`Iron.asset`, v0.1.119-dev) has no crafting
+  recipe consuming it yet either.** Same situation as Copper below —
+  built ahead of the crafting need when the Boulder→chunk→refined-
+  material tier structure was extended to Iron Ore too. Nothing turns
+  Iron into anything, and no recipe consumes it as an ingredient.
+- [ ] **New "Copper" item (`Copper.asset`, v0.1.117-dev) has no crafting
+  recipe consuming it yet.** Built ahead of the crafting need, same
+  situation as Rock below and the pre-existing "Copper Ore" item —
+  Ben's explicit call when extending the Boulder→chunk→refined-material
+  tier structure to copper, not an oversight. Nothing currently turns
+  Copper into anything (no smelting/refining recipe exists), and no
+  recipe consumes it as an ingredient either. Worth deciding what
+  Copper is actually *for* (a Bronze-tier alloy ingredient? a currency
+  material distinct from Copper Coin?) before it reads as forgotten
+  dead content the way Rock/Wood below already do.
+- [ ] **"Rock" item (`MediumRock.asset`) is now completely orphaned.** Side
+  effect of the v0.1.90-dev change making Boulder's chunk punchable
+  instead of directly pickupable (per Ben's request): `MediumRockChunk.
+  prefab` used to be a `Pickup` granting 1 Rock, now it's a
+  `ResourceNode` that breaks into 2 Small Rock instead and never grants
+  Rock at all. Confirmed via guid search — nothing in the project
+  references `MediumRock.asset` anymore (no recipe ever did, per the
+  entry below this one). Same situation as the Wood item below: not
+  urgent, nothing is blocked, but worth deciding whether to delete
+  `MediumRock.asset` outright or give "Rock" a real purpose (a
+  crafting ingredient? a coarser material than Small Rock for some
+  recipe?) before it reads as forgotten dead content.
 - [ ] **Wood is now completely un-gatherable.** Side effect of the tree
   chopping rework (`CHANGELOG.md` v0.1.83-dev, Log replacing the tree's
   old direct Wood-chunk drop, per Ben's call): `WoodChunk.prefab` is no
@@ -19,6 +56,84 @@ work) — this is the backlog between the two. Check off and move the entry to
   Wood repurposed as a real ingredient somewhere (e.g. a heavier
   structural material distinct from Plank) before this reads as
   intentional dead content rather than an oversight.
+- [ ] **Can't eat a Berry.** Reported by Ben during playtest, 2026-08-07.
+  Root cause confirmed via investigation: the data wiring is actually
+  correct (`Berry.asset`/`BerryEdible.asset` match, and
+  `PlayerEating.edibles` has `BerryEdible` wired in) — the bug is that
+  `InventoryScreen.DrawInventorySection`'s "Eat" button
+  (`InventoryScreen.cs`) is only drawn for items sitting in the **main
+  inventory list**, which iterates `playerInventory.Inventory.Slots`
+  specifically. A freshly picked-up Berry never lands there — `Pickup.
+  Complete()` routes it through `PlayerLoot.Receive()`, which stashes
+  plain items into a **hand** slot first. Hand/backpack slots are drawn
+  by `DrawEquipmentSection`/`DrawContainerContents`, and both only offer
+  the generic "where should this go?" move popup — no Eat option exists
+  there at all. A player has to know to manually move the Berry "To
+  Inventory" via that popup before an Eat button ever appears, which
+  isn't discoverable and just reads as "can't eat it." Same underlying
+  gap as the already-logged "Eat directly from a container" item below —
+  this is really that bug, just hit for the first time via a real edible
+  pickup rather than found in code review.
+- [ ] **Chunks/bonus-chunks spawned by `ResourceNode.SpawnChunk` can be
+  un-pickupable if their prefab expects `Pickup.Configure()`.** Reported
+  by Ben during playtest, 2026-08-07, as "when I chop the tree, if it
+  spawns a branch, I can't pick it up" (the new 30% bonus-Stick chance on
+  chopping a Log, v0.1.83-dev). Root cause confirmed: `Stick.asset`'s
+  `worldPickupPrefab` is `StickPickup.prefab`, whose `Pickup` component
+  has `item: {fileID: 0}` baked in — by design, it's meant to be filled
+  in at runtime via `Pickup.Configure(item, quantity)`, which today is
+  **only** ever called from `PlayerDropping.SpawnPickup()`. `ResourceNode.
+  SpawnChunk()` (used for both the guaranteed `chunkPrefab` and the new
+  `bonusChunkPrefab`) just does a plain `Instantiate(prefab, position,
+  Random.rotation)` — it never calls `Configure()`. With `item` left
+  null, `Pickup.Complete()` calls `PlayerLoot.Receive(null, ...)`, which
+  immediately no-ops, so the spawned object can never be picked up.
+  **This is a latent bug for any future `ResourceNode.chunkPrefab`/
+  `bonusChunkPrefab` that (like `StickPickup`) relies on runtime
+  `Configure()` rather than a hardcoded `item` field** — it happened not
+  to matter before now because every existing chunk prefab
+  (`WoodChunk`/`RockChunk`/`PlankChunk`/etc.) hardcodes its `item`
+  directly in the asset instead. Fix is likely either: give
+  `ResourceNode.SpawnChunk` an item-aware overload that calls `Configure`
+  when the spawned prefab has a `Pickup` with a null `item`, or simply
+  avoid pointing `bonusChunkPrefab`/`chunkPrefab` at `Configure()`-style
+  prefabs and use hardcoded-item prefabs (like `WoodChunk`) instead.
+  **Hit again, 2026-08-07 (v0.1.117-dev):** built `CopperChunk.prefab`
+  (the refined-Copper chunk spawned when a Copper Ore chunk breaks)
+  following `StickPickup`'s empty-`item`/`Configure()` convention
+  instead of `RockChunk`'s hardcoded-`item` one — same bug, same
+  symptom ("can't pick up the smaller blocks", reported live during
+  playtest). Confirms this isn't a one-off risk; it's the default
+  failure mode any time a new chunk prefab is built by copying the
+  *wrong* one of these two established patterns. Fixed locally by
+  hardcoding `item` directly on `CopperChunk.prefab` (option 2 above),
+  but the underlying systemic gap — `ResourceNode.SpawnChunk()` still
+  never calls `Configure()` — remains unfixed, and `StickPickup` as a
+  Log's `bonusChunkPrefab` is still affected by it.
+- [ ] **The two `TreeBranch_PolyByGoogle` instances in the scene are
+  still non-interactive decoration.** Follow-up to the "only the
+  procedural Tree is choppable" report from Ben's 2026-08-07 playtest —
+  Big Tree by 3Donimus got `ChoppableTree` in v0.1.91-dev (see
+  `CHANGELOG.md`), but the two `TreeBranch_PolyByGoogle` instances
+  placed for visual comparison during art exploration
+  (`THIRD_PARTY_CREDITS.md`) still have no script component at all.
+  Not necessarily a bug — a Tree branch is a much smaller prop than a
+  full tree, chopping it may not make sense — but worth an explicit
+  decision either way so it doesn't read as an oversight.
+- [ ] **Berry Bush searching — random 0-4 berry yield, plus a rare "super
+  success" chance of a Berry Seed.** Ben's idea, 2026-08-07: "search the
+  berry function... random chance of finding up to 4 berries.
+  additionally, a super success chance of finding a berry seed." Not
+  investigated or scoped yet — open questions for whenever this gets
+  picked up: is this a new "Search" interaction distinct from however
+  Berries are gathered today, does the 0-4 yield replace or sit alongside
+  the existing gather path, and does a Berry Seed imply Berry Bushes
+  becoming plantable/farmable eventually (a real new system) or just a
+  rare collectible for now. Same "chance of a bonus item" shape as the
+  Log's Stick chance (`ResourceNode.bonusChunkPrefab`/`bonusChunkChance`,
+  v0.1.83-dev) might be directly reusable here, if Berry Bush searching
+  turns out to fit the same punch-based `ResourceNode` model — worth
+  checking before building something new. *(Reported by Ben.)*
 - [ ] **Procedural tree (v0.1.58-dev) doesn't read as a tree yet.** Confirmed
   via screenshot: `GenerateTree.cs`'s branching mesh renders and is visible
   (the untested backface-culling safety net wasn't even needed, or at least
@@ -69,17 +184,19 @@ work) — this is the backlog between the two. Check off and move the entry to
   (Backpack/Canteen/NavigationComputer/PersonalHealthMonitor/Sunglasses) only ever
   offer Equip/Drop — unlike the plain-item branch, there's no "To Backpack"/"To
   Storage". Affects every equippable, not just the Canteen. *(Reported by Ben.)*
-- [ ] **Only one worn container's contents show in the Inventory tab's side
-  column at a time.** Surfaced 2026-08-06 building Belt (`CHANGELOG.md`
-  v0.1.75-dev), the first time a second concurrently-worn `IInventoryHolder`
-  became possible (Backpack on Back, Belt on Waist). `InventoryScreen.
-  DrawEquipmentSection`'s `wornContainer` is a single value, overwritten
-  every time `SlotOrder`'s loop hits another worn container — Waist comes
-  after Back in `SlotOrder`, so a worn Belt always wins and the Backpack's
-  contents silently stop rendering in the side column while both are worn
-  (the Backpack itself is unaffected functionally — its contents are still
-  there, just not visible in that column). Fix would mean rendering a side
-  column per worn container instead of just the last one found.
+- [x] **Only one worn container's contents show in the Inventory tab's side
+  column at a time — fixed v0.1.124-dev, refined v0.1.125-dev.** Surfaced
+  2026-08-06 building Belt (`CHANGELOG.md` v0.1.75-dev), confirmed via
+  playtest 2026-08-07 ("when you equip the belt, the backpack
+  disappears"), and hit again 2026-08-08 testing the Crude Fiber Belt's
+  new attachment points (a Canteen equipped to the Belt was invisible
+  because the Backpack, also worn, was winning). `InventoryScreen.
+  GetWornContainer()` returned only the first worn `IInventoryHolder`
+  found (Back beat Waist); replaced with `GetWornContainers()` returning
+  all of them. `DrawContent()` first rendered one bordered panel per
+  worn container side by side (v0.1.124-dev), then merged into a single
+  "Inventory" panel with one preview+contents row per container stacked
+  inside it (v0.1.125-dev, Ben's call after seeing the two-panel look).
 
 - [x] **Backpack — folded into the 5-tier CraftTier ladder, capacity scales
   by tier — shipped 2026-08-06, see `CHANGELOG.md` v0.1.75-dev.** Grew out
@@ -416,10 +533,13 @@ work) — this is the backlog between the two. Check off and move the entry to
     equippable: Canteen, Sunglasses, NavigationComputer, PersonalHealthMonitor.)
   - **Manual drop from inventory:** unchanged — goes straight to the ground.
 
-  *(Reported by Ben. The 15-minute despawn timer on dropped items that was
-  originally part of this same request shipped separately in `v0.1.48-dev` —
-  see `CHANGELOG.md` — and doesn't yet cover the equipped-item unequip-fallback
-  drop path described above, since that path isn't built yet either.)*
+  *(Reported by Ben. The despawn timer on dropped items that was originally
+  part of this same request shipped separately in `v0.1.48-dev` (15 min),
+  shortened to 2 min and extended to cover equipment/coins too in
+  `v0.1.85-dev` — see `CHANGELOG.md` for both. Still doesn't cover the
+  equipped-item unequip-fallback drop path described above, since that
+  path isn't built yet either — despawn now covers every *existing* drop
+  action, not this still-hypothetical one.)*
 - [ ] **Equip directly from a container.** Same underlying gap as "Eat/Drink
   directly from a container" below — `DrawContainerContents` (backpack contents
   and storage boxes alike) treats every item as a generic move-popup button

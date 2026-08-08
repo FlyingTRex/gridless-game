@@ -13,6 +13,9 @@ public class PlayerBackpack : MonoBehaviour
     [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
+    // Matches Pickup.DespawnDelay — see Despawn.cs for why the Backpack
+    // itself (Stash()) is what cancels this on pickup, not this script.
+    [SerializeField] private float despawnDelay = 120f;
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
@@ -112,6 +115,8 @@ public class PlayerBackpack : MonoBehaviour
 
         backpack.SetCarried(false, null);
         backpack.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        var despawn = backpack.gameObject.AddComponent<Despawn>();
+        despawn.delay = despawnDelay;
     }
 
     // Searches Back, then the hands, for the given backpack instance.

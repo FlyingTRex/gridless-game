@@ -16,3 +16,5 @@ MonoBehaviour:
   maxStack: 1
   tier: 2
   worldPickupPrefab: {fileID: 0}
+  icon: {fileID: 21300000, guid: f0c8c14e5130270409b4a1924e2e7c78, type: 3}
+  previewIcon: {fileID: 21300000, guid: aa517ec50d0c55040a0f17903c42ad45, type: 3}

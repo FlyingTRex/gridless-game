@@ -43,6 +43,7 @@ public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
     // rather than sitting in the world or worn on the back.
     public void Stash()
     {
+        Despawn.CancelOn(gameObject);
         transform.SetParent(null, false);
         gameObject.SetActive(false);
     }
@@ -52,6 +53,8 @@ public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
     // object when anchor is null.
     public void SetCarried(bool value, Transform anchor)
     {
+        if (value) Despawn.CancelOn(gameObject);
+
         gameObject.SetActive(true);
         col.enabled = !value;
         body.isKinematic = value;

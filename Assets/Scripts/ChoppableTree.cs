@@ -11,7 +11,16 @@ using UnityEngine;
 // Log.prefab) — chopping one down to Planks (+ a chance of a Stick) is a
 // plain punch-N-times-then-spawn-chunks case, same shape as everything
 // else that uses it.
-public class Tree : MonoBehaviour, IPunchable
+//
+// Named ChoppableTree, not Tree — UnityEngine already has a built-in
+// Tree component (part of the Terrain system). A class literally named
+// Tree compiles, but Unity warns "AddComponent and GetComponent will not
+// work with this script" and silently breaks generic lookups by type,
+// which is exactly what this component needs (Awake's
+// GetComponentsInChildren<Renderer> is fine — it's any
+// GetComponent<Tree>()/AddComponent<Tree>() call elsewhere that would
+// have resolved to the wrong type).
+public class ChoppableTree : MonoBehaviour, IPunchable
 {
     [SerializeField] private GameObject logPrefab;
     [SerializeField] private int logCount = 3;

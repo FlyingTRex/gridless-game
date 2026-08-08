@@ -18,6 +18,9 @@ public class PlayerCanteen : MonoBehaviour
     [SerializeField] private Transform beltSlotAnchor;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
+    // Matches Pickup.DespawnDelay — see Despawn.cs for why Canteen.Stash()/
+    // SetCarried(true, ...) are what cancel this on pickup, not this script.
+    [SerializeField] private float despawnDelay = 120f;
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
@@ -150,6 +153,8 @@ public class PlayerCanteen : MonoBehaviour
 
         canteen.SetCarried(false, null);
         canteen.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        var despawn = canteen.gameObject.AddComponent<Despawn>();
+        despawn.delay = despawnDelay;
     }
 
     public string FindSlot(Canteen canteen)

@@ -13,6 +13,9 @@ public class PlayerBelt : MonoBehaviour
     [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
+    // Matches Pickup.DespawnDelay — see Despawn.cs for why Belt.Stash()/
+    // SetCarried(true, ...) are what cancel this on pickup, not this script.
+    [SerializeField] private float despawnDelay = 120f;
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
@@ -112,6 +115,8 @@ public class PlayerBelt : MonoBehaviour
 
         belt.SetCarried(false, null);
         belt.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        var despawn = belt.gameObject.AddComponent<Despawn>();
+        despawn.delay = despawnDelay;
     }
 
     // Searches Waist, then the hands, for the given belt instance.

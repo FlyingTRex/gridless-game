@@ -15,6 +15,10 @@ public class PlayerMiningFaceShield : MonoBehaviour
     [SerializeField] private ItemDefinition shieldItem;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
+    // Matches Pickup.DespawnDelay — see Despawn.cs for why
+    // MiningFaceShield.Stash()/SetCarried(true, ...) cancel this on
+    // pickup, not this script.
+    [SerializeField] private float despawnDelay = 120f;
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
@@ -117,6 +121,8 @@ public class PlayerMiningFaceShield : MonoBehaviour
 
         shield.SetCarried(false, null);
         shield.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        var despawn = shield.gameObject.AddComponent<Despawn>();
+        despawn.delay = despawnDelay;
     }
 
     private string FindSlot(MiningFaceShield shield)

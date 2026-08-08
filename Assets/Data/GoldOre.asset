@@ -14,4 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Gold Ore
   maxStack: 20
-  worldPickupPrefab: {fileID: 4927940574493878028, guid: 7cd5992bc6924e94da4af2512c3fd4b2, type: 3}
+  tier: 2
+  worldPickupPrefab: {fileID: 2447759862653875308, guid: 42fd47e9db68402438f24c45da12c4ed, type: 3}
+  icon: {fileID: 21300000, guid: 4fdeb1a9a1d56504582ed0e0dbd55e71, type: 3}
+  previewIcon: {fileID: 0}

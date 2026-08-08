@@ -5,12 +5,1023 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.84-dev` — must always match `GameVersion` in
+**Current version:** `0.1.125-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-07
+## 2026-08-08
+
+### v0.1.125-dev — Backpack + Belt contents merged into one Inventory panel
+
+Ben, after seeing v0.1.124-dev's fix render Backpack and Belt as two
+separate bordered "Inventory" panels side by side: "let's add the belt
+to the inventory panel with the backpack instead of its own panel."
+Restructured `InventoryScreen.DrawContent()` so there's a single
+"Inventory" panel again (matching the pre-v0.1.124-dev look) that now
+stacks one preview+contents row per worn container vertically inside
+itself, instead of one bordered panel per container. Still 0 panels
+(nothing at all) when no container is worn, same as before either fix.
+
+### v0.1.124-dev — Backpack + Belt worn together only ever showed one contents panel
+
+Ben's playtest of v0.1.123-dev's anchor fix: equipped a Canteen onto
+the Belt's attachment point and it "still does not show up on the
+inventory panel when equipped." Turned out to be a *different*,
+already-tracked bug (`BUGS_AND_ENHANCEMENTS.md`, flagged 2026-08-06,
+confirmed via playtest 2026-08-07) that just hadn't been fixed yet: Ben
+had a Backpack equipped (Back) at the same time as the Belt (Waist),
+and `InventoryScreen`'s side "contents" panel only ever rendered
+**one** worn container at a time — `GetWornContainer()` checked Back
+before Waist and returned on the first match, so the Backpack's panel
+always won and the Belt's (with the Canteen genuinely inside it) never
+rendered at all.
+
+- `GetWornContainer()` (singular) replaced with `GetWornContainers()`,
+  returning every worn `IInventoryHolder` across Back and Waist instead
+  of just the first.
+- `DrawContent()` now loops over that list, rendering one
+  preview+contents panel per worn container side by side, instead of
+  at most one.
+- `DrawBackPreview()`/`GetBackSlotPreviewIcon()` (Back-only) generalized
+  to `DrawContainerPreview(Sprite)`/`GetSlotPreviewIcon(string
+  slotName)`, since there can now be more than one preview box on
+  screen at once.
+- No items were ever actually lost by this bug — the Canteen was
+  correctly inside `Belt.Inventory` the whole time, just not rendered
+  anywhere visible. Worth confirming in the next playtest that this
+  reads clearly (nothing to recover, just now visible) rather than
+  alarming.
+
+### v0.1.123-dev — Canteen/Belt carry anchors were never wired up
+
+Ben's playtest of v0.1.122-dev: equipped a Canteen onto the newly-visible
+Crude Fiber Belt's attachment point and it "doesn't show up anyplace."
+Not related to the belt's new model — investigation found `PlayerCanteen`
+(`leftHandSlotAnchor`, `rightHandSlotAnchor`, `beltSlotAnchor`) and
+`PlayerBelt` (`carrySlot`) were all pointing at `{fileID: 0}` (unset) on
+the Player in `TestScene.unity`. Each falls back to the player's own
+root `transform` when unset, so both the Belt itself (worn on Waist) and
+anything equipped to it (or to a hand) were being parented at the
+player's exact pivot point instead of a sensible carry position —
+functionally equipped (shows correctly in the Equipment/contents UI,
+`Belt.Inventory` genuinely holds the Canteen) but effectively invisible
+in the 3D world.
+
+Found `HandAnchor` (`0.3, 1.3, 0.4`) and `BeltAnchor` (`0.25, 0.9, 0`)
+already sitting as real child transforms on the Player, alongside the
+already-correctly-wired `BackpackAnchor` — these look like they were
+built for exactly this purpose and just never got connected. Wired:
+
+- `PlayerCanteen.leftHandSlotAnchor` and `.rightHandSlotAnchor` → both
+  to the single existing `HandAnchor` (only one hand-anchor object
+  exists, not a separate one per hand).
+- `PlayerCanteen.beltSlotAnchor` → `BeltAnchor`.
+- `PlayerBelt.carrySlot` → `BeltAnchor` (the belt itself was never
+  anchored either — worth a specific look at whether the belt's own
+  worn position looks right now, not just the Canteen clipped to it).
+
+**Not yet re-verified live** — worth confirming a worn Canteen (both
+via a hand and via a Belt point) now actually appears at a sensible
+position, and that the Belt itself looks right worn on the body.
+**Scope note:** Sunglasses/Mining Face Shield/Nav Computer/Health
+Monitor equip with no dedicated anchor field at all (always the
+player's root, by their code's design, not a similar oversight) —
+untouched here, out of scope unless one of those turns out to have the
+same visibility problem.
+
+### v0.1.122-dev — Crude Fiber Belt gets a real model (green woven grass)
+
+Ben: "let's use the api to create a green, woven grass belt. let's
+import it into the game." Turned out most of the plumbing already
+existed — `CrudeFiberBeltItem`/`CrudeFiberBeltRecipe` (8 Fiber → 1 Crude
+Fiber Belt, trains Sewing) were already built and already wired into
+`PlayerCrafting.recipes` in `TestScene.unity`; only the visual was
+missing (`CrudeFiberBelt.prefab` was a plain scaled grey Cube). This
+was purely an art-pass swap, not new gameplay.
+
+- Generated via Tripo3D's API (`"a green woven grass belt, plant fiber
+  cordage wrapped in a coil, isolated on a plain background, no person,
+  no model, low-poly game asset"`, 20 credits). **Hit the same
+  20-minute server-side processing timeout the Crude Stone Knife's
+  first real attempt hit** (`CHANGELOG.md` v0.1.115-dev) — the script's
+  own polling gave up, but the task kept running server-side and
+  actually succeeded a few minutes later; polled `GET /v3/tasks/{id}`
+  directly to catch the `model_url` before its 5-minute expiry instead
+  of re-spending credits on a second attempt.
+- Came back as a closed woven ring/wreath shape rather than an open
+  strap with overlapping ends — confirmed with Ben this was fine to use
+  as-is rather than regenerating (matches the existing placeholder's
+  own "not a final art pass" caveat in `TEST_FEATURE_PLAN.md` — this
+  is a real improvement over a flat grey box regardless of exact
+  strap shape).
+- Imported as `Assets/Models/GrassBelt.glb`, swapped into
+  `Assets/Prefabs/CrudeFiberBelt.prefab` (uniformly scaled to match the
+  old placeholder's `0.5` max dimension, `BoxCollider` resized to the
+  real measured bounds `0.50x0.12x0.50`).
+- Icon baked via `IconBaker`. Fourteenth item with an icon.
+- **No `THIRD_PARTY_CREDITS.md` entry needed** — that ledger only
+  tracks CC-BY-licensed third-party models; Tripo3D API-generated
+  content has its own no-attribution-required commercial license (see
+  `Tools/Tripo3D/README.md`), same as the Backpack/Knife/Rope before it.
+- **Note:** the separate pre-placed "Fiber Belt" (`BeltItem.asset`,
+  tier 2, found near `(-2, 0.3, 1.5)`) is a different item on a
+  different standalone prefab, not a `CrudeFiberBelt.prefab` instance —
+  still a plain grey Cube placeholder, unaffected by this change.
+
+### v0.1.121-dev — Silver/Gold/Platinum were missing their mid tier; also fixed a near-frictionless scatter bug
+
+Ben's playtest of v0.1.120-dev: broke a Silver Ore Node and the pieces
+"bounced out of the game" before he could pick them up, and separately
+noted Silver/Gold/Platinum "missed the mid tier size that required
+breaking" — v0.1.120-dev shipped them as a 2-tier structure (Ground
+Node → final Ore item directly), reusing the pre-existing `SilverOre`/
+`GoldOre`/`PlatinumOre` items and their `*OreChunk.prefab`s as-is. Ben
+confirmed he wanted full parity with Copper/Iron's 3-tier structure
+instead, so:
+
+- **`SilverOreChunk`/`GoldOreChunk`/`PlatinumOreChunk.prefab` converted
+  from the final `Pickup` tier into the punchable mid-tier
+  `ResourceNode`** (mirrors `CopperOreChunk`/`IronOreChunk`) —
+  bare-handed, 1 hit, breaks into 2 of a new final tier, `respawnDelay:
+  0`.
+- **New `SilverOrePiece`/`GoldOrePiece`/`PlatinumOrePiece.prefab`** —
+  the actual final `Pickup` tier now, smaller than the mid-tier chunk
+  (same Gold-smallest/Platinum-largest ordering), `Pickup.item`
+  hardcoded to the existing `SilverOre`/`GoldOre`/`PlatinumOre` items
+  (no new item assets needed — these three stay 2-item-tiers total,
+  just with a punchable step added in front of the existing one, unlike
+  Copper/Iron which needed a whole new refined-metal item).
+  `SilverOre`/`GoldOre`/`PlatinumOre.worldPickupPrefab` re-pointed from
+  the (now mid-tier, no-longer-a-Pickup) `OreChunk` prefabs to these.
+- **Root cause of the scatter/bounce report, found while converting**:
+  the original pre-existing `SilverOreChunk`/`GoldOreChunk`/
+  `PlatinumOreChunk` prefabs had `Rigidbody.linearDamping: 0`,
+  `angularDamping: 0.05` — nearly frictionless, unlike every other
+  chunk in the project (`RockChunk`: 1.5/2, this session's `CopperChunk`:
+  2/3). Same impulse force, near-zero drag — pieces kept rolling long
+  after landing instead of settling near the break point. Set both the
+  mid-tier and new final-tier Rigidbodies to `2`/`3` (matching
+  `CopperChunk`'s already-proven values) while doing this conversion
+  anyway. **Confirmed fixed by Ben's playtest** — scatter behavior is
+  "working much better" now, pieces settle near the break point instead
+  of rolling away.
+- Icons for `SilverOre`/`GoldOre`/`PlatinumOre` re-baked against the new
+  final-tier `*Piece.prefab`s (previously baked against the mid-tier
+  visual, which is fine but the final pickup is what most often shows in
+  inventory).
+
+### v0.1.120-dev — Silver/Gold/Platinum Ore Nodes rebuilt, disguised via Mining Face Shield
+
+Ben: "let's now do silver, gold and platinum. let's use the same lessons.
+vary the size of the boulders for each type. make sure that can only see
+them with the mining shield on. spawn one of each into the game, and
+spawn the mining shield into the game as well."
+
+These three used to exist (`TEST_FEATURE_PLAN.md` still had a whole
+section for them at v0.1.60-dev/v0.1.61-dev, disguise mechanic and all)
+but were removed from `TestScene.unity` in the 2026-08-06 startup-scene
+trim along with the Mining Face Shield itself — they were scene-embedded
+GameObjects, never saved as reusable prefabs, so trimming them left no
+trace beyond that stale test-plan section. Rebuilt from scratch rather
+than restored, applying every lesson from this session's Copper/Iron
+work:
+
+- **New disguised Ground Node per metal** (`Silver Ore Node` at
+  `(6, 0.4, -4)`, `Gold Ore Node` at `(8, 0.4, -4)`, `Platinum Ore Node`
+  at `(10, 0.4, -4)`) — `Rock_Quaternius.glb`, deliberately distinct
+  sizes per Ben's request: Gold smallest (`0.70x0.65x0.72`, rarest/
+  smallest veins), Silver medium (`1.00x0.95x1.05`), Platinum largest
+  (`1.80x1.15x1.35`, most imposing). `ResourceNode.hiddenMaterial`/
+  `revealedMaterial`/`hiddenChunkPrefab` populated for the first time
+  anywhere in the project — `hiddenMaterial` is Rock_Quaternius' own
+  default imported material (read straight off the model, the same
+  "generic rock" look Boulder already uses undyed, not a hand-picked
+  stand-in), `revealedMaterial` is each metal's existing `*OreRevealed.
+  mat`, `hiddenChunkPrefab` is the existing plain `RockChunk.prefab` —
+  matching the code comment's own suggestion ("should be a plain Small
+  Rock chunk prefab") that had sat unused until now. Gated behind any of
+  the 5 Pickaxe tiers, same as Copper/Iron.
+- **Existing `SilverOreChunk`/`GoldOreChunk`/`PlatinumOreChunk` prefabs
+  kept as the final pickup tier** (already correctly built — hardcoded
+  `Pickup.item`, `Rigidbody.collisionDetectionMode` already
+  `ContinuousDynamic` — no fixes needed there) but upgraded from a
+  placeholder `Cube` to the real `Rock_Quaternius` mesh + the metal's
+  `*OreRevealed.mat`, for visual consistency with every other ore tier
+  shipped this session. Sizes varied to match the Ground Node ordering
+  (Gold smallest, Platinum largest).
+- Same UV-mismatch smearing bug hit on Copper/Iron applied here too —
+  `SilverOreRevealed.mat`/`GoldOreRevealed.mat`/`PlatinumOreRevealed.mat`
+  were all still at the 1x tiling that smears on `Rock_Quaternius`'
+  UV layout; fixed to 6x proactively rather than waiting for a bug
+  report, same fix already confirmed twice this session.
+- **New `MiningFaceShieldPickup.prefab`** — the item was craft-only
+  until now (`MiningFaceShieldItem.asset.worldPickupPrefab` was empty).
+  No custom model exists for it yet, so it's a simple flattened-
+  cylinder placeholder visor (same "primitive until it's worth a
+  Tripo3D generation" convention the Stick/Knife started with), root
+  `Rigidbody` set to `ContinuousDynamic` from the start. Wired to the
+  item and placed in `TestScene.unity` at `(6, 0.5, -6)`.
+- Icons baked for `SilverOre`, `GoldOre`, `PlatinumOre` (existing items
+  that never had one) and the new `MiningFaceShieldItem`, via
+  `IconBaker`. Tenth through thirteenth items with icons.
+- **`TEST_FEATURE_PLAN.md` updated**: the stale v0.1.60/61-dev section
+  describing the old pre-trim nodes replaced with current coordinates/
+  sizes; the 2026-08-06 trim note no longer lists these as missing.
+
+### v0.1.119-dev — Copper resized bigger, Iron gets the full pipeline too
+
+Copper Ore Node made noticeably bigger (`0.71x0.65x0.80` →
+`1.15x1.06x1.30`) per Ben's request — and since that also exposed a
+collider that was never actually resized to match (still radius 0.5 in
+a leftover 0.8-scaled parent, effective 0.4 world radius), fixed that
+too while resizing rather than leaving it undersized again.
+
+Then mirrored the entire Copper pipeline onto Iron, applying every
+lesson from building Copper the first time instead of rediscovering
+each one:
+
+- **Iron Ore Node** swapped from its own plain Sphere to
+  `Rock_Quaternius.glb` + `IronOre.mat`, sized deliberately **flatter
+  and wider than Copper** (`1.50x0.85x1.60` vs Copper's
+  `1.15x1.06x1.30` — shorter in Y, bigger footprint) per Ben's request,
+  so the two ore types read as distinct silhouettes rather than
+  recolored copies of the same shape. Applied the 6x texture tiling
+  fix to `IronOre.mat` up front (same UV-mismatch cause as Copper,
+  same fix) instead of shipping the 1x-tiling smear again — still
+  rendered an isolated preview to actually confirm it before finalizing,
+  rather than assuming the lesson transfers without checking. Collider
+  properly resized to cover the new visual from the start this time
+  (parent scale reset to 1 up front too, so there's no repeat of the
+  Copper Ore Node's leftover-0.8-scale collider gap).
+- **`IronOreChunk.prefab`** converted `Pickup` → punchable `ResourceNode`
+  (mirrors `MediumRockChunk`/`CopperOreChunk`), visual swapped to the
+  same mesh/material family, sized between the Ore Node and the new
+  Iron chunk.
+- **New `Iron` item + `IronChunk.prefab`** — built with both Copper
+  lessons applied from the start instead of needing a follow-up fix:
+  `Pickup.item` hardcoded directly (not left for `Configure()`, which
+  `ResourceNode.SpawnChunk()` never calls), and `Rigidbody.
+  collisionDetectionMode` set to `ContinuousDynamic` explicitly in the
+  same edit that created it.
+- Icons baked for `IronOre` and `Iron` via `IconBaker`. Eighth and
+  ninth items with icons.
+- **Flagged in `BUGS_AND_ENHANCEMENTS.md`:** `Iron` has no crafting
+  recipe consuming it yet either, same situation as `Copper`/Rock/Wood.
+
+### v0.1.118-dev — Copper chunks were spawning permanently un-pickupable
+
+Ben's playtest, walking the full break chain (Ore Node → Copper Ore
+chunk → Copper): the smallest tier scattered correctly but couldn't be
+picked up at all. This is the exact bug already flagged in
+`BUGS_AND_ENHANCEMENTS.md` from the Stick-bonus-chunk incident earlier
+this session — `CopperChunk.prefab` was built copying
+`StickPickup.prefab`'s "leave `item` empty, `Pickup.Configure()` fills
+it in later" convention, but that convention only works for prefabs
+reached via `PlayerDropping.SpawnPickup()` (which calls `Configure()`).
+`ResourceNode.SpawnChunk()` — the actual path that spawns
+`CopperChunk` when a Copper Ore chunk breaks — never calls
+`Configure()` at all, so the chunk's `item` stayed null and
+`Pickup.Complete()` silently no-oped. Fixed by hardcoding `item`
+directly on the prefab instead, the same way `RockChunk.prefab`
+already does — works correctly in both the drop-from-inventory path
+(`Configure()` just harmlessly re-sets the same value) and the
+break-into-chunks path (now has a real value to begin with). The
+underlying systemic gap (`SpawnChunk()` still never calls `Configure()`)
+remains open for `StickPickup`'s existing use as a `bonusChunkPrefab`.
+
+### v0.1.117-dev — Copper gets the Boulder-family treatment: real shape, two tiers, icons
+
+Ben's idea: reuse `Rock_Quaternius.glb` (Boulder's mesh) with the
+existing copper-speckled `CopperOre.mat` for a real Copper Ore shape,
+and mirror the exact Boulder → punchable chunk → refined-material
+tier structure the rock family got in v0.1.87/90-dev.
+
+- **Copper Ore Node** (was a plain built-in Sphere since it was first
+  added) now uses `Rock_Quaternius.glb`, sized/grounded to match the
+  old sphere's exact footprint (measure-old-bounds-first discipline,
+  same as every other visual swap this project).
+- **Real bug caught before it shipped, not after:** rendered a quick
+  isolated preview (reusing the icon-baking camera/lighting technique,
+  in a fresh throwaway scene) before committing to anything, and the
+  reused texture looked wrong on the new mesh — its small repeating
+  copper-fleck pattern stretched into one big diagonal smear, because
+  `CopperOreTexture.png` was tuned for a sphere's simple UV unwrap and
+  `Rock_Quaternius` has a completely different UV layout from its
+  Quaternius source. Fixed by bumping `CopperOre.mat`'s `_BaseMap`/
+  `_MainTex` tiling from 1x1 to 6x6 — confirmed by re-rendering the
+  same preview before touching the real scene object. (First preview
+  attempt rendered the wrong thing entirely — a wide gameplay view
+  instead of an isolated object — because it opened the live
+  `TestScene` directly; switched to a fresh empty scene, the same
+  technique `IconBaker` already uses, and that fixed it.)
+- **`CopperOreChunk.prefab`** converted from a `Pickup` (plain Capsule
+  primitve) into a punchable `ResourceNode` — same conversion
+  `MediumRockChunk` got in v0.1.90-dev. No longer directly pickupable;
+  punching it (1 hit) breaks it into 2 of a brand-new **Copper** item.
+  Visual also swapped to `Rock_Quaternius` + `CopperOre.mat`, sized
+  distinctly from both the Ore Node above it and the Copper chunk
+  below it.
+- **New `Copper` item + `CopperChunk.prefab`** — didn't exist before.
+  Same mesh/material family, smallest tier's proportions. Rigidbody
+  explicitly set to `ContinuousDynamic` collision detection in the same
+  edit that created it — the exact mistake that broke Rope's drop
+  earlier this session, this time caught before it shipped by applying
+  [[project_gridless_ground_tunneling]] proactively instead of after a
+  bug report.
+- Icons baked for both `CopperOre` and `Copper` via `IconBaker` — one
+  command each, no new script needed. Sixth and seventh items with
+  icons.
+- **Flagged in `BUGS_AND_ENHANCEMENTS.md`:** `Copper` has no crafting
+  recipe consuming it yet, same situation as Rock and Wood — built
+  ahead of the crafting need per Ben's call, not an oversight.
+
+### v0.1.116-dev — Rope gets a real visual and an icon, first from scratch
+
+`Rope.asset` never had a `worldPickupPrefab` at all — no placeholder
+to swap, a genuinely new visual. Generated cleanly on the first
+attempt this time (no 500s, no timeout, no unwanted extra parts like
+the knife's handle) — `"a photorealistic small coil of rope, hemp
+fiber texture, tightly wound, isolated on a plain background"`,
+20 credits, reads exactly as asked: a tidy bundled coil.
+
+- **New `Assets/Prefabs/RopeCoilPickup.prefab`**, built from scratch
+  (root `BoxCollider` + `Rigidbody` + `Pickup` with `item` left unset,
+  same "configured at drop time via `PlayerDropping.SpawnPickup()`"
+  convention as `StickPickup.prefab`/`RockKnifePickup.prefab`) rather
+  than modifying an existing one. Model uniformly scaled to a 0.28
+  max-dimension target (no old footprint to match against, since there
+  was never a placeholder — picked to sit in the same size range as
+  other small hand-carried pickups like Small Rock). Wired directly
+  onto `Rope.asset.worldPickupPrefab`.
+- Icon baked via `IconBaker` — reads clearly as a small tan coiled
+  bundle. Fifth item with an icon.
+
+### v0.1.115-dev — Crude Knife gets a real visual and an icon
+
+The Tripo3D API finally cooperated — see `Tools/Tripo3D/README.md` for
+the full 4-failed-500s-then-timeout-then-success saga. Real model
+imported and wired in this version:
+
+- `Assets/Models/CrudeStoneKnife.glb` swapped in for
+  `RockKnifePickup.prefab`'s old placeholder Capsule primitive (the
+  Crude Knife's world pickup, referenced by `CrudeKnife.asset`) —
+  sized to match the old placeholder's exact footprint (`0.08 x 0.05 x
+  0.35`), collider/Rigidbody/Pickup untouched. Measured old bounds and
+  collider size before removing anything, same discipline as every
+  other visual swap this project.
+- Icon baked via `IconBaker` (`-modelPath
+  "Assets/Prefabs/RockKnifePickup.prefab" -itemAssetPath
+  "Assets/Data/CrudeKnife.asset"`) — reads as a small dark blade at a
+  diagonal, same treatment as Stick and Small Rock. Fourth item with
+  an icon.
+- **Known limitation, accepted as-is (Ben's call):** the model has a
+  full handle/crossguard despite every prompt attempt explicitly
+  saying "no handle" — Tripo3D seems to default "knife" toward a
+  hilted shape regardless. Doesn't match `CrudeKnifeRecipe.asset`'s
+  actual ingredient (1 Small Rock, no wood) implying a bare blade, but
+  visually reads well as a crude knapped weapon either way.
+
+### v0.1.114-dev — Stick gets an icon, first real use of IconBaker
+
+`IconBaker.Bake -modelPath "Assets/Prefabs/StickPickup.prefab"
+-itemAssetPath "Assets/Data/Stick.asset"` — one command, no new script.
+Baked cleanly on the first try (32x32, reads as a small branch at a
+diagonal). Third item with an icon overall, first one built entirely
+through the new tool rather than a bespoke script.
+
+### v0.1.113-dev — IconBaker: permanent tool for baking item icons
+
+Every icon so far (Backpack, Crude Fiber Backpack, Small Rock) was a
+bespoke throwaway `Assets/Editor/*.cs` script, rewritten from scratch
+each time. Ben's call: consolidate it into one reusable tool so adding
+an icon for a new model going forward is a single command, not a new
+script.
+
+- **New permanent `Assets/Editor/IconBaker.cs`** (not a throwaway —
+  stays in the project). Batch-mode usage:
+  ```
+  Unity.exe -batchmode -quit -projectPath . -executeMethod IconBaker.Bake ^
+    -modelPath "Assets/Prefabs/X.prefab" -itemAssetPath "Assets/Data/X.asset"
+  ```
+  Optional `-resolution` (default 32), `-previewResolution` (default 0 —
+  skipped unless set; also bakes a bigger image and wires it to
+  `ItemDefinition.previewIcon`), `-outputName` (defaults to the item
+  asset's own filename + "Icon").
+- Instantiates the model in a throwaway scene, frames it with an
+  orthographic camera at a fixed 3/4-from-above angle sized to its
+  measured bounds, renders to a transparent PNG, imports it as a
+  Sprite, wires it onto the `ItemDefinition`. Same technique as every
+  icon baked by hand so far, just parameterized.
+- **Bakes in every trap discovered the hard way this whole icon
+  effort:** aborts loudly if launched with `-nographics` (disables
+  `RenderTexture` entirely — silent failure otherwise) instead of
+  producing a blank icon; explicitly sets `spriteImportMode = Single`
+  (default is Multiple, which produces no actual `Sprite` object at
+  all without hand-sliced sub-sprites — `LoadAssetAtPath<Sprite>`
+  silently returns null otherwise); reloads the `ItemDefinition`
+  reference *after* baking rather than trusting one held across the
+  `AssetDatabase.ImportAsset`/`SaveAndReimport` calls, which can
+  invalidate it (hit this immediately on the tool's own first test run
+  — `ArgumentException: Object at index 0 is null`).
+- Verified end-to-end by re-baking Small Rock's icon through the new
+  tool instead of its original bespoke script — output was pixel-
+  equivalent (same model, same resolution); deleted the now-duplicate
+  original file (`SmallRockIcon.png`) and kept the tool's own naming
+  convention (`RockIcon.png`, matching `Rock.asset`'s filename).
+
+### v0.1.112-dev — Hover tooltip shows an icon-only slot's item name
+
+Contents-grid slots with an icon show nothing but the picture now (no
+text at all) — Ben's ask: hovering the icon should show the item's
+name, since it's otherwise not visible anywhere in that slot.
+
+- Unity's **runtime** IMGUI (unlike the Editor's) never draws
+  `GUI.tooltip` on its own — setting a `GUIContent`'s tooltip just
+  makes the string available, nothing renders it without doing so
+  explicitly. New `InventoryScreen.DrawTooltip()` checks `GUI.tooltip`
+  each frame and draws a small floating panel-backed label near the
+  cursor when it's non-empty.
+- Drawn from `DrawPopups()` (called by `PlayerMenuScreen` after the
+  scroll view/`BeginArea` end), not inside `DrawContent()`'s scroll
+  view — same reasoning as the other popups there: needs to sit on
+  top of everything, unclipped by the scroll rect, positioned in real
+  screen space via `Event.current.mousePosition`.
+- Scoped to icon-bearing contents-grid slots specifically — items with
+  no icon still show their name as visible text in the slot itself,
+  so a tooltip would just be redundant there.
+
+### v0.1.111-dev — Empty contents grid slots were invisible, fixed
+
+Ben's report right after v0.1.110-dev: removing the "Empty" text left
+nothing visible at all where those slots used to be — no way to tell
+how many total slots a container has when some are empty. Root cause:
+`GUI.skin.box`'s default runtime appearance has too little contrast
+against `DebugGUI.Panel`'s dark background to read as a box on its
+own — it only looked fine before because the "Empty"/item text (and
+its own default label coloring) was doing the actual visible work,
+not the box style.
+
+- New `DebugGUI.Slot` — an explicit solid mid-gray background (same
+  `SolidTexture` technique `DrawPanel`/`Panel` already use, not a
+  default skin style) — guarantees a slot reads as a distinct box
+  regardless of what's inside it. Both empty and occupied contents-grid
+  slots now use this instead of `GUI.skin.box`.
+
+### v0.1.110-dev — Contents grid empty slots drop the "Empty" text
+
+Ben confirmed the v0.1.109-dev icon fix worked (Small Rock renders
+correctly with QTY: 9 beneath it), then pointed out empty slots in
+this same grid still said "Empty" in text — wanted a plain gray box
+instead, matching how the occupied slots read now that they're
+icon-driven. Scoped to the contents grid specifically; the equipment
+slot list's own "Empty" labels (Head/Face/Neck/...) are unchanged.
+
+### v0.1.109-dev — Contents grid icon overlay, replacing broken GUIContent combo
+
+Ben caught it immediately: the Small Rock icon didn't render in the
+contents grid at all — the slot just showed truncated text ("ill Rock
+x9"). Root cause: `ItemContent()`'s `GUIContent`(icon+text) combo,
+which works fine in wider rows, silently breaks down at this grid's
+tight 70x30 box — no room for a 32x32 icon and a full name/count
+string together, and Unity dropped the icon rather than the text.
+
+- Contents grid slots with an icon now draw it as a **separate overlay
+  on top of a plain box** (`GUI.DrawTexture` after `GUILayout.Button`),
+  the same technique the Back preview box already uses successfully —
+  sidesteps `GUIContent` sizing entirely instead of fighting it again.
+  Items with no icon still fall back to the old text-in-button
+  rendering, unchanged.
+- Both empty and occupied slots now use **`GUI.skin.box`** as their
+  visual style (occupied ones via `GUILayout.Button(..., GUI.skin.box,
+  ...)`, still fully clickable) — Ben's ask for the two to read as the
+  same "gray filled box," not visually different states.
+- `SubBoxHeight` bumped from 30 to 44 — it was literally shorter than
+  the 32x32 icon itself before any padding, let alone room to fit one
+  comfortably.
+
+### v0.1.108-dev — "QTY: N" label under each backpack/storage contents slot
+
+Ben's call, scoped specifically to the contents grid (`DrawContainerContents`)
+— not the main inventory list, equipment slots, or move popup, which
+all keep their current icon+text-beside-it look.
+
+- Each occupied slot is now a small vertical group: the existing
+  icon+name button on top, a new `"QTY: {count}"` label directly below
+  it. Blank (not "QTY: 1") for a non-stackable item (`maxStack <= 1`,
+  e.g. a Backpack) — still drawn as an empty label either way so every
+  column in the row reserves the same height, keeping the grid aligned.
+  Empty slots get the same blank label treatment for the same reason.
+
+### v0.1.107-dev — Small Rock gets an icon (second item to have one)
+
+Baked from the actual in-game model (`RockChunk.prefab`, same asset
+Rock Node's chunks already use — a pale rock/pebble silhouette),
+32x32, same offscreen-camera technique as the Backpack icons. Wired to
+`Rock.asset` (the `Small Rock` item — yes, the filename and the item
+name don't match, a pre-existing quirk, not something this change
+touches). No `previewIcon` this time — Small Rock has no dedicated
+big-preview UI the way a worn Backpack does, so only the small inline
+icon was worth baking. Shows up automatically everywhere `ItemContent()`
+already renders an item's icon (main inventory list, equipment slots,
+container grids, move popup) — no `InventoryScreen.cs` changes needed,
+that plumbing was already generic from the Backpack work.
+
+### v0.1.106-dev — "Equipment"/"Inventory" relabeled onto their own panels
+
+Ben's call: "Equipment" now labels the slot list panel specifically
+(drawn inside it, not above the whole row), and "Inventory" moved down
+from its old spot above the main inventory list to label the
+preview+contents panel instead — the main inventory list above now has
+no header at all, per Ben's choice when asked what should happen to
+that spot once the text moved off it.
+
+### v0.1.105-dev — The two panels sit side by side now, not stacked
+
+Final layout pass on this back-and-forth: the slot list panel and the
+preview-icon+contents panel were two separate `GUILayout.BeginHorizontal`
+rows, so they stacked vertically. Combined them into one row — slot
+list panel first (left), preview+contents panel second (right, only
+when something's worn on Back/Waist) — matching Ben's original
+red-box/green-box mockup. Dropped the `GUILayoutUtility`-measured
+header-alignment math from v0.1.102-dev along with it; it doesn't
+apply to a plain side-by-side row.
+
+### v0.1.104-dev — Panel style was covering the whole screen, fixed
+
+The `DebugGUI.Panel` style added in v0.1.103-dev rendered as one giant
+black rectangle spanning nearly the entire screen instead of framing
+just the equipment slot list and the icon+contents pair separately —
+both sections merged into one indistinguishable black expanse with no
+visible gap between them. Root cause: `new GUIStyle()` defaults to
+`stretchWidth`/`stretchHeight = true`, so `GUILayout.BeginVertical`/
+`BeginHorizontal` using it expand to fill all available space in their
+parent row rather than shrink-wrapping to their actual content —
+explicitly set both to `false`. Also added a `GUILayout.Space(10)`
+between the two panels, which had no gap between them at all before.
+
+### v0.1.103-dev — Equipment slot list and icon+contents get real panel backgrounds
+
+Ben's mockup: both sections should read as distinct bordered panels
+sitting on top of the 3D game view, not floating content directly on
+top of it with no visual boundary.
+
+- New `DebugGUI.Panel` — a `GUIStyle` wrapping the same background
+  `DrawPanel()` already draws (matches the rest of the game's panel
+  look), but usable directly with `GUILayout.BeginVertical`/
+  `BeginHorizontal` so it auto-sizes to whatever's inside it instead of
+  needing a pre-computed `Rect`.
+- The equipment slot list (`Head`/`Face`/.../`Back`/...) and the
+  Back-preview-icon-plus-contents-grid pair each now draw inside their
+  own `DebugGUI.Panel`-styled group — two visibly separate boxed
+  sections instead of everything floating loose.
+
+### v0.1.102-dev — Icon+contents aligned under "Equipment" by measurement, not guesswork
+
+Ben marked up a screenshot: equipment slot list contained cleanly on
+its own (left column), icon+contents pair fully separate, positioned
+under "Equipment" in the open area to the right — not bleeding into
+or overlapping the slot list column the way the FlexibleSpace-centered
+version from v0.1.101-dev did.
+
+Root cause of that: centering the icon+contents *group* via symmetric
+`FlexibleSpace` shifts the icon left of the group's own midpoint
+(since the contents grid trailing after it is much wider than the
+leading gap) — it can never land the icon under a header centered on
+the full row width, only under the *group's* center, which isn't the
+same point. Rather than fight that math, `DrawContent()` now measures
+`GUILayoutUtility.GetLastRect()` right after drawing the header and
+uses its actual real center to place the icon+contents row via
+`GUILayout.Space()` — matching real numbers instead of assumptions
+about how the surrounding layout distributes width.
+
+### v0.1.101-dev — Preview box AND contents grid together, under "Equipment"
+
+The two requirements from v0.1.99 and v0.1.100 actually both needed to
+hold at once: icon under the header, contents grid right beside the
+icon — not one or the other. Fixed by finding the worn container
+*before* the slot list draws instead of after: new
+`GetWornContainer()` does the same Back/Waist lookup
+`DrawEquipmentSection()` used to do as a side effect of drawing (and
+returned once it finished), so `DrawContent()` can now put the
+icon+contents row directly under "Equipment" — centered as one group
+via `FlexibleSpace` on both sides — with the slot list drawn
+separately below. `DrawEquipmentSection()` is `void` now; nothing
+needed its return value anymore once the lookup moved out.
+
+### v0.1.100-dev — Back preview box moved under "Equipment" (final spot)
+
+Back to its own centered row, right under the "Equipment" header — no
+longer tied to the slot list or the contents grid's position. It's
+independent of `wornContainer` now too: `DrawBackPreview()` checks the
+Back slot's icon directly and draws nothing at all (not even a blank
+frame) when there's nothing to preview, rather than needing
+`DrawEquipmentSection()` to run first.
+
+### v0.1.99-dev — Back preview box moved beside the backpack's own contents
+
+Misread the previous request: "inventory slots" meant the worn
+container's own storage grid ("Backpack contents"), not the player's
+equipment slot list (Head/Face/Neck/...). Moved `DrawBackPreview()` to
+sit between the equipment slot list and `DrawContainerContents()`, so
+the picture is paired with what's actually inside it. As a side effect
+this also fixes a leftover oddity from v0.1.98-dev: the box no longer
+shows (blank frame) when nothing's worn on Back — it's now only drawn
+inside the same `wornContainer != null` block as the contents grid it
+sits beside, so it only appears when there's actually a contents grid
+for it to sit next to.
+
+### v0.1.98-dev — Back preview box moved beside the slot list, not above it
+
+Ben's call after seeing v0.1.97-dev's centered-but-stacked layout: the
+preview box and the Equipment slot list (Head/Face/Neck/.../Back/...)
+were still two separate rows, box on top, slots below starting back at
+the left edge. Restructured `DrawContent()` so the preview box is the
+leftmost element of the *same* horizontal row as the slot list, with
+the "Backpack contents" side column still following after — one row:
+[preview box] [slot list] [container contents, if worn]. Removed the
+`FlexibleSpace()` self-centering `DrawBackPreview()` grew in
+v0.1.97-dev, since the box's position now comes from where it sits in
+that row, not from centering itself in a lone one.
+
+### v0.1.97-dev — Back preview box wasn't centered under "Equipment"
+
+Ben compared two screenshots — the preview box was hugging the left
+edge, sitting right above the "Head" row, instead of centered under
+the "Equipment" header the way it should read as belonging to it.
+Root cause: `DebugGUI.Header`'s `TextAnchor.MiddleCenter` centers the
+*text* within a label that expands to fill its row, but `GUILayout.Box`
+doesn't get the same treatment for a fixed pixel size — it just sits
+at the left edge of whatever space it's given. Wrapped it in
+`GUILayout.BeginHorizontal()` + `FlexibleSpace()` on both sides to
+actually center the box control itself, matching where the header
+text sits.
+
+### v0.1.96-dev — Icon-only in every equip slot, crisp preview icon
+
+Two more follow-ups once the preview box and hand-slot icon were both
+visible: Ben pointed out a hand-held Backpack still said "Backpack"
+next to its icon (the icon-only treatment from v0.1.95-dev only
+applied to worn Back/Waist containers, not hand slots), and the new
+96x96 preview box looked visibly blurry with no visible border.
+
+- **Icon-only now applies to every equipment-section slot**, not just
+  worn Back/Waist containers — any item with an icon shows icon-only
+  there (hand, back, waist, wherever), falling back to the old text
+  only for items with no icon. A hand-held Backpack now shows just its
+  picture, no redundant "Backpack" label next to it.
+- **New `ItemDefinition.previewIcon` field** — a separately-baked,
+  higher-resolution image for large-preview UI, distinct from `icon`
+  (kept small, ~32x32, for inline rows). Root cause of the blur:
+  `GUIContent` images render at native pixel size with no fit-to-
+  control scaling, so the 96x96 preview box was stretching a 32x32
+  source 3x — genuinely blurry, not a bug in the box itself. Baked
+  `BackpackPreviewIcon.png` at 128x128 directly from `Backpack.prefab`
+  (not upscaled from the small one) and wired it to
+  `BackpackItem.asset.previewIcon`; `DrawBackPreview()` now prefers it,
+  falling back to `icon` for items that never get a dedicated one.
+- **Preview box border was invisible** — it used `DebugGUI.DrawPanel`
+  (a near-black overlay meant to sit on an already-dark full-screen
+  panel), which blended into the game view behind it with no visible
+  edge. Switched to a plain `GUILayout.Box`, the same visibly-bordered
+  style every other slot box on this screen already uses.
+
+### v0.1.95-dev — Icon polish: drop "Equipped" text, add a Back preview box
+
+Two follow-up requests once the Backpack icon was actually visible.
+
+- **A worn Back/Waist container's row now shows icon-only, no "Equipped"
+  text**, when the item has an icon — falls back to the "Equipped" text
+  it always showed if the item has none (Belt, for now), so nothing
+  regresses for items that never get an icon.
+- **New fixed 96x96 framed preview box** right under the "Equipment"
+  header (`DrawBackPreview()`/`GetBackSlotIcon()` in
+  `InventoryScreen.cs`) — shows a bigger version of whatever's worn on
+  Back, blank (just the dark frame) when nothing's equipped there or
+  the equipped item has no icon. Scoped to Back only, not a general
+  "last clicked item" viewer — Ben's call between the two options.
+
+### v0.1.94-dev — Icon baked for the wrong Backpack, fixed
+
+Ben still saw no icon after v0.1.93-dev, even in the fixed all-render-
+sites version. Root cause: **there are two entirely separate Backpack
+items** — `CrudeFiberBackpackItem.asset` (the Sewing-craftable one,
+`CrudeFiberBackpack.prefab`/`CrudeFiberBackpack.glb`) which is what I
+baked an icon for, and `BackpackItem.asset` (the plain pre-placed
+"Backpack", tier Normal, visual is `Backpack.prefab` wrapping
+`CrudeLeatherBackpack.glb`) — a completely different item and model.
+Ben's playtest had the **pre-placed** one equipped, not the crafted
+one, so the icon I built was simply never going to show up regardless
+of how many render sites it was wired into. Should have checked which
+item was actually equipped before picking one to bake — didn't.
+
+- Baked a new icon from `Backpack.prefab` (32x32, same offscreen-camera
+  technique as before) and wired it to `BackpackItem.asset.icon`. This
+  one has visible straps and reads more clearly as a backpack than the
+  Fiber one's simpler low-poly shape.
+- `CrudeFiberBackpackItem.asset`'s icon from v0.1.93-dev is left as-is
+  — it's still correctly wired to its own real item, just wasn't the
+  one on screen. Not wasted, just not what was being tested.
+
+### v0.1.93-dev — Item icons: first one, on the Crude Fiber Backpack
+
+Ben's request: show a real 2D image in the inventory instead of the
+Crude Fiber Backpack always reading as plain text. First use of a new
+`ItemDefinition.icon` field (`Sprite`, null by default) — every other
+item stays text-only until it gets one, no behavior change for them.
+
+- **Icon baked from the actual 3D model**, not hand-drawn: a batch-mode
+  Editor script instantiates `CrudeFiberBackpack.prefab` in a throwaway
+  scene, frames it with an orthographic camera at a 3/4 angle sized to
+  its measured bounds, renders to a transparent 256x256
+  `RenderTexture`, and saves the result as
+  `Assets/Textures/Icons/CrudeFiberBackpackIcon.png`.
+- **Two real gotchas hit along the way**, worth remembering for the next
+  icon: (1) `-nographics` disables the graphics device entirely, so
+  `RenderTexture.Create` silently fails in batch mode — dropped the
+  flag for this one script (batch mode still shows no window without
+  it, it just also initializes the GPU device); (2) the importer
+  defaults a fresh PNG's `spriteMode` to Multiple, which needs
+  hand-sliced sub-sprites before Unity will produce an actual `Sprite`
+  object at all — `AssetDatabase.LoadAssetAtPath<Sprite>` silently
+  returned null until `TextureImporter.spriteImportMode` was set to
+  `Single` explicitly.
+- Every place `InventoryScreen` renders an item — the main Inventory
+  list, equipment slot boxes (including a worn Backpack's "Equipped"
+  box, not just its unequipped stack), the Backpack/StorageBox contents
+  grid, and the move popup's header — now goes through a shared
+  `ItemContent()` helper (`GUIContent` with the item's icon texture set
+  when present) instead of a plain string, so an icon shows up
+  everywhere an item does, not just one list. Text label stays either
+  way — icon is additive, never icon-only.
+- **Regression caught by Ben immediately after the first version
+  shipped:** the backpack was equipped, not sitting in the main
+  Inventory list, so the icon (only wired into that one list at first)
+  never showed — fixed by generalizing to every render site above.
+  Separately, the icon was originally baked at 256x256; `GUIContent`'s
+  image renders at the texture's **native pixel size** in a plain
+  `GUIStyle` (no auto-fit-to-control), which would have blown out every
+  40px-tall row. Re-baked at 32x32 — the actual intended display size —
+  once this was caught before it ever reached Ben.
+
+### v0.1.92-dev — Fixed Big Tree's collider floating above the tree
+
+Ben reported still being unable to chop Big Tree right after v0.1.91-dev
+shipped it. Root cause: a math error in the `CapsuleCollider` placement
+— the center-Y formula had a spurious extra `+ height * 0.5f` term that
+shifted the collider's world-space position up by half its own height
+(~3.6 units) from where it should've been. Punches were landing on
+empty air well above the visible trunk/canopy instead of the actual
+mesh. Confirmed and fixed by comparing the collider's computed
+world-space Y range directly against the tree's measured renderer
+bounds — they now match exactly (`[-0.15, 7.04]` both). No change to
+`ChoppableTree`'s config, only the collider's `center`.
+
+### v0.1.91-dev — Big Tree by 3Donimus is now choppable
+
+Ben's request: it's been sitting as a comparison-only decoration since
+v0.1.86-dev, never interactive — make it work like the real Tree.
+
+- Added `ChoppableTree` (the same component the procedural Tree uses,
+  no new code needed) directly onto the Big Tree scene object, plus a
+  `CapsuleCollider` sized from its actual measured bounds (it had no
+  collider at all before — glTFast doesn't auto-generate one on import,
+  same gotcha already known from the Boulder/Rock Node swaps). Config
+  mirrors the real Tree exactly: 3 hits with an Axe (any of the 5
+  tiers), drops 3 Logs, 0.5 Gathering skill gain per hit, 180s regrow.
+- **Known simplification:** Big Tree has no "Stump" child the way the
+  procedural Tree does, and `ChoppableTree` gracefully degrades to
+  "just disappear, then reappear" when there's no Stump to swap to —
+  so chopping it fully vanishes it for the regrow window rather than
+  leaving a visible stump. Fine as a first pass; a real stump visual
+  would be a follow-up if Ben wants one.
+- Since Big Tree is now an actively-used gameplay object instead of a
+  comparison prop, its CC-BY attribution ("Big Tree by 3Donimus [CC-BY]
+  via Poly Pizza") now belongs in the Credits tab too, per the standing
+  rule every other shipping asset already follows — added to
+  `GameMenuScreen.DrawCreditsTab()` and `THIRD_PARTY_CREDITS.md` updated
+  to match.
+
+### v0.1.90-dev — Boulder's Rock chunk is now a punchable node, not a pickup
+
+Ben's call, in response to playtesting the v0.1.89-dev chunk visual
+fix: breaking the Boulder shouldn't just hand you a "Rock" item — the
+Rock chunk should itself be a small resource you punch open into Small
+Rock, matching Rock Node's own break-it-down pattern rather than acting
+like a loose ground pickup (Stick, Berry, etc.).
+
+- **`MediumRockChunk.prefab`** (the chunk Boulder spawns) had its
+  `Pickup` component replaced with a `ResourceNode` — same component
+  Rock Node and Boulder themselves use, implementing `IPunchable`. It's
+  no longer directly pickupable at all: punching it (bare-handed, 1
+  hit) breaks it into 2 **Small Rock** via `RockChunk.prefab` (the same
+  chunk Rock Node already spawns), scattering with the same
+  `scatterForce` (1.2) and `Gathering` skill gain (0.5) every other
+  node uses. Its `Rigidbody`/`SphereCollider` from the v0.1.89-dev
+  visual fix are untouched, so it still launches and settles physically
+  when Boulder breaks — it just can't be picked up once it lands
+  anymore, only punched. `respawnDelay` set to 0 (destroyed outright
+  once broken) — it's a one-off spawn, not a fixed environmental node,
+  same convention as a Log dropped by a chopped Tree.
+- **The "Rock" item (`MediumRock.asset`) is now orphaned** as a direct
+  side effect — nothing spawns it into inventory anymore, and nothing
+  ever consumed it via a recipe either. Flagged in
+  `BUGS_AND_ENHANCEMENTS.md` rather than deleted outright, since
+  keeping vs. repurposing it is a content decision, not an
+  implementation detail.
+
+### v0.1.89-dev — Boulder's real chunk fixed, Credits image overflow fixed
+
+Two follow-ups from playtesting the v0.1.88-dev fixes.
+
+- **`MediumRockChunk.prefab`** (the "Rock" item's chunk — what actually
+  spawns when Boulder breaks, distinct from `RockChunk.prefab` which
+  only feeds Rock Node's Small Rock) was still the old procedural
+  4-pebble sphere cluster from before the Stone model swap — missed
+  because the Boulder work in v0.1.87-dev only touched Boulder's own
+  root visual, not the separate chunk prefab it spawns. Confirmed via
+  Ben's screenshot after successfully breaking the Boulder (proving the
+  proximity fix in v0.1.88-dev worked) — the scattered chunks were
+  plain fused grey spheres. Swapped in `Stone_PolyByGoogle.glb` at
+  `(0.5, 0.42, 0.48)`, non-uniform and distinctly proportioned from
+  `RockChunk.prefab`'s Small Rock target (`0.32, 0.22, 0.28`) so it
+  reads as the tier above rather than a scaled duplicate. Measured the
+  old pebble cluster's bounds before removing it, `SphereCollider`
+  (radius 0.35) and `Pickup`/`Rigidbody` config left untouched —
+  same discipline as every other stone swap this week.
+- **Credits page image could overflow the tab vertically** — it was
+  only bounded by 90% of screen width, so a wide image at a tall aspect
+  ratio (like `tekim_trex.png`) could render taller than the visible
+  menu area. GUILayout doesn't clip or auto-scroll, so anything below
+  the image (the name line, Third-Party Assets list, Close button) just
+  got pushed off-screen with no way back — Ben reported this as "no
+  scroll bar" and the image looking uncentered (it was centered; the
+  cut-off bottom/right just made it look wrong). Fixed by also capping
+  height to 50% of screen height and shrinking width to match if the
+  height cap binds first — the image can no longer push anything else
+  off-screen regardless of window size or the image's own aspect ratio.
+
+### v0.1.88-dev — Credits page polish, Boulder/Rock Node/Big Tree separated
+
+Playtest catches after v0.1.86/87-dev shipped their visuals.
+
+- **Credits page**: the attribution image now sizes itself to 90% of
+  screen width with height derived from the actual source texture's own
+  aspect ratio at draw time (`Screen.width * 0.9`, then
+  `height/width` from `creditsImage`) instead of a hardcoded ratio, so it
+  stays correct if the image is ever swapped. "Tekim" and "the T-Rex"
+  combined onto a single centered line, "Tekim & The T-Rex".
+- **Boulder, Rock Node, and Big Tree by 3Donimus were crowding each
+  other at game start** — Ben's report ("they spawn on top of each
+  other") pointed at the real gameplay Tree, but that object was already
+  at `(-8, 0, -6)`, nowhere near the cluster. The actual culprit was
+  **Big Tree by 3Donimus** (the CC-BY comparison-only decorative prop,
+  never wired to any gameplay script), sitting at `(-3, 3.99, 3)` at
+  3.02x scale — almost on top of both Boulder `(-4, 0.6, 4)` and Rock
+  Node `(-2, 0.35, 3)`, and large enough at that scale to loom over both
+  in Ben's screenshot. Moved Big Tree out to `(10, 3.99, 10)`, clear of
+  everything. Separately, Boulder and Rock Node's own visuals grew
+  noticeably larger in v0.1.87-dev/86-dev (real meshes replacing a plain
+  sphere and hand-tuned procedural shape), so their old ~2.24-unit
+  spacing read as cramped even without Big Tree involved — moved Rock
+  Node to `(-2, 0.35, 8)`, now ~4.48 units from Boulder.
+- **"Can't break the boulder into rocks"** — investigated but no
+  code-level bug found: `PlayerInteraction.cs` resolves hits via
+  `GetComponentInParent<IPunchable>()`, so even a child collider under
+  Boulder's new visual would still correctly resolve to its
+  `ResourceNode`; confirmed via `git diff` that the Rock_Quaternius swap
+  added zero colliders anywhere, and glTFast has no collider-generation
+  option in the version this project uses. Leading theory is the
+  Boulder/Rock Node proximity above was causing misaimed punches to land
+  on the wrong node — needs Ben to retest specifically now that they're
+  separated; **not confirmed fixed yet**.
+
+### v0.1.87-dev — Rock Chunk and Boulder get real visuals too
+
+Continuing the Stone swap from v0.1.86-dev to the rest of the stone
+family.
+
+- **`RockChunk.prefab`** (the Small Rock pieces that scatter when Rock
+  Node breaks) now reuses `Stone_PolyByGoogle.glb` instead of a plain
+  Sphere — but scaled **non-uniformly** (0.32 × 0.22 × 0.28, not a
+  uniform shrink of the parent's proportions) so it reads as a distinct
+  broken fragment rather than a miniature clone of the main rock. No
+  mesh-reshaping tool exists in this pipeline — per-axis scale variation
+  is the actual lever available, and that's what "tweak the shape" means
+  here. Collider's physical world-space size preserved through the
+  root-scale reset (same discipline as the Stick swap's non-uniform-scale
+  hazard fix, v0.1.73-dev). Verified with full float precision, not
+  Vector3's default 2-decimal `ToString()` — the resulting scale is
+  ~1.2e-7 (matches the source mesh's enormous native coordinates) and
+  briefly logged as "0.00" in a first verification pass, which looked
+  like corruption but wasn't; a fresh instantiate-and-measure confirmed
+  the actual rendered size hits the target exactly.
+- **Boulder's visual replaced** — `Rock_Quaternius.glb` (public domain,
+  Poly Pizza), swapped in for the old hand-tuned procedural shape
+  (displaced-mesh body + 8 clustered pebbles, v0.1.62-dev) rather than a
+  crude placeholder like Rock Node's sphere was. Target size/position
+  came from measuring the OLD visual's actual current bounds *before*
+  removing it, not a fresh guess — the new model lands centered on the
+  exact same X/Z and grounded to the exact same depth (min.y) the old
+  one occupied, size-matched to its largest dimension. The old
+  "Pebbles" child wrapper is gone entirely (a completely different art
+  style mixed with leftover procedural pebbles would've looked
+  incoherent) and the `SphereCollider`'s center reset to origin (the old
+  offset was hand-tuned for the old mesh's asymmetric centroid, not
+  meaningful for the new one) — radius (0.9) kept as-is.
+- Both verified via scripted read-backs confirming old
+  MeshFilter/MeshRenderer/child objects are actually gone (not just
+  added-alongside) and the new child/collider state matches what was
+  intended.
+
+**Licensing note:** Rock by Quaternius is public domain — no
+Credits-tab attribution required (unlike the CC-BY Poly Pizza models),
+though `Assets/Models/THIRD_PARTY_CREDITS.md` tracks it anyway for
+sourcing consistency. Optional credit text noted there if ever wanted.
+
+### v0.1.86-dev — Fixed a real Tree naming collision, Rock Node's real visual, Credits tab catches up
+
+Three unrelated fixes/additions that landed together during a live
+playtest session:
+
+- **`Tree.cs` renamed to `ChoppableTree.cs`.** Found via the Console
+  during Ben's playtest: `Tree` collided with `UnityEngine.Tree` (the
+  built-in Terrain component) — Unity's own warning: "AddComponent and
+  GetComponent will not work with this script." Real correctness bug,
+  not just noise; fixed by renaming the class (kept the same script
+  guid where possible — Unity's file-watcher raced the rename since the
+  Editor was open, assigned its own fresh guid, so `Tree.prefab`'s
+  component reference was updated to match the actual guid Unity landed
+  on rather than the one originally intended). The missing Play button
+  Ben hit in the same session turned out to be an unrelated toolbar
+  rendering glitch (confirmed via `Ctrl+P` working fine) — not caused by
+  this, but found while investigating it.
+- **Rock Node's visual replaced** — was a plain built-in Sphere
+  primitive, now `Stone_PolyByGoogle.glb` (CC-BY, Poly Pizza). The raw
+  glTF's mesh coordinates are enormous (millions of units) with a pivot
+  far outside the visible geometry — instead of hand-deriving the
+  correct scale/position, the swap script instantiates once to measure
+  actual world-space bounds, computes scale from that, then re-measures
+  and corrects position on all three axes (not just Y grounding, like
+  the Big Tree fix — this pivot was off-center on X/Z too) from the real
+  result. Landed centered exactly on the original position and grounded
+  exactly where the old sphere touched down, confirmed via direct
+  measurement, not assumption.
+- **Credits tab actually has content now.** Ben caught, mid-playtest,
+  that the Third-Party Credits ledger (`Assets/Models/
+  THIRD_PARTY_CREDITS.md`) had been flagging this gap for two entries
+  running without anyone actually closing it. `GameMenuScreen.
+  DrawCreditsTab()` now shows the Tree branch and Stone CC-BY
+  attributions (exact required text, Big Tree excluded — still
+  comparison-only, not confirmed shipping) plus a new credits image
+  (`Assets/Textures/CreditsImage.png`, from Ben's `tekim_trex.png`),
+  centered horizontally above the existing "Tekim"/"the T-Rex" names.
+- All three verified via scripted scene/asset read-backs (component
+  presence, actual measured bounds, serialized field references) rather
+  than just "it compiled" — same discipline as every other Editor swap
+  this session.
+
+### v0.1.85-dev — Despawn timer (120s) now covers everything a player drops, not just plain items
+
+Ben's ask: shortened from the existing 15-minute plain-item despawn to
+2 minutes, and extended to cover equipment/coins, which previously had
+no despawn timer at all.
+
+- **`Pickup.DespawnDelay`: 900s (15 min) → 120s (2 min).** Already
+  existed for plain stackable items (manual Drop, hand-eviction
+  fallback, Admin spawn) — just a number change.
+- **New shared `Despawn.cs` component** — attached at runtime (not
+  pre-authored) to anything without its own despawn concept. Investigated
+  first and found a real gap: `PlayerDropping.DropFrom`'s equipment
+  branch (Backpack/Belt/Canteen/etc. dropped from a container's move
+  popup) and all 7 equippable carriers' own dedicated `Drop()` methods
+  (the Equipment section's Drop button — a *separate* code path from
+  `PlayerDropping`, confirmed by reading each one) never applied any
+  despawn timer at all — a dropped Backpack would sit in the world
+  forever. Same gap for dropped Coins (`PlayerCoinDrop`, fully custom
+  spawn path, no `Pickup` involved).
+- **Real risk caught and designed around, not just bolted on:** `Despawn`
+  uses an absolute `Time.time` deadline, not elapsed active-time. That
+  distinction matters specifically for equipment — `Stash()` deactivates
+  the GameObject (pausing `Update()`), but a later re-equip reactivates
+  it; a deadline already in the past would otherwise fire immediately on
+  reactivation and destroy something the player is now *wearing*.
+  Fixed by having every equippable's `Stash()` **and**
+  `SetCarried(true, ...)` (both paths a pickup can end on, depending on
+  where `PlayerLoot` lands it) destroy any `Despawn` component on
+  themselves — new `Despawn.CancelOn(GameObject)` static helper, one
+  line per call site rather than duplicating the get/null-check/destroy
+  pattern 14 times across 7 classes.
+- Dropped Coins get `Despawn` too, but need **no** cancellation logic
+  anywhere — `Coin.Complete()` already destroys the whole GameObject
+  outright on a successful pickup, so there's no "stashed then worn
+  again later" lifecycle for a lingering timer to wrongly fire against.
+- Verified via a clean full-project batch-mode recompile (all 12 touched
+  scripts) and a `Grep` sweep confirming exactly 9 `AddComponent<Despawn>`
+  attachment sites (7 carrier `Drop()`s + `PlayerDropping.DropFrom` +
+  `PlayerCoinDrop.SpawnCoin`) and 14 `Despawn.CancelOn` cancellation
+  sites (`Stash()` + `SetCarried(true, ...)` × 7 equippable classes) —
+  matches the design exactly, not just "it compiles."
 
 ### v0.1.84-dev — Stick Pickup now grants 10 at once (playtest convenience)
 

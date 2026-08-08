@@ -15,6 +15,9 @@ public class PlayerNavComputer : MonoBehaviour
     [SerializeField] private ItemDefinition navComputerItem;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
+    // Matches Pickup.DespawnDelay — see Despawn.cs for why NavigationComputer.
+    // Stash()/SetCarried(true, ...) cancel this on pickup, not this script.
+    [SerializeField] private float despawnDelay = 120f;
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
@@ -139,6 +142,8 @@ public class PlayerNavComputer : MonoBehaviour
 
         navComputer.SetCarried(false, null);
         navComputer.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        var despawn = navComputer.gameObject.AddComponent<Despawn>();
+        despawn.delay = despawnDelay;
     }
 
     // Searches the wrists, then the hands, for the given computer instance.
