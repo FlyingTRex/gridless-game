@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Fine Pickaxe
   maxStack: 1
   tier: 3
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 6864249591511877102, guid: effd33d75f2f8784691a0dd4d67cc061, type: 3}
+  icon: {fileID: 21300000, guid: 11542aaba17357644a4f7d6310b8091f, type: 3}
+  previewIcon: {fileID: 21300000, guid: ad1220308729f984e8166e78c9cf85d9, type: 3}

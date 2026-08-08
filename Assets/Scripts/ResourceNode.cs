@@ -1,10 +1,9 @@
 using UnityEngine;
 
-public class ResourceNode : MonoBehaviour, IPunchable
+public class ResourceNode : MonoBehaviour, IInteractable
 {
     [SerializeField] private GameObject chunkPrefab;
     [SerializeField] private int chunkCount = 3;
-    [SerializeField] private int hitsToBreak = 1;
     [SerializeField] private float scatterForce = 1.2f;
     [SerializeField] private SkillDefinition trainedSkill;
     [SerializeField] private float skillGain = 0.5f;
@@ -54,7 +53,6 @@ public class ResourceNode : MonoBehaviour, IPunchable
     // prefab, not the real ore. Ignored entirely when hiddenMaterial is null.
     [SerializeField] private GameObject hiddenChunkPrefab;
 
-    private int hitsTaken;
     private Vector3 spawnPosition;
     private Collider col;
     private Renderer[] renderers;
@@ -67,8 +65,16 @@ public class ResourceNode : MonoBehaviour, IPunchable
     private PlayerMiningFaceShield shieldWearer;
 
     public string Prompt => HasToolRequirement
-        ? $"Punch to break (requires {requiredToolLabel})"
-        : "Punch to break";
+        ? $"Hold to break (requires {requiredToolLabel})"
+        : "Hold to break";
+
+    public bool IsInstant => false;
+
+    // Replaced the old hitsToBreak/punch-N-times model 2026-08-08 — see
+    // design-brief.md's Interaction model note. Duration is skill-driven
+    // (low tier takes longest), not fixed per node.
+    public float GetHoldDuration(GameObject player) =>
+        player.GetComponent<PlayerSkills>().GetHoldDuration(trainedSkill);
 
     private bool HasToolRequirement => requiredTools != null && requiredTools.Length > 0;
 
@@ -101,7 +107,10 @@ public class ResourceNode : MonoBehaviour, IPunchable
         Respawn();
     }
 
-    public void OnPunch(GameObject player)
+    // Called once the hold completes (see PlayerInteraction) — replaces the
+    // old repeated-OnPunch/hitsToBreak counter entirely, single-shot now
+    // that the wait itself is the skill/tool gate.
+    public void Complete(GameObject player)
     {
         if (HasToolRequirement)
         {
@@ -109,11 +118,9 @@ public class ResourceNode : MonoBehaviour, IPunchable
             if (equipment == null || !HasAnyRequiredToolInHand(equipment)) return;
         }
 
-        hitsTaken++;
         player.GetComponent<PlayerSkills>()?.GainExperience(trainedSkill, skillGain);
-        if (hitsTaken < hitsToBreak) return;
 
-        // Checked at the moment it actually breaks, not when punching
+        // Checked at the moment it actually breaks, not when the hold
         // started — a node revealed only partway through wouldn't make
         // sense to then punish, and this matches how every other tier/skill
         // check in this system is evaluated per-attempt, not locked in early.
@@ -157,13 +164,11 @@ public class ResourceNode : MonoBehaviour, IPunchable
     }
 
     // Same spot it started at, with a small random horizontal shift, fully
-    // intact again (hitsTaken reset) so it can be broken again from
-    // scratch.
+    // intact again so it can be broken again from scratch.
     private void Respawn()
     {
         Vector2 offset = Random.insideUnitCircle * respawnScatter;
         transform.position = spawnPosition + new Vector3(offset.x, 0f, offset.y);
-        hitsTaken = 0;
         SetVisible(true);
         respawnAt = -1f;
     }

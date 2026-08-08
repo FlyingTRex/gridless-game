@@ -25,7 +25,7 @@ public class Lockbox : MonoBehaviour, IInteractable, IRenameable
 
     public string Prompt => $"Open {DisplayName}";
     public bool IsInstant => true;
-    public float HoldDuration => 0f;
+    public float GetHoldDuration(GameObject player) => 0f;
 
     // Set once, right after Instantiate, by whatever spawned this (the
     // bank purchase flow) — mirrors Pickup.Configure/Coin.Configure.

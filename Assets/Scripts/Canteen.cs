@@ -36,7 +36,7 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
 
     public string Prompt => $"Pick up {canteenName}";
     public bool IsInstant => true;
-    public float HoldDuration => 0f;
+    public float GetHoldDuration(GameObject player) => 0f;
 
     private void Awake()
     {

@@ -480,19 +480,31 @@ work) — this is the backlog between the two. Check off and move the entry to
   **Rock → Small Rock is still not built** — that specific refinement step (a
   recipe? a separate mineable object? never decided) remains exactly as open
   as it was when the tier was first discussed. See `CHANGELOG.md`.
+  **Interaction model shipped v0.1.147-dev** — `IPunchable` is deleted;
+  `ResourceNode`/`ChoppableTree` now use hold-and-release `IInteractable`
+  (Ben's call over the design-brief's original tap-once-and-locked version —
+  simpler, and the hold-progress plumbing already existed), with duration
+  read from the player's live skill tier via `CraftTierScale.HoldDuration`/
+  `TierForSkillLevel`. **Two real gaps left even within this piece:** tool
+  tier doesn't speed up the hold on top of skill tier yet (the design-brief's
+  own "Tool-quality effects" promise, not implemented), and the Crafting
+  screen's own instant "Craft" button is still untimed — a different UI
+  surface (menu-driven, not world-raycast) that needs its own progress/cancel
+  affordance, deliberately deferred rather than folded into the same pass.
   **Still not built:** the Mining skill itself as an actual `SkillDefinition`
   (nodes currently still train `Gathering`, per what already existed, not the
-  newly-decided `Mining` split — that decision hasn't been wired into code yet),
+  newly-decided `Mining` split — that decision hasn't been wired into code yet,
+  confirmed again during the v0.1.147-dev work — every `ResourceNode` still
+  points `trainedSkill` at `Gathering`),
   three of the six discipline skills (Metalworking/Forging/Minting —
   Woodworking, Stonework, and Sewing all now have real actions training them
   as of v0.1.78/79-dev), the **ingredient-quality half** of the weakest-link
   `CraftTier` determination (the **skill half** shipped 2026-08-07,
   v0.1.80-dev — see the Knife/Hammer/Axe/Pickaxe entry above), the full
   material web beyond wood/stone (metal, textiles — though Fiber/Rope/Cloth
-  are now a real start, v0.1.77/78-dev), the randomized-size-on-spawn/yield-scaling/duration-scaling design
-  for Boulder/Rock, Rock → Small Rock refinement, and the new click-and-locked
-  interaction model (everything still uses the old instant-hold-E/punch
-  mechanics). Don't start implementing any further piece of this without
+  are now a real start, v0.1.77/78-dev), and the randomized-size-on-spawn/
+  yield-scaling design for Boulder/Rock and Rock → Small Rock refinement.
+  Don't start implementing any further piece of this without
   re-reading the full design-brief section first — it's too
   interlocking to build from memory of this one-line summary.
 - [ ] **Sky texture could use another pass.** Procedural cloudy skybox shipped

@@ -10,10 +10,12 @@ public class PlayerInteraction : MonoBehaviour
     [SerializeField] private float interactRange = 3f;
 
     private IInteractable current;
-    private IPunchable currentPunchable;
     private ISecondaryInteractable currentSecondary;
     private string currentSecondaryPrompt;
     private float holdProgress;
+
+    private Texture2D barBackgroundTex;
+    private Texture2D barFillTex;
 
     // Exposed so other player components (e.g. PlayerRenaming) can reuse
     // the same camera for their own raycasts instead of each needing their
@@ -25,7 +27,6 @@ public class PlayerInteraction : MonoBehaviour
         ResolveTarget();
 
         var keyboard = Keyboard.current;
-        var mouse = Mouse.current;
 
         if (current != null && keyboard != null)
         {
@@ -36,10 +37,15 @@ public class PlayerInteraction : MonoBehaviour
             }
             else
             {
+                // Hold-and-release: keep E down to fill the bar, let go (or
+                // look away — ResolveTarget clears `current` too) to cancel
+                // and forfeit progress. Replaces the old punch-N-times/
+                // hitsToBreak model on resource nodes and trees, and covers
+                // every other non-instant IInteractable the same way.
                 if (keyboard.eKey.isPressed)
                 {
                     holdProgress += Time.deltaTime;
-                    if (holdProgress >= current.HoldDuration)
+                    if (holdProgress >= current.GetHoldDuration(gameObject))
                     {
                         current.Complete(gameObject);
                         holdProgress = 0f;
@@ -56,9 +62,6 @@ public class PlayerInteraction : MonoBehaviour
             holdProgress = 0f;
         }
 
-        if (currentPunchable != null && mouse != null && mouse.leftButton.wasPressedThisFrame)
-            currentPunchable.OnPunch(gameObject);
-
         if (!string.IsNullOrEmpty(currentSecondaryPrompt) && keyboard != null && keyboard.fKey.wasPressedThisFrame)
             currentSecondary.CompleteSecondary(gameObject);
     }
@@ -66,7 +69,6 @@ public class PlayerInteraction : MonoBehaviour
     private void ResolveTarget()
     {
         current = null;
-        currentPunchable = null;
         currentSecondary = null;
         currentSecondaryPrompt = null;
 
@@ -76,27 +78,29 @@ public class PlayerInteraction : MonoBehaviour
                 out var hit, interactRange))
         {
             current = hit.collider.GetComponentInParent<IInteractable>();
-            currentPunchable = hit.collider.GetComponentInParent<IPunchable>();
             currentSecondary = hit.collider.GetComponentInParent<ISecondaryInteractable>();
             if (currentSecondary != null)
                 currentSecondaryPrompt = currentSecondary.GetSecondaryPrompt(gameObject);
         }
     }
 
+    private const float BarWidth = 200f;
+    private const float BarHeight = 10f;
+
     private void OnGUI()
     {
         DrawCrosshair();
 
         string text = null;
+        float holdDuration = 0f;
         if (current != null)
         {
             text = current.Prompt;
             if (!current.IsInstant)
-                text += $" ({Mathf.CeilToInt(current.HoldDuration - holdProgress)}s)";
-        }
-        else if (currentPunchable != null)
-        {
-            text = currentPunchable.Prompt;
+            {
+                holdDuration = current.GetHoldDuration(gameObject);
+                text += $" ({Mathf.CeilToInt(holdDuration - holdProgress)}s)";
+            }
         }
 
         // Disambiguate with an explicit key label only when there's a
@@ -108,10 +112,37 @@ public class PlayerInteraction : MonoBehaviour
             text = string.IsNullOrEmpty(text) ? $"[F] {currentSecondaryPrompt}" : $"{text}    [F] {currentSecondaryPrompt}";
         }
 
-        if (text == null) return;
+        if (text != null)
+        {
+            var style = new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleCenter };
+            GUI.Label(new Rect(Screen.width / 2f - 150, Screen.height / 2f + 30, 300, 30), text, style);
+        }
 
-        var style = new GUIStyle(GUI.skin.label) { fontSize = 16, alignment = TextAnchor.MiddleCenter };
-        GUI.Label(new Rect(Screen.width / 2f - 150, Screen.height / 2f + 30, 300, 30), text, style);
+        // Green fill bar under the prompt, only while a hold is actually in
+        // progress — the design brief's "green progress bar" callout, on
+        // top of the text countdown rather than replacing it.
+        if (current != null && !current.IsInstant && holdProgress > 0f)
+            DrawHoldBar(holdProgress / Mathf.Max(holdDuration, 0.01f));
+    }
+
+    private void DrawHoldBar(float fraction)
+    {
+        if (barBackgroundTex == null) barBackgroundTex = SolidTexture(new Color(0f, 0f, 0f, 0.6f));
+        if (barFillTex == null) barFillTex = SolidTexture(new Color(0.25f, 0.85f, 0.25f));
+
+        var rect = new Rect(Screen.width / 2f - BarWidth / 2f, Screen.height / 2f + 62f, BarWidth, BarHeight);
+        GUI.DrawTexture(rect, barBackgroundTex);
+
+        var fillRect = new Rect(rect.x, rect.y, rect.width * Mathf.Clamp01(fraction), rect.height);
+        GUI.DrawTexture(fillRect, barFillTex);
+    }
+
+    private static Texture2D SolidTexture(Color color)
+    {
+        var tex = new Texture2D(1, 1);
+        tex.SetPixel(0, 0, color);
+        tex.Apply();
+        return tex;
     }
 
     private void DrawCrosshair()

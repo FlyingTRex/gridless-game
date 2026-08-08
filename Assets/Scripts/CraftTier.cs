@@ -51,4 +51,33 @@ public static class CraftTierScale
         CraftTier.Masterwork => 100,
         _ => 0,
     };
+
+    // Highest tier a given skill level currently qualifies for — the
+    // inverse of SkillRequirement, used to turn a live skill level into a
+    // tier for hold-duration lookups (see HoldDuration below).
+    public static CraftTier TierForSkillLevel(float level)
+    {
+        CraftTier best = CraftTier.Crude;
+        foreach (CraftTier tier in (CraftTier[])System.Enum.GetValues(typeof(CraftTier)))
+        {
+            if (level >= SkillRequirement(tier)) best = tier;
+        }
+        return best;
+    }
+
+    // Seconds a skill-gated hold interaction (gathering, chopping, and
+    // eventually crafting) takes at each tier — replaces the old
+    // punch-N-times/hitsToBreak model. Low tier takes longest (still
+    // learning), Masterwork is fastest. Placeholder numbers, same as every
+    // other value in this table — meant to be tuned by playtesting, not a
+    // simulated result.
+    public static float HoldDuration(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => 3f,
+        CraftTier.Rudimentary => 2.25f,
+        CraftTier.Normal => 1.5f,
+        CraftTier.Fine => 1f,
+        CraftTier.Masterwork => 0.5f,
+        _ => 1.5f,
+    };
 }

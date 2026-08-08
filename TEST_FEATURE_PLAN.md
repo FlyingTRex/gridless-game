@@ -190,13 +190,24 @@ fix the coordinate in this file rather than assuming the step is wrong.
   Check it sits at a reasonable size/orientation lying roughly along the
   ground — flag if it looks stretched, floating, or rotated oddly, since
   this was a hand-computed scale/rotation fit, not an exact art pass.
-- [ ] **Rock Node** (left-click/punch, `IPunchable`) breaks into 3 physical Small
-  Rock chunks that scatter and can be picked up individually — doesn't take one
-  punch; confirm it takes the expected number of hits.
+- [ ] **Hold-and-release gathering/chopping (v0.1.147-dev, replaces
+  punch-to-break entirely — `IPunchable` deleted):** every entry below that
+  says "punch"/"hits to break" is superseded by this. Hold E on a Rock
+  Node/Boulder/Ore Node/Tree/Log/ore chunk — a green progress bar fills
+  under the crosshair prompt; releasing E (or looking away) resets progress
+  to 0 with no effect. Duration is skill-tiered, not fixed: check the
+  Skills tab for your current Gathering (or the relevant discipline)
+  level, expect roughly 3s at Crude tier down to 0.5s at Masterwork (exact
+  thresholds in `CraftTierScale.SkillRequirement`/`HoldDuration`). Tool
+  presence still gates whether it works at all where required, but does
+  **not** currently speed up the hold — that's a known, not-yet-built gap.
+- [ ] **Rock Node** breaks into 3 physical Small
+  Rock chunks that scatter and can be picked up individually — hold E until
+  the bar fills, doesn't complete instantly.
 - [ ] **Rock Node visual (v0.1.86-dev):** should render as the Poly Pizza
   "Stone" model (CC-BY), not the old plain grey sphere — check it sits
   on the ground without floating or sinking, and that its footprint is
-  roughly where the old sphere's collider was (same punch/interact range
+  roughly where the old sphere's collider was (same hold/interact range
   as before, collider itself unchanged).
 - [ ] **Rock Node position (moved v0.1.88-dev):** now at `(-2, 0.35, 8)`,
   not `(-2, 0.35, 3)` — moved further from Boulder (~4.48 units apart
@@ -242,22 +253,24 @@ fix the coordinate in this file rather than assuming the step is wrong.
   confirm it's visible from every angle, sits at roughly the same spot/
   depth as before (grounded to match the old visual's exact footprint,
   not just eyeballed), and reads as one cohesive rock, not disconnected
-  pieces. Bare-handed punching works (no tool required, same as Rock
-  Node) — takes 2 hits, scatters 3 Rock chunks nearby (see next entry —
-  as of v0.1.90-dev these are punchable, not a direct pickup).
+  pieces. Bare-handed holding works (no tool required, same as Rock
+  Node) — hold E until the bar fills, scatters 3 Rock chunks nearby (see
+  next entry — as of v0.1.90-dev these are hold-interactable, not a direct
+  pickup).
   **Confirmed working (v0.1.88-dev):** an earlier playtest reported
   being unable to break the Boulder at all, traced to it standing too
   close to Rock Node (~2.24 units); moving Rock Node to `(-2, 0.35, 8)`
   in v0.1.88-dev resolved it — Ben broke the Boulder successfully on
   retest.
-- [ ] **Rock chunk (`MediumRockChunk.prefab`, punchable as of v0.1.90-dev):**
+- [ ] **Rock chunk (`MediumRockChunk.prefab`, hold-interactable as of
+  v0.1.90-dev):**
   the pieces that scatter when Boulder breaks render as the Stone model
   (CC-BY, fixed v0.1.89-dev after a regression where they still showed
   the old grey fused-pebble cluster) and are **not directly pickupable**
-  — walking up to one should NOT offer a "Pick up" prompt. Punching one
-  (bare-handed, 1 hit) breaks it into 2 **Small Rock**, same as Rock
+  — walking up to one should NOT offer a "Pick up" prompt. Holding E on one
+  (bare-handed) breaks it into 2 **Small Rock**, same as Rock
   Node's own break. Confirm the chunk physically launches/settles when
-  Boulder first breaks (still has its `Rigidbody`), and that punching a
+  Boulder first breaks (still has its `Rigidbody`), and that holding on a
   settled chunk doesn't require any tool.
 - [ ] **Chunk scatter distance (v0.1.63-dev):** breaking a Boulder or Rock Node
   should scatter chunks with a visible initial burst that settles down
@@ -277,8 +290,9 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] **Big Tree by 3Donimus is choppable (v0.1.91-dev — now the game's
   only tree, after the procedural Tree was removed entirely in
   v0.1.126-dev)** at `(10, 3.99, 10)`: requires an Axe in hand (prompt
-  reads "Chop (requires Axe)", punching bare-handed does nothing — same
-  tool-gating as ore nodes). 3 hits drops 3 `Log` instances scattered
+  reads "Hold to chop (requires Axe)", holding bare-handed does nothing —
+  same tool-gating as ore nodes). A completed hold drops 3 `Log` instances
+  scattered
   nearby with physics (should tumble briefly then settle, not roll away
   indefinitely). Chopping trains **Gathering**. The tree fully
   disappears when chopped (no stump visual) and reappears after ~180s
@@ -287,12 +301,13 @@ fix the coordinate in this file rather than assuming the step is wrong.
   **Confirmed working (v0.1.92-dev):** the first version's
   `CapsuleCollider` had a math error placing it ~3.6 units above the
   actual tree (floating in the canopy/above it), which Ben caught by
-  testing — punches landed on nothing. Fixed by matching the
+  testing — the hold never registered. Fixed by matching the
   collider's world-space Y range directly against the tree's measured
-  renderer bounds. Confirm punches now land normally when aimed at the
+  renderer bounds. Confirm holds now register normally when aimed at the
   visible trunk.
 - [ ] **Log chopping (v0.1.83-dev; Plank gets a real model v0.1.137-dev):**
-  each dropped Log also requires an Axe (same tool-gating). 2 hits
+  each dropped Log also requires an Axe (same tool-gating). One completed
+  hold
   should destroy the Log outright (not hide-and-respawn like other
   `ResourceNode`s — a Log is a one-off spawn, there's nothing to
   respawn) and drop 2 **Plank**. As of v0.1.137-dev, Plank should show
@@ -306,10 +321,11 @@ fix the coordinate in this file rather than assuming the step is wrong.
   "Branch") — chop several Logs across a full playtest and confirm this
   is a real, visible chance, not always/never happening.
 - [ ] **Copper Ore Node (v0.1.59-dev, real shape v0.1.117-dev, resized
-  bigger v0.1.119-dev)** at `(2, 0.4, -4)`: punching it *without* a
-  Pickaxe held in a hand does nothing (no hit registers, prompt reads
-  "Punch to break (requires Pickaxe)"). With a Pickaxe in either hand,
-  punching works and takes 2 hits to break into 3 Copper Ore chunks.
+  bigger v0.1.119-dev)** at `(2, 0.4, -4)`: holding E *without* a
+  Pickaxe held in a hand does nothing (`Complete` no-ops, prompt reads
+  "Hold to break (requires Pickaxe)"). With a Pickaxe in either hand,
+  holding completes after the skill-tiered duration and breaks into 3
+  Copper Ore chunks.
   This is a real irregular rock shape (`Rock_Quaternius.glb`, the same
   mesh Boulder uses), not the old plain sphere — texture should read
   as grey rock with scattered copper-orange flecks and occasional
@@ -318,7 +334,7 @@ fix the coordinate in this file rather than assuming the step is wrong.
   this ever shipped, see CHANGELOG.md v0.1.117-dev for the UV/tiling
   explanation). As of v0.1.119-dev it's noticeably bigger
   (`1.15x1.06x1.30`, up from matching the old sphere's `0.8` size) —
-  confirm punching still works reliably at the new size (the collider
+  confirm holding still works reliably at the new size (the collider
   was resized to match at the same time, fixing a separate gap where
   it had been left too small for the visual).
 - [ ] **Iron Ore Node (v0.1.119-dev, same treatment as Copper):** at
@@ -326,12 +342,13 @@ fix the coordinate in this file rather than assuming the step is wrong.
   but deliberately **flatter and wider** (`1.50x0.85x1.60`) instead of
   matching Copper's proportions — should read as a visibly different,
   squatter silhouette standing next to Copper Ore Node, not a same-
-  shape recolor. Same tool-gating (Pickaxe, 2 hits) and texture check
+  shape recolor. Same tool-gating (Pickaxe, skill-tiered hold) and texture
+  check
   (dark rock with scattered rust-orange flecks, evenly distributed —
   same UV-tiling fix as Copper was applied here too).
-- [ ] **Iron Ore chunk is now punchable too, breaks into Iron
+- [ ] **Iron Ore chunk is now hold-interactable too, breaks into Iron
   (v0.1.119-dev):** same treatment as Copper Ore chunk → Copper —
-  punching a scattered Iron Ore chunk (bare-handed, 1 hit) breaks it
+  holding E on a scattered Iron Ore chunk (bare-handed) breaks it
   into 2 of a new **Iron** item. Built with the Copper pickup-bug
   lesson already applied, so this one should work correctly the first
   time — confirm the Iron pieces can actually be picked up. Both
@@ -339,11 +356,11 @@ fix the coordinate in this file rather than assuming the step is wrong.
   inventory UI. **Note:** Iron has no crafting recipe using it yet
   (see `BUGS_AND_ENHANCEMENTS.md`) — built ahead of the crafting need,
   not a bug.
-- [ ] **Copper Ore chunk is now punchable too, breaks into Copper
+- [ ] **Copper Ore chunk is now hold-interactable too, breaks into Copper
   (v0.1.117-dev, pickup bug fixed v0.1.118-dev):** the "Copper Ore"
   pieces that scatter when Copper Ore Node breaks are no longer
   directly pickupable — same treatment Boulder's Rock chunk got in
-  v0.1.90-dev. Punching one (bare-handed, 1 hit) breaks it into 2 of a
+  v0.1.90-dev. Holding E on one (bare-handed) breaks it into 2 of a
   brand-new **Copper** item — confirm these Copper pieces can actually
   be picked up (E to interact) once they land; the first version
   spawned them permanently un-pickupable (`Pickup.item` left null,
@@ -386,6 +403,24 @@ fix the coordinate in this file rather than assuming the step is wrong.
     same as every other tool — only the name/skill-gate differs, not
     the visual). Confirm all 5 tiers look pixel-identical, not subtly
     different sizes.
+  - **All 5 Pickaxe tiers get a real model (v0.1.141-dev):** Crude/
+    Rudimentary/Pickaxe (Normal)/Fine/Masterwork Pickaxe all had real
+    recipes but no model/icon at all before this — craft or spawn any
+    tier via Admin and confirm it shows a real pickaxe model (public
+    domain, CreativeTrio), identical across all 5 tiers. Confirm
+    holding one still satisfies every Pickaxe-gated `ResourceNode`
+    (ore nodes, Boulder, Rock Node) exactly as before — only the visual
+    changed, not the `ItemDefinition` guids those check against.
+  - **All 5 Axe tiers get a real model (v0.1.142-dev):** same
+    treatment — Crude/Rudimentary/Axe (Normal)/Fine/Masterwork Axe all
+    show a real wood-handled axe model now (CC-BY, suerozcelik),
+    identical across tiers. Confirm holding one still satisfies every
+    Axe-gated `ResourceNode` (Tree, Log) exactly as before.
+  - **All 5 Hammer tiers get a real model (v0.1.143-dev):** same
+    treatment — Crude/Rudimentary/Hammer (Normal)/Fine/Masterwork
+    Hammer all show a real stone-headed hammer model now
+    (Tripo3D-generated, no credits needed), identical across tiers.
+    Trimmed Stick still has no model — last one on the list.
 - [ ] **Skill-gated crafting tiers (v0.1.80-dev):** on a fresh character
   (Stonework 0), only Crude Knife/Hammer/Axe/Pickaxe and Crude Trimmed
   Stick should be craftable — Rudimentary/Normal/Fine/Masterwork should
@@ -463,21 +498,21 @@ fix the coordinate in this file rather than assuming the step is wrong.
   or pick up the one sitting at `(6, 0.5, -6)`) and look at each node
   again: it should visibly change to that metal's `*OreRevealed`
   texture. **This is the important check:** mine one of these nodes
-  *without* the shield equipped (Pickaxe in hand, shield off) — it
-  should take 2 hits and yield **Small Rock** (via `RockChunk.prefab`
+  *without* the shield equipped (Pickaxe in hand, shield off) — holding E
+  should complete and yield **Small Rock** (via `RockChunk.prefab`
   as the `hiddenChunkPrefab`), not the real ore — the ore goes
   undetected. Put the shield on and mine a *different* instance of the
   same ore type (or wait for the 180s respawn) — this time it should
-  yield 3 of the metal's punchable ore chunk (`SilverOreChunk`/
+  yield 3 of the metal's hold-interactable ore chunk (`SilverOreChunk`/
   `GoldOreChunk`/`PlatinumOreChunk` — now the **mid tier**, matching
   Copper/Iron's structure, same `Rock_Quaternius`+texture treatment).
   If a hidden node ever yields real ore *without* the shield equipped,
   or plain rock *with* it equipped, that's the core mechanic broken,
   not a minor issue.
-- [ ] **Silver/Gold/Platinum Ore chunk is now punchable too, breaks
+- [ ] **Silver/Gold/Platinum Ore chunk is now hold-interactable too, breaks
   into the actual Ore item (v0.1.121-dev)** — same treatment as Copper/
-  Iron's mid tier: punching a scattered `SilverOreChunk`/`GoldOreChunk`/
-  `PlatinumOreChunk` (bare-handed, 1 hit) breaks it into 2 of a new
+  Iron's mid tier: holding E on a scattered `SilverOreChunk`/`GoldOreChunk`/
+  `PlatinumOreChunk` (bare-handed) breaks it into 2 of a new
   smaller final piece (`SilverOrePiece`/`GoldOrePiece`/
   `PlatinumOrePiece.prefab`), which is what actually grants the
   `SilverOre`/`GoldOre`/`PlatinumOre` item on pickup — confirm these
@@ -495,7 +530,7 @@ fix the coordinate in this file rather than assuming the step is wrong.
   separate refined "Silver"/"Gold"/"Platinum" bar item beyond this — the
   final piece grants the same `SilverOre`/`GoldOre`/`PlatinumOre` item
   the mid-tier chunk used to grant directly in v0.1.120-dev, just gated
-  behind an extra punch now.
+  behind an extra hold now.
 - [ ] **Mining Face Shield now has a world pickup (v0.1.120-dev —
   previously craft-only)**: one sits at `(6, 0.5, -6)` in `TestScene`, a
   flattened dark disc/visor shape (placeholder primitive, no custom
@@ -603,6 +638,20 @@ fix the coordinate in this file rather than assuming the step is wrong.
   train **Sewing** — check the Skills tab afterward to confirm it now
   appears with a nonzero level (see the Skills tab section below, this is
   the first thing that ever trains it).
+  - **Cloth real visual + icon (v0.1.144-dev):** craft a Cloth and drop
+    it — should appear as a real folded pale-cloth model (Tripo3D-
+    generated, visible fold creases), not the old generic grey cube. It
+    had no `worldPickupPrefab` at all before this. Should show a small
+    icon wherever it appears in inventory UI.
+  - **Fiber real visual + icon (v0.1.146-dev):** trim a Stick to get
+    Fiber, then drop it — should appear as a real wispy grass-tuft
+    model (public domain, Quaternius), not the old generic grey cube.
+    Should show a small icon wherever it appears in inventory UI.
+  - **"Woven Grass Cloth" (new item, v0.1.145-dev):** not craftable yet
+    (no recipe) — spawn via Admin to check. Green-tinted variant of the
+    same Cloth model/mesh, a separate standalone item for a future
+    clothing material line. Confirm it shows its own green-tinted icon,
+    distinct from plain Cloth's pale one.
 - [ ] **Rope real visual + icon (v0.1.116-dev):** craft a Rope (5+
   Fiber, Sewing tab) and drop it — should appear in the world as a
   real AI-generated tan coiled bundle, not invisible/using some
@@ -997,10 +1046,14 @@ fix the coordinate in this file rather than assuming the step is wrong.
   v0.1.91-dev, once it became choppable and stopped being
   comparison-only) "Big Tree by 3Donimus [CC-BY] via Poly Pizza", (as
   of v0.1.137-dev) "Wood Planks by Quaternius [Public Domain] via Poly
-  Pizza", and (as of v0.1.139-dev) "Strawberries by Jarlan Perez
-  [CC-BY] via Poly Pizza" — exact text, not paraphrased (compare
-  against `Assets/Models/THIRD_PARTY_CREDITS.md`). **Regression caught
-  by
+  Pizza", (as of v0.1.139-dev) "Strawberries by Jarlan Perez [CC-BY]
+  via Poly Pizza", (as of v0.1.141-dev) "Pickaxe by CreativeTrio
+  [Public Domain] via Poly Pizza", (as of v0.1.142-dev) "Low Poly
+  Axe by suerozcelik [CC-BY] via Poly Pizza", and (as of v0.1.146-dev)
+  "Grass Wispy by Quaternius [Public Domain] via Poly Pizza" — exact
+  text, not paraphrased (compare against
+  `Assets/Models/THIRD_PARTY_CREDITS.md`).
+  **Regression caught by
   Ben:** the v0.1.88-dev
   width-only sizing let the image grow tall enough to push the name
   line/attribution list/Close button off-screen with no way to scroll

@@ -68,6 +68,14 @@ public class PlayerSkills : MonoBehaviour
     public float GetLevel(SkillDefinition skill) =>
         skill != null && levels.TryGetValue(skill, out var level) ? level : 0f;
 
+    // How long a hold-based action gated on this skill takes right now —
+    // read by ResourceNode/ChoppableTree (and, later, timed Crafting) via
+    // IInteractable.GetHoldDuration. Null skill (a gadget with no defining
+    // discipline, see design-brief.md's discipline-sort rule) has no tier
+    // to climb, so it stays at the Crude/base duration forever.
+    public float GetHoldDuration(SkillDefinition skill) =>
+        CraftTierScale.HoldDuration(CraftTierScale.TierForSkillLevel(GetLevel(skill)));
+
     public void GainExperience(SkillDefinition skill, float amount)
     {
         if (skill == null || amount <= 0f) return;

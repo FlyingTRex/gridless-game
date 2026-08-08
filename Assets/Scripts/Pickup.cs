@@ -34,7 +34,7 @@ public class Pickup : MonoBehaviour, IInteractable
 
     public string Prompt => item != null ? $"Pick up {item.itemName}" : "Pick up";
     public bool IsInstant => true;
-    public float HoldDuration => 0f;
+    public float GetHoldDuration(GameObject player) => 0f;
 
     private void Awake()
     {

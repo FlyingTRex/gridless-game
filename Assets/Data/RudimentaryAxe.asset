@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Rudimentary Axe
   maxStack: 1
   tier: 1
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 7704046236003203404, guid: 3328573d7a242da4cbece11d5f7e1c3d, type: 3}
+  icon: {fileID: 21300000, guid: de6d3b84369222a44b207bb819b3348b, type: 3}
+  previewIcon: {fileID: 21300000, guid: 8790167d5804c3e4f9d6d8d6e8076e6c, type: 3}

@@ -69,6 +69,47 @@ models and their own (different) licensing situation.
   here anyway for sourcing/tracking consistency with everything else in
   this ledger.
 
+## Grass Wispy by Quaternius
+
+- File: `Assets/Models/GrassWispy_Quaternius.glb`
+- Source: [Poly Pizza](https://poly.pizza)
+- License: **Public domain** — no attribution required, but Ben asked
+  for the full credits treatment anyway per the download popup:
+  `Grass Wispy by Quaternius`
+- Status (2026-08-08, v0.1.146-dev): replacing `Fiber.asset`'s missing
+  `worldPickupPrefab` — the item existed since early in the session
+  (Trimmed Stick yields Fiber) but had no visual/icon at all until now.
+  Actively being used. **In the Credits tab as of v0.1.146-dev.**
+
+## Low Poly Axe by suerozcelik
+
+- File: `Assets/Models/Axe_suerozcelik.fbx`
+- Source: [Poly Pizza](https://poly.pizza)
+- License: CC-BY — attribution required.
+- **Required attribution text (exact, from the download popup):**
+  `Low Poly Axe by suerozcelik [CC-BY] via Poly Pizza`
+- Status (2026-08-08, v0.1.142-dev): first real model for the Axe
+  CraftTier ladder — same visual reused across all 5 tiers (Crude/
+  Rudimentary/Normal/Fine/Masterwork), which previously had real
+  recipes but zero model/icon/`worldPickupPrefab` at all. First `.fbx`
+  import this session (every prior model was `.glb`) — Unity's native
+  FBX importer handled it directly, no separate texture files needed
+  (materials/colors came through intact). Actively being used. **In
+  the Credits tab as of v0.1.142-dev.**
+
+## Pickaxe by CreativeTrio
+
+- File: `Assets/Models/Pickaxe_CreativeTrio.glb`
+- Source: [Poly Pizza](https://poly.pizza)
+- License: **Public domain** — no attribution required, but Ben asked
+  for the full credits treatment anyway per the download popup:
+  `Pickaxe by CreativeTrio`
+- Status (2026-08-08, v0.1.141-dev): first real model for the Pickaxe
+  CraftTier ladder — same visual reused across all 5 tiers (Crude/
+  Rudimentary/Normal/Fine/Masterwork), which previously had real
+  recipes but zero model/icon/`worldPickupPrefab` at all. Actively
+  being used. **In the Credits tab as of v0.1.141-dev.**
+
 ## Strawberries by Jarlan Perez
 
 - File: `Assets/Models/Strawberries_JarlanPerez.glb`

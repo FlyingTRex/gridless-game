@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Fine Hammer
   maxStack: 1
   tier: 3
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 1688583387029774166, guid: aef3b4611fddbb14195e6f898d93c1ae, type: 3}
+  icon: {fileID: 21300000, guid: 209c0b52120ce79478c9400950b4b3d5, type: 3}
+  previewIcon: {fileID: 21300000, guid: f00985e6c3cd12a408ba1a1640df0734, type: 3}

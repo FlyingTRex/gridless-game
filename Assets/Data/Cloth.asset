@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Cloth
   maxStack: 20
   tier: 0
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 2111165026807957474, guid: 8c4bef1560145424cb5818c45f525331, type: 3}
+  icon: {fileID: 21300000, guid: de671e9690c8fc140a7321bb2b48262b, type: 3}
+  previewIcon: {fileID: 21300000, guid: 1999a40f38cddbd49a2f43ba6f114fad, type: 3}

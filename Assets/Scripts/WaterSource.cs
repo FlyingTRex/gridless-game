@@ -12,7 +12,7 @@ public class WaterSource : MonoBehaviour, IWaterSource, IInteractable, ISecondar
 
     public string Prompt => "Drink";
     public bool IsInstant => true;
-    public float HoldDuration => 0f;
+    public float GetHoldDuration(GameObject player) => 0f;
 
     public void Complete(GameObject player)
     {

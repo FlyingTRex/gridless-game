@@ -12,7 +12,7 @@ public class Coin : MonoBehaviour, IInteractable
 
     public string Prompt => $"Pick up {coinType} Coin";
     public bool IsInstant => true;
-    public float HoldDuration => 0f;
+    public float GetHoldDuration(GameObject player) => 0f;
 
     // Same purpose as Pickup.Configure — lets code that spawns a Coin at
     // runtime (PlayerCoinDrop) set its type/amount without needing a

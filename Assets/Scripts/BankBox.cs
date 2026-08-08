@@ -10,7 +10,7 @@ public class BankBox : MonoBehaviour, IInteractable
 
     public string Prompt => $"Open {bankName}";
     public bool IsInstant => true;
-    public float HoldDuration => 0f;
+    public float GetHoldDuration(GameObject player) => 0f;
 
     public void Complete(GameObject player)
     {

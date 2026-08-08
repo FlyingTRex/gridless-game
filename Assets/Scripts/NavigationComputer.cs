@@ -17,7 +17,7 @@ public class NavigationComputer : MonoBehaviour, IInteractable, IEquippable
 
     public string Prompt => $"Pick up {computerName}";
     public bool IsInstant => true;
-    public float HoldDuration => 0f;
+    public float GetHoldDuration(GameObject player) => 0f;
 
     private void Awake()
     {

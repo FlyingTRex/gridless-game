@@ -5,12 +5,304 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.140-dev` — must always match `GameVersion` in
+**Current version:** `0.1.147-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-08
+
+### v0.1.147-dev — Punch-to-break retired: gathering/chopping now hold-and-release, skill-tiered
+
+Ben: "let's build this pig!" — implements the interaction-model ideation
+from this same session (see the doc-only entries below/above for the
+design conversation this comes from). `IPunchable` is gone entirely.
+
+- **`IPunchable` deleted outright.** `ResourceNode` (Rock Node, Boulder,
+  the full Copper/Iron/Silver/Gold/Platinum Ore family) and `ChoppableTree`
+  now implement `IInteractable` instead — same hold-E-to-fill/release-to-
+  cancel model every other interactable already used, just with a real
+  non-zero duration for the first time. `hitsToBreak`/`hitsToChop` counter
+  fields removed; `OnPunch` became `Complete`, called once when the hold
+  finishes rather than once per punch.
+- **`IInteractable.HoldDuration` (a flat per-item constant, silently unused
+  by anything until now) became `GetHoldDuration(GameObject player)`** —
+  needs the acting player because duration is skill-dependent. All ~12
+  always-instant implementers (Pickup, Backpack, Belt, Canteen, Coin,
+  Lockbox, NavigationComputer, PersonalHealthMonitor, MiningFaceShield,
+  Sunglasses, WaterSource, BankBox) got the mechanical one-line signature
+  update, unchanged behavior (still instant).
+- **Duration is skill-tiered, low tier takes longest**: `CraftTierScale`
+  gained `HoldDuration(CraftTier)` (Crude 3s → Masterwork 0.5s — placeholder
+  numbers, same "tune by playtesting" status as every other value in that
+  table) and `TierForSkillLevel(float)` (the inverse of the existing
+  `SkillRequirement`, walks the same 0/10/25/50/100 thresholds). `PlayerSkills`
+  gained `GetHoldDuration(SkillDefinition)` tying the two together — a
+  node/tree reads the player's live skill level, buckets it into a tier,
+  looks up that tier's duration. No new per-instance scene data needed.
+- **Real green progress bar added** to `PlayerInteraction`'s crosshair HUD,
+  under the existing countdown-seconds text — only draws while a hold is
+  actually filling.
+- **Scoped to gathering/chopping only**, not every interactable — Pickup,
+  equip, drink, bank, etc. all stay instant, matching "replaces punch-to-hit"
+  rather than "everything now takes time." The Crafting screen's own
+  instant "Craft" button is a deliberate **fast-follow, not done here** —
+  different UI surface (menu-driven, not world-raycast), needs its own
+  progress/cancel affordance.
+- Updated `GameMenuScreen.ControlsList`: removed the dead "Left Mouse
+  Button — Punch" entry, folded the hold behavior into the existing "E" row.
+- Verified via a full batch-mode compile check (throwaway
+  `Assets/Editor/CompileCheck.cs`, deleted after) — clean, no `CS####`
+  errors.
+
+**Known gaps, not fixed here:** tool-tier doesn't yet speed this up on top
+of skill tier (the pipeline's "Tool-quality effects" bullet promises this,
+not implemented); the Crafting screen's Craft button (see above); Escape
+has no explicit cancel wiring (release already cancels, judged sufficient
+per Ben's call during ideation).
+
+### Magic System fully fleshed out — Will, tiered wishes, learnable lineages, scrolls (doc-only, no version bump)
+
+Ideation session with Ben on the previously-thin Magic System placeholder,
+sparked by his original "wish it would..." pitch (emote a wish, luck-based
+success). Converged on a real, buildable shape reusing crafting's existing
+mechanics rather than inventing parallel ones — see `docs/design-brief.md`'s
+Magic System section for the full writeup. Summary of what got decided:
+
+- **Wishes** trigger off pre-flagged contextual moments (same
+  `IInteractable`/`ISecondaryInteractable` prompt pattern already shipped),
+  not free-form intent parsing.
+- **Will** — new sixth survival vital, added to Character Creation & Stats.
+  Starts full like the other five; unlike them, its max pool grows through
+  use rather than staying fixed. One shared pool per character.
+- **Wishes are tiered `CraftingRecipe`-style recipes**, reusing two rules
+  crafting already has: recipe-unlock gating (skill threshold before a wish
+  is attemptable) and weakest-link output quality (capped by both caster
+  skill tier and the tier of whatever material is present). Sketched an
+  illustrative Elemental ladder (Spark → Fireball → forge-grade Spark) — the
+  other three lineages' ladders are still unsketched, flagged Still Open.
+- **Lineages are learnable, not a lifetime lock** — free starting lineage
+  (keeps Pillar 7's "no lineage-less players"), any other lineage trainable
+  later exactly like any of the other 16 skills in the game, no cap, pure
+  player choice. Rides the existing Phase 2 skill-books mechanic as its
+  unlock vehicle — **this piece is Phase 2 scope**, not Phase 1.
+  Cross-referenced from the Phase 2 skill-books/magazines bullet.
+- **Two scroll paths**, both Phase 2: found scrolls roll their lineage+wish
+  **on read**, not on spawn (keeps the luck flavor genuine rather than being
+  ordinary hidden loot); scribed scrolls are deterministic, gated on a
+  dedicated Scribing skill *and* the source wish at Normal tier, and grant
+  only the unlock — never skill progress — so buying a scroll never skips
+  training.
+- Updated Pillar 7 and the Character Creation & Stats "Magic lineage" bullet
+  to match (randomized-at-start, not randomized-forever).
+- **UI impact assessed against the real current code**, not imagined: a new
+  `Magic` tab/`MagicScreen` on `PlayerMenuScreen` (read-only reference list,
+  same shape as Skills — wishes fire from in-world prompts, not a Craft
+  button); a new `Magic` value on the `SkillCategory` enum; Scribing needs
+  no new UI at all (rides the existing Crafting tab as an ordinary
+  discipline + recipes); `InventoryScreen` needs a new "Read" per-item
+  action for Unidentified Scrolls; `VitalsBarHUD`'s hardcoded 2×2 grid has
+  no slot for Will yet (same pre-existing gap Body Temperature already has).
+
+**Still open, written into the doc rather than assumed:** the other three
+lineages' wish ladders; whether the free starting lineage keeps any
+permanent edge; whether Scribing should be its own skill or shared with the
+Phase 2 crafting-manuals idea; Will's regen rule and whether Scribing itself
+costs Will/materials; and whether the wish-trigger emote is a literal
+chat/emote-wheel action or just reuses the E/F-interact pattern.
+
+No gameplay code touched — pure design-doc session, no version bump per
+`CLAUDE.md`'s doc-only-commit rule.
+
+### Design brief comparison pass — MVP progress check-in (doc-only, no version bump)
+
+Ben: "let's update, and do a comparison of our mvp doc again," after the long
+item/model/icon audit stretch below. Read `docs/design-brief.md` end to end
+and checked its claims directly against `Assets/Scripts/`, `Assets/Data/`, and
+`TestScene.unity` rather than trusting the doc's own prior "shipped"/"still
+open" notes.
+
+- Added a new **"MVP Progress Check-In (2026-08-08)"** section rolling up
+  Phase 1's 11 items against real code: 6 genuinely built (skill progression,
+  food/water, loot & gathering, crafting-quality content, storage, skills UI),
+  5 entirely unstarted (encumbrance, building, combat/first aid, magic,
+  hireable NPCs). Net finding: tonight's very large volume of work was almost
+  entirely deepening the two already-started pillars (loot & gathering,
+  crafting-tier content), not starting a new Phase 1 pillar.
+- **Found and fixed a real doc/code mismatch**: the design brief declared the
+  `Mining` skill split from `Gathering` "decided... no longer open" back on
+  2026-08-05, but no `Mining.asset` `SkillDefinition` was ever created — every
+  `ResourceNode` in the scene, including the now-fully-shipped Silver/Gold/
+  Platinum ore family, still trains `Gathering`. Flagged directly in the
+  Skills section rather than left implied.
+- Marked the Silver/Gold/Platinum hidden-ore + Mining Face Shield mechanic as
+  **shipped** (it was written as a future plan; it's been real and working
+  since `v0.1.60-dev`, confirmed by Ben's own playtest) — while also noting
+  two real gaps: the Mining-tier-4 shield-bypass has no code to check (no
+  Mining skill exists yet), and the Shield's own model is still the original
+  placeholder Cylinder despite everything else in its recipe chain being real.
+- Corrected a stale reference to the deleted Secret Message Wall (removed
+  `v0.1.126-dev`) in the same ore/shield paragraph.
+- Updated the Wood and Textiles material-web bullets to describe what
+  actually shipped (Tree→Log→Plank has no Twigs/Saw step; Cloth/Fiber have
+  real models now but no recipe or gather source yet) rather than only the
+  original plan.
+- Updated the "5 items without a defining discipline" note — Canteen is now a
+  fully real item (model/fill/tint), not just a placeholder, even though it
+  still trains no skill per that rule.
+
+No gameplay code touched — `TEST_FEATURE_PLAN.md` unchanged, no version bump
+per `CLAUDE.md`'s doc-only-commit rule.
+
+### v0.1.146-dev — Fiber gets a real model (Grass Wispy by Quaternius)
+
+Ben downloaded "Grass Wispy by Quaternius" (Poly Pizza, public domain)
+by hand — last of the two raw materials off the audit list.
+
+- Imported as `Assets/Models/GrassWispy_Quaternius.glb`, built
+  `Assets/Prefabs/FiberPickup.prefab` (hardcoded item,
+  `ContinuousDynamic`, measured bounds `0.23x0.25x0.24`), wired to
+  `Fiber.asset.worldPickupPrefab` for the first time. Icon +
+  previewIcon baked via `IconBaker` — reads clearly as a wispy tuft of
+  grass/fiber strands.
+- **Credits**: added to `Assets/Models/THIRD_PARTY_CREDITS.md` and the
+  live Credits tab — `"Grass Wispy by Quaternius [Public Domain] via
+  Poly Pizza"` — full treatment despite being public domain, same
+  precedent as Wood Planks and Pickaxe.
+- **Cloth and Fiber are now both done** — the last two items in the
+  "raw materials" category from tonight's original audit.
+
+### v0.1.145-dev — New "Woven Grass Cloth" item — second material path, per the tint experiment
+
+Ben: "let's duplicate the cloth model and call it 'woven grass cloth'.
+then run the standard path on it for tiers." Turns the v0.1.144-dev
+tint evaluation into a real, permanent second item rather than a
+throwaway test render.
+
+- New `WovenGrassClothItem.asset` (itemName "Woven Grass Cloth",
+  maxStack 20) — standalone, not part of any CraftTier ladder, same as
+  `Cloth` itself.
+- New `Assets/Data/WovenGrassCloth.mat` — a clone of Cloth's actual
+  in-game material with `baseColorFactor`/`_BaseColor`/`_Color` tinted
+  green, same static-variant pattern as the Copper/Iron/Silver/Gold/
+  Platinum ore family (one shared mesh, separate tinted `.mat` assets)
+  rather than Canteen's runtime-script approach — this is a
+  permanently-different item, not one object whose state changes live.
+- New `WovenGrassClothPickup.prefab` — reuses `PaleCloth.glb`'s mesh
+  with the new green material, same measured-fit discipline as every
+  other pickup (`0.25x0.20x0.28`, `ContinuousDynamic`, hardcoded item).
+- Icon + previewIcon baked via `IconBaker`.
+- **No recipe yet** — this is the material existing for a future
+  clothing system to consume, not a craftable item today. Visually
+  it's still the same smooth-folded cloth shape tinted green (the
+  known limitation from the v0.1.144-dev evaluation — reads as green
+  cloth, not distinctly "woven grass"), accepted as good enough for now
+  per Ben's call.
+
+### v0.1.144-dev — Cloth gets a real model (pale folded cloth); tint trick confirmed reusable
+
+Ben wanted to ideate on Cloth/Fiber's visual treatment before building
+anything — landed on: generate a pale cloth, confirm the Canteen-style
+runtime tint trick generalizes to it (for potential future dyed/colored
+cloth variants), then just ship the pale version since this was mostly
+an evaluation pass.
+
+- Generated via Tripo3D's API (`"a small folded square piece of cloth,
+  pale off-white plain-woven fabric, visible woven texture and fold
+  creases, isolated on a plain background, no person, no model,
+  low-poly game asset"`, 20 credits) — clean on the first attempt.
+- Imported as `Assets/Models/PaleCloth.glb`, built
+  `Assets/Prefabs/ClothPickup.prefab` (hardcoded item, `ContinuousDynamic`,
+  measured bounds `0.25x0.20x0.28`), wired to `Cloth.asset.
+  worldPickupPrefab` for the first time. Icon + previewIcon baked via
+  `IconBaker`.
+- **Confirmed the material-tint technique generalizes**: cloned the
+  material, set `baseColorFactor` to a green tint, rendered a
+  throwaway evaluation preview (not committed to any asset) to check
+  whether a tinted "woven grass cloth" variant would read well.
+  Mechanically it worked identically to the Canteen fix — but visually
+  it just read as a solid green cushion, not a grass texture, since
+  tinting multiplies against the existing (smooth-folded, not woven-
+  grain) albedo rather than adding new texture detail. **Conclusion**:
+  the tint trick is solid for simple flat-color variants of the same
+  base cloth (same pattern as the Copper/Iron/Silver/Gold/Platinum ore
+  family sharing one rock mesh), but a genuinely "woven grass" look
+  would need its own separately-generated texture, not a tint on this
+  model. Not pursued further this session — pale cloth ships as-is.
+
+### v0.1.143-dev — Hammer CraftTier ladder gets a real model (AI-generated stone hammer)
+
+Ben: "I don't see a decent stone hammer, so let's go the api route" —
+third tool ladder off the backlog, via Tripo3D this time instead of a
+hand-downloaded model.
+
+- Generated via Tripo3D's API (`"a crude stone hammer with a wooden
+  handle, primitive tool, rough grey stone head bound to the handle
+  with cord, isolated on a plain background, no person, no model,
+  low-poly game asset"`, 20 credits) — clean on the first attempt, no
+  500s, no timeout. Reads clearly as a stone-headed hammer bound to a
+  wooden handle with cord, matching the game's established "crude
+  primitive tool" aesthetic (same family as Crude Stone Knife).
+- Imported as `Assets/Models/StoneHammer.glb`. Same 5-tier build as
+  Pickaxe/Axe: first tier measured fresh (target length `0.6`, final
+  bounds `0.60x0.55x0.59` — chunkier than the bladed tools, as expected
+  for a hammer head), the other 4 reuse that exact fit.
+- Icons + previewIcons baked for all 5 via `IconBaker`.
+- No credits needed — Tripo3D API content has its own no-attribution
+  commercial license (see `Tools/Tripo3D/README.md`), unlike the
+  CC-BY/public-domain downloads used for Pickaxe and Axe.
+- Same note as the other tool ladders: these 5 `ItemDefinition`s are
+  referenced by `ResourceNode.requiredTools` wherever Hammer is gated
+  (Lockbox, per `BUGS_AND_ENHANCEMENTS.md`'s Belt entry) — only model/
+  icon/`worldPickupPrefab` touched, guids untouched.
+
+### v0.1.142-dev — Axe CraftTier ladder gets a real model (Low Poly Axe by suerozcelik)
+
+Ben downloaded "Low Poly Axe by suerozcelik" (Poly Pizza, CC-BY) by
+hand — second tool ladder off the backlog, same shape as Pickaxe.
+
+- Imported as `Assets/Models/Axe_suerozcelik.fbx` — **first `.fbx`
+  import this session** (everything before was `.glb`). Unity's native
+  FBX importer handled it directly with no extra steps; materials/
+  colors came through intact with no separate texture files needed
+  (confirmed by eye before baking the rest — reads clearly as a
+  wood-handled axe with a metal head).
+- Built 5 new prefabs from scratch (`CrudeAxePickup` through
+  `MasterworkAxePickup`), same pattern as Pickaxe: first tier measured
+  fresh (target length `0.6`, final bounds `0.25x0.60x0.04`), the other
+  4 reuse that exact fit.
+- Icons + previewIcons baked for all 5 via `IconBaker`.
+- **Credits — CC-BY, attribution required**: added to
+  `Assets/Models/THIRD_PARTY_CREDITS.md` and the live Credits tab —
+  `"Low Poly Axe by suerozcelik [CC-BY] via Poly Pizza"`.
+- Same note as Pickaxe: these 5 `ItemDefinition`s are referenced by
+  every `ResourceNode.requiredTools` array gated on Axe (Tree, Log) —
+  only model/icon/`worldPickupPrefab` touched, guids untouched.
+
+### v0.1.141-dev — Pickaxe CraftTier ladder gets a real model (Pickaxe by CreativeTrio)
+
+Ben downloaded "Pickaxe by CreativeTrio" (Poly Pizza, public domain) by
+hand — first tool ladder tackled from the remaining backlog, same
+"wire one model to all 5 tiers" shape as Knife.
+
+- Imported as `Assets/Models/Pickaxe_CreativeTrio.glb`. Unlike Knife,
+  no placeholder prefab existed at all for any Pickaxe tier — built 5
+  new prefabs from scratch (`CrudePickaxePickup` through
+  `MasterworkPickaxePickup`), each hardcoding its own tier's item.
+  First tier measured fresh (uniform-scaled to a `0.6` target length,
+  matching Stick's own held-tool scale — final bounds
+  `0.39x0.07x0.60`), the other 4 reuse that exact fit so all 5 render
+  identically instead of accumulating per-bake variance.
+- Icons + previewIcons baked for all 5 via `IconBaker`.
+- **Credits**: added to `Assets/Models/THIRD_PARTY_CREDITS.md` and the
+  live Credits tab — `"Pickaxe by CreativeTrio [Public Domain] via
+  Poly Pizza"` — full treatment despite being public domain, matching
+  the precedent set for Wood Planks by Quaternius.
+- **Note:** these 5 Pickaxe `ItemDefinition`s are also referenced by
+  every `ResourceNode.requiredTools` array in the game (Copper/Iron/
+  Silver/Gold/Platinum Ore Nodes, Boulder, Rock Node) — only the model/
+  icon/`worldPickupPrefab` fields were touched, guids and all existing
+  references untouched, confirmed nothing there needed updating.
 
 ### v0.1.140-dev — Removed the redundant "Fiber Belt" item
 

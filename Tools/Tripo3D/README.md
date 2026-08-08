@@ -261,6 +261,19 @@ balances, only within one.
   `Assets/Prefabs/RockKnifePickup.prefab` (the Crude Knife's world
   pickup, referenced by `CrudeKnife.asset`), sized to match the old
   placeholder's footprint (`0.08 x 0.05 x 0.35`).
+- **Stone hammer (v0.1.143-dev) — clean on the first attempt.** Prompt:
+  `"a crude stone hammer with a wooden handle, primitive tool, rough
+  grey stone head bound to the handle with cord, isolated on a plain
+  background, no person, no model, low-poly game asset"`. No 500s, no
+  timeout, no unwanted extra geometry — reads exactly as intended, a
+  stone head lashed to a wood handle. Used to fill the Hammer CraftTier
+  ladder (same 5-tiers-share-one-model pattern as Pickaxe/Axe before
+  it, those two sourced from hand-downloaded Poly Pizza models
+  instead). Worth noting as a small pattern so far: prompts explicitly
+  describing the *binding/construction detail* ("bound... with cord,"
+  "with a screw cap," "with shoulder straps") seem to correlate with
+  cleaner results than a bare object name — not proven, just an
+  observation across enough generations now to mention.
 - **Grass backpack (v0.1.133-dev) — clean, strong result, same
   server-timeout pattern, and a slow-download gotcha.** Prompt: `"a
   small woven grass backpack, plant fiber cordage bag with shoulder

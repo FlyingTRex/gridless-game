@@ -20,11 +20,10 @@ using UnityEngine;
 // GetComponentsInChildren<Renderer> is fine — it's any
 // GetComponent<Tree>()/AddComponent<Tree>() call elsewhere that would
 // have resolved to the wrong type).
-public class ChoppableTree : MonoBehaviour, IPunchable
+public class ChoppableTree : MonoBehaviour, IInteractable
 {
     [SerializeField] private GameObject logPrefab;
     [SerializeField] private int logCount = 3;
-    [SerializeField] private int hitsToChop = 3;
     [SerializeField] private float scatterForce = 1.2f;
     [SerializeField] private SkillDefinition trainedSkill;
     [SerializeField] private float skillGain = 0.5f;
@@ -35,7 +34,6 @@ public class ChoppableTree : MonoBehaviour, IPunchable
     [SerializeField] private ItemDefinition[] requiredTools;
     [SerializeField] private string requiredToolLabel = "Axe";
 
-    private int hitsTaken;
     private Collider col;
     private Transform stumpTransform;
     private Renderer[] treeRenderers;
@@ -43,7 +41,15 @@ public class ChoppableTree : MonoBehaviour, IPunchable
 
     public string Prompt => IsStump
         ? "Stump (regrowing)"
-        : (requiredTools != null && requiredTools.Length > 0 ? $"Chop (requires {requiredToolLabel})" : "Chop");
+        : (requiredTools != null && requiredTools.Length > 0 ? $"Hold to chop (requires {requiredToolLabel})" : "Hold to chop");
+
+    public bool IsInstant => false;
+
+    // Same skill-driven duration model as ResourceNode — see design-brief.md's
+    // Interaction model note. Holding on a stump just wastes the hold, same
+    // as punching one used to do nothing; not specially blocked.
+    public float GetHoldDuration(GameObject player) =>
+        player.GetComponent<PlayerSkills>().GetHoldDuration(trainedSkill);
 
     private bool IsStump => regrowAt >= 0f;
 
@@ -74,7 +80,9 @@ public class ChoppableTree : MonoBehaviour, IPunchable
         Regrow();
     }
 
-    public void OnPunch(GameObject player)
+    // Called once the hold completes — replaces the old repeated-OnPunch/
+    // hitsToChop counter, single-shot now that the wait is the gate.
+    public void Complete(GameObject player)
     {
         if (IsStump) return;
 
@@ -84,9 +92,7 @@ public class ChoppableTree : MonoBehaviour, IPunchable
             if (equipment == null || !HasAnyRequiredToolInHand(equipment)) return;
         }
 
-        hitsTaken++;
         player.GetComponent<PlayerSkills>()?.GainExperience(trainedSkill, skillGain);
-        if (hitsTaken < hitsToChop) return;
 
         for (int i = 0; i < logCount; i++)
         {
@@ -117,7 +123,6 @@ public class ChoppableTree : MonoBehaviour, IPunchable
 
     private void Regrow()
     {
-        hitsTaken = 0;
         SetStump(false);
         regrowAt = -1f;
     }

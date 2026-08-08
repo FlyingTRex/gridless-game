@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Crude Pickaxe
   maxStack: 1
   tier: 0
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 2387161643726949275, guid: e6c7bd51956ab1c4a84dcae00426c7f5, type: 3}
+  icon: {fileID: 21300000, guid: f0da395951390ea40a074ef349d0dac3, type: 3}
+  previewIcon: {fileID: 21300000, guid: 3adfc84ecc32bb64e8d064dfe0d9a05a, type: 3}

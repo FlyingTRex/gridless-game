@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Pickaxe
   maxStack: 1
   tier: 2
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 6891495581364284871, guid: 6cf4a24e77ac86246b0b2bdd6fd3a94a, type: 3}
+  icon: {fileID: 21300000, guid: ba5ad97680910b24bac62fb1f8c5e362, type: 3}
+  previewIcon: {fileID: 21300000, guid: b629baa3e03e2a34b9239282bc3fffdc, type: 3}

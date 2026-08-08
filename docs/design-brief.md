@@ -83,6 +83,11 @@ you — turning a solo survival game into a small, then growing, settlement.
    medical system. This was a real fork between the two founding docs (magic wasn't
    in the design brief at all before reconciliation) — see the dedicated Magic System
    section below for what's in Phase 1 vs. deferred.
+   - **Extended 2026-08-08:** the starting lineage is a free head start, not a
+     lifetime cap — any of the other three (or a deeper track within your own)
+     can be learned later exactly like any other skill. "No lineage-less
+     players" still holds (everyone begins with one for free); it no longer
+     means "exactly one, forever." See Magic System below for the full shape.
 
 ## Character Creation & Stats
 
@@ -91,9 +96,13 @@ screen at character creation, staying consistent with the skill-via-use philosop
 (Pillar 2) and avoiding pre-world min-maxing before a player has even seen the game:
 
 - **Survival vitals (start full, tracked live):** Health, Hunger, Thirst,
-  Stamina/Fatigue, and Body Temperature — the only numbers a new character has at
-  spawn. Fills in the full vital list for the Phase 1 food/water item in the Systems
-  Wishlist below.
+  Stamina/Fatigue, Body Temperature, and — added 2026-08-08 — **Will**, the
+  resource that powers wishes (see Magic System below). Same shape as the other
+  five: starts full, no allocation at creation; unlike the other five, Will's
+  *max pool* itself grows through use rather than staying fixed, same
+  skill-via-use logic as everything else. The only numbers a new character has
+  at spawn. Fills in the full vital list for the Phase 1 food/water item in the
+  Systems Wishlist below.
 - **No point-buy core attributes:** no Strength/Endurance/Agility/Intelligence
   allocation screen. These emerge over time as skills that grow through play — the
   same skill-via-use model as crafting (Pillar 2) — confirming how the Phase 1
@@ -102,7 +111,8 @@ screen at character creation, staying consistent with the skill-via-use philosop
 - **Skills grow through use, not assignment:** combat, crafting trades, medical, and
   foraging/gathering all improve through active use.
 - **Magic lineage** is the one randomized element at character creation — confirms
-  Pillar 7 / Magic System above.
+  Pillar 7 / Magic System above. Randomized only as a *starting point*, not a
+  lifetime lock — see Magic System's learnable-lineage note.
 - **Deferred/optional layers:** Sanity/Morale and Reputation/Fame are candidates for
   later phases, not part of the initial character model.
 
@@ -282,22 +292,143 @@ apprenticeship/contract specifics, and how Warband membership is formed/managed.
 
 New via reconciliation with `docs/game-overview.md` — magic wasn't in the design
 brief at all before this merge. See Core Pillar 7 for the headline decision (core
-and universal, not optional). Details:
+and universal, not optional). The original version of this section was a thin
+placeholder (lineages + Phase 1 scope only); **worked out in real shape during a
+2026-08-08 ideation session** — decided in shape, not exact numbers, same status
+as the Crafting/Gathering & Skills Pipeline section above, which this reuses
+several mechanics from directly.
 
-- Four lineages, randomly assigned at character creation: **Elemental, Illusion,
-  Kinetic, Restoration.** No player goes without one.
-- Granular progression — abilities start minute and require deliberate training to
-  grow, the same skill-via-use model as crafting (Pillar 2), not a spell-list you
-  unlock all at once.
-- **Restoration** integrates directly with the medical system (see the combat/
-  medical items in the Systems Wishlist below).
-- **Phase 1 scope (per reconciliation):** lineage assignment and early-tier ability
-  use only. Deeper mastery and any systemic effects beyond that are deferred.
+**Core interaction — wishes, not spellcasting.** Ben's original pitch: rather than
+a hotbar/targeted spell system, the player performs a contextual emote expressing
+a wish ("I wish this fire would catch"), and — with luck, shaped by skill — it
+happens. This fits Pillar 7's "abilities start minute" framing better than a
+button-press spell would: no cast bar, no target reticle, just an emote at the
+right moment. **Recommended scope for buildability:** wishes trigger off
+pre-flagged contextual moments (stand at an unlit campfire, a "wish it would
+light" prompt appears), the same shape as the existing `IInteractable`/
+`ISecondaryInteractable` prompt pattern (E to interact, F to secondary-interact) —
+not free-form/open-ended intent parsing, which is a much bigger, separate problem
+and not attempted here.
 
-**Still open:** what early-tier abilities actually look like per lineage; whether
-lineage assignment happens instantly at spawn or "awakens" over time as part of the
-crash-landing narrative; and how (or whether) magic interacts with crafting, combat,
-or Settlement Warfare beyond the Restoration/medical tie-in.
+**Will — a sixth survival vital.** Casting a wish costs Will, the same way
+sprinting costs Stamina. Starts full at character creation like every other
+vital (see Character Creation & Stats above); no point-buy. Unlike the other
+five vitals, Will's **max pool grows through use** rather than staying fixed —
+mirrors how carry capacity is meant to grow with strength/athletics for
+Encumbrance. One shared Will pool per character, spent on any lineage's wishes,
+not a separate pool per lineage.
+
+**Wishes are tiered recipes, not a flat unlock.** Modeled as a sibling to
+`CraftingRecipe` rather than a new mechanism, reusing two rules the crafting
+pipeline already has:
+- **Recipe-unlock gate:** a lineage skill has to clear a threshold before a given
+  wish is attemptable at all — e.g. Spark unlocks near the skill floor, Fireball
+  unlocks around Normal/Fine Elemental. Same gate crafting recipes already use.
+- **Weakest-link output quality:** once unlocked, a wish's result tier is capped
+  by *both* the caster's lineage-skill tier and the tier of whatever's physically
+  present for it to act on — a Masterwork Elemental caster wishing a fire onto
+  damp Crude tinder still only gets a Crude fire (might not even catch); a
+  low-skill caster with good Fine fuel is capped by their own skill instead. Same
+  "floor case: no skill + baseline materials = Crude output" rule as crafting,
+  applied unchanged.
+- **Illustrative Elemental ladder** (not exhaustive, other three lineages'
+  ladders still unsketched — see Still Open): Spark (unlocks near-floor, lights
+  fires/torches) → Fireball (unlocks ~Normal/Fine, needs *something* to matter
+  against — capped in usefulness until a combat/enemy system exists, so likely
+  wants to land alongside Basic Combat rather than standalone) → high-tier Spark
+  reused at a Forge context for forge-grade heat, rather than a wholly separate
+  "feed the forge" wish.
+
+**Lineages are learnable, not a lifetime lock.** A character starts with one
+lineage for free (keeps "no lineage-less players" from Pillar 7), but any of the
+remaining three — or deeper investment in the starting one — is trainable later,
+same as any of the other 16 skills in the game (7 crafting disciplines + 5
+weapon-usage skills + 4 lineages, all skill-via-use, all player-elected, no
+forced specialization, no hard cap). **Progression is entirely player-driven**:
+a character can train one lineage deeply or spread across all four — pure time/
+opportunity-cost tradeoff, not a gated choice. Rides the existing Phase 2
+**skill books/magazines** mechanic (Systems Wishlist) as its unlock vehicle —
+apprentice under an NPC or read a lineage-specific tome/scroll to open that
+lineage's skill track at 0, same starting point the free one had. **This piece
+is Phase 2 scope** (it depends on the skill-books mechanic, which is Phase 2) —
+Phase 1 only needs the starting lineage + Will + early-tier wishes to work.
+
+**Scrolls — two distinct sources for the same unlock event.**
+- **Found scrolls** — an "Unidentified Scroll" item whose actual lineage+wish is
+  rolled from a pool **at read time, not at spawn** (deliberate: keeps the
+  uncertainty flavor consistent with wishes themselves — two players finding
+  "the same" scroll type get genuinely different outcomes, rather than it being
+  ordinary hidden loot with a fixed answer). Whether the pool is flat-random
+  across all trainable skills or weighted by rarity (mirroring the ore-yield
+  rarity curve) is still open.
+- **Scribed scrolls** — a trained caster can write a deterministic scroll for a
+  specific wish they already know, gated on **two independent thresholds**: a
+  dedicated **Scribing** skill, *and* the wish's own lineage skill at Normal tier
+  (the literal midpoint of Crude/Rudimentary/Normal/Fine/Masterwork) — proving
+  you can *do* the magic and proving you can *teach* it are treated as separate
+  competencies. A scribed scroll **only grants the unlock**, never skill
+  progress — the reader still has to train it up from Crude themselves, same as
+  anyone else. Keeps skill-via-use intact; nobody buys their way past training.
+  Both scroll paths are Phase 2, riding the same skill-books mechanic as the
+  learnable-lineage note above.
+
+**UI impact — the tab screen (`PlayerMenuScreen`, Tab key).** Assessed
+2026-08-08 against the actual current implementation, not just imagined:
+- **New `Magic` tab.** `PlayerMenuScreen` currently switches on
+  `Player`/`Inventory`/`Skills`/`Crafting`; needs a fifth, backed by a new
+  `MagicScreen` component (same shape as `SkillsScreen`/`CraftingScreen`).
+  Can't just fold into the existing Crafting tab despite the recipe-like
+  data shape — `CraftingScreen`'s whole model is click-Craft/consume-
+  ingredients/item-appears-in-inventory, and a wish doesn't work that way
+  (it fires from an in-world contextual E/F prompt, not a menu button). The
+  Magic tab is closer to the Skills tab: read-only reference — lineage(s)
+  known, Will (current/max), unlocked wishes and their current quality tier.
+- **`SkillCategory` needs a `Magic` value.** Currently `Gathering` /
+  `CraftingDiscipline` / `Combat` only (`SkillDefinition.cs`) — the Skills
+  tab sub-tabs off this enum, so the four lineage skills need their own
+  bucket rather than getting force-fit into an existing one.
+- **Scribing rides the existing Crafting tab for free.** Since a scribed
+  scroll consumes materials and is gated on a skill threshold exactly like
+  any other `CraftingRecipe`, it needs no new UI — just a new "Scribing"
+  `SkillDefinition` added to `CraftingScreen`'s existing `disciplines` array
+  and ordinary recipe assets (parchment/ink + skill gates in, a Scroll item
+  out).
+- **`InventoryScreen` needs a new per-item action.** Reading a found
+  "Unidentified Scroll" (rolls its lineage+wish on read, not on pickup) is a
+  new interaction shape it doesn't have yet — same pattern as its existing
+  Canteen (Drink) and equippable (Equip) special-cases, just a new case
+  ("Read").
+- **Outside the tab screen, but adjacent:** `VitalsBarHUD` is a hardcoded
+  2×2 grid (Health/Stamina/Hunger/Thirst) that doesn't even show Body
+  Temperature today — Will joining that same gap is low-stakes to leave for
+  later, but since it's spent moment-to-moment like Stamina, it likely wants
+  a bar there eventually too, not just a number in the Magic tab.
+
+**Restoration** integrates directly with the medical system (see the combat/
+medical items in the Systems Wishlist below) — unchanged from the original
+decision, not revisited in the 2026-08-08 session.
+
+**Still open** (explicitly not decided, don't assume defaults):
+- The Illusion/Kinetic/Restoration wish ladders — only Elemental got a worked
+  example above; the others need their own progression sketched the same way.
+- Whether the free starting lineage keeps any permanent mechanical edge over a
+  later-learned one, or whether they're fully symmetric once trained to the same
+  tier — leaning toward "no permanent edge, just a head start," not locked in.
+- Whether **Scribing** is a magic-only skill, or shared with the Phase 2
+  crafting-manuals/grimoires mechanic (both are "write a document that teaches a
+  skill") — sharing one skill instead of two near-identical ones would match how
+  `Crafting` was retired in favor of the discipline-sort rule, but not decided.
+- Whether casting a wish costs anything beyond Will (e.g. does Scribing itself
+  consume Will, physical materials, both?), and Will's regen rule (passive over
+  time like Stamina, or does it need rest/meditation — thematically appealing
+  for a "wish" resource but not decided).
+- Whether the wish-triggering emote is a literal chat/emote-wheel action or
+  simply reuses the existing contextual E/F-interact prompt pattern (recommended
+  above for buildability, not yet confirmed as final).
+- What early-tier abilities look like per lineage beyond the Elemental sketch;
+  whether lineage assignment happens instantly at spawn or "awakens" over time as
+  part of the crash-landing narrative; and how (or whether) magic interacts with
+  Settlement Warfare beyond the Restoration/medical tie-in.
 
 ## Endgame: Leaving the Planet
 
@@ -391,6 +522,9 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
   left unmaintained. Applies across gear, buildings, and vehicles.
 - **Skill books/magazines** (7 Days to Die) — readable items that grant basic training
   or boost an existing skill, as an alternate path alongside learn-by-doing.
+  **Extended 2026-08-08:** this is also the unlock vehicle for learning an
+  additional magic lineage and for both found/scribed Scrolls — see Magic System
+  above for the full shape.
 - **Gardening** — harvest seeds, plant and grow crops.
 - **Animal & hunting module** — tame, hunt, harvest, skin.
 - **Fame/reputation system** — skill mastery earns fame in that trade line, and fame
@@ -460,6 +594,69 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
   a player-driven IP economy.
 - **Full transportation tiers** — steamships, cars, planes, beyond the Phase 2 basics.
 
+## MVP Progress Check-In (2026-08-08)
+
+Ben asked for a fresh comparison against this doc after a long stretch of
+item/model/icon polish work. Checked directly against the actual
+`Assets/Scripts/` roster and `TestScene.unity` rather than trusting prior
+notes in this doc — several "decided" design items below turned out not to
+be wired into code yet (see the Skills and Metal bullets above for the two
+concrete cases). Rolling up the Phase 1 — MVP core loop list against real
+implementation status:
+
+- **Skill progression via use** — built. `PlayerSkills`, diminishing gains,
+  shipped early (`393bd76`).
+- **Encumbrance & skill-based movement** — **not built.** No `weight` field
+  exists on `ItemDefinition`, no strength/athletics skill exists. Stance
+  (Kneel/Crawl/Prone) and stamina-gated movement speed are real
+  (`FirstPersonController.cs`), but that's not carried-weight encumbrance —
+  nothing currently reads how much the player is carrying.
+- **Food/water survival needs** — built. `PlayerVitals` (Health/Hunger/
+  Thirst/Stamina/Body Temperature), Berry Bush and Water Puddle as
+  consumables, and Canteen (now with a real model, `v0.1.127-dev`) as a
+  proper craftable water container.
+- **Loot & gathering** — built and, as of tonight, substantially polished.
+  Rock/Boulder/full 5-metal Ore family/Tree/Berry Bush all gatherable; the
+  vast majority of items shipped this session now have real (Tripo3D- or
+  Poly-Pizza-sourced) models and icons rather than primitive placeholders —
+  remaining known placeholder-visual gaps are Sunglasses, Nav Computer,
+  Health Monitor, and the Mining Face Shield's own model (mechanic works,
+  visual doesn't match yet).
+- **Skill-tied crafting quality (5 tiers)** — built for a real and growing
+  item roster (Trimmed Stick, Knife, Pickaxe, Axe, Hammer, Backpack, Leather
+  Backpack all have full 5-`CraftTier` ladders with real visuals now), but
+  **`CraftTier` is still assigned directly per-recipe, not derived from live
+  skill level** — the weakest-link rule and per-tier skill thresholds
+  described in the Crafting/Gathering/Skills Pipeline section below remain
+  design-only, not implemented.
+- **Basic building** — **not built.** No building/shelter/Equip-to-Define
+  code exists anywhere in `Assets/Scripts/`.
+- **Personal storage** — built. `StorageBox`, `Lockbox` (in all 5 crafting
+  tiers), `BankBox`.
+- **Basic combat + basic first aid** — **not built.** `IPunchable` exists,
+  but only as the resource-gathering interaction on nodes/trees — there is no
+  enemy, no weapon-vs-health combat, and no wound-care/first-aid system.
+- **Character/skills UI** — built. `SkillsScreen`, tabbed into
+  `PlayerMenuScreen` alongside Inventory and Crafting.
+- **Magic lineage assignment + early-tier ability use** — **not built.** No
+  magic-related script of any kind exists yet — no lineage assignment, no
+  ability system.
+- **Hireable autonomous NPCs** — **not built.** No NPC script exists at all.
+
+**Net read:** of Phase 1's 11 items, 6 are genuinely built (skill
+progression, food/water, loot & gathering, crafting-quality *content*,
+storage, skills UI) and 5 are entirely unstarted (encumbrance, building,
+combat/first aid, magic, NPCs). Nearly all of this session's very large
+volume of work — the ore ladder completion, Canteen, the Backpack/Leather
+Backpack/Knife/Pickaxe/Axe/Hammer tier ladders, Cloth/Fiber — was deepening
+the two already-started pillars (loot & gathering, crafting quality) rather
+than starting a new one. Worth Ben's eyes specifically because "how much of
+the MVP is done" and "how much visual/content polish happened" are different
+questions, and tonight was almost entirely the second one. Phase 3's Commerce
+system also already has a real head start (personal bank + Lockboxes, see
+that section) despite Phase 1 not being fully built out yet — not a problem,
+just worth knowing the phases aren't progressing strictly in order.
+
 ## Crafting, Gathering & Skills Pipeline (2026-08-04)
 
 Planning session working out the "still open" gap from the Skill-tied crafting
@@ -476,7 +673,17 @@ specifically: breaking any Ore Node trains Mining, not Gathering; also governs
 the ore-detection ability below), `Woodworking`, `Stonework`, `Metalworking`,
 `Forging`, `Minting`, `Sewing`. The `Mining` split from `Gathering` was raised
 earlier and initially deferred, then decided in a later pass of the same
-session — no longer open. `Crafting` (final assembly) was originally a 9th
+session — no longer open *as a design decision*, but **still not implemented
+in code as of 2026-08-08**: only 7 `SkillDefinition` assets actually exist
+(`Assets/Data/Gathering.asset`, `Woodworking`, `Stonework`, `Metalworking`,
+`Forging`, `Minting`, `Sewing` — no `Mining.asset`), and every single
+`ResourceNode` placed in `TestScene.unity`, including the now-fully-shipped
+Copper/Iron/Silver/Gold/Platinum Ore Nodes and the Boulder, still points its
+`trainedSkill` at `Gathering`. The ore pipeline and Mining Face Shield built
+this session are real and working (see the Metal bullet below), but they
+still train Gathering, not a dedicated Mining skill — worth fixing whenever
+this doc's decision is actually implemented, not just assumed done because
+the ore content shipped. `Crafting` (final assembly) was originally a 9th
 skill here — **retired 2026-08-05**, see the discipline-sort rule immediately
 below for why.
 
@@ -495,6 +702,13 @@ clean defining material (Sunglasses, Nav Computer, Health Monitor, Mining
 Face Shield, Canteen) didn't get force-fit into a discipline — they train no
 skill at all for now ("just to test ideas up front," not designed with this
 rule in mind).
+- **Status as of 2026-08-08:** Canteen is no longer a thin placeholder — it
+  got a full real model, world pickup, fill/drink/tint-on-full treatment this
+  session (`v0.1.127-dev`–`v0.1.131-dev`) and is genuinely done as an item,
+  it's just still untrained/disciplineless per this rule, which is unchanged.
+  Mining Face Shield is mechanically complete (see the Metal/hidden-ore bullet
+  below) but visually still the original placeholder Cylinder. Sunglasses,
+  Nav Computer, and Health Monitor remain fully untouched gadget placeholders.
 
 **Dual skill tracks.** Crafting an item trains two things from the same
 action: the broad discipline skill (e.g. `Woodworking`), and a narrow
@@ -572,6 +786,17 @@ interaction primitive.
   alongside Logs) →(Saw, Woodworking)→ Planks — still unbuilt.
   (Renaming note: the chop-tree output shipped this session as an item literally
   named "Wood" — rename to **Logs** whenever this is implemented.)
+  - **What actually shipped by 2026-08-08 is simpler than the plan above,
+    confirmed by reading `ChoppableTree.cs`:** Tree →(Axe)→ `Log` (a real
+    `ResourceNode`, not a distinct chop step) →(punch-break, same
+    `IPunchable` mechanic as every other node)→ `Plank` chunks. There is no
+    Twigs yield, no separate `Saw` tool/item, and no Woodworking-refine action
+    distinct from the chop itself — the orphaned original "Wood" item this
+    note flagged for renaming was instead deleted outright (`v0.1.136-dev`,
+    Ben's call: the Stick/Plank line already covers its role). Axe, Log, and
+    Plank all now have real models/icons (`v0.1.137-dev`–`v0.1.142-dev`), so
+    the *visual* gap is closed even though the *mechanical* gap (Twigs, Saw,
+    a true refine step) is unchanged from when this was written.
 - **Foraging:** Bush →(search)→ Berries, randomized rather than a guaranteed pickup
   (the existing Berry Bush, made richer — currently a deterministic E-to-pick).
   Same Bush →(Knife/Axe)→ Twigs as an alternative to searching it.
@@ -582,6 +807,22 @@ interaction primitive.
   Gloves doesn't map cleanly to an existing slot (Left/Right Hand are for actively-
   held tools, not worn gloves) — would likely want Left Arm/Right Arm instead, both
   also unused so far.
+  - **Status as of 2026-08-08:** `Fiber` and `Cloth` (renamed/generalized from
+    "Fabric" in practice) both got real models/icons this session
+    (`v0.1.144-dev`, `v0.1.146-dev` — Grass Wispy and a Tripo3D-generated pale
+    cloth), but neither has a `CraftingRecipe` yet and neither is placed
+    anywhere in `TestScene.unity` — both are Admin-spawn-only raw materials
+    with a visual and nothing else. The Twigs →Fiber and Fiber→(Sewing)→Fabric
+    steps this bullet describes are still entirely unbuilt, same gap as when
+    this was written. A second item, **Woven Grass Cloth** (`v0.1.145-dev`),
+    was added as a real-color-variant proof of concept for a future
+    dyed/tinted clothing line (same static-tinted-`.mat` pattern as the metal
+    ores) — confirmed the tint trick works mechanically but reads as "green
+    cloth," not "woven grass texture," since a flat multiply-tint can't add
+    grain the base model's albedo doesn't have. No clothing items (Shirt, Hat,
+    Pants, Gloves, Boots), Rope-from-Fiber, or Quiver recipe exist yet — `Rope`
+    itself ships as its own separate raw-material item with a real model
+    (`v0.1.116-dev`), not derived from this Fiber chain.
 - **Stone:** Small Rock →(Hammer/rock, Stonework)→ Shaped Rock.
 - **Metal:** Ore Node →(Pickaxe, **Mining**)→ Ore + Small Rock (mining an ore vein
   realistically kicks loose waste rock too — every ore node yields *both* its
@@ -602,17 +843,40 @@ interaction primitive.
     earned rather than just reskinned Copper.
   - **Silver/Gold/Platinum ore is hidden, not visible.** Nodes containing these
     look like an ordinary Rock Node at a glance — same reveal mechanism already
-    built for Sunglasses + the Secret Message Wall, generalized into a real
-    gameplay system: a new **Mining Face Shield** (Face-slot equippable) visually
-    marks a hidden-ore node as different when worn, and mining it only actually
-    yields the ore *with* the shield on — without it, the same node just gives
-    Small Rock, ore undetected. **At Mining skill tier 4 (Fine), the shield
-    becomes unnecessary** — enough expertise to recognize ore-bearing rock by eye
-    alone. Copper (and presumably Iron) stay visibly identifiable as ore nodes,
-    same as Copper Ore ships today — this hidden/detection mechanic is specifically
-    for the harder, higher-value metals.
+    built for Sunglasses (the Secret Message Wall it originally paired with was
+    removed 2026-08-08, dead content with nothing referencing it — Sunglasses
+    itself is unaffected), generalized into a real gameplay system: a new
+    **Mining Face Shield** (Face-slot equippable) visually marks a hidden-ore
+    node as different when worn, and mining it only actually yields the ore
+    *with* the shield on — without it, the same node just gives Small Rock, ore
+    undetected. **At Mining skill tier 4 (Fine), the shield becomes
+    unnecessary** — enough expertise to recognize ore-bearing rock by eye alone.
+    Copper (and presumably Iron) stay visibly identifiable as ore nodes, same as
+    Copper Ore ships today — this hidden/detection mechanic is specifically for
+    the harder, higher-value metals.
+    - **Shipped** (`v0.1.60-dev` initial ladder, `v0.1.120`–`121-dev` mid-tier
+      size + scatter-physics fixes, confirmed working end-to-end by Ben's
+      playtest: "the mid tier step is working as well. the shield equip/unequip
+      worked as well"). The full Copper/Iron/Silver/Gold/Platinum ore family
+      exists with real disguise/reveal materials, and the Mining Face Shield
+      item is craftable, equippable, and functionally correct.
+    - **Two real gaps against this bullet's own text, confirmed 2026-08-08:**
+      (1) the Mining-skill-tier-4 bypass doesn't exist in code at all — there is
+      no `Mining` skill (see the Skills list above; every `ResourceNode` in
+      `TestScene.unity`, ore nodes included, still trains `Gathering`), so
+      there's no threshold to check yet. (2) The Mining Face Shield's own visual
+      is still the original flattened-Cylinder placeholder — it has a real icon
+      and world pickup, but never got the same "real model via Tripo3D/Poly
+      Pizza" treatment every other tool/container got this session. Both are
+      open, known gaps, not oversights in this doc.
   - Furnace is a new placeable *structure*, not a held tool — outlined only
     (transfer ore + fuel in, get metal out), not designed in detail.
+    **Still entirely unbuilt** — no `Furnace`/`Ingot`/`Forging`/`Minting`-refine
+    script exists anywhere. Ore chunks can be mined and picked up, but nothing
+    in the game currently turns Ore into an Ingot, let alone a Forged Component
+    or a Coin — the Coin/currency system that exists today (`Coin.cs`,
+    `PlayerCurrency.cs`, `BankBox`/`Lockbox`) is a standalone economy layer, not
+    fed by this ore pipeline yet.
 - **Hunting weapons** (final assembly recipes, not new systemic mechanics —
   Woodworking-discipline now that `Crafting` retired, see the 2026-08-05
   discipline-sort update above): Stick + Rope → Bow; Stick + Rock → Arrows;

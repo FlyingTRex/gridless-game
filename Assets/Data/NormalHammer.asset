@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Hammer
   maxStack: 1
   tier: 2
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 8621938321878769021, guid: 6b36ef47ac6a6814fb3816283bbe51f7, type: 3}
+  icon: {fileID: 21300000, guid: 29bf10d6ad37c4f47a0158ed636c0ae7, type: 3}
+  previewIcon: {fileID: 21300000, guid: 1dcf69c9e96cf4f4583e8579f2284c6d, type: 3}

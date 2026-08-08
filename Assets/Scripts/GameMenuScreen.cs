@@ -18,10 +18,9 @@ public class GameMenuScreen : MonoBehaviour
     {
         ("` (Backtick)", "Open this menu"),
         ("C", "Toggle Crawl stance"),
-        ("E", "Interact (pick up / open / use)"),
+        ("E", "Interact (pick up / open / use) — hold to gather/chop, release to cancel"),
         ("Escape", "Close the open screen / toggle cursor lock"),
         ("F", "Secondary interact (e.g. Fill Canteen at a water source)"),
-        ("Left Mouse Button", "Punch (break a resource node)"),
         ("Left Shift (hold)", "Sprint"),
         ("Mouse Movement", "Look around"),
         ("Right Mouse Button", "Rename a world object"),
@@ -196,5 +195,8 @@ public class GameMenuScreen : MonoBehaviour
         GUILayout.Label("Big Tree by 3Donimus [CC-BY] via Poly Pizza", DebugGUI.Label);
         GUILayout.Label("Wood Planks by Quaternius [Public Domain] via Poly Pizza", DebugGUI.Label);
         GUILayout.Label("Strawberries by Jarlan Perez [CC-BY] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("Pickaxe by CreativeTrio [Public Domain] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("Low Poly Axe by suerozcelik [CC-BY] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("Grass Wispy by Quaternius [Public Domain] via Poly Pizza", DebugGUI.Label);
     }
 }
