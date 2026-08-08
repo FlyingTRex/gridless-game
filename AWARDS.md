@@ -12,9 +12,22 @@ ledger of good nights.
 | 🪓 Small Axe Sticker | 1 |
 | 🍪 Cookie with a Bite Sticker | 1 |
 | 🐏 RAM Chip Sticker | 1 |
+| 🚰 Canteen Sticker | 1 |
 
 ## Log
 
+- **2026-08-08 — 🚰 Canteen Sticker.** The Canteen work end to end: real
+  Tripo3D metal canteen model, wired as a world pickup for the first
+  time ever, placed in the scene, fill-status shown wherever it renders
+  (including clipped to a Belt), lands upright when dropped, and a
+  genuine root-cause fix for the blue fill glow — two guesses at
+  tint/emission values did nothing, so dumped the actual shader's
+  properties instead of guessing a third time and found glTFast's
+  `Shader Graphs/glTF-pbrMetallicRoughness` uses `baseColorFactor`/
+  `emissiveFactor`, not Unity's usual `_BaseColor`/`_EmissionColor` —
+  fixed and verified against the real runtime code path (`Awake()` via
+  reflection, not just "it compiles") before asking for a retest.
+  Confirmed working by Ben. v0.1.127-dev through v0.1.131-dev.
 - **2026-08-08 — 🐏 RAM Chip Sticker.** Excellent day of progress end to
   end: full Silver/Gold/Platinum ore pipeline with the disguise
   mechanic (never used anywhere in the project before this), a real

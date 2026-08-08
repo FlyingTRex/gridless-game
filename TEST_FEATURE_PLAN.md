@@ -30,14 +30,11 @@ fix the coordinate in this file rather than assuming the step is wrong.
   scene). **Expected:** ground plane, player, and world objects visible immediately
   on Play.
 - **Startup scene trimmed 2026-08-06** (Ben's call, to declutter): the
-  5 Coins, Secret Wall, Navigation Computer, Personal Health Monitor,
-  Sunglasses, the larger Storage Box, and 3 of the 4 Trees no longer
-  spawn by default — removed from `TestScene.unity`, not disabled.
-  Sections below that test these will fail at their stated coordinates;
-  use the **Admin** tab (`` ` `` menu) to spawn any `ItemDefinition`-based
-  one instead. **Secret Wall specifically can't be spawned via Admin at
-  all** — it's a structural world object, not an `ItemDefinition`/
-  `Pickup` — testing it requires manually re-adding it to the scene.
+  5 Coins, Navigation Computer, Personal Health Monitor, Sunglasses,
+  and the larger Storage Box no longer spawn by default — removed from
+  `TestScene.unity`, not disabled. Sections below that test these will
+  fail at their stated coordinates; use the **Admin** tab (`` ` `` menu)
+  to spawn any `ItemDefinition`-based one instead.
   (Mining Face Shield and the Silver/Gold/Platinum Ore Nodes were also
   trimmed here, but got rebuilt and re-added to the scene in v0.1.120-dev
   — see that section below, no longer affected by this trim.)
@@ -73,22 +70,6 @@ fix the coordinate in this file rather than assuming the step is wrong.
      rather than just weak.
   Also reconfirm no pink rendering (the original shader-compatibility risk
   from v0.1.55-dev).
-- [ ] **Trees (v0.1.58-dev):** originally 4 `Tree.prefab` instances around
-  `(6,0,6)`, `(-6,0,8)`, `(9,0,-3)`, `(-8,0,-6)` — **3 removed 2026-08-06**
-  to declutter the startup scene, 1 remains (exact position may not match
-  the list above — check the scene rather than assuming). Walk to it and
-  confirm: the trunk/branches render as a real branching shape (not a
-  cylinder or a blob), visible and correctly lit **from every angle walked
-  around it** (this specifically checks whether the untested triangle-winding
-  safety net — `_Cull: Off` on `TreeBark.mat` — was actually needed; it
-  should look normal regardless, just possibly rendering both mesh faces
-  instead of one). Foliage clusters (small green spheres) sit at branch tips
-  without floating detached from the branch. Walking into the trunk should
-  block movement (`MeshCollider`); walking through where foliage-only spheres
-  are shouldn't (their colliders were deliberately removed). Flag if the
-  silhouette reads as clearly tree-like or more like an abstract branching
-  blob — this is a first pass with no prior visual check.
-
 ## 1. Movement & Stances
 
 - [ ] WASD moves the player relative to camera facing; mouse look rotates
@@ -293,24 +274,16 @@ fix the coordinate in this file rather than assuming the step is wrong.
   item-spawn list behaving as if it still has a purpose; if you spot it
   referenced anywhere, that's stale. See `BUGS_AND_ENHANCEMENTS.md` for
   the open question of whether to delete or repurpose it.
-- [ ] **Tree chopping (v0.1.83-dev):** the Tree at spawn requires an Axe
-  in hand (prompt reads "Chop (requires Axe)", punching bare-handed does
-  nothing — same tool-gating as ore nodes). 3 hits drops 3 `Log`
-  instances scattered nearby with physics (should tumble briefly then
-  settle, not roll away indefinitely), and the tree itself should swap to
-  a visibly different, shorter **Stump** shape rather than fully
-  disappearing — confirm the stump is still a solid physical obstacle
-  (can't walk through it). Chopping trains **Gathering**. After ~180s the
-  stump should regrow back into a full tree (long wait — consider
-  temporarily shortening `Tree.regrowDelay` to verify without the full
-  wait). Punching the stump itself (before it regrows) should do
-  nothing — prompt should read "Stump (regrowing)", not the normal chop
-  prompt.
-- [ ] **Big Tree by 3Donimus is now choppable (v0.1.91-dev)** at
-  `(10, 3.99, 10)`: same mechanic as the real Tree above — 3 hits with
-  an Axe, drops 3 Logs, trains Gathering. **Difference from the real
-  Tree:** no Stump visual exists for it, so it fully disappears when
-  chopped (rather than swapping to a stump) and reappears after ~180s.
+- [ ] **Big Tree by 3Donimus is choppable (v0.1.91-dev — now the game's
+  only tree, after the procedural Tree was removed entirely in
+  v0.1.126-dev)** at `(10, 3.99, 10)`: requires an Axe in hand (prompt
+  reads "Chop (requires Axe)", punching bare-handed does nothing — same
+  tool-gating as ore nodes). 3 hits drops 3 `Log` instances scattered
+  nearby with physics (should tumble briefly then settle, not roll away
+  indefinitely). Chopping trains **Gathering**. The tree fully
+  disappears when chopped (no stump visual) and reappears after ~180s
+  (long wait — consider temporarily shortening `ChoppableTree.
+  regrowDelay` to verify without the full wait).
   **Confirmed working (v0.1.92-dev):** the first version's
   `CapsuleCollider` had a math error placing it ~3.6 units above the
   actual tree (floating in the canopy/above it), which Ben caught by
@@ -463,11 +436,6 @@ fix the coordinate in this file rather than assuming the step is wrong.
   **any** of the 5 Pickaxe/Axe tiers held in a hand, not just one specific
   one — spot-check at least two different tiers (e.g. Crude Pickaxe and
   Masterwork Pickaxe) against the same node to confirm both work.
-- [ ] **Trees are now harvestable (v0.1.59-dev)** — previously purely decorative.
-  Punching a tree *without* an Axe held does nothing, prompt reads "Punch to
-  break (requires Axe)". With an Axe in hand, takes 4 hits to break into 3 Wood
-  chunks; the tree (trunk + foliage) hides and respawns ~3 minutes later, same
-  pattern as Rock Node.
 - [ ] **Silver/Gold/Platinum Ore Nodes (rebuilt v0.1.120-dev, mid-tier
   added v0.1.121-dev — the originals shipped v0.1.60-dev but were
   removed in the 2026-08-06 startup-scene trim; this replaces that whole
@@ -627,15 +595,17 @@ fix the coordinate in this file rather than assuming the step is wrong.
   also show a small icon (a coiled tan shape) wherever it appears in
   inventory UI.
 - [ ] **Crude Fiber Belt / Crude Fiber Backpack (v0.1.79-dev, Sewing
-  tab; Crude Fiber Belt gets a real model v0.1.122-dev):** with 8+
-  Fiber, craft a `Crude Fiber Belt` — this should be the **first-ever
-  crafted equippable that actually works**: check it lands in the main
-  inventory as a real equippable (Equip button available, not a dead
-  stackable entry), and equipping it puts it on Waist with 2 attachment
-  points, same as the found `Fiber Belt`. As of v0.1.122-dev it should
-  show a real green woven-grass ring model (Tripo3D-generated) both as
-  a world pickup and worn, not the old flat grey box, plus a small icon
-  wherever it appears in inventory UI. With 15+ Fiber, craft a `Crude
+  tab; Crude Fiber Belt gets a real model v0.1.122-dev; placed in the
+  scene v0.1.128-dev):** a `Crude Fiber Belt` now also sits at
+  `(4, 0.3, 1.5)` as a world pickup, or craft one with 8+ Fiber — this
+  should be the **first-ever crafted equippable that actually works**:
+  check it lands in the main inventory as a real equippable (Equip
+  button available, not a dead stackable entry), and equipping it puts
+  it on Waist with 2 attachment points, same as the found `Fiber Belt`.
+  As of v0.1.122-dev it should show a real green woven-grass ring model
+  (Tripo3D-generated) both as a world pickup and worn, not the old flat
+  grey box, plus a small icon wherever it appears in inventory UI. With
+  15+ Fiber, craft a `Crude
   Fiber Backpack` the same way — Equip should put it on Back with 4
   inventory slots; this one is **still a placeholder flat-box visual**,
   not yet given a real model. **Regression check:** the existing found
@@ -756,6 +726,23 @@ fix the coordinate in this file rather than assuming the step is wrong.
   attachment points. Without a Belt worn, a Canteen with both hands full
   should fail to equip (previously it would have fallen back to Waist
   directly).
+- [ ] **Canteen real model + world pickup (v0.1.127-dev; scene instance
+  fixed v0.1.128-dev)** at `(-1, 0.3, 1.5)`: should be a real
+  Tripo3D-generated metal canteen (cylindrical body, dark screw cap),
+  not the old two-piece grey Cylinder placeholder. **Regression:** the
+  pre-existing scene object here was a standalone embedded copy, not a
+  real `Canteen.prefab` instance, so it kept showing the old placeholder
+  even after v0.1.127-dev's model swap — confirm this specific instance
+  now shows the real model, not just newly-crafted ones. Craft one too
+  (3x Stick, see `CanteenRecipe.asset`) to confirm both paths match.
+  Previously had no `worldPickupPrefab` at all (craft-only, couldn't be
+  dropped and picked back up or spawned via Admin) — confirm it can now
+  be dropped and picked back up correctly, and appears in the Admin
+  spawn list. Should show a small icon wherever it appears in inventory
+  UI. The empty/filled tint (see the Fill/Drink entry below) should
+  still work correctly against the new single-mesh model — confirm the
+  whole canteen tints blue when filled, gray when empty, not just part
+  of it.
 - [ ] **Canteen/Belt carry anchors (v0.1.123-dev — previously invisible
   when worn):** `PlayerCanteen`'s hand/belt anchors and `PlayerBelt`'s
   own carry anchor were never wired up — a worn Belt and anything
@@ -794,6 +781,21 @@ fix the coordinate in this file rather than assuming the step is wrong.
   - **Regression (v0.1.46):** confirm the tint actually renders (was silently
     broken — `GetComponent<Renderer>()` on the root missed the child mesh
     renderers, and `Material.color` alone doesn't drive URP/Lit's `_BaseColor`).
+  - **Blue glow, root cause fixed v0.1.131-dev:** the real metal canteen
+    model uses glTFast's `Shader Graphs/glTF-pbrMetallicRoughness`
+    shader, which uses `baseColorFactor`/`emissiveFactor` instead of
+    Unity's usual `_BaseColor`/`_EmissionColor` — every tint/emission
+    call had been silently no-op'ing against this specific model since
+    v0.1.127-dev's model swap. **Confirmed working** — filled reads as
+    a clear blue-navy tint against empty's neutral dark brown/black.
+  - **Fill status in the contents grid (v0.1.129-dev):** with a Canteen
+    clipped to a worn Belt's attachment point, its slot in the "X
+    contents" grid should show `Water 100/100` (or `Empty`) in the same
+    spot a stackable item's `QTY: N` normally sits — not blank.
+  - **Lands upright when dropped (v0.1.129-dev):** drop a Canteen (empty
+    or filled) from a height or onto uneven ground — it should always
+    settle standing up, never tipped onto its side (rotation is frozen
+    on X/Z, only free to spin around its own vertical axis).
 - [ ] **Sunglasses** (near spawn, ~`(-3.5, 0.3, 1.5)`, or craftable from 1 Rock
   Knife): Equip to Face. While worn, a light silver screen tint overlay is visible;
   unequip/drop removes it immediately.

@@ -63,8 +63,7 @@ public class ResourceNode : MonoBehaviour, IPunchable
     private float respawnAt = -1f;
 
     // Looked up once rather than per-frame — this node isn't parented under
-    // Player, so there's no cheap direct reference, same pattern
-    // SecretMessageWall already uses for finding PlayerSunglasses.
+    // Player, so there's no cheap direct reference.
     private PlayerMiningFaceShield shieldWearer;
 
     public string Prompt => HasToolRequirement

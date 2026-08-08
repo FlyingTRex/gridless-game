@@ -1028,11 +1028,17 @@ public class InventoryScreen : MonoBehaviour
                         pendingMoveSource = inventory;
                     }
 
-                    // Blank for a non-stackable item (maxStack <= 1, e.g. a
-                    // Backpack) rather than always showing "QTY: 1" — Ben's
-                    // call. Still drawn (as an empty label) either way so
-                    // every column reserves the same row height.
-                    string qtyLabel = entry.item.maxStack > 1 ? $"QTY: {entry.count}" : "";
+                    // A Canteen shows its fill status here instead of a QTY
+                    // count (same format as its Equipment-row label) — Ben's
+                    // request, so a Canteen clipped to a Belt point reads the
+                    // same way as one sitting directly in an equip slot.
+                    // Otherwise blank for a non-stackable item (maxStack <= 1,
+                    // e.g. a Backpack) rather than always showing "QTY: 1" —
+                    // Ben's call. Still drawn (as an empty label) either way
+                    // so every column reserves the same row height.
+                    string qtyLabel = entry.equipment is Canteen canteenEntry
+                        ? (canteenEntry.IsEmpty ? "Empty" : $"{canteenEntry.Liquid} {canteenEntry.Amount:F0}/{canteenEntry.Capacity:F0}")
+                        : entry.item.maxStack > 1 ? $"QTY: {entry.count}" : "";
                     GUILayout.Label(qtyLabel, DebugGUI.Label, GUILayout.Width(SubBoxWidth));
                 }
                 else

@@ -5,12 +5,164 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.125-dev` — must always match `GameVersion` in
+**Current version:** `0.1.131-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-08
+
+### v0.1.131-dev — Canteen's blue glow: root cause found — wrong shader property names entirely
+
+v0.1.129/130-dev's tint and emission fixes both did nothing visible,
+even after boosting the emission value into clearly-HDR territory —
+because neither was ever actually reaching the material. Diagnosed by
+dumping the real model's shader properties directly rather than
+guessing a third time: the Canteen's real model (like every other
+Tripo3D/glTFast-imported model in the project) renders with `Shader
+Graphs/glTF-pbrMetallicRoughness`, which has **none** of the Unity/URP
+property names the code was checking (`_BaseColor`, `_Color`,
+`_EmissionColor` — all `HasProperty() == false`). It exposes glTF-spec
+names instead: `baseColorFactor` and `emissiveFactor`. Every
+`SetColor("_BaseColor", ...)` / `SetColor("_EmissionColor", ...)` call
+since v0.1.46-dev's original tint fix has been silently doing nothing
+on this model — it happened to go unnoticed because the game had no
+glTFast-shaded Canteen until v0.1.127-dev's model swap; the old
+placeholder Cylinder used a hand-authored URP/Lit `Canteen.mat`, where
+`_BaseColor` genuinely did work.
+
+- `Canteen.SetTint()`/`GetTint()`/`SetEmission()` now check a list of
+  candidate property names (`_BaseColor`/`_Color`/`baseColorFactor` for
+  tint, `_EmissionColor`/`emissiveFactor` for emission) instead of
+  assuming one shader family — works correctly against both the old
+  URP/Lit convention (still used by any hand-authored `.mat`, e.g. a
+  future `emptyMaterial`/`filledMaterial` override) and glTFast's
+  Shader Graph.
+- **Verified against the actual runtime code path this time**, not just
+  compiled: instantiated the prefab in an Editor script, manually
+  invoked `Awake()` via reflection (edit-mode instantiation doesn't
+  call it automatically, unlike Play mode — a real gap in how the
+  previous two attempts were "checked"), called `Fill()`, and confirmed
+  `emissiveFactor` actually reads back `(0.5, 2.5, 5)` afterward.
+  **Confirmed live by Ben** — filled reads as a clear blue-navy tint
+  against empty's neutral dark brown/black, both in a side-by-side
+  comparison. Resolved.
+
+Ben's playtest of v0.1.129-dev's landing fix worked cleanly, but
+"not sure that I can tell the canteen has a blue glow" — the first
+emission value (`(0.1, 0.35, 0.6)`, all channels under 1.0) was too
+dim to register against this scene's bright outdoor daylight. Pushed
+`Canteen.FilledEmission` to `(0.5, 2.5, 5)` — genuinely HDR (well above
+1.0), strong enough to read clearly even without a Bloom post-process
+pass spreading it further. **Not yet re-confirmed live.**
+
+### v0.1.129-dev — Canteen: fill status in the contents grid, a real blue glow when full, lands upright
+
+Three small Canteen enhancements from continued playtesting:
+
+- **Fill status now shows in a container's contents grid** (e.g. clipped
+  to a Belt's attachment point), not just the main Equipment row —
+  `InventoryScreen.DrawContainerContents` shows `Water 100/100`/`Empty`
+  in the same spot a stackable item's `QTY: N` label sits, so a Canteen
+  reads the same way no matter which UI location it's shown in.
+- **Filled state now uses actual emission, not just a `_BaseColor`
+  tint.** The real metal canteen model's own albedo is near-black, and
+  a `_BaseColor` tint multiplies against that — barely visible. Added
+  `Canteen.SetEmission()` (enables `_EMISSION`, sets `_EmissionColor`)
+  alongside the existing tint, so filled genuinely glows blue on top
+  regardless of how dark the underlying material is; empty clears
+  emission back to black (off).
+- **Dropped/scattered canteens no longer tip onto their side.** Root
+  `Rigidbody.constraints` set to freeze X/Z rotation (still free to
+  spin/settle around its own vertical Y axis) — a `BoxCollider`'s flat
+  edges catching against the ground didn't perfectly match the
+  cylindrical mesh, so it could land tipped over. Now it always lands
+  upright, like a real canteen would.
+
+### v0.1.128-dev — Crude Fiber Belt placed in the scene; found a Canteen that wasn't a real prefab instance
+
+Ben: "let's spawn it in the game on start for now as well" (the
+Canteen), then mid-turn: "let's also spawn a grass belt."
+
+- **`Crude Fiber Belt` placed in `TestScene.unity`** at `(4, 0.3, 1.5)`,
+  a real `CrudeFiberBelt.prefab` instance — first time it's existed as
+  a world pickup rather than craft-only.
+- **Found a pre-existing standalone "Canteen" GameObject at `(-1, 0.3,
+  1.5)`** while trying to place a new one — turned out one already
+  existed in the scene, but it was a fully independent embedded copy
+  (its own `Body`/`Cap` Cylinder children), not a `PrefabInstance` of
+  `Canteen.prefab`. This meant the v0.1.127-dev model swap never
+  actually reached it — it was silently still showing the old
+  two-piece grey placeholder despite the prefab itself being fixed.
+  Replaced it with a real `PrefabInstance` at the same position (so it
+  picks up the new model, and any future prefab edit automatically),
+  matching how every other world pickup this session is placed.
+  **Lesson:** a prefab swap only reaches instances that are actually
+  linked as `PrefabInstance`s — a standalone embedded copy (same
+  pattern as the old "Belt"/tier-2 "Fiber Belt" object) silently
+  diverges and needs checking for independently.
+
+### v0.1.127-dev — Canteen gets a real model (simple metal canteen)
+
+Ben: "let's use the api to create the canteen. we can make a simple
+metal canteen. standard rules apply for item creation and icons."
+
+- Generated via Tripo3D's API (`"a simple metal canteen with a screw
+  cap, isolated on a plain background, no person, no model, low-poly
+  game asset"`, 20 credits) — clean on the first attempt, no 500s, no
+  timeout, no unwanted extra geometry. Reads clearly as a cylindrical
+  metal canteen with a dark threaded cap.
+- Imported as `Assets/Models/MetalCanteen.glb`, replacing
+  `Canteen.prefab`'s old two-piece placeholder (a scaled Cylinder
+  "Body" + a smaller scaled Cylinder "Cap") with a single real-mesh
+  child, uniformly scaled to match the old footprint's height (`0.42`).
+  Root `Rigidbody`/`BoxCollider`/`Canteen` component untouched — both
+  were already correctly built (`ContinuousDynamic` already set),
+  collider resized to the newly-measured bounds.
+- **`CanteenItem.asset.worldPickupPrefab` wired for the first time** —
+  previously empty/unset entirely, meaning Canteen was craft-only and
+  couldn't be dropped-and-repicked-up or spawned via the Admin tool.
+  Now it can.
+- `Canteen.cs`'s runtime empty/filled tinting (creates a material clone
+  from whatever the model's own material is, no dedicated
+  `emptyMaterial`/`filledMaterial` assets were ever set) continues to
+  work unchanged against the new single-renderer model — simpler than
+  before, since there's only one renderer to tint instead of two.
+- Icon baked via `IconBaker`. Fifteenth item with an icon.
+
+### v0.1.126-dev — Removed the procedural Tree and the unused Secret Message Wall
+
+Planning cleanup, Ben's call: while auditing every model in the project
+(real vs. procedural vs. placeholder, for tomorrow's session planning),
+two long-standing pieces of dead/redundant weight got flagged and
+removed outright rather than just noted:
+
+- **Procedural "Tree" removed entirely.** Built in v0.1.58-dev (branching
+  trunk mesh + ~100 primitive-sphere foliage clusters + 2 real
+  `TreeBranch_PolyByGoogle.glb` branches), it was the game's only
+  harvestable tree until **Big Tree by 3Donimus** (`BigTree_3Donimus.glb`,
+  a real CC-BY model) was made choppable in v0.1.91-dev specifically to
+  replace it — the procedural version had documented shape problems
+  (pole-like trunk, floating foliage, washed-out bark) that Big Tree
+  fixed outright. It had already been trimmed from 4 scene instances
+  down to 1 in the 2026-08-06 declutter pass; now the last one, plus its
+  prefab (`Assets/Prefabs/Tree.prefab`) and two dedicated assets
+  (`TreeTrunkMesh.asset`, `TreeFoliage.mat`), are gone. **Kept**:
+  `TreeBark.mat` and `Log.prefab` — both still genuinely shared with Big
+  Tree's own chop-drop chain (Log → Plank), confirmed via guid
+  cross-reference before deleting anything, not assumed. Big Tree is now
+  the game's only tree.
+- **`SecretMessageWall.cs` deleted.** A self-contained Easter-egg script
+  (reveals hidden text to a Sunglasses-wearing player looking at a
+  specific wall) that, per this session's model audit, was never
+  actually placed anywhere in `TestScene.unity` — confirmed via guid
+  search before deleting, only reference anywhere was a comment in
+  `ResourceNode.cs` (updated to drop the dangling mention). Dead code
+  with zero scene footprint; no gameplay lost.
+- `TEST_FEATURE_PLAN.md` updated: removed checklist entries that only
+  ever tested the procedural Tree or referenced Secret Wall re-adding
+  instructions; Big Tree's own chopping entry rewritten to stand alone
+  (previously phrased as "same as the real Tree above/differs by X").
 
 ### v0.1.125-dev — Backpack + Belt contents merged into one Inventory panel
 
