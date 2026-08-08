@@ -68,3 +68,34 @@ models and their own (different) licensing situation.
   this one doesn't strictly need a Credits tab entry, but worth listing
   here anyway for sourcing/tracking consistency with everything else in
   this ledger.
+
+## Strawberries by Jarlan Perez
+
+- File: `Assets/Models/Strawberries_JarlanPerez.glb`
+- Source: [Poly Pizza](https://poly.pizza)
+- License: CC-BY — attribution required.
+- **Required attribution text (exact, from the download popup):**
+  `Strawberries by Jarlan Perez [CC-BY] via Poly Pizza`
+- Status (2026-08-08, v0.1.139-dev): replacing `BerryPickup.prefab`'s
+  placeholder Sphere (the world/held visual for the `Berry` item).
+  Also replaced the pre-placed "Berry Bush" scene object in
+  `TestScene.unity`, which turned out to be a standalone copy rather
+  than a real `PrefabInstance` (same bug class as Canteen/Backpack
+  earlier this session) — the model swap wouldn't have reached it
+  otherwise. Actively being used. **In the Credits tab as of
+  v0.1.139-dev.**
+
+## Wood Planks by Quaternius
+
+- File: `Assets/Models/WoodPlanks_Quaternius.glb`
+- Source: [Poly Pizza](https://poly.pizza)
+- License: **Public domain** — no attribution required, but Ben asked
+  for the full credits treatment anyway per the download popup:
+  `Wood Planks by Quaternius`
+- Status (2026-08-08, v0.1.137-dev): replacing `PlankChunk.prefab`'s
+  placeholder Cube (the chunk `Log.prefab` actually drops when
+  chopped, and now also `Plank.asset`'s `worldPickupPrefab`, wired for
+  the first time). Actively being used. **In the Credits tab as of
+  v0.1.137-dev** — unlike Rock by Quaternius above, added to the live
+  tab despite being public domain, per Ben's explicit request this
+  time.

@@ -15,6 +15,6 @@ MonoBehaviour:
   itemName: Backpack
   maxStack: 1
   tier: 2
-  worldPickupPrefab: {fileID: 0}
-  icon: {fileID: 21300000, guid: f0c8c14e5130270409b4a1924e2e7c78, type: 3}
-  previewIcon: {fileID: 21300000, guid: aa517ec50d0c55040a0f17903c42ad45, type: 3}
+  worldPickupPrefab: {fileID: 1931988532258926014, guid: 8702247b7c2daf2a528a98bf535e3743, type: 3}
+  icon: {fileID: 21300000, guid: d51d6a28d3b48de49a214ecefbb40637, type: 3}
+  previewIcon: {fileID: 21300000, guid: 47be667083d99e445b63fa28838d4c2b, type: 3}

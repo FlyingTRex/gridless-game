@@ -5,14 +5,241 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.131-dev` — must always match `GameVersion` in
+**Current version:** `0.1.140-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-08
 
-### v0.1.131-dev — Canteen's blue glow: root cause found — wrong shader property names entirely
+### v0.1.140-dev — Removed the redundant "Fiber Belt" item
+
+Ben, after reviewing what was actually left to build for it: "I think
+the fiber belt is the grass belt already. so we can likely remove all
+references for it." The Normal-tier `Fiber Belt` (`BeltItem.asset`) was
+the original pre-ladder "Belt" item, renamed in v0.1.79-dev when
+`Crude Fiber Belt` shipped as the ladder's first real tier — it had
+never been given its own model/icon, was still a bare Cube placeholder
+standalone GameObject in the scene (not even a real `PrefabInstance`),
+and Rudimentary/Fine/Masterwork Fiber Belt were never built either.
+Redundant with `Crude Fiber Belt`, which already has real content.
+Confirmed via guid search before deleting (same discipline as every
+other removal tonight) — nothing referenced `BeltItem.asset` except its
+own `.meta` and the scene object. Deleted `BeltItem.asset` and the
+scene's standalone "Belt" GameObject at `(-2, 0.3, 1.5)`.
+`BUGS_AND_ENHANCEMENTS.md`'s Belt-ladder entry updated to note the
+removal; `TEST_FEATURE_PLAN.md`'s regression check referencing the old
+found Belt updated to say it's gone, not to expect it.
+
+### v0.1.139-dev — Berry gets a real model (Strawberries by Jarlan Perez)
+
+Ben downloaded "Strawberries by Jarlan Perez" (Poly Pizza, CC-BY) by
+hand — last item off the double-gap list from tonight's audit.
+
+- Imported as `Assets/Models/Strawberries_JarlanPerez.glb`, replacing
+  `BerryPickup.prefab`'s placeholder Sphere. `ContinuousDynamic`
+  confirmed/set, collider resized to the real measured bounds
+  (`0.35x0.31x0.31`).
+- **Found the same "standalone copy, not a real `PrefabInstance`" bug**
+  on the scene's pre-placed "Berry Bush" (same class as Canteen in
+  v0.1.128-dev and Backpack in v0.1.132-dev) — replaced with a real
+  `PrefabInstance` at the same position so the model swap actually
+  reaches it.
+- Icon + previewIcon baked via `IconBaker`.
+- **Credits — CC-BY, attribution required this time** (unlike Rock/Wood
+  Planks by Quaternius, both public domain): added to
+  `Assets/Models/THIRD_PARTY_CREDITS.md` and the live Credits tab
+  (`GameMenuScreen.cs`) — `"Strawberries by Jarlan Perez [CC-BY] via
+  Poly Pizza"`, exact text from the download popup.
+
+### v0.1.138-dev — Crude Knife's model wired to the other 4 Knife tiers
+
+Ben, after confirming Crude Knife already had the real Tripo3D model
+and just needed the other tiers matched up to it — same shape as the
+Backpack ladders: "let's wire up the crudeknife asset to the other 4
+tiers and do the icon work."
+
+- `RudimentaryKnife`/`Knife` (Normal)/`FineKnife`/`MasterworkKnife` all
+  had real recipes already (`v0.1.69-dev`) but zero model/icon/
+  `worldPickupPrefab` — same gap the Backpack ladder tiers were in
+  before tonight.
+- New prefabs (`RudimentaryKnifePickup`/`NormalKnifePickup`/
+  `FineKnifePickup`/`MasterworkKnifePickup`), each hardcoding its own
+  tier's item on `Pickup` (matching standard rules, even though — like
+  `RockKnifePickup` itself — these are only ever used as a
+  `worldPickupPrefab`, never a `chunkPrefab`). Rather than re-measuring
+  the model fresh per tier, copied `RockKnifePickup.prefab`'s
+  already-proven child scale/collider values directly, so all 5 tiers
+  render pixel-identical instead of accumulating small per-bake
+  variance.
+- Icons + previewIcons baked for all 4 via `IconBaker` — confirmed
+  identical bounds (`0.08x0.05x0.35`) to Crude Knife's own bake, proving
+  the copied-fit approach worked exactly.
+
+### v0.1.137-dev — Plank gets a real model (Wood Planks by Quaternius)
+
+Ben downloaded "Wood Planks by Quaternius" (Poly Pizza, public domain)
+by hand and asked for the full treatment: credits, model, icon, and a
+scene spawn.
+
+- Imported as `Assets/Models/WoodPlanks_Quaternius.glb`, replacing
+  `PlankChunk.prefab`'s placeholder Cube — this is the real chunk
+  `Log.prefab` drops when chopped (confirmed via guid cross-reference:
+  `Log.prefab`'s `ResourceNode.chunkPrefab` already pointed to
+  `PlankChunk.prefab`, and its `Pickup.item` was already correctly
+  hardcoded to `Plank.asset` — the chop-drop path itself was never
+  broken, just showing a placeholder). `ContinuousDynamic` already set,
+  collider resized to the real measured bounds (`0.25x0.04x0.60`).
+- **`Plank.asset.worldPickupPrefab` wired for the first time** — it was
+  empty (`{fileID: 0}`) despite `PlankChunk.prefab` already existing
+  and already being the correct chunk; Admin spawn / drop-and-repickup
+  would have fallen back to a generic grey cube before this.
+- Icon + previewIcon baked via `IconBaker`.
+- **Credits**: added to `Assets/Models/THIRD_PARTY_CREDITS.md` and, per
+  Ben's explicit ask this time, also to the live Credits tab
+  (`GameMenuScreen.cs`) — `"Wood Planks by Quaternius [Public Domain]
+  via Poly Pizza"`. Public domain doesn't strictly require this (see
+  Rock by Quaternius above, which was deliberately left out of the live
+  tab), but Ben asked for the full treatment here.
+- Placed one in `TestScene.unity` at `(6, 0.3, 2)`.
+
+### v0.1.136-dev — Removed the orphaned Wood item
+
+Ben's call while triaging the model/icon audit's remaining double-gap
+items: rather than give `Wood` a real model/icon, eliminate it outright
+— the Stick/Plank material line already covers that role, and Wood had
+been completely un-gatherable (`BUGS_AND_ENHANCEMENTS.md`) since the
+tree-chopping rework in v0.1.83-dev replaced its old direct drop with
+Log/Plank. Confirmed via guid search before deleting (same discipline
+as the Tree/Secret Wall removal in v0.1.126-dev): `WoodChunk.prefab`
+and `Wood.mat` were referenced by nothing except `Wood.asset` itself.
+Deleted `Wood.asset`, `WoodChunk.prefab`, `Wood.mat`, and their `.meta`
+files. `BUGS_AND_ENHANCEMENTS.md`'s Wood entry removed; its
+cross-reference from the still-open `MediumRock.asset` (Rock item)
+entry updated to point at this instead.
+
+### v0.1.135-dev — Leather Backpack becomes its own 5-tier CraftTier ladder
+
+Ben: "let's wire the leather backpack model to all 5 leather backpack
+tiers" — same treatment the grass `Backpack` ladder just got
+(v0.1.134-dev), applied to the brand-new `Leather Backpack` item.
+`LeatherBackpackItem` (built last version) becomes the Normal tier;
+built the other 4 from scratch:
+
+- New `CrudeLeatherBackpackItem`/`RudimentaryLeatherBackpackItem`/
+  `FineLeatherBackpackItem`/`MasterworkLeatherBackpackItem`, each with
+  its own prefab (`CrudeLeatherBackpackPickup.prefab`, etc.),
+  instantiating the same `CrudeLeatherBackpack.glb` model. Same
+  capacity curve as every other tiered container this session (Crude 4
+  / Rudimentary 6 / Normal 8 / Fine 12 / Masterwork 16), `tier` field
+  set correctly on each (0/1/2/3/4, matching `CraftTierNames`'
+  convention). All `ContinuousDynamic`, all wired to their own
+  `worldPickupPrefab`.
+- Icons + previewIcons baked for all 4 new tiers via `IconBaker`.
+- **Only the Normal tier (`Leather Backpack`) has a crafting recipe**
+  (the placeholder 6x Cloth + 4x Rope one from v0.1.134-dev) — the
+  other 4 tiers are data + a real model/icon, but Admin-spawn-only for
+  now, same situation as the grass `Backpack` ladder's own
+  Crude/Rudimentary/Fine/Masterwork tiers.
+
+### v0.1.134-dev — Grass model across the whole Backpack CraftTier ladder; new Leather Backpack
+
+Ben: "let's wire the model to all tiers of the grass backpack" →
+clarified as all 5 tiers of the `Backpack` `CraftTier` ladder (Crude/
+Rudimentary/Normal/Fine/Masterwork — distinct from the already-real
+`Crude Fiber Backpack`, a separate single-tier item). Then, catching
+that this would orphan the Normal tier's existing leather model: "that
+should orphan the leather backpack. let's create a leather backpack
+crafting tier, under sewing. create recipes per our standard, and
+we'll adjust the materials later."
+
+- **All 5 `Backpack` ladder tiers now use the Grass Backpack model**
+  (`Assets/Models/GrassBackpack.glb`, from v0.1.133-dev): `Backpack.
+  prefab` (Normal) had its visual swapped from `CrudeLeatherBackpack.
+  glb` to grass; four brand-new prefabs (`CrudeBackpackPickup`,
+  `RudimentaryBackpackPickup`, `FineBackpackPickup`,
+  `MasterworkBackpackPickup`) built from scratch for the other four
+  tiers, which previously had **no prefab, no icon, no world pickup at
+  all** — data-only, unreachable in play, per `BUGS_AND_ENHANCEMENTS.md`.
+  Capacity per tier matches the design already logged there (Crude 4,
+  Rudimentary 6, Normal 8, Fine 12, Masterwork 16); all wired to their
+  `ItemDefinition.worldPickupPrefab`, all `ContinuousDynamic`.
+- **New `Leather Backpack`** — a standalone item (same "single item
+  outside the ladder" pattern as `Crude Fiber Backpack`), giving the
+  leather model a real home instead of leaving it unused. New
+  `LeatherBackpackItem.asset`, `LeatherBackpack.prefab` (instantiates
+  `CrudeLeatherBackpack.glb` fresh — the model file itself was never
+  touched, just no longer referenced by the Normal tier), capacity 8.
+  **`LeatherBackpackRecipe.asset` — placeholder ingredients (6x Cloth +
+  4x Rope), Sewing-trained, per Ben's explicit call to build the recipe
+  shape now and swap in real Leather/hide materials once that material
+  chain exists** (`BUGS_AND_ENHANCEMENTS.md` had previously held off on
+  any Backpack-ladder recipes for exactly this reason — this doesn't
+  fill in the ladder itself, just unblocks the new standalone item).
+  Wired into `PlayerCrafting.recipes` in `TestScene.unity`.
+- Icons + previewIcons baked for all 6 items (5 ladder tiers + Leather
+  Backpack) via `IconBaker`. Cleaned up two more orphaned old icon
+  files (`BackpackIcon.png`/`BackpackPreviewIcon.png`, superseded by
+  `BackpackItemIcon.png`/`...Preview.png` once the Normal tier's model
+  changed and its icon got re-baked under the item-asset-name
+  convention).
+
+### v0.1.133-dev — Crude Fiber Backpack gets a real model (woven grass basket)
+
+Second double-gap item off tonight's audit. Ben: "let's use the api to
+generate a woven grass backpack, create a good prompt and we'll just
+use what it produces."
+
+- Generated via Tripo3D's API (`"a small woven grass backpack, plant
+  fiber cordage bag with shoulder straps, isolated on a plain
+  background, no person, no model, low-poly game asset"`, 20 credits)
+  — hit the same 20-minute server-side timeout pattern as the Grass
+  Belt/Knife before it (client gave up, task actually succeeded a bit
+  later; caught via direct task polling). **A clean, strong result on
+  the first attempt** — a proper backpack silhouette this time (unlike
+  the Grass Belt, which came back as a closed ring rather than an open
+  strap): woven straw/grass basket body, brown leather straps, buckle
+  closure. Used as-is per Ben's call.
+- Download itself needed a resumed retry (`curl -C -`) — the 42MB file
+  was still transferring when the tool's timeout killed the first two
+  attempts; resuming from the partial download with a freshly-repolled
+  URL (each `GET /v3/tasks/{id}` call returns a new signed URL, even
+  well after success) finished it.
+- Imported as `Assets/Models/GrassBackpack.glb`, replacing
+  `Assets/Prefabs/CrudeFiberBackpack.prefab`'s placeholder Cube.
+  **Also fixed the ground-tunneling gap while rebuilding it** —
+  `Rigidbody.collisionDetectionMode` was still left at the
+  `AddComponent<Rigidbody>()` default (`Discrete`), same standing
+  lesson as every other chunk/pickup built this session.
+- Icon + previewIcon re-baked against the real model.
+
+### v0.1.132-dev — Icon/model audit "quick wins": orphaned Backpack wired, 15 missing previewIcons batch-baked
+
+First items off the model/icon audit's punch list from planning
+tonight's session:
+
+- **`BackpackItem.asset.worldPickupPrefab` wired to `Backpack.prefab`
+  for the first time** — the real `CrudeLeatherBackpack.glb` model
+  existed and was even already sitting in `TestScene.unity`, but the
+  `ItemDefinition` never actually referenced the prefab (a dropped
+  Backpack would have fallen back to the plain grey `DroppedItem`
+  cube).
+- **Found the same "standalone copy, not a real `PrefabInstance`" bug
+  the Canteen had, on the scene's own Backpack this time** — its visual
+  happened to already be correct (someone had manually given it the
+  right child model), but future prefab edits would never have reached
+  it. Replaced with a real `PrefabInstance` at the same position,
+  matching the Canteen fix.
+- **Batch-baked `previewIcon` for 15 items that already had a small
+  `icon` but no bigger preview image**: Copper, Canteen, Copper Ore,
+  Crude Fiber Backpack, Crude Fiber Belt, Crude Knife, Iron, Mining
+  Face Shield, Gold Ore, Iron Ore, Small Rock, Platinum Ore, Rope,
+  Stick, Silver Ore — all via `IconBaker -previewResolution 128`, no
+  code changes needed, the tool already supported this. Deleted one
+  orphaned old icon file (`CrudeFiberBackpackIcon.png`, superseded by
+  `CrudeFiberBackpackItemIcon.png` once this item got a `previewIcon`
+  too — the default output name is derived from the `.asset` filename,
+  which didn't match the original bake's naming).
 
 v0.1.129/130-dev's tint and emission fixes both did nothing visible,
 even after boosting the emission value into clearly-HDR territory —

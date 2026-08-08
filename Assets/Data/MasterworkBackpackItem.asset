@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Masterwork Backpack
   maxStack: 1
   tier: 4
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 3340258431811782699, guid: faa8646333b60234e9729bbd2e9b4847, type: 3}
+  icon: {fileID: 21300000, guid: 2edcbe80e35065444ac3172a52ec9e22, type: 3}
+  previewIcon: {fileID: 21300000, guid: 455a9bcd91fb0764e9ce3d89cff358e6, type: 3}

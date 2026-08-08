@@ -194,5 +194,7 @@ public class GameMenuScreen : MonoBehaviour
         GUILayout.Label("Tree branch by Poly by Google [CC-BY] via Poly Pizza", DebugGUI.Label);
         GUILayout.Label("Stone by Poly by Google [CC-BY] via Poly Pizza", DebugGUI.Label);
         GUILayout.Label("Big Tree by 3Donimus [CC-BY] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("Wood Planks by Quaternius [Public Domain] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("Strawberries by Jarlan Perez [CC-BY] via Poly Pizza", DebugGUI.Label);
     }
 }

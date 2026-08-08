@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Masterwork Knife
   maxStack: 1
   tier: 4
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 5276291766771695620, guid: 77235b174d157a840a0aaff3dc113fd5, type: 3}
+  icon: {fileID: 21300000, guid: 58d9a868ab540ee40bd36a50424ab491, type: 3}
+  previewIcon: {fileID: 21300000, guid: 92db4a5ca2eab1246bd953f4c1f204ac, type: 3}

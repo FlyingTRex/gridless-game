@@ -291,16 +291,20 @@ fix the coordinate in this file rather than assuming the step is wrong.
   collider's world-space Y range directly against the tree's measured
   renderer bounds. Confirm punches now land normally when aimed at the
   visible trunk.
-- [ ] **Log chopping (v0.1.83-dev):** each dropped Log also requires an
-  Axe (same tool-gating). 2 hits should destroy the Log outright (not
-  hide-and-respawn like other `ResourceNode`s — a Log is a one-off
-  spawn, there's nothing to respawn) and drop 2 **Plank** (new item).
-  Chopping a Log trains **Woodworking**, not Gathering — confirm the
-  Skills tab reflects the split correctly (Tree chop → Gathering rises,
-  Log chop → Woodworking rises). Roughly 3 in 10 Log chops should also
-  drop a **Stick** (reusing the existing branch-model item, not a
-  separate "Branch") — chop several Logs across a full playtest and
-  confirm this is a real, visible chance, not always/never happening.
+- [ ] **Log chopping (v0.1.83-dev; Plank gets a real model v0.1.137-dev):**
+  each dropped Log also requires an Axe (same tool-gating). 2 hits
+  should destroy the Log outright (not hide-and-respawn like other
+  `ResourceNode`s — a Log is a one-off spawn, there's nothing to
+  respawn) and drop 2 **Plank**. As of v0.1.137-dev, Plank should show
+  a real wood-planks model (Quaternius, public domain) instead of the
+  old grey Cube, plus an icon. There's also one sitting at `(6, 0.3, 2)`
+  for a direct look without chopping anything first. Chopping a Log
+  trains **Woodworking**, not Gathering — confirm the Skills tab
+  reflects the split correctly (Tree chop → Gathering rises, Log chop →
+  Woodworking rises). Roughly 3 in 10 Log chops should also drop a
+  **Stick** (reusing the existing branch-model item, not a separate
+  "Branch") — chop several Logs across a full playtest and confirm this
+  is a real, visible chance, not always/never happening.
 - [ ] **Copper Ore Node (v0.1.59-dev, real shape v0.1.117-dev, resized
   bigger v0.1.119-dev)** at `(2, 0.4, -4)`: punching it *without* a
   Pickaxe held in a hand does nothing (no hit registers, prompt reads
@@ -374,6 +378,14 @@ fix the coordinate in this file rather than assuming the step is wrong.
   only Small Rock (no wood) — a known, accepted mismatch between the
   generated model and the recipe's implied bare-blade design, not a
   bug to fix.
+  - **Other 4 Knife tiers matched up (v0.1.138-dev):** Rudimentary/
+    Knife (Normal)/Fine/Masterwork Knife already had real recipes since
+    v0.1.69-dev but showed nothing/a generic grey cube when crafted or
+    dropped — should now all show the exact same knapped-stone-knife
+    model and icon as Crude Knife (deliberately identical across tiers,
+    same as every other tool — only the name/skill-gate differs, not
+    the visual). Confirm all 5 tiers look pixel-identical, not subtly
+    different sizes.
 - [ ] **Skill-gated crafting tiers (v0.1.80-dev):** on a fresh character
   (Stonework 0), only Crude Knife/Hammer/Axe/Pickaxe and Crude Trimmed
   Stick should be craftable — Rudimentary/Normal/Fine/Masterwork should
@@ -493,9 +505,12 @@ fix the coordinate in this file rather than assuming the step is wrong.
   player's own camera (same `WornEquipment` layer fix every other
   equippable already has) but visible on an external view. Should show
   a small icon in inventory UI.
-- [ ] **Berry Bush** — picking a Berry gives a real inventory item (not an
-  instant-eat-on-touch); Eat button only appears in the main inventory list, never
-  in a backpack/storage contents view.
+- [ ] **Berry Bush (real model v0.1.139-dev)** at `(-1.5, 0.2, 1.5)` —
+  should show a real strawberries model (CC-BY, Jarlan Perez), not the
+  old grey Sphere placeholder, plus an icon wherever Berry appears in
+  inventory UI. Picking a Berry gives a real inventory item (not an
+  instant-eat-on-touch); Eat button only appears in the main inventory
+  list, never in a backpack/storage contents view.
 - [ ] **Loot priority:** with a Backpack equipped, new pickups go straight into
   it. With no backpack, pickups try Left Hand, then Right Hand; if both hands are
   full with non-stacking items, the new pickup evicts (physically drops, not
@@ -601,20 +616,20 @@ fix the coordinate in this file rather than assuming the step is wrong.
   should be the **first-ever crafted equippable that actually works**:
   check it lands in the main inventory as a real equippable (Equip
   button available, not a dead stackable entry), and equipping it puts
-  it on Waist with 2 attachment points, same as the found `Fiber Belt`.
-  As of v0.1.122-dev it should show a real green woven-grass ring model
-  (Tripo3D-generated) both as a world pickup and worn, not the old flat
-  grey box, plus a small icon wherever it appears in inventory UI. With
-  15+ Fiber, craft a `Crude
+  it on Waist with 2 attachment points. As of v0.1.122-dev it should
+  show a real green woven-grass ring model (Tripo3D-generated) both as
+  a world pickup and worn, not the old flat grey box, plus a small icon
+  wherever it appears in inventory UI. With 15+ Fiber, craft a `Crude
   Fiber Backpack` the same way — Equip should put it on Back with 4
-  inventory slots; this one is **still a placeholder flat-box visual**,
-  not yet given a real model. **Regression check:** the existing found
-  `Fiber Belt` (near `(-2, 0.3, 1.5)`, was named plain "Belt" before
-  v0.1.79-dev, a separate tier-2 item on its own standalone prefab, not
-  a `CrudeFiberBelt.prefab` instance) should still show its old
-  placeholder grey-box visual, unaffected by the v0.1.122-dev model
-  swap — and the pre-placed `Backpack` should still work exactly as
-  before too.
+  inventory slots; as of v0.1.133-dev it should show a real woven
+  straw/grass basket model (Tripo3D-generated, brown leather straps +
+  buckle) both as a world pickup and worn, not the old flat grey box,
+  plus updated icon/previewIcon. The pre-placed `Backpack` should still
+  work exactly as before too. **Note:** the old found "Fiber Belt" (the
+  Normal-tier `BeltItem.asset`, a separate standalone placeholder near
+  `(-2, 0.3, 1.5)`, never given its own model) was removed outright in
+  v0.1.140-dev as redundant with `Crude Fiber Belt` — don't expect to
+  find it anymore.
 - [ ] **Backpack icons (v0.1.93-dev, corrected v0.1.94-dev):** there are
   two separate Backpack items, each with its own icon now — don't
   confuse them:
@@ -694,18 +709,44 @@ fix the coordinate in this file rather than assuming the step is wrong.
   if everything else is full (never no-ops); Drop removes it and its contents move
   with the physical object. Worn Backpack is invisible from the player's own
   camera (no first-person clipping) but visible to an external view.
-- [ ] **Backpack visual (v0.1.74-dev):** the world-placed Backpack (and any
-  dropped copy) should render as the Tripo3D-generated leather backpack
-  model (metal buckle/studs, crude-leather look), not the old 5-cube
-  placeholder. Check it sits at a reasonable size/orientation and doesn't
-  look stretched or float above the ground — this was a hand-computed
-  scale fit (0.53x), not an exact art pass.
-- [ ] **Backpack retiered (v0.1.75-dev):** the world-placed Backpack now
-  reads as plain "Backpack" (not "Rough Backpack") in every prompt/label —
-  it's the Normal tier of a new 5-tier ladder, capacity unchanged at 8.
-  Crude/Rudimentary/Fine/Masterwork Backpack data exists but has **no
-  spawn path yet** (no recipe, not pre-placed, Admin spawn tab doesn't
-  work for equippables) — nothing to test there until a recipe lands.
+- [ ] **Backpack visual (v0.1.74-dev; model switched leather → grass
+  v0.1.134-dev):** the world-placed Backpack (and any dropped copy)
+  should render as the woven grass basket model (Tripo3D-generated,
+  brown leather straps + buckle), **not** the original crude-leather
+  model anymore — that model moved to the new standalone `Leather
+  Backpack` item instead (see below). Check it sits at a reasonable
+  size/orientation and doesn't look stretched or float above the
+  ground.
+  - **`worldPickupPrefab` actually wired up (v0.1.132-dev):**
+    `BackpackItem.asset` never referenced `Backpack.prefab` at all until
+    now — confirm a *dropped* Backpack (not just the pre-placed one)
+    also shows the real model, not a generic grey cube. Also replaced
+    the pre-placed scene instance with a real `PrefabInstance` (it was
+    a standalone copy before, same bug class as the Canteen fix in
+    v0.1.128-dev) — its visual should be unchanged, just now wired
+    correctly for future prefab edits.
+- [ ] **Backpack retiered (v0.1.75-dev); all 5 tiers get a real
+  model/icon/world pickup (v0.1.134-dev):** the world-placed Backpack
+  reads as plain "Backpack" (not "Rough Backpack") — Normal tier,
+  capacity 8. Crude (4)/Rudimentary (6)/Fine (12)/Masterwork (16)
+  Backpack now all have a real grass-basket model, icon, and
+  `worldPickupPrefab` too (spawn any of them via the Admin tab to
+  check) — but **still no crafting recipe for any of the 4**, only
+  reachable via Admin. Confirm equipping any tier puts it on Back with
+  the right capacity for that tier.
+- [ ] **Leather Backpack (new, v0.1.134-dev, craftable — 6x Cloth + 4x
+  Rope, trains Sewing; own 5-tier ladder v0.1.135-dev):** uses the
+  original crude-leather model that the Normal-tier grass `Backpack`
+  used to have, in its own CraftTier ladder now (Crude 4 / Rudimentary
+  6 / Normal 8 / Fine 12 / Masterwork 16, same curve as every other
+  tiered container). Only Normal tier ("Leather Backpack") has a
+  recipe — craft it, confirm it equips to Back correctly and shows the
+  leather model + icon. The other 4 tiers have a real model/icon/
+  `worldPickupPrefab` but no recipe yet — spawn via Admin to check.
+  **Note:** the Normal tier's recipe ingredients are an explicit
+  placeholder (no real Leather/hide material exists yet) — don't read
+  them as a balance decision, just confirm the recipe itself actually
+  works end-to-end.
 - [ ] **Belt (new, v0.1.75-dev, world pickup near `(-2, 0.3, 1.5)`):**
   Equip puts it on Waist; Unequip/Drop follow the same fallback rules as
   Backpack. Placeholder flat-box visual only, no dedicated art yet. With a
@@ -952,11 +993,14 @@ fix the coordinate in this file rather than assuming the step is wrong.
   binds first, proportionally), then a single centered line reading
   "Tekim & The T-Rex" below it, then a "Third-Party Assets" section
   listing "Tree branch by Poly by Google [CC-BY] via Poly Pizza",
-  "Stone by Poly by Google [CC-BY] via Poly Pizza", and (as of
+  "Stone by Poly by Google [CC-BY] via Poly Pizza", (as of
   v0.1.91-dev, once it became choppable and stopped being
-  comparison-only) "Big Tree by 3Donimus [CC-BY] via Poly Pizza" —
-  exact text, not paraphrased (compare against
-  `Assets/Models/THIRD_PARTY_CREDITS.md`). **Regression caught by
+  comparison-only) "Big Tree by 3Donimus [CC-BY] via Poly Pizza", (as
+  of v0.1.137-dev) "Wood Planks by Quaternius [Public Domain] via Poly
+  Pizza", and (as of v0.1.139-dev) "Strawberries by Jarlan Perez
+  [CC-BY] via Poly Pizza" — exact text, not paraphrased (compare
+  against `Assets/Models/THIRD_PARTY_CREDITS.md`). **Regression caught
+  by
   Ben:** the v0.1.88-dev
   width-only sizing let the image grow tall enough to push the name
   line/attribution list/Close button off-screen with no way to scroll

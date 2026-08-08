@@ -17,4 +17,4 @@ MonoBehaviour:
   tier: 2
   worldPickupPrefab: {fileID: 2447759862653875308, guid: 42fd47e9db68402438f24c45da12c4ed, type: 3}
   icon: {fileID: 21300000, guid: 4fdeb1a9a1d56504582ed0e0dbd55e71, type: 3}
-  previewIcon: {fileID: 0}
+  previewIcon: {fileID: 21300000, guid: aca4c24fdbe02d3469b23c7522a8787f, type: 3}

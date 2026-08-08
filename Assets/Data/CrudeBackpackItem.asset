@@ -15,4 +15,6 @@ MonoBehaviour:
   itemName: Crude Backpack
   maxStack: 1
   tier: 0
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 1699237001370741840, guid: dafcfdea3c555b74cb48f1a9292128cd, type: 3}
+  icon: {fileID: 21300000, guid: e4534ab28d40b17448c019777650b4f1, type: 3}
+  previewIcon: {fileID: 21300000, guid: 6ae8d35bcacd7f048bd1d483b0ebdd77, type: 3}

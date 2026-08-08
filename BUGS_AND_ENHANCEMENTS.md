@@ -39,23 +39,13 @@ work) — this is the backlog between the two. Check off and move the entry to
   `ResourceNode` that breaks into 2 Small Rock instead and never grants
   Rock at all. Confirmed via guid search — nothing in the project
   references `MediumRock.asset` anymore (no recipe ever did, per the
-  entry below this one). Same situation as the Wood item below: not
-  urgent, nothing is blocked, but worth deciding whether to delete
-  `MediumRock.asset` outright or give "Rock" a real purpose (a
-  crafting ingredient? a coarser material than Small Rock for some
-  recipe?) before it reads as forgotten dead content.
-- [ ] **Wood is now completely un-gatherable.** Side effect of the tree
-  chopping rework (`CHANGELOG.md` v0.1.83-dev, Log replacing the tree's
-  old direct Wood-chunk drop, per Ben's call): `WoodChunk.prefab` is no
-  longer referenced by anything (confirmed via guid search — only its own
-  `.meta` and `Wood.asset`'s self-referential `worldPickupPrefab` pointer
-  match now), so the `Wood` item has no spawn path left in the game at
-  all. Not urgent — nothing currently consumes Wood as a crafting
-  ingredient either, so nothing is actually blocked — but worth deciding
-  whether `WoodChunk.prefab`/`Wood.asset` should be removed outright, or
-  Wood repurposed as a real ingredient somewhere (e.g. a heavier
-  structural material distinct from Plank) before this reads as
-  intentional dead content rather than an oversight.
+  entry below this one). Same situation the Wood item used to be in
+  before it was removed outright (v0.1.136-dev, Ben's call — the
+  Stick/Plank material line covers that role, Wood was redundant) —
+  worth deciding whether to delete `MediumRock.asset` outright too, or
+  give "Rock" a real purpose (a crafting ingredient? a coarser material
+  than Small Rock for some recipe?) before it reads as forgotten dead
+  content.
 - [ ] **Can't eat a Berry.** Reported by Ben during playtest, 2026-08-07.
   Root cause confirmed via investigation: the data wiring is actually
   correct (`Berry.asset`/`BerryEdible.asset` match, and
@@ -216,17 +206,27 @@ work) — this is the backlog between the two. Check off and move the entry to
     | Fine | 12 |
     | Masterwork | 16 |
 
-  - **Recipes deliberately NOT built this pass** — Ben's call: hold off
-    until there's a real Fiber → Cloth / Leather material chain instead of
-    faking it with placeholder ingredients. See the Textiles/Leather item
-    below. Only the Normal tier has a working world pickup today; the
-    other 4 tiers exist as data only, unreachable in play until a recipe
-    exists — the equippable-crafting-output fix landed 2026-08-07
-    (v0.1.79-dev), but wasn't applied to this ladder specifically, only to
-    the new, separate `Crude Fiber Backpack` (see the Textiles/Leather
-    item below — Ben's explicit call to keep it distinct from this
-    ladder rather than filling in `Crude Backpack` here).
+  - **Update, v0.1.134-dev:** all 5 tiers now have a real world pickup
+    (grass-basket model, `IconBaker`-baked icons) — Ben's call to go
+    ahead and wire the models even though real per-tier recipes still
+    don't exist. **Recipes for Crude/Rudimentary/Fine/Masterwork
+    Backpack specifically are still NOT built** — only reachable via
+    Admin spawn or a future recipe. The Normal tier is craft-adjacent
+    only via the separate `Leather Backpack` (new item, not this
+    ladder) and `Crude Fiber Backpack` (also not this ladder). Still
+    holding off on real Backpack-ladder recipes until there's an actual
+    Fiber → Cloth / Leather material progression to gate tiers on,
+    rather than 4 recipes that all cost the same placeholder materials
+    with nothing but a name distinguishing them.
   *(Reported by Ben.)*
+- [ ] **`LeatherBackpackRecipe.asset` (new, v0.1.134-dev) uses placeholder
+  ingredients (6x Cloth + 4x Rope) — explicitly temporary.** Ben's
+  direct call: build the recipe shape now, swap in real
+  Leather/hide-tanning materials once that chain exists (no raw
+  "Leather"/"Hide" material exists in the game yet — no
+  hunting/skinning system built). Don't read the current ingredient
+  list as a design decision; it's a placeholder standing in until a
+  real material exists to replace it.
 - [x] **Belt — new equippable, worn at Waist, holds generic attachment
   points instead of a normal inventory — shipped 2026-08-06 (Normal tier
   only), see `CHANGELOG.md` v0.1.75-dev.**
@@ -247,8 +247,13 @@ work) — this is the backlog between the two. Check off and move the entry to
     points, trains Sewing), and the first-ever crafted equippable that
     actually works (see the equippable-crafting-output fix in the
     Textiles/Leather item below). Rudimentary/Fine/Masterwork Fiber Belt
-    still don't exist — revisit once there's a reason to (a fancier
-    material, e.g. Rope/Cloth/Leather, to gate them on).
+    still don't exist. **Update, v0.1.140-dev:** the Normal-tier `Fiber
+    Belt` item itself (`BeltItem.asset`, the standalone placeholder
+    behind this rename, never given its own real model) was removed
+    outright — Ben's call, redundant with `Crude Fiber Belt` which
+    already has real content. This ladder's remaining open question
+    (Rudimentary/Fine/Masterwork) is now moot unless the ladder concept
+    gets revived under a different base tier.
   - **Attachments, in the order they'd likely get built:** Canteen (built
     — can now carry on a belt point as an alternative to a hand), Knife
     Scabbard (holds exactly 1 Knife, any tier, nothing else), Pouch (grants

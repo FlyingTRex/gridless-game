@@ -261,6 +261,23 @@ balances, only within one.
   `Assets/Prefabs/RockKnifePickup.prefab` (the Crude Knife's world
   pickup, referenced by `CrudeKnife.asset`), sized to match the old
   placeholder's footprint (`0.08 x 0.05 x 0.35`).
+- **Grass backpack (v0.1.133-dev) — clean, strong result, same
+  server-timeout pattern, and a slow-download gotcha.** Prompt: `"a
+  small woven grass backpack, plant fiber cordage bag with shoulder
+  straps, isolated on a plain background, no person, no model,
+  low-poly game asset"`. Hit the same client-side "did not succeed"
+  timeout the Grass Belt/Knife hit — task actually succeeded a bit
+  later, caught by polling `GET /v3/tasks/{id}` directly. Unlike the
+  Grass Belt (came back as a closed ring instead of an open strap),
+  this one nailed a proper backpack silhouette on the first attempt —
+  woven basket body, leather straps, buckle closure. **New gotcha**:
+  the 42MB download itself got killed twice by the shell tool's own
+  timeout mid-transfer (large file, slow connection) — recovered with
+  `curl -C -` (resume) against a freshly-repolled URL. Confirmed a
+  `GET /v3/tasks/{id}` call returns a **new** signed `model_url` each
+  time, even long after the task succeeded — don't assume the first
+  URL you got is the only one available if it's slow or the transfer
+  gets interrupted.
 - **Grass belt (v0.1.122-dev) — hit the 20-minute server-side timeout,
   then quietly succeeded anyway.** Prompt: `"a green woven grass belt,
   plant fiber cordage wrapped in a coil, isolated on a plain
