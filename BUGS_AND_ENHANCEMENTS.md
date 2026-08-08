@@ -507,6 +507,24 @@ work) — this is the backlog between the two. Check off and move the entry to
   Don't start implementing any further piece of this without
   re-reading the full design-brief section first — it's too
   interlocking to build from memory of this one-line summary.
+- [ ] **Magic System — first real slice shipped v0.1.148-dev, most of it
+  still design-only.** See `docs/design-brief.md`'s **Magic System**
+  section for the full plan. **Shipped:** Will (sixth vital, `PlayerVitals`),
+  `SkillCategory.Magic` + 4 lineage `SkillDefinition`s, `PlayerMagic`
+  (random starting lineage at spawn), `WishRecipe`, the `Magic` tab
+  (`MagicScreen`), and one working wish — Spark, lighting a `Campfire` via
+  the same skill-tiered hold mechanic gathering uses. **Still not built:**
+  Fireball (needs a combat system that doesn't exist), the Illusion/
+  Kinetic/Restoration lineages' own wishes (only Elemental has one), found
+  and scribed Scrolls, learnable additional lineages (both ride the
+  not-yet-built Phase 2 skill-books mechanic — every character is
+  permanently stuck on their one starting lineage until that's built), the
+  Scribing skill itself, and tool-tier speed bonuses (same gap gathering
+  has). **Real simplification, not an oversight:** Spark's completion
+  doesn't weakest-link against any fuel/tinder tier — `Campfire` has no
+  material-quality input to cap against, unlike crafting's ingredients.
+  Don't assume any of the deferred pieces exist without checking — this
+  is a large, only-partially-built system.
 - [ ] **Sky texture could use another pass.** Procedural cloudy skybox shipped
   v0.1.55-dev through v0.1.57-dev (`GenerateSkyTexture.cs`, throwaway —
   `Assets/Data/Sky.mat` + `Assets/Textures/SkyTexture.png` are the persistent

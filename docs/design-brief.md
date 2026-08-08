@@ -96,10 +96,10 @@ screen at character creation, staying consistent with the skill-via-use philosop
 (Pillar 2) and avoiding pre-world min-maxing before a player has even seen the game:
 
 - **Survival vitals (start full, tracked live):** Health, Hunger, Thirst,
-  Stamina/Fatigue, Body Temperature, and — added 2026-08-08 — **Will**, the
-  resource that powers wishes (see Magic System below). Same shape as the other
-  five: starts full, no allocation at creation; unlike the other five, Will's
-  *max pool* itself grows through use rather than staying fixed, same
+  Stamina/Fatigue, Body Temperature, and — **shipped v0.1.148-dev** — **Will**,
+  the resource that powers wishes (see Magic System below). Same shape as the
+  other five: starts full, no allocation at creation; unlike the other five,
+  Will's *max pool* itself grows through use rather than staying fixed, same
   skill-via-use logic as everything else. The only numbers a new character has
   at spawn. Fills in the full vital list for the Phase 1 food/water item in the
   Systems Wishlist below.
@@ -298,6 +298,21 @@ placeholder (lineages + Phase 1 scope only); **worked out in real shape during a
 as the Crafting/Gathering & Skills Pipeline section above, which this reuses
 several mechanics from directly.
 
+**First real slice shipped the same day, v0.1.148-dev:** Will (a real sixth
+vital, `PlayerVitals`), a starting-lineage assignment (`PlayerMagic`, random
+at spawn), the `WishRecipe` data shape, the `Magic` tab (`MagicScreen`), and
+one fully working wish — **Spark**, which lights an unlit `Campfire` (placed
+in `TestScene.unity`) via the same skill-tiered hold-and-release mechanic
+gathering got in v0.1.147-dev. **Deliberately not in this slice:** Fireball
+(needs combat, which doesn't exist), scrolls and learnable second lineages
+(both ride the not-yet-built Phase 2 skill-books mechanic), Illusion/Kinetic/
+Restoration's own wishes, and — a real simplification from the plan below,
+not an oversight — **Spark's quality isn't actually weakest-link against fuel
+tier**: `Campfire.Complete()` just lights unconditionally once the lineage/
+skill/Will gates pass, no fuel-tier input exists to cap it against. See
+`CHANGELOG.md` v0.1.148-dev for the full build notes, including a real
+`RequireComponent`-auto-add gotcha hit while wiring the scene.
+
 **Core interaction — wishes, not spellcasting.** Ben's original pitch: rather than
 a hotbar/targeted spell system, the player performs a contextual emote expressing
 a wish ("I wish this fire would catch"), and — with luck, shaped by skill — it
@@ -337,7 +352,9 @@ pipeline already has:
   against — capped in usefulness until a combat/enemy system exists, so likely
   wants to land alongside Basic Combat rather than standalone) → high-tier Spark
   reused at a Forge context for forge-grade heat, rather than a wholly separate
-  "feed the forge" wish.
+  "feed the forge" wish. **Spark itself shipped v0.1.148-dev** — see the
+  "First real slice" callout above; Fireball and the Forge reuse remain
+  design-only.
 
 **Lineages are learnable, not a lifetime lock.** A character starts with one
 lineage for free (keeps "no lineage-less players" from Pillar 7), but any of the
@@ -373,7 +390,10 @@ Phase 1 only needs the starting lineage + Will + early-tier wishes to work.
   learnable-lineage note above.
 
 **UI impact — the tab screen (`PlayerMenuScreen`, Tab key).** Assessed
-2026-08-08 against the actual current implementation, not just imagined:
+2026-08-08 against the actual current implementation, not just imagined —
+**the `Magic` tab and `SkillCategory.Magic` bullets below both shipped
+same-day, v0.1.148-dev**; the Scribing/Crafting-tab and Inventory-Read
+bullets remain design-only (Scribing itself is Phase 2, see Scrolls above):
 - **New `Magic` tab.** `PlayerMenuScreen` currently switches on
   `Player`/`Inventory`/`Skills`/`Crafting`; needs a fifth, backed by a new
   `MagicScreen` component (same shape as `SkillsScreen`/`CraftingScreen`).

@@ -119,6 +119,63 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1001 &182274426
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 5822138250101356064, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_Name
+      value: Campfire
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -4
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8021763274507489443, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
 --- !u!1 &211758442
 GameObject:
   m_ObjectHideFlags: 0
@@ -554,7 +611,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ChoppableTree
   logPrefab: {fileID: 100000, guid: 35caf777577e41fe9cf07bd97be822bb, type: 3}
   logCount: 3
-  hitsToChop: 3
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -621,7 +677,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
   chunkPrefab: {fileID: 2188786272772239960, guid: 01195afbebd8ece478e375b7fe203955, type: 3}
   chunkCount: 3
-  hitsToBreak: 2
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -1112,7 +1167,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
   chunkPrefab: {fileID: 6339605321079903036, guid: f0ef6a9a140afcb4ebe2ba6b2a706257, type: 3}
   chunkCount: 3
-  hitsToBreak: 2
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -1478,7 +1532,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
   chunkPrefab: {fileID: 5319916492979526695, guid: 86ac897dcca2921438e39462b3a0e376, type: 3}
   chunkCount: 3
-  hitsToBreak: 2
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -1791,7 +1844,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
   chunkPrefab: {fileID: 4927940574493878028, guid: 7cd5992bc6924e94da4af2512c3fd4b2, type: 3}
   chunkCount: 3
-  hitsToBreak: 2
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -1935,7 +1987,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
   chunkPrefab: {fileID: 2015791843943886014, guid: e635527bfa63bea44bb9e3465c6a39b7, type: 3}
   chunkCount: 3
-  hitsToBreak: 2
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -2096,7 +2147,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
   chunkPrefab: {fileID: 1931988532258926014, guid: cbb3c62f40084df4b92bca399068f400, type: 3}
   chunkCount: 3
-  hitsToBreak: 1
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -2366,6 +2416,8 @@ GameObject:
   - component: {fileID: 1681626262}
   - component: {fileID: 1681626263}
   - component: {fileID: 1681626264}
+  - component: {fileID: 1681626266}
+  - component: {fileID: 1681626265}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -2496,6 +2548,8 @@ MonoBehaviour:
   thirst: 100
   stamina: 100
   bodyTemperature: 50
+  will: 100
+  maxWill: 100
   hungerDrainPerSecond: 0.083333336
   thirstDrainPerSecond: 0.1388889
   starvationDamagePerSecond: 2
@@ -2509,6 +2563,7 @@ MonoBehaviour:
   overdrinkSicknessDamagePerSecond: 5
   overdrinkRecoveryThreshold: 50
   overdrinkThirstRecoveryPerSecond: 10
+  willRegenPerSecond: 4
 --- !u!114 &1681626239
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2960,6 +3015,38 @@ MonoBehaviour:
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+--- !u!114 &1681626265
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fdb8c884b9de12147a618103365134b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::MagicScreen
+  allWishes:
+  - {fileID: 11400000, guid: b384b4e0233db2a40957974b946a78fe, type: 2}
+--- !u!114 &1681626266
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b40e6c3edc80d24dbf5370977fef46a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMagic
+  allLineages:
+  - {fileID: 11400000, guid: 5ea441801f5678341ac8bb9856963658, type: 2}
+  - {fileID: 11400000, guid: ff6fc246acf5ae94a833b9aa314d9000, type: 2}
+  - {fileID: 11400000, guid: 568a06a6f6c824c4eb93ec0d2066fe75, type: 2}
+  - {fileID: 11400000, guid: 4026e37d40fc27344aabd6023b028fbf, type: 2}
+  maxWillGrowthPerWish: 0.5
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0
@@ -3066,7 +3153,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
   chunkPrefab: {fileID: 8584421546452813150, guid: 72c9bb4e4474fa14e807339e95730ef8, type: 3}
   chunkCount: 3
-  hitsToBreak: 2
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -3694,3 +3780,4 @@ SceneRoots:
   - {fileID: 343166977}
   - {fileID: 380357886}
   - {fileID: 1930227936}
+  - {fileID: 182274426}

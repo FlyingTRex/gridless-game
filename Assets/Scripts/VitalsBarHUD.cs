@@ -28,6 +28,7 @@ public class VitalsBarHUD : MonoBehaviour
     private Texture2D staminaTex;
     private Texture2D hungerTex;
     private Texture2D thirstTex;
+    private Texture2D willTex;
     private GUIStyle labelStyle;
 
     private void Awake()
@@ -52,6 +53,7 @@ public class VitalsBarHUD : MonoBehaviour
         staminaTex = MakeTex(new Color(0.85f, 0.75f, 0.15f));
         hungerTex = MakeTex(new Color(0.85f, 0.5f, 0.15f));
         thirstTex = MakeTex(new Color(0.2f, 0.5f, 0.85f));
+        willTex = MakeTex(new Color(0.6f, 0.3f, 0.85f));
 
         labelStyle = new GUIStyle(GUI.skin.label)
         {
@@ -66,24 +68,33 @@ public class VitalsBarHUD : MonoBehaviour
         EnsureStyles();
 
         float gridWidth = BarWidth * 2f + ColumnGap;
-        float gridHeight = BarHeight * 2f + RowGap;
+        // Third row for Will (added 2026-08-08, Magic System) — a single
+        // full-width bar, not a third column, so Body Temperature (still
+        // not shown anywhere, a pre-existing gap unrelated to this) isn't
+        // implied to have a matching slot it doesn't actually have.
+        float gridHeight = BarHeight * 3f + RowGap * 2f;
         float originX = (Screen.width - gridWidth) / 2f;
         float originY = Screen.height - BottomMargin - gridHeight;
 
         var panelRect = new Rect(originX - Padding, originY - Padding, gridWidth + Padding * 2f, gridHeight + Padding * 2f);
         DebugGUI.DrawPanel(panelRect);
 
-        DrawBar(new Rect(originX, originY, BarWidth, BarHeight), "Health", vitals.Health, healthTex);
-        DrawBar(new Rect(originX + BarWidth + ColumnGap, originY, BarWidth, BarHeight), "Stamina", vitals.Stamina, staminaTex);
-        DrawBar(new Rect(originX, originY + BarHeight + RowGap, BarWidth, BarHeight), "Hunger", vitals.Hunger, hungerTex);
-        DrawBar(new Rect(originX + BarWidth + ColumnGap, originY + BarHeight + RowGap, BarWidth, BarHeight), "Thirst", vitals.Thirst, thirstTex);
+        DrawBar(new Rect(originX, originY, BarWidth, BarHeight), "Health", vitals.Health, ScaleMax, healthTex);
+        DrawBar(new Rect(originX + BarWidth + ColumnGap, originY, BarWidth, BarHeight), "Stamina", vitals.Stamina, ScaleMax, staminaTex);
+        DrawBar(new Rect(originX, originY + BarHeight + RowGap, BarWidth, BarHeight), "Hunger", vitals.Hunger, ScaleMax, hungerTex);
+        DrawBar(new Rect(originX + BarWidth + ColumnGap, originY + BarHeight + RowGap, BarWidth, BarHeight), "Thirst", vitals.Thirst, ScaleMax, thirstTex);
+        // Scaled against its own current max, not the fixed ScaleMax the
+        // other four use — Will's ceiling grows over play, so "percent of
+        //150" would read as permanently-nearly-full once maxWill climbs
+        // past that fixed number.
+        DrawBar(new Rect(originX, originY + (BarHeight + RowGap) * 2f, gridWidth, BarHeight), "Will", vitals.Will, vitals.MaxWill, willTex);
     }
 
-    private void DrawBar(Rect rect, string label, float value, Texture2D fillTex)
+    private void DrawBar(Rect rect, string label, float value, float scaleMax, Texture2D fillTex)
     {
         GUI.DrawTexture(rect, backgroundTex);
 
-        float fraction = Mathf.Clamp01(value / ScaleMax);
+        float fraction = Mathf.Clamp01(value / scaleMax);
         if (fraction > 0f)
         {
             var fillRect = new Rect(rect.x, rect.y, rect.width * fraction, rect.height);

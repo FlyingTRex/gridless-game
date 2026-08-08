@@ -5,12 +5,82 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.147-dev` — must always match `GameVersion` in
+**Current version:** `0.1.148-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-08
+
+### v0.1.148-dev — Magic System: first real slice — Will, starting lineage, and Spark lighting a Campfire
+
+Ben: "let's build the magic system" — the first real implementation off
+the same-day ideation session (see the doc-only entries below for the
+design conversation). Scoped deliberately: build the full skeleton plus
+one genuinely working wish, not all four lineages at once.
+
+- **Will**, a real sixth `PlayerVitals` field — starts at 100, regens
+  passively like Stamina (no drain-state needed, since Will is spent as
+  one lump per completed wish, not continuously). `ConsumeWill`/
+  `GrowMaxWill` added; `GrowMaxWill` raises the ceiling *and* tops up
+  current Will, so growth reads as a real gain, not just cap-raising.
+  Added to `VitalsBarHUD` as a new third row (single full-width bar,
+  scaled against its own live `MaxWill`, not the other four bars' fixed
+  150% scale — Will's ceiling grows, so a fixed scale would read as
+  permanently-near-full over time).
+- **`SkillCategory.Magic`** added (`SkillDefinition.cs`) — the four
+  lineages' home in the Skills tab, alongside Gathering/CraftingDiscipline/
+  Combat. Four new `SkillDefinition` assets: `Elemental`, `Illusion`,
+  `Kinetic`, `Restoration`.
+- **`PlayerMagic`** (new component) — assigns one random starting lineage
+  per character at spawn (keeps Pillar 7's "no lineage-less players"),
+  exposes `IsLineageKnown`/`CanAttempt`/`TryWish`. Learning additional
+  lineages later is explicitly **not built** — rides the Phase 2
+  skill-books mechanic, which doesn't exist yet, so every character only
+  ever knows their one starting lineage for now.
+- **`WishRecipe`** (new `ScriptableObject`) — sibling to `CraftingRecipe`:
+  `lineage`, `unlockTier` (reuses `CraftTierScale.SkillRequirement`
+  directly), `willCost`, `skillGain`. No material-tier weakest-link input
+  on the data class itself — that's decided per wish target instead (see
+  Campfire below).
+- **Spark**, the first real wish, and **`Campfire`**, its target: an
+  unlit campfire (primitive logs + kindling + a `Light`, same
+  "primitives first" precedent Backpack set) that lights when a player
+  who knows Elemental holds E through a skill-tiered duration (same
+  `PlayerSkills.GetHoldDuration` mechanic gathering uses) with enough
+  Will. **Simplification from the design doc, flagged not hidden:**
+  lighting is unconditional once the gates pass — there's no fuel-tier
+  input to cap quality against, so the "weakest-link vs. tinder tier"
+  idea from the ideation session isn't actually implemented here.
+- **New `Magic` tab** (`MagicScreen`, `PlayerMenuScreen`) — read-only
+  reference (lineage known, Will current/max, known wishes with
+  locked/unlocked state), not a clickable list, since wishes fire from
+  the in-world E-hold prompt on their target, not a menu button.
+- Placed one Campfire in `TestScene.unity` at `(-4, 0.3, -2)`.
+
+**Real bug hit and fixed while wiring the scene:** adding
+`[RequireComponent(typeof(MagicScreen))]` to `PlayerMenuScreen` meant
+Unity auto-created an *empty* `MagicScreen`/`PlayerMagic` on `Player` the
+moment the scene loaded — **before** the setup script's own
+`AddComponent` calls ran, leaving two of each (the auto-created empty
+one and the script's own). Fixed two ways: added `[DisallowMultipleComponent]`
+to both (matching `PlayerVitals`/`PlayerSkills`'s existing convention,
+should have been there from the start) and rewrote the wiring script to
+`GetComponent ?? AddComponent` instead of assuming a fresh add. Also
+re-hit this project's own documented gotcha in the process — object
+references fetched *before* `EditorSceneManager.OpenScene()` go stale
+(`fileID: 0`) once the scene opens; fixed by loading the lineage/wish
+assets after opening the scene, not before.
+
+Verified via a full batch-mode compile check (throwaway
+`Assets/Editor/CompileCheck.cs`, deleted after) and by reading back the
+saved scene YAML to confirm exactly one `PlayerMagic`/`MagicScreen` each
+with real (non-`fileID: 0`) references, not just trusting the batch log.
+
+**Known gaps, not fixed here:** Fireball (needs combat), scrolls and
+learnable second lineages (Phase 2, ride skill-books), Illusion/Kinetic/
+Restoration's own wishes, and Spark's missing weakest-link fuel-tier
+input (see above).
 
 ### v0.1.147-dev — Punch-to-break retired: gathering/chopping now hold-and-release, skill-tiered
 

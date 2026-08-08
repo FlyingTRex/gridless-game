@@ -11,9 +11,10 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(InventoryScreen))]
 [RequireComponent(typeof(SkillsScreen))]
 [RequireComponent(typeof(CraftingScreen))]
+[RequireComponent(typeof(MagicScreen))]
 public class PlayerMenuScreen : MonoBehaviour
 {
-    private enum Tab { Player, Inventory, Skills, Crafting }
+    private enum Tab { Player, Inventory, Skills, Crafting, Magic }
 
     private const float TabWidth = 140f;
     private const float TabHeight = 32f;
@@ -21,6 +22,7 @@ public class PlayerMenuScreen : MonoBehaviour
     private InventoryScreen inventoryScreen;
     private SkillsScreen skillsScreen;
     private CraftingScreen craftingScreen;
+    private MagicScreen magicScreen;
 
     private bool isOpen;
     private Tab currentTab = Tab.Player;
@@ -33,6 +35,7 @@ public class PlayerMenuScreen : MonoBehaviour
         inventoryScreen = GetComponent<InventoryScreen>();
         skillsScreen = GetComponent<SkillsScreen>();
         craftingScreen = GetComponent<CraftingScreen>();
+        magicScreen = GetComponent<MagicScreen>();
     }
 
     private void Update()
@@ -79,6 +82,7 @@ public class PlayerMenuScreen : MonoBehaviour
             case Tab.Inventory: inventoryScreen.DrawContent(); break;
             case Tab.Skills: DrawScrollable(skillsScreen.DrawContent); break;
             case Tab.Crafting: DrawScrollable(craftingScreen.DrawContent); break;
+            case Tab.Magic: DrawScrollable(magicScreen.DrawContent); break;
         }
 
         GUILayout.FlexibleSpace();

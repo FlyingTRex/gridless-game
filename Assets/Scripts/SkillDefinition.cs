@@ -10,6 +10,9 @@ public enum SkillCategory
     Gathering,
     CraftingDiscipline,
     Combat,
+    // Added 2026-08-08 for the four magic lineages (Elemental/Illusion/
+    // Kinetic/Restoration) — see design-brief.md's Magic System section.
+    Magic,
 }
 
 [CreateAssetMenu(menuName = "Gridless/Skill Definition", fileName = "NewSkill")]

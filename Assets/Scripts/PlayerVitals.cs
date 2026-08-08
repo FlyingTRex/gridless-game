@@ -21,6 +21,15 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float thirst = 100f;
     [SerializeField] private float stamina = 100f;
     [SerializeField] private float bodyTemperature = 50f;
+    // Sixth vital, added 2026-08-08 for the Magic System (see
+    // design-brief.md) — the resource wishes spend. Unlike the other five,
+    // its ceiling isn't fixed: maxWill grows via GrowMaxWill (called by
+    // PlayerMagic on a completed wish), so `will` is clamped against
+    // maxWill, not a hardcoded 100. Regens passively like Stamina — no
+    // "IsCasting" drain state, since Will is spent as one lump per
+    // completed wish, not drained continuously.
+    [SerializeField] private float will = 100f;
+    [SerializeField] private float maxWill = 100f;
 
     [SerializeField] private float hungerDrainPerSecond = 100f / (20f * 60f);
     [SerializeField] private float thirstDrainPerSecond = 100f / (12f * 60f);
@@ -35,6 +44,7 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float overdrinkSicknessDamagePerSecond = 5f;
     [SerializeField] private float overdrinkRecoveryThreshold = 50f;
     [SerializeField] private float overdrinkThirstRecoveryPerSecond = 10f;
+    [SerializeField] private float willRegenPerSecond = 4f;
 
     private bool isOverdrunkSick;
 
@@ -43,6 +53,8 @@ public class PlayerVitals : MonoBehaviour
     public float Thirst => thirst;
     public float Stamina => stamina;
     public float BodyTemperature => bodyTemperature;
+    public float Will => will;
+    public float MaxWill => maxWill;
     public bool IsOverdrunkSick => isOverdrunkSick;
 
     public bool IsSprinting { get; set; }
@@ -95,11 +107,34 @@ public class PlayerVitals : MonoBehaviour
 
         bodyTemperature = Mathf.MoveTowards(bodyTemperature, bodyTemperatureNeutral,
             bodyTemperatureDriftPerSecond * dt);
+
+        will = Mathf.Min(maxWill, will + willRegenPerSecond * dt);
     }
 
     public void ConsumeStamina(float amount)
     {
         stamina = Mathf.Clamp(stamina - amount, 0f, 100f);
+    }
+
+    // False (no state change) if the player doesn't have enough Will —
+    // callers (PlayerMagic) should check this before doing anything else a
+    // failed wish shouldn't have side effects from.
+    public bool ConsumeWill(float amount)
+    {
+        if (will < amount) return false;
+        will -= amount;
+        return true;
+    }
+
+    // Called by PlayerMagic on every successfully completed wish — Will's
+    // ceiling grows through use, same skill-via-use spirit as everything
+    // else, distinct from the other five vitals' fixed 100 cap. Tops up
+    // current `will` by the same amount so growth reads as a real gain,
+    // not just a cap raise that leaves you further from full.
+    public void GrowMaxWill(float amount)
+    {
+        maxWill += amount;
+        will += amount;
     }
 
     // Direct health loss (e.g. a spectacular crafting failure) — distinct

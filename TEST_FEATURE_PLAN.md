@@ -92,10 +92,15 @@ fix the coordinate in this file rather than assuming the step is wrong.
 
 ## 2. Vitals & Stamina Decay
 
-- [ ] `VitalsBarHUD` (always-on, bottom-center 2×2 grid: Health/Stamina top,
-  Hunger/Thirst bottom) is visible with no equipment required. Bar fill reflects
-  value/150 (so a stat at 100 fills two-thirds, not the whole bar — this is
-  intentional headroom, not a bug).
+- [ ] `VitalsBarHUD` (always-on, bottom-center, Health/Stamina top row,
+  Hunger/Thirst middle row) is visible with no equipment required. Bar fill
+  reflects value/150 (so a stat at 100 fills two-thirds, not the whole bar —
+  this is intentional headroom, not a bug).
+- [ ] **Will (v0.1.148-dev):** a third row, one full-width bar, shows
+  underneath Hunger/Thirst. Starts at 100/100. Unlike the other four bars,
+  Will's fill fraction is against its own live max (not the fixed 150%
+  scale) — confirm the bar still reads sensibly after Will's max grows (see
+  §6a) rather than looking permanently near-full.
 - [ ] Hunger and Thirst tick down over real time while doing nothing.
 - [ ] Health drains when either Hunger or Thirst hits 0; regenerates when both are
   reasonably fed.
@@ -729,11 +734,16 @@ fix the coordinate in this file rather than assuming the step is wrong.
 
 ## 6. Player Menu (Tab) — Skills Tab
 
-- [ ] Clicking the **Skills** tab shows three category tabs — **Gathering**,
-  **Crafting Disciplines**, **Combat** — each listing the skills in that
-  category with their current level (0–100). `Crafting` no longer exists
-  as a skill (retired v0.1.70-dev, see `CHANGELOG.md`) — don't expect to
-  see it anywhere.
+- [ ] Clicking the **Skills** tab shows four category tabs — **Gathering**,
+  **Crafting Disciplines**, **Combat**, **Magic** (added v0.1.148-dev) —
+  each listing the skills in that category with their current level
+  (0–100). `Crafting` no longer exists as a skill (retired v0.1.70-dev,
+  see `CHANGELOG.md`) — don't expect to see it anywhere.
+- [ ] **Magic** tab: shows only your randomly-assigned starting lineage
+  (Elemental/Illusion/Kinetic/Restoration) once you've completed at least
+  one wish (see §6a) — the other three lineages should never appear here,
+  since only the starting one is currently attemptable. Before your first
+  successful wish, this tab should show "No skills trained yet."
 - [ ] **Gathering** tab: shows `Gathering` (and `Mining`, once that split is
   actually built — not yet, still just `Gathering` today).
 - [ ] **Crafting Disciplines** tab: shows `Stonework` once you've crafted at
@@ -750,6 +760,37 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] Levels rise from relevant actions (gathering Sticks, breaking the Rock Node,
   crafting) with visibly diminishing gains as level rises — a handful of early
   actions shouldn't jump a skill anywhere near 100.
+
+## 6a. Player Menu (Tab) — Magic Tab (v0.1.148-dev)
+
+- [ ] Clicking the **Magic** tab shows your randomly-assigned starting
+  lineage (one of Elemental/Illusion/Kinetic/Restoration — reroll a fresh
+  character a few times via a new save to confirm it actually varies, not
+  always the same one), current Will (starts 100/100), and a list of known
+  wishes for that lineage. If your starting lineage isn't Elemental, this
+  list should show nothing yet — **Spark is Elemental-only** for now, so
+  only an Elemental character can ever attempt it.
+- [ ] **Campfire + Spark, the first real wish** — one unlit Campfire sits at
+  `(-4, 0.3, -2)` in `TestScene`. With an Elemental character standing at
+  it, the prompt should read "Hold to wish it would light (requires
+  Elemental)". Hold E — a green progress bar fills (same visual as
+  gathering/chopping), duration set by your current Elemental skill tier
+  (longer at Crude, faster as it rises). On completion: the campfire
+  visibly lights (swaps to an orange emissive material, a point light
+  turns on), Will drops by 10, Elemental skill gains experience, and
+  Will's **max** ticks up slightly (confirm both current and max both grow,
+  not just the ceiling).
+- [ ] **Gating, confirm each fails silently (no effect, no error) rather
+  than lighting anyway:** (1) a non-Elemental character holding E on the
+  unlit Campfire — the hold completes but nothing happens; (2) an Elemental
+  character with less than 10 Will — same silent no-op; (3) holding E on
+  an *already-lit* Campfire does nothing (it's a one-shot per campfire,
+  no re-lighting/relighting mechanic exists).
+- [ ] **Known simplification, not a bug:** lighting the Campfire doesn't
+  check any fuel/tinder quality — there's no weakest-link material input
+  the way crafting has ingredients. A Masterwork Elemental caster and a
+  freshly-unlocked Crude one both light the same campfire the same way,
+  just at different hold speeds.
 
 ## 7. Equippable Gadgets
 
