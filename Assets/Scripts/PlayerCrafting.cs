@@ -76,7 +76,7 @@ public class PlayerCrafting : MonoBehaviour
     {
         int total = 0;
         foreach (var inv in ReachableInventories())
-            total += inv.GetCount(item);
+            total += IngredientMatching.GetCount(inv, item);
         return total;
     }
 
@@ -329,11 +329,11 @@ public class PlayerCrafting : MonoBehaviour
         {
             if (amount <= 0) return;
 
-            int have = inv.GetCount(item);
+            int have = IngredientMatching.GetCount(inv, item);
             if (have <= 0) continue;
 
             int take = Mathf.Min(have, amount);
-            inv.RemoveItem(item, take);
+            IngredientMatching.Remove(inv, item, take);
             amount -= take;
         }
     }

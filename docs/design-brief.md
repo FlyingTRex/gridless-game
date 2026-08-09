@@ -1296,6 +1296,34 @@ designed:
 - Exact material costs (how much Stick/Rope per Twig piece) and the
   Woodworking skill-gain amount per piece placed.
 
+## Ingredient Substitution (2026-08-09)
+
+Raised by Ben during live testing: the Crude Axe recipe only accepted
+raw ground-found Stick, not any crafted Trimmed Stick tier — and
+separately, Woven Grass Cloth (a world-pickup material) had no use
+anywhere, since Crude Fiber Backpack/Belt hard-require raw Fiber
+specifically. **Decided: general mechanism, not a per-recipe patch** —
+a recipe/build piece that asks for a raw material should also accept
+anything refined from it, without needing a second recipe per variant.
+
+- `ItemDefinition` gained an optional `baseItem` field — a refined
+  item points it at the raw material it came from (every Trimmed Stick
+  tier → Stick, Woven Grass Cloth → Fiber). Null means "not a refined
+  form of anything," which is every item until this.
+- New `IngredientMatching` static helper (`Satisfies`/`GetCount`/`Remove`)
+  walks `baseItem` (capped at 5 hops) to decide whether a candidate item
+  counts toward a required ingredient. `Remove` always spends exact
+  matches before substitutes, so a player's refined materials aren't
+  eaten first.
+- `PlayerCrafting.GetAvailableCount`/`RemoveAcrossReachable` and
+  `PlayerBuilding.HasIngredients`/`RemoveIngredients` both route through
+  it now — CraftingScreen's "have N" and the Crude Axe/Twig Foundation
+  cases work automatically, no per-recipe special-casing.
+- **Still open:** whether every future refined material should get a
+  `baseItem` by convention (probably yes) and whether a chain longer
+  than one hop will ever actually occur — not tested since nothing
+  needs it yet.
+
 ## Open Questions / Next Decisions
 
 Reconciliation with `docs/game-overview.md` resolved the big cross-doc conflicts

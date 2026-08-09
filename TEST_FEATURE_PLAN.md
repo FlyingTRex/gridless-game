@@ -330,7 +330,11 @@ fix the coordinate in this file rather than assuming the step is wrong.
   for a direct look without chopping anything first. Chopping a Log
   trains **Woodworking**, not Gathering — confirm the Skills tab
   reflects the split correctly (Tree chop → Gathering rises, Log chop →
-  Woodworking rises). Roughly 3 in 10 Log chops should also drop a
+  Woodworking rises). **Sized up v0.1.159-dev:** Plank's visual model and
+  pickup collider are both 1.5x their original size (was too small to
+  read clearly on the ground per Ben's live-testing feedback) — confirm
+  a dropped Plank pile is clearly visible/clickable, not a tiny sliver.
+  Roughly 3 in 10 Log chops should also drop a
   **Stick** (reusing the existing branch-model item, not a separate
   "Branch") — chop several Logs across a full playtest and confirm this
   is a real, visible chance, not always/never happening.
@@ -559,7 +563,12 @@ fix the coordinate in this file rather than assuming the step is wrong.
   old grey Sphere placeholder, plus an icon wherever Berry appears in
   inventory UI. Picking a Berry gives a real inventory item (not an
   instant-eat-on-touch); Eat button only appears in the main inventory
-  list, never in a backpack/storage contents view.
+  list, never in a backpack/storage contents view. **Fixed v0.1.159-dev:**
+  `BerryPickup.prefab`'s `Pickup.item` field was never actually wired to
+  the Berry `ItemDefinition` (`{fileID: 0}`, silently null) — the model
+  swap in v0.1.139-dev fixed the visual but not the underlying pickup, so
+  walking into a Berry Bush did nothing at all. Confirm picking one up
+  now actually adds a Berry to inventory.
 - [ ] **Loot priority:** with a Backpack equipped, new pickups go straight into
   it. With no backpack, pickups try Left Hand, then Right Hand; if both hands are
   full with non-stacking items, the new pickup evicts (physically drops, not
@@ -638,6 +647,16 @@ fix the coordinate in this file rather than assuming the step is wrong.
   enable (assuming a Stick is also available). Confirm the Knife is still
   in your hand — not consumed — after crafting. Crafting any tier trains
   **Woodworking** (check the Skills tab, Crafting Disciplines category).
+- [ ] **Ingredient substitution (v0.1.159-dev):** recipes/pieces that ask
+  for a raw material now also accept anything refined from it
+  (`ItemDefinition.baseItem`, checked via the new `IngredientMatching`
+  helper) — e.g. Crude Axe (needs 2x Stick) should now craft fine holding
+  only Trimmed Stick (any tier, Crude through Masterwork), and Crude
+  Fiber Backpack/Belt (need raw Fiber) should craft fine holding only
+  Woven Grass Cloth. Confirm "have N" in the Crafting tab counts
+  substitutes too, and that removal spends your raw/exact stock first
+  before touching the refined substitute (hold both Stick and Trimmed
+  Stick, craft an Axe, confirm the plain Stick disappears first).
 - [ ] **Fiber byproduct (v0.1.77-dev):** crafting any tier of Trimmed
   Stick should show `Trimmed Stick + 1x Fiber  (needs ...)` in the recipe
   list, and produce 1 Fiber in the main inventory alongside the Trimmed
@@ -869,9 +888,13 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] Clicking the **Build** tab lists **Twig Foundation** (needs 6x
   Stick, 3x Rope), always unlocked (Crude tier, no Woodworking
   requirement to start). An "Arm" button arms it; once armed the button
-  reads "Armed" and is disabled. **Unlike Magic, this tab is meant to be
-  fully informative** — costs and requirements should be plainly visible,
-  not hidden.
+  reads "Armed (click to cancel)" and clicking it again un-arms.
+  **Unlike Magic, this tab is meant to be fully informative** — costs and
+  requirements should be plainly visible, not hidden.
+- [ ] **Ingredient substitution (v0.1.159-dev):** Twig Foundation's 6x
+  Stick requirement should also accept Trimmed Stick (any tier) as a
+  substitute, same `IngredientMatching` mechanism as Crafting — confirm
+  placing one with only Trimmed Stick on hand (no plain Stick) works.
 - [ ] **Free placement (first Foundation, nothing to snap to):** with
   Twig Foundation armed, close the menu, aim at open ground, and confirm
   a translucent cyan ghost preview follows your crosshair in real time
@@ -886,6 +909,14 @@ fix the coordinate in this file rather than assuming the step is wrong.
   hand — confirm a message reading "Not enough materials." appears
   top-center (below the Magic/skill-up messages, same stacking
   convention) and nothing is spent, nothing spawns.
+- [ ] **Cancel out of build mode (fixed v0.1.159-dev):** previously, once
+  a piece was armed there was no way back out — Escape only stepped from
+  the rotate/confirm sub-phase back to the following ghost, never fully
+  disarmed, so a failed "Not enough materials" placement left you stuck
+  following a ghost forever. Confirm **Escape** while the ghost is
+  following the crosshair now fully cancels (ghost disappears, nothing
+  armed). Also confirm the Build tab's **"Armed (click to cancel)"**
+  button un-arms the piece the same way.
 - [ ] **Edge-snapped placement (second Foundation):** with one Foundation
   already placed, arm Twig Foundation again and aim near one of its
   edges — the ghost should snap immediately to that edge (position *and*

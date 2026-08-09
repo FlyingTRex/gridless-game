@@ -159,6 +159,12 @@ public class PlayerBuilding : MonoBehaviour
 
         if (phase == Phase.Following)
         {
+            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
+            {
+                ArmPiece(null);
+                return;
+            }
+
             if (ghost != null && currentValid && mouse.leftButton.wasPressedThisFrame)
             {
                 if (snappedSocket != null)
@@ -231,7 +237,7 @@ public class PlayerBuilding : MonoBehaviour
         foreach (var ingredient in piece.ingredients)
         {
             if (ingredient == null || ingredient.item == null) continue;
-            if (inventory.GetCount(ingredient.item) < ingredient.count) return false;
+            if (IngredientMatching.GetCount(inventory.Inventory, ingredient.item) < ingredient.count) return false;
         }
         return true;
     }
@@ -242,7 +248,7 @@ public class PlayerBuilding : MonoBehaviour
         foreach (var ingredient in piece.ingredients)
         {
             if (ingredient == null || ingredient.item == null) continue;
-            inventory.RemoveItem(ingredient.item, ingredient.count);
+            IngredientMatching.Remove(inventory.Inventory, ingredient.item, ingredient.count);
         }
     }
 

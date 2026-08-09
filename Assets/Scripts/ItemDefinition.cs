@@ -32,4 +32,12 @@ public class ItemDefinition : ScriptableObject
     // back to icon (blurrily upscaled) if unset — only worth baking a
     // dedicated one for items that actually get a large preview treatment.
     public Sprite previewIcon;
+
+    // Optional — marks this item as a refined/upgraded form of a raw
+    // material (every Trimmed Stick tier points baseItem at Stick, Woven
+    // Grass Cloth points at Fiber). Read by IngredientMatching so a recipe
+    // or build piece asking for the raw material also accepts anything
+    // refined from it, instead of needing a second recipe per variant.
+    // Null (the default) means "not a refined form of anything."
+    public ItemDefinition baseItem;
 }

@@ -55,9 +55,9 @@ public class BuildScreen : MonoBehaviour
             GUILayout.BeginHorizontal();
             GUILayout.Label(label, unlocked ? DebugGUI.Label : DebugGUI.Warning);
 
-            GUI.enabled = unlocked && !armed;
-            if (GUILayout.Button(armed ? "Armed" : "Arm", GUILayout.Width(70)))
-                building.ArmPiece(piece);
+            GUI.enabled = unlocked;
+            if (GUILayout.Button(armed ? "Armed (click to cancel)" : "Arm", GUILayout.Width(140)))
+                building.ArmPiece(armed ? null : piece);
             GUI.enabled = true;
 
             GUILayout.EndHorizontal();

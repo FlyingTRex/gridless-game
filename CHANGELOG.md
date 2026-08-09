@@ -5,12 +5,46 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.158-dev` — must always match `GameVersion` in
+**Current version:** `0.1.159-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-09
+
+### v0.1.159-dev — Four more live-testing bugs: Berry pickup, Plank size, build-cancel, ingredient substitution
+
+Continuing the same-day system-test pass. Four issues from a single round
+of feedback, all fixed:
+
+- **Berry pickup did nothing.** `BerryPickup.prefab`'s `Pickup.item`
+  field was never wired to the Berry `ItemDefinition` — `{fileID: 0}`,
+  silently null since the prefab was made. The v0.1.139-dev model swap
+  fixed the visual but not the underlying reference. Set directly.
+- **Plank looked too small on the ground.** Bumped both the visual
+  model's scale and the pickup `BoxCollider`'s size by 1.5x together, so
+  the clickable area still matches what's visible.
+- **No way to cancel out of build placement.** Once a piece was armed,
+  Escape only stepped back from the rotate/confirm sub-phase to the
+  following-ghost phase — never fully disarmed. Combined with "Not
+  enough materials" leaving you re-armed (not un-armed), a failed
+  placement could strand you following a ghost with no way out. Fixed:
+  Escape while following now calls `ArmPiece(null)`. Also made
+  `BuildScreen`'s "Armed" button itself clickable to un-arm, for a mouse
+  path alongside the keyboard one.
+- **Ingredient matching was exact-item-only.** Crude Axe (needs raw
+  Stick) rejected an inventory full of Trimmed Stick; Crude Fiber
+  Backpack/Belt (need raw Fiber) had no way to use Woven Grass Cloth, a
+  pickup with no use anywhere until now. Ben's call: build a general
+  mechanism rather than patch these two recipes. New
+  `ItemDefinition.baseItem` field (refined item → the raw material it
+  came from) plus a new `IngredientMatching` helper
+  (`Satisfies`/`GetCount`/`Remove`) that both `PlayerCrafting` and
+  `PlayerBuilding` now route through — exact stock is always spent
+  before substitutes. See `docs/design-brief.md`'s new "Ingredient
+  Substitution" section for the full shape.
+
+Verified via a full batch-mode compile check.
 
 ### v0.1.158-dev — Fixed: no way to move a plain item from the main inventory to a hand
 
