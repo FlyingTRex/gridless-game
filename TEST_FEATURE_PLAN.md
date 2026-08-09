@@ -468,8 +468,17 @@ fix the coordinate in this file rather than assuming the step is wrong.
   - **All 5 Hammer tiers get a real model (v0.1.143-dev):** same
     treatment — Crude/Rudimentary/Hammer (Normal)/Fine/Masterwork
     Hammer all show a real stone-headed hammer model now
-    (Tripo3D-generated, no credits needed), identical across tiers.
-    Trimmed Stick still has no model — last one on the list.
+    (Tripo3D-generated, no credits needed).
+  - **All 5 tiers get distinct real Blender models (v0.1.177-dev),
+    superseding "identical across tiers" above.** The shaft is a plain
+    wooden shaft, unchanged across all 5 (it's a Trimmed Stick — a
+    separate ingredient with its own tiers, shouldn't visually improve
+    with the Hammer's own tier). The head is where tier shows: Crude/
+    Rudimentary are noticeably larger and organically lumpy; Normal is
+    smoother and more rounded; Fine/Masterwork shrink toward a compact,
+    precise cylinder with a visible lashing/cord-binding detail at the
+    neck and a progressively darker (near-black by Masterwork) stone
+    color. Confirm all 5 read as the same overall length (~0.40m).
 - [ ] **Skill-gated crafting tiers (v0.1.80-dev):** on a fresh character
   (Stonework 0), only Crude Knife/Hammer/Axe/Pickaxe and Crude Trimmed
   Stick should be craftable — Rudimentary/Normal/Fine/Masterwork should

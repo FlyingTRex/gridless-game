@@ -1644,6 +1644,34 @@ visible here:
   for other compound props (anything with a distinct handle/head, grip/
   blade, etc.) rather than defaulting to one flat material per model.
 
+## Stone Hammer Tiers: Shape Carries the Tier, Not the Shaft (2026-08-09)
+
+Third Blender-generated tiered prop after the Trimmed Stick and Stone
+Knife. Ben's direction reshaped the approach mid-build and is worth
+keeping as a standing design rule: **"since the hammer requires a
+trimmed stick, let's make the shaft of the hammer a wooden shaft, and
+the improvement would be in the shape of the hammer head."** A Trimmed
+Stick is already a separately-tiered crafting ingredient — re-skinning
+the shaft by the Hammer's *own* tier would be double-dipping on tier
+progression that belongs to a different item. General rule for any
+future hafted/handled tool built this way: **the handle stays one
+plain material/shape across all 5 tiers if it's itself a tiered
+ingredient elsewhere; tier progression concentrates entirely in the
+part that's actually being crafted** (the head, here).
+
+Full technical detail (the two bugs found) in `CHANGELOG.md`
+v0.1.177-dev. The important one to remember for the next tiered prop:
+**smooth-shaded, high-Roughness materials read significantly brighter
+than flat-shaded ones of the same base color** under `IconBaker`'s
+uncapped directional lights (no tonemapping) — every rough/matte icon
+baked before this one happened to be flat-shaded, so it never
+surfaced. No fix landed in `IconBaker` itself (tried dropping ambient
+intensity first; it barely moved the result, confirming the
+directional lights were the real driver, not ambient — reverted to
+stay consistent with the already-completed full re-bake). The working
+fix was per-asset: push rough/matte base colors noticeably darker than
+they'd otherwise need to be once the model is smooth-shaded.
+
 ## Open Questions / Next Decisions
 
 Reconciliation with `docs/game-overview.md` resolved the big cross-doc conflicts

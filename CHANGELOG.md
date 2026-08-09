@@ -5,12 +5,64 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.176-dev` — must always match `GameVersion` in
+**Current version:** `0.1.177-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-09
+
+### v0.1.177-dev — Stone Hammer tiers get real Blender models; design constraint from Ben: the shaft doesn't improve with Hammer tier
+
+Same Blender pipeline as the Trimmed Stick and Stone Knife, applied to
+the Stone Hammer — all 5 tiers previously shared one placeholder model
+at the same scale. Ben's direction shaped the design directly: "since
+the hammer requires a trimmed stick, let's make the shaft of the
+hammer a wooden shaft, and the improvement would be in the shape of
+the hammer head" — a Trimmed Stick is a real crafting ingredient with
+its own separate tier ladder, so the Hammer's own tier shouldn't
+re-skin it. The shaft is one plain wooden material/shape across all 5
+tiers; every bit of tier progression lives in the head instead — both
+its silhouette (large and organically lumpy at Crude, shrinking and
+tightening toward a compact precise cylinder by Masterwork) and its
+surface (chipped-stone noise fading to smooth, color darkening from
+grey flint toward near-black polished stone), plus a lashing-cord
+carving detail at the neck once refined enough (Fine/Masterwork).
+
+Two real bugs hit and fixed along the way, both worth remembering for
+the next tiered-prop build:
+
+- **Crude/Rudimentary's silhouette came out as illegible white
+  "feathers"** in the baked icon, not a solid stone head. Root cause:
+  fixing it required bumping those tiers from 5 to 6 sides so they'd
+  clear the `sides >= 6` smooth-shading threshold (5 sides + per-vertex
+  chip noise was producing near-degenerate sliver faces that read as
+  thin bright streaks from IconBaker's fixed camera angle) — a genuine
+  geometry fix, confirmed first in a plain Blender render before ever
+  touching Unity.
+- **That same shading fix then washed the color out to near-white**,
+  even after darkening it once (the same fix that worked for the Stone
+  Knife). Root cause this time was physical, not a bug: a rough/diffuse
+  (high-Roughness) material under IconBaker's uncapped directional
+  lights (no tonemapping) reflects a much larger share of incident
+  light back toward camera once its surface is smooth-shaded and
+  facing the lights broadly, than the same material flat-shaded (where
+  roughly half the faces sit in shadow) ever did — every previously-
+  baked rough/matte icon happened to be flat-shaded, so this never
+  surfaced before. Tried lowering `IconBaker`'s ambient intensity
+  first (1.0 → 0.3); barely moved the result, confirming the
+  directional lights themselves were the real driver, not ambient —
+  reverted that change to stay consistent with the already-completed
+  full re-bake sweep. Fixed instead by pushing Crude/Rudimentary/Normal
+  head color much darker than their apparent "rough stone grey" input
+  value would suggest (down to ~0.04-0.08 linear) to compensate.
+
+Unity side: same in-place model-swap pattern as the Knife (all 5
+existing pickup prefabs already correctly referenced by their item
+assets, so no rewiring needed), collider re-measured from each
+model's actual bounds (~0.40m long, head bounds shrinking tier over
+tier from the shape change alone). The original placeholder
+`StoneHammer.glb` is left in place, unreferenced.
 
 ### v0.1.176-dev — Full icon re-bake against the IconBaker ambient fix
 
