@@ -312,6 +312,49 @@ tier**: `Campfire.Complete()` just lights unconditionally once the lineage/
 skill/Will gates pass, no fuel-tier input exists to cap it against. See
 `CHANGELOG.md` v0.1.148-dev for the full build notes, including a real
 `RequireComponent`-auto-add gotcha hit while wiring the scene.
+**Tuned same-day, v0.1.149-dev:** Will regen set to 1 point/5s (was a
+placeholder 4/s), and Spark gained a real success/failure roll instead of
+always succeeding once the gates passed — see the Weakest-link bullet
+below for how this diverged from the original plan.
+
+**Second wish, v0.1.150-dev, then unified onto one key, v0.1.151-dev:**
+Kinetic's **Push** wish shipped bound to a new **R** key, separate from
+Spark's E at first — Spark had one specific, pre-flagged target
+(Campfire), Push needed to work on *any* nearby Rigidbody, which didn't
+fit "one dedicated wishable object." The v0.1.150-dev version of this
+section predicted that split would become the standing pattern (specific
+targets ride E, generic targets get their own key) — **that prediction
+was wrong, corrected same-day.** Ben's actual call: *all* magic activates
+with R, full stop, regardless of target shape — "we'll use the mouse
+cursor to determine the target" turned out to mean "still look-based, no
+change to camera/mouse control," not a literal free-cursor targeting
+mode (confirmed on ask, see `CHANGELOG.md` v0.1.151-dev). The real
+mechanism now: a new **`IWishTarget`** interface (`Prompt`,
+`GetWish(PlayerMagic)`, `OnWishComplete`) for specific-target wishes like
+Spark/Campfire, with a generic-Rigidbody fallback for anything without
+one — both resolve through the same R hold, same shared progress bar,
+same shared prompt slot. This is the actual standing pattern for future
+wishes, not the E/R split this paragraph originally predicted.
+
+**"Default skill" selection, v0.1.152-dev.** Ben's own framing: "I could
+set 'push' as default, and even if I was aiming at a fire, it would try
+to push if I had that skill... setting the default skill to 'fireball'
+means you could shoot a fireball anytime you had enough will." This is a
+real, deliberate shift from the section above's framing — the world no
+longer implicitly decides which wish R attempts based on what's under the
+crosshair; the player picks (`PlayerMagic.SelectedWish`, chosen from the
+Magic tab), and R only ever tries that one wish, validated against a
+target per that wish's own `WishTargeting` mode (`SpecificObject` for
+Campfire-style wishes, `AnyRigidbody` for Push, and a new
+**`Unconditional`** mode — no physical target at all, just lineage/skill/
+Will — added specifically so a future Fireball has somewhere to plug in;
+**first real user shipped same-day, v0.1.153-dev: Restoration's Heal
+Self**, see the Restoration bullet further below). Worth naming plainly: this moves wishes from purely
+ambient/reactive ("the world tells you what's possible") toward the more
+familiar "choose your spell, then aim it" model — not wrong, but a real
+precedent, and it only actually matters once a lineage has more than one
+wish (today Elemental and Kinetic each have exactly one, so selection
+auto-defaults and is invisible in practice).
 
 **Core interaction — wishes, not spellcasting.** Ben's original pitch: rather than
 a hotbar/targeted spell system, the player performs a contextual emote expressing
@@ -319,10 +362,20 @@ a wish ("I wish this fire would catch"), and — with luck, shaped by skill — 
 happens. This fits Pillar 7's "abilities start minute" framing better than a
 button-press spell would: no cast bar, no target reticle, just an emote at the
 right moment. **Recommended scope for buildability:** wishes trigger off
-pre-flagged contextual moments (stand at an unlit campfire, a "wish it would
-light" prompt appears), the same shape as the existing `IInteractable`/
-`ISecondaryInteractable` prompt pattern (E to interact, F to secondary-interact) —
-not free-form/open-ended intent parsing, which is a much bigger, separate problem
+pre-flagged contextual moments (stand at an unlit campfire and hold R), the
+same look-and-hold shape as `IInteractable`'s E prompt mechanically — but
+**deliberately with no on-screen prompt at all, v0.1.155-dev.** Ben's call,
+straight from the "no cast bar, no target reticle" line above taken further
+than the original buildable-scope note assumed: no text, no progress bar,
+nothing naming R or what it does anywhere in the HUD or the Controls tab —
+"something people play with in order to explore it," not a button with a
+tooltip. The underlying hold/roll mechanics are unaffected; only the
+player-facing hint is gone. **Shipped as its own dedicated `IWishTarget`/R
+channel, not literally riding E** (see the "Second wish" callout below for
+why: R's targeting also
+needed to cover generic Rigidbody objects, not just pre-flagged ones, so magic
+got its own key rather than overloading E) — still purely look-based, not
+free-form/open-ended intent parsing, which is a much bigger, separate problem
 and not attempted here.
 
 **Will — a sixth survival vital.** Casting a wish costs Will, the same way
@@ -346,6 +399,21 @@ pipeline already has:
   low-skill caster with good Fine fuel is capped by their own skill instead. Same
   "floor case: no skill + baseline materials = Crude output" rule as crafting,
   applied unchanged.
+  - **Superseded by what actually shipped, v0.1.149-dev — flagged, not
+    quietly overwritten:** rather than a deterministic weakest-link tier,
+    Ben's call was a binary **success/failure roll**, same interpolated-
+    by-skill-margin shape as `PlayerCrafting`'s existing chance-of-creation
+    system (50% success chance at the skill floor, rising to 90% once
+    ~20 points past the unlock threshold), closer to the session's
+    original "with luck, it would actually start" pitch than this
+    weakest-link bullet ended up being. Success costs more Will (60) than
+    failure (40) — "a strained effort that actually works takes more out
+    of you than one that fizzles" — and either outcome still trains the
+    skill; only success grows Will's max and produces the effect. No fuel/
+    material-tier input exists at all for Spark (see the Magic System's
+    "First real slice" callout below), so the weakest-link *quality* idea
+    in this bullet was never built — worth reconciling this section with
+    what shipped rather than trusting both as simultaneously true.
 - **Illustrative Elemental ladder** (not exhaustive, other three lineages'
   ladders still unsketched — see Still Open): Spark (unlocks near-floor, lights
   fires/torches) → Fireball (unlocks ~Normal/Fine, needs *something* to matter
@@ -425,11 +493,16 @@ bullets remain design-only (Scribing itself is Phase 2, see Scrolls above):
   a bar there eventually too, not just a number in the Magic tab.
 
 **Restoration** integrates directly with the medical system (see the combat/
-medical items in the Systems Wishlist below) — unchanged from the original
-decision, not revisited in the 2026-08-08 session.
+medical items in the Systems Wishlist below) — that broader integration is
+still unbuilt (no medical system exists), but Restoration got its **first
+real wish, v0.1.153-dev: Heal Self** (`Unconditional` targeting, 10 health
+over 30 seconds, same 60/40 Will split as Spark/Push). A simple self-heal
+standing in ahead of any real medical-system tie-in, not a first-aid
+system itself.
 
 **Still open** (explicitly not decided, don't assume defaults):
-- The Illusion/Kinetic/Restoration wish ladders — only Elemental got a worked
+- The Illusion/Kinetic wish ladders (Restoration now has Heal Self,
+  Elemental has Spark/Fireball) — only Elemental got a worked
   example above; the others need their own progression sketched the same way.
 - Whether the free starting lineage keeps any permanent mechanical edge over a
   later-learned one, or whether they're fully symmetric once trained to the same
@@ -442,9 +515,10 @@ decision, not revisited in the 2026-08-08 session.
   consume Will, physical materials, both?), and Will's regen rule (passive over
   time like Stamina, or does it need rest/meditation — thematically appealing
   for a "wish" resource but not decided).
-- Whether the wish-triggering emote is a literal chat/emote-wheel action or
-  simply reuses the existing contextual E/F-interact prompt pattern (recommended
-  above for buildability, not yet confirmed as final).
+- **Resolved v0.1.151-dev, no longer open:** the wish-trigger is a dedicated
+  look-and-hold **R** channel (`IWishTarget`, plus a generic-Rigidbody
+  fallback), not a literal chat/emote-wheel action and not folded into E —
+  see the "Second wish" callout above.
 - What early-tier abilities look like per lineage beyond the Elemental sketch;
   whether lineage assignment happens instantly at spawn or "awakens" over time as
   part of the crash-landing narrative; and how (or whether) magic interacts with
@@ -526,7 +600,8 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
 - **Basic building** — start of the building module, shelter tier only. Incorporates
   Ben's **"Equip-to-Define" system**: empty architectural shells become functional
   (workshop, inn, clinic, etc.) based on what equipment is installed inside, rather
-  than picking a building type up front.
+  than picking a building type up front. **Placement/piece/material shape worked
+  out 2026-08-08** — see the dedicated **Building System** section below.
 - **Personal storage.**
 - **Basic combat + basic first aid** — punching/melee and simple wound care, as the
   floor of the combat/healing module.
@@ -649,8 +724,11 @@ implementation status:
   skill level** — the weakest-link rule and per-tier skill thresholds
   described in the Crafting/Gathering/Skills Pipeline section below remain
   design-only, not implemented.
-- **Basic building** — **not built.** No building/shelter/Equip-to-Define
-  code exists anywhere in `Assets/Scripts/`.
+- **Basic building** — **not built** (still true — this ideation session
+  worked out the shape, no code yet). No building/shelter/Equip-to-Define
+  code exists anywhere in `Assets/Scripts/`. See the **Building System**
+  section below for what's now decided-in-shape, same status the Magic
+  System had before its own first implementation pass.
 - **Personal storage** — built. `StorageBox`, `Lockbox` (in all 5 crafting
   tiers), `BankBox`.
 - **Basic combat + basic first aid** — **not built.** `IPunchable` exists,
@@ -658,9 +736,10 @@ implementation status:
   enemy, no weapon-vs-health combat, and no wound-care/first-aid system.
 - **Character/skills UI** — built. `SkillsScreen`, tabbed into
   `PlayerMenuScreen` alongside Inventory and Crafting.
-- **Magic lineage assignment + early-tier ability use** — **not built.** No
-  magic-related script of any kind exists yet — no lineage assignment, no
-  ability system.
+- **Magic lineage assignment + early-tier ability use** — was **not built**
+  at the time of this check-in; **now built, see the "Updated" callout
+  below this list** (three of four lineages have a real wish as of
+  v0.1.153-dev).
 - **Hireable autonomous NPCs** — **not built.** No NPC script exists at all.
 
 **Net read:** of Phase 1's 11 items, 6 are genuinely built (skill
@@ -676,6 +755,33 @@ questions, and tonight was almost entirely the second one. Phase 3's Commerce
 system also already has a real head start (personal bank + Lockboxes, see
 that section) despite Phase 1 not being fully built out yet — not a problem,
 just worth knowing the phases aren't progressing strictly in order.
+
+**Updated later the same session, v0.1.147-dev through v0.1.155-dev** — two
+more Phase 1 items moved since the check-in above, asked for again by Ben
+("how are we doing on our mvp progress"):
+- **Loot & gathering's interaction model was rebuilt**, not just polished:
+  `IPunchable` retired entirely, replaced by skill-tiered hold-and-release
+  (low skill = slow, Masterwork = fast) across every resource node and tree.
+  Doesn't change this item's built/not-built status (already built), but
+  it's a real mechanical upgrade, not cosmetic — worth knowing it happened.
+- **Magic lineage assignment + early-tier ability use moves from
+  not-built to built.** Will (a real sixth vital), random starting-lineage
+  assignment, and — the actual "early-tier ability use" part — three of
+  the four lineages now have one genuinely working wish each: Spark
+  (Elemental, lights a Campfire), Push (Kinetic, shoves a Rigidbody), Heal
+  Self (Restoration, 10 health over 30s). **Illusion is still completely
+  empty** — this is "built," not "complete." Wishes run with **zero
+  on-screen UI** by deliberate design (see the Magic System section's
+  no-UI-hints callout) — genuinely different from every other built system
+  in the game, which all show prompts/bars; worth remembering when judging
+  "does this feel done" by looking at the screen rather than trying it.
+- **Revised net read: 7 of Phase 1's 11 items now built** (skill
+  progression, food/water, loot & gathering, crafting-quality content,
+  storage, skills UI, magic), **4 entirely unstarted** (encumbrance,
+  building, combat/first aid, NPCs) — down from 5. Magic's jump from
+  "not started" to "built" is the single biggest change since the last
+  check-in; everything else in this stretch was infrastructure/tuning
+  under a pillar already counted as built.
 
 ## Crafting, Gathering & Skills Pipeline (2026-08-04)
 
@@ -927,6 +1033,253 @@ interaction primitive.
   and the exact per-metal base-yield curve (Copper→Platinum).
 - Concrete degradation-rate/performance numbers per `CraftTier` (this was already
   open before this session — see the original Skill-tied crafting quality item).
+
+## Building System (2026-08-08)
+
+Ideation session working out the Phase 1 "Basic building" item's actual
+shape — the Systems Wishlist previously said only "shelter tier, Equip-to-
+Define" with nothing about how a player actually places anything. **Decided
+in shape, not exact numbers or full piece roster** — same status as the
+Crafting/Gathering & Skills Pipeline and Magic System sections above, and
+this system deliberately reuses ideas from both rather than inventing a
+third mechanical language.
+
+**First real slice shipped the same day, v0.1.156-dev:** `BuildPiece`/
+`BuildSocket` data shapes, `PlayerBuilding` (the full placement state
+machine — free placement and edge-snapping both work), `BuildScreen` (its
+own tab, fully visible per the UI note below), and one real piece —
+**Foundation** (5m×5m, 4 edge sockets, Twig material, 6 Stick + 3 Rope).
+Two panels correctly tile edge-to-edge and the second inherits the
+first's exact top height. **Scoped down from the full design, flagged
+not hidden:** no support-column/stilt visual yet (Foundation is a flat
+slab only — the buried-block-vs-stilts question below is still open, and
+without a visible pedestal there's nothing yet to *look* wrong on
+sloped terrain, even though the 5m reach check itself is real and does
+gate snapped placement). **Wall, Pole, and Door are not built** — next
+up, reusing this exact same `BuildPiece`/`BuildSocket`/`PlayerBuilding`
+machinery, not a second pass. See `CHANGELOG.md` v0.1.156-dev for the
+full build notes, including a `RequireComponent`-auto-add gotcha that
+was *avoided* this time (learned from the Magic System's own incident).
+**Upgrade/destroy shipped the same day, v0.1.157-dev:** click a placed
+Foundation with a Hammer in hand to upgrade it to **Plank Foundation**
+(8 Plank, real and built, not just wired infrastructure with nothing on
+the other end) in place; hold 5 seconds to destroy it outright, no
+refund. Its own dedicated interaction logic (`PlayerPieceUpgrade`), not
+a reuse of `IInteractable` — see the Upgrade/destroy bullet below for
+why. Rock and Metal tiers still don't exist, so the ladder stops at
+Plank for now.
+
+**Core principle — modular by shape, not by material.** Every piece type
+(Foundation, Wall, Door, and the still-undesigned Floor/Ceiling/Window/Roof)
+defines a fixed shape and socket contract *once*. Material is a separate,
+orthogonal axis layered on top — Twig first, then presumably Plank, Rock,
+Metal — exactly the same "shape vs. material are independent" relationship
+already decided for the ore family ("metal type and CraftTier are
+orthogonal," Crafting/Gathering & Skills Pipeline above). A Twig Wall and a
+Rock Wall are the same shape with a different material's mesh/stats, not
+two unrelated pieces. This also means the building material ladder isn't a
+new thing to design — it rides the **existing** material web from the
+Crafting pipeline: Twig consumes Stick + Rope directly (available now);
+Plank rides the still-unbuilt Tree→Log→Plank refinement; Rock rides Small
+Rock→Shaped Rock (Stonework); Metal rides Ore→Ingot (Metalworking/Forging).
+Building doesn't unlock a material tier before the material itself exists
+in the regular crafting pipeline.
+- **Discipline note:** per the existing discipline-sort rule (a finished
+  item trains the skill of its *defining* material, not every ingredient —
+  see the Bow precedent: wood defines it even though rope/fiber is also
+  consumed), a Twig piece's defining material is the stick/wood framework,
+  so it should train **Woodworking**, with Rope as a consumed-but-not-
+  defining ingredient — same shape as Bow, not a new rule.
+- **Still open:** whether mixing materials within one structure (a Rock
+  foundation under Twig walls) is allowed freely or restricted somehow —
+  leaning toward "freely allowed, no restriction," since enforcing
+  same-material-only would need real validation logic for no clear
+  gameplay benefit, and mixing is often a legitimate real building
+  strategy (reinforce a weak point in a sturdier material). Not locked in.
+- **Upgrade + destroy on a placed piece, added 2026-08-08, corrected same
+  day:** an already-placed piece gets two E-driven actions, distinguished
+  by press duration rather than a hold building toward one outcome —
+  **a genuinely different shape from every other `IInteractable` in the
+  game**, where releasing early always means "cancelled, nothing
+  happened." Here, releasing early *is* the action:
+  - **Click (instant) with a Hammer in hand** (any tier — reuses the
+    existing 5-tier Hammer item, same "any tier counts" convention every
+    other tool gate uses, not a new tool) — **upgrades** the piece one
+    step up the material ladder (Twig→Plank→Rock→Metal, not skippable).
+    Mechanically **destroy-and-replace in place**: old instance
+    destroyed, target tier's prefab instantiated at the exact same
+    transform, existing socket-occupied state carried over so neighbors
+    don't read the connection as suddenly free. Cost/skill training
+    aren't a separate rule — just the target tier's own `BuildPiece`
+    data, so upgrading to Plank costs and trains exactly what building a
+    fresh Plank piece would.
+  - **Holding past a flat 5 seconds** (not skill-tiered — unlike
+    gathering/wishes, tearing something down doesn't get faster with
+    skill) — **destroys** the piece outright, firing automatically at
+    the 5s mark, no release needed. This is genuinely the *same* button
+    as the click above, not a separate input — it's binary purely on
+    duration: let go before 5s and it's an upgrade (the bullet above),
+    keep holding to 5s and it's a destroy instead. There's no third
+    "cancelled, nothing happened" outcome in between the way every other
+    hold in the game has — every press does *something*.
+  - **Resolved 2026-08-08:** both actions require the Hammer in hand —
+    destroy isn't bare-handed after all. And **destroying returns no
+    materials** — a pure loss, not a partial refund. Tearing something
+    down is strictly a cost, never a way to reclaim what was spent
+    building it.
+  - Because this is tap-vs-hold-threshold on one object rather than a
+    single hold building toward one outcome, it needs its own dedicated
+    interaction logic on placed pieces — not a straight reuse of
+    `IInteractable`'s existing hold-and-release code path.
+
+**Placement — two distinct flows, not one repeated.** Chosen over a single
+always-the-same interaction because the two real cases (nothing to snap to
+yet, vs. a compatible edge already in range) have genuinely different
+needs:
+- **Free placement** (the first piece of a new structure, or any piece with
+  no compatible socket nearby): **Left Mouse Button** drops a ghost at the
+  camera raycast's hit point; while pending, **scroll wheel rotates the
+  ghost** (not mouse movement — mouse movement is already camera look in
+  this game, so it can't also drive rotation without the two constantly
+  fighting each other, same reason Valheim/Rust/Raft all use scroll/a
+  dedicated key for this instead of the mouse); **Left Mouse Button again**
+  confirms and spends materials.
+- **Edge-snapped placement** (every piece after that, once something exists
+  to attach to): the ghost automatically snaps to the nearest compatible
+  open socket within range — position *and* rotation are both implied by
+  the socket, so there's nothing left to adjust — collapsing to a single
+  confirm click instead of the two-step flow above.
+- **Sockets**: each piece prefab carries typed anchor points (e.g.
+  foundation-edge↔wall-bottom, wall-top↔wall-top-or-ceiling, wall-side↔
+  wall-side) that pair with compatible sockets on neighboring pieces — the
+  same snap-building shape Valheim/Rust/Raft all use, not a novel
+  mechanism. This is also what makes "snap to grid" true without a literal
+  world-space grid ever existing: the first piece's placement becomes the
+  origin, and every socket-to-socket connection after that inherits
+  consistent spacing from the pieces' own fixed dimensions.
+
+**UI — its own tab, not folded into Crafting.** Same reasoning that kept
+Magic out of the Crafting tab: `CraftingScreen`'s whole model is click-
+Craft/consume-ingredients/item-appears-in-inventory, and neither wishes
+nor building pieces work that way — both resolve out in the world, not
+through a menu button. A Build tab lists the pieces currently unlocked
+(gated by discipline skill tier, same recipe-unlock convention crafting
+already uses) and lets the player **select** which one is armed — the
+same select/active mechanism `MagicScreen` already has for wishes — with
+placement itself happening in the world via the two-flow system above,
+not a button in this tab. Unlike Magic, though, **Building should get
+full UI support** (visible ghost preview, prompts, everything) — Magic is
+deliberately hidden/discover-through-play (see the Magic System's no-UI-
+hints callout), but Building is the opposite: a deliberate, learnable
+system, not a mystery mechanic. Worth keeping the two visually distinct
+so a player doesn't mistake one system's conventions for the other's.
+**Resolved, 2026-08-08 — borrowed directly from Valheim/Rust/Raft's shared
+convention rather than inventing one:** placement uses **Left Mouse
+Button** (place, then confirm) with **scroll wheel to rotate** in
+between — not R (reserved for hidden magic, reusing it here would blur
+the two systems' different intents) and not E (already heavily loaded
+with pickup/hold-to-gather/hold-to-craft). Left Mouse Button is
+genuinely free in this game today — it did nothing since punch-to-break
+was retired — so this doesn't need to displace an existing binding. See
+the Placement paragraph above for the full flow.
+
+**Piece shapes decided so far** (Twig material, others to follow the same
+shapes later):
+- **Foundation** — 5m × 5m footprint. Reaches up to 5m downward from
+  wherever the player aims (the ghost anchors its *top* face to the
+  raycast hit point, not its center) — this is the terrain-leveling
+  mechanism: a thick block that can bury into moderate slopes rather than
+  requiring flat ground. When a second foundation snaps edge-to-edge to a
+  first, it **inherits the neighbor's top height exactly** rather than
+  re-raycasting the ground at its own position — this is what actually
+  keeps a multi-panel footprint level across undulating terrain, not the
+  thickness alone. Any building footprint is achievable by tiling 5m
+  squares, "as long as you can figure out how to enclose it" (Ben's
+  framing) — no separate arbitrary-footprint system needed.
+  - **Still open:** whether the visual is a literal buried solid block or
+    a stilted platform on visible support legs (thematically stronger for
+    a "primitive twig" material — a solid 5m cube of lashed sticks is an
+    absurd amount of material; stilts read as genuinely primitive
+    construction) — not decided, flagged last ideation round and not yet
+    resolved either way.
+- **Pole** — up to 10m reach (same top-anchored logic as Foundation, just
+  double the tolerance), used when a Foundation's own 5m reach can't
+  handle the terrain (cliffs, water). Manually placed by the player at the
+  trouble spot *before* the Foundation, which then docks onto the Pole's
+  top socket instead of reaching the ground itself. **No pole-to-pole
+  stacking** — if even 10m can't reach solid ground, placement simply
+  fails, no escalation beyond that. **Exposes its own top socket
+  independent of Foundation** — a cluster of Poles alone can be built on
+  directly (stilt platforms, docks), not strictly a Foundation accessory.
+- **Wall** — 5m wide × 3m high, exactly one segment per Foundation edge
+  (clean 1:1 mapping, no fractional tiling). Height is deliberately
+  decoupled from Foundation's 5m figure, which is a burial-depth
+  *tolerance*, not a stated room height — 3m was chosen as a human-scaled
+  room height independent of that number.
+- **Door** — its own separate piece (full prefab, frame + door mesh baked
+  in), socket-compatible with the exact same wall-slot a plain Wall would
+  occupy. Placing one is choosing Door instead of Wall for that slot, not
+  cutting a hole into an existing wall at runtime — keeps every piece a
+  straight prefab swap at a socket, consistent with everything else in
+  this system.
+
+**Deliberately not designed yet:** Floor, Ceiling, Window, and Roof pieces
+(expected to extend the same socket system once Foundation/Wall/Door prove
+it out, not a separate mechanism) — and **Equip-to-Define** itself (empty
+shells becoming functional based on installed equipment) has no build plan
+yet, since there's no equipment-function system for a shell to plug into.
+
+**Added to the roadmap 2026-08-08, not designed:** Stairs, Ramps, Shelves,
+"etc." (Ben's own framing — an open-ended furniture/fixture list, not just
+these three). These split into two genuinely different categories from
+everything shipped so far, worth keeping distinct when they're actually
+designed:
+- **Stairs/Ramps are vertical connectors** — unlike Foundation-to-Foundation
+  (purely horizontal tiling), these need a socket on *each* end at
+  different heights (a bottom tying into ground/a lower Foundation edge, a
+  top tying into a higher Foundation or Floor edge). The current socket
+  system only handles same-height horizontal connections; vertical
+  connectors are new territory, relevant once multi-level building exists.
+- **Shelves (and furniture/fixtures generally) mount onto a Wall**, not
+  edge-to-edge with the structural shell — closer in shape to how
+  `IWishTarget`/`IEquippable` attach to something else than to how
+  Foundation tiles with Foundation. Likely needs its own socket type on
+  Wall (interior face) once Wall itself exists.
+- **Nails + a Plank/Nails Storage Box**, added later the same session:
+  Ben wants Nails as a new craftable item (Iron + Hammer held as a tool,
+  not consumed — same "any tier counts" convention every tool gate
+  already uses) that then unlocks a **Storage Box** buildable piece
+  costing Plank + Nails. Nails is a clean real-world fit for the
+  material web's already-sketched but unbuilt **Ingot →(Forging)→
+  Forged Component** branch (Crafting/Gathering & Skills Pipeline
+  above) — Forging-trained, even though it'd consume `Iron` directly
+  rather than a not-yet-built `Ingot` intermediate for now. The Storage
+  Box itself would likely reuse the *existing* `StorageBox`/`Inventory`
+  components (already built, currently only placed by hand in the
+  scene) wrapped in a placeable `BuildPiece`, not a new storage
+  mechanism. Not designed in detail or built yet. **Motivation flagged
+  same session:** a real structure's material cost adds up fast (one
+  Foundation panel alone is 6 Stick + 3 Rope), so storage capacity to
+  actually stockpile enough to build becomes a real concern once
+  building is playable — the existing `StorageBox`/`Lockbox` (5 tiers)/
+  `Backpack` systems already cover this generally, and a buildable
+  Storage Box is a natural fit for "storage integrated into the
+  structure you're building," not a new capacity mechanic on its own.
+
+**Still open** (explicitly not decided, don't assume defaults):
+- The Foundation's visual treatment (buried block vs. stilted platform).
+- Whether mixed-material structures are freely allowed or restricted.
+- Floor/Ceiling/Window/Roof shapes and their own socket types.
+- Structural integrity/support requirements beyond "does a valid socket
+  exist" — e.g. can a wall be placed with nothing at all underneath it, or
+  does the system require an unbroken support chain back to a Foundation?
+  Not discussed this session.
+- Where building is allowed (anywhere, or restricted to owned
+  territory/parcels once the macro-layer City Growth system exists) —
+  not a concern yet since no multiplayer/territory system is built, but
+  worth revisiting once one is.
+- Exact material costs (how much Stick/Rope per Twig piece) and the
+  Woodworking skill-gain amount per piece placed.
 
 ## Open Questions / Next Decisions
 

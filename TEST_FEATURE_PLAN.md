@@ -761,36 +761,173 @@ fix the coordinate in this file rather than assuming the step is wrong.
   crafting) with visibly diminishing gains as level rises — a handful of early
   actions shouldn't jump a skill anywhere near 100.
 
-## 6a. Player Menu (Tab) — Magic Tab (v0.1.148-dev)
+## 6a. Player Menu (Tab) — Magic Tab (v0.1.148-dev; all magic unified onto R in v0.1.151-dev; default-skill selection in v0.1.152-dev)
 
+- [ ] **No on-screen hint for magic at all, by design (v0.1.155-dev).**
+  Holding R never shows a prompt, a key label, or a progress bar,
+  regardless of lineage or target — this is deliberate ("something people
+  play with in order to explore it," not a labeled button), not a bug.
+  The Controls tab (`` ` `` menu) doesn't mention R either. Testing magic
+  now means holding R and watching for a *world* reaction (a campfire
+  lighting, an object sliding, Health climbing) or checking the Skills/
+  Magic tabs afterward, not reading a crosshair prompt — every check
+  below has been rewritten around that.
 - [ ] Clicking the **Magic** tab shows your randomly-assigned starting
   lineage (one of Elemental/Illusion/Kinetic/Restoration — reroll a fresh
   character a few times via a new save to confirm it actually varies, not
   always the same one), current Will (starts 100/100), and a list of known
-  wishes for that lineage. If your starting lineage isn't Elemental, this
-  list should show nothing yet — **Spark is Elemental-only** for now, so
-  only an Elemental character can ever attempt it.
-- [ ] **Campfire + Spark, the first real wish** — one unlit Campfire sits at
-  `(-4, 0.3, -2)` in `TestScene`. With an Elemental character standing at
-  it, the prompt should read "Hold to wish it would light (requires
-  Elemental)". Hold E — a green progress bar fills (same visual as
-  gathering/chopping), duration set by your current Elemental skill tier
-  (longer at Crude, faster as it rises). On completion: the campfire
-  visibly lights (swaps to an orange emissive material, a point light
-  turns on), Will drops by 10, Elemental skill gains experience, and
-  Will's **max** ticks up slightly (confirm both current and max both grow,
-  not just the ceiling).
-- [ ] **Gating, confirm each fails silently (no effect, no error) rather
-  than lighting anyway:** (1) a non-Elemental character holding E on the
-  unlit Campfire — the hold completes but nothing happens; (2) an Elemental
-  character with less than 10 Will — same silent no-op; (3) holding E on
-  an *already-lit* Campfire does nothing (it's a one-shot per campfire,
-  no re-lighting/relighting mechanic exists).
-- [ ] **Known simplification, not a bug:** lighting the Campfire doesn't
-  check any fuel/tinder quality — there's no weakest-link material input
-  the way crafting has ingredients. A Masterwork Elemental caster and a
-  freshly-unlocked Crude one both light the same campfire the same way,
-  just at different hold speeds.
+  wishes for that lineage, showing both costs (e.g. "60 Will on success /
+  40 on failure"). If your starting lineage is Illusion, this list should
+  show nothing yet — it's the only lineage with no wish so far.
+- [ ] **Select button (v0.1.152-dev):** each known wish row has a button
+  reading "Active" for whichever wish is currently selected (disabled,
+  can't re-click it) and "Select" for any others. Since every lineage has
+  at most one wish today, there's nothing to actually choose between yet
+  — just confirm the currently-known wish shows "Active" automatically
+  from the moment you spawn, with no menu trip required (auto-defaults in
+  `PlayerMagic.Awake`). Groundwork for when a lineage gets a second wish.
+- [ ] **All magic activates with R**, no prompt (unified v0.1.151-dev,
+  hints removed v0.1.155-dev). **E is no longer involved in magic at
+  all** — confirm holding E at the Campfire does nothing now.
+- [ ] **Campfire + Spark** — one unlit Campfire sits at `(-4, 0.3, -2)` in
+  `TestScene`. With an Elemental character, stand near it and hold R for
+  a few seconds (duration scales with Elemental skill tier — several
+  seconds at Crude) — no prompt will appear, just hold roughly that long
+  and release, then check whether it lit.
+- [ ] **Success/failure roll (v0.1.149-dev)** — completing the hold no
+  longer guarantees the campfire lights. Odds start at 50% right at
+  Elemental's unlock threshold, rising to 90% once you're roughly 20
+  skill points past it — craft/gather other things first if you want to
+  push Elemental up via repeated attempts and watch the odds improve.
+  **On success:** campfire visibly lights (orange emissive material, a
+  point light turns on), Will drops by **60** (check the Magic tab, not a
+  prompt), Elemental gains experience (check the Skills tab's Magic
+  category), and Will's **max** ticks up slightly. **On failure:**
+  campfire stays unlit, Will drops by **40** (not 60), Elemental still
+  gains experience, and a message reading roughly "The wish didn't take
+  — Spark fizzled." still appears top-center (this message is not part of
+  the removed UI hints — it's feedback about an *attempt that already
+  happened*, not a hint about what R does).
+- [ ] **Will regen:** confirm Will climbs back up at 1 point every 5
+  seconds while doing nothing (check via the Magic tab — slow, a full
+  recovery from a failed attempt takes a couple minutes).
+- [ ] **Gating, confirm each fails silently (no roll, no cost, no
+  message)** rather than attempting anyway: (1) a non-Elemental character
+  holding R at the unlit Campfire — nothing happens at all, not even a
+  fizzle message (a hard gate failure, distinct from a failed roll); (2)
+  an Elemental character with less than 60 Will (the success cost —
+  gated even with enough for a mere failure) — same silent no-op; (3)
+  holding R at an *already-lit* Campfire does nothing (one-shot, no
+  re-lighting mechanic).
+- [ ] **Known simplification, not a bug:** the roll only checks skill
+  margin — there's no fuel/tinder quality input to weight it, unlike
+  crafting's ingredients. A Masterwork Elemental caster and a
+  freshly-unlocked Crude one (once both clear the unlock gate) roll
+  against the same campfire, just at different odds and hold speeds.
+- [ ] **Push (Kinetic) — the generic fallback wish, same R as Spark, no
+  prompt.** With a Kinetic character, aim at *any* loose Rigidbody object
+  (a dropped Small Rock, an ore chunk, a dropped Pickup — not a static
+  resource node like Rock Node/Boulder itself, which has no Rigidbody)
+  and hold R for a few seconds. Same success/failure roll and 60/40 Will
+  split as Spark. On success, the object gets a real physics shove away
+  from you (`Rigidbody.AddForce`, impulse) — confirm it actually slides/
+  rolls, not just teleports. On failure, same fizzle message, no
+  movement, Will still drops 40 and Kinetic still gains experience.
+- [ ] **E and R are independent** — confirm holding E on an IInteractable
+  (e.g. a Rock Node) and R on a separate loose Rigidbody chunk don't
+  interfere with each other's progress if you were to somehow trigger
+  both (edge case, low priority, just confirm nothing crashes/soft-locks).
+- [ ] **Heal Self (Restoration) — the first Unconditional wish, no aiming
+  and no prompt.** With a Restoration character, hold R anywhere, looking
+  at anything (or nothing) — duration is purely off the Restoration
+  skill tier. Take some damage first (e.g. let hunger/thirst hit 0
+  briefly, or a Spectacular Failure craft) so healing is visible. **On
+  success:** Health climbs toward +10 total, spread smoothly over the
+  next 30 seconds (not an instant jump) — watch the Health bar in
+  `VitalsBarHUD` tick up gradually. Will drops 60, Restoration gains
+  experience. **On failure:** no healing at all, Will drops 40, same
+  fizzle message, Restoration still gains experience. **Re-casting
+  mid-heal:** trigger a second successful Heal Self before the first
+  one's 30s finishes — confirm the new heal replaces the old one (fresh
+  10-over-30s from that point), not stacks on top of it or extends the
+  total duration.
+- [ ] **Illusion still has no wish** — confirm an Illusion character's
+  Magic tab shows "No wishes known yet" and R does nothing for them at
+  all (silent, same as any other gate failure).
+
+## 6b. Player Menu (Tab) — Build Tab (v0.1.156-dev, Foundation only)
+
+- [ ] Clicking the **Build** tab lists **Twig Foundation** (needs 6x
+  Stick, 3x Rope), always unlocked (Crude tier, no Woodworking
+  requirement to start). An "Arm" button arms it; once armed the button
+  reads "Armed" and is disabled. **Unlike Magic, this tab is meant to be
+  fully informative** — costs and requirements should be plainly visible,
+  not hidden.
+- [ ] **Free placement (first Foundation, nothing to snap to):** with
+  Twig Foundation armed, close the menu, aim at open ground, and confirm
+  a translucent cyan ghost preview follows your crosshair in real time
+  (this is a real visible preview, distinct from Magic's zero-UI
+  approach). **Left Mouse Button** — the ghost should lock in place
+  (stop following the crosshair). **Scroll wheel** — the ghost should
+  rotate in 90° steps. **Left Mouse Button again** — the piece should
+  actually spawn at that position/rotation, 6 Stick and 3 Rope should
+  leave your inventory, and Woodworking should gain experience (check
+  the Skills tab's Crafting Disciplines category).
+- [ ] **Not enough materials:** try placing without 6 Stick + 3 Rope on
+  hand — confirm a message reading "Not enough materials." appears
+  top-center (below the Magic/skill-up messages, same stacking
+  convention) and nothing is spent, nothing spawns.
+- [ ] **Edge-snapped placement (second Foundation):** with one Foundation
+  already placed, arm Twig Foundation again and aim near one of its
+  edges — the ghost should snap immediately to that edge (position *and*
+  rotation both automatic, no rotate step) as soon as you're close
+  enough. A single **Left Mouse Button** press should confirm it
+  immediately — no lock/rotate phase, unlike the free-placement case.
+  Confirm the two panels sit flush with no gap or overlap, and the
+  second panel's top surface is exactly level with the first's — even if
+  you deliberately aimed slightly off the exact same height, since
+  height is inherited from the neighbor, not read from your aim.
+- [ ] **Sockets can't be double-claimed:** after two Foundations are
+  snapped together, try arming a third and aiming at the *already-used*
+  edge between the first two — it should not offer a snap there (falls
+  back to free placement rooted wherever you're aiming instead).
+- [ ] **Known gap, not a bug:** Foundation is currently a flat slab only
+  — there's no visible support column/pedestal reaching down to uneven
+  terrain yet, even though the mechanical 5m reach check is real (it
+  only actually gates the edge-snapped case in this build, since free
+  placement always matches the raycast hit exactly).
+- [ ] **Wall, Pole, Door do not exist yet** — the Build tab should show
+  only Twig Foundation, nothing else.
+- [ ] **Upgrade/destroy on a placed piece (v0.1.157-dev).** Equip any
+  tier of Hammer in a hand, look at a placed Twig Foundation — a prompt
+  should read "Click to upgrade to Plank Foundation — hold 5s to
+  destroy". **Click (tap, quick press+release):** the Foundation should
+  be replaced in place by a Plank Foundation (lighter tan color) at the
+  exact same position/rotation, 8 Plank should leave your inventory, and
+  Woodworking should gain experience. **Hold for 5 full seconds:** the
+  piece should be destroyed outright (disappears, no item/material
+  returned to inventory) — confirm nothing is refunded. **Without a
+  Hammer equipped:** no prompt should appear at all, neither action
+  should do anything.
+- [ ] **Upgrade preserves snap connections:** place two Foundations
+  snapped edge-to-edge, then upgrade one of them to Plank — confirm the
+  two pieces are still connected afterward (try snapping a third
+  Foundation to the *other* panel's far edge — should still work
+  normally) rather than the upgrade silently breaking the connection.
+- [ ] **Destroy frees the connection:** with two Foundations snapped
+  together, destroy one — confirm the *other* panel's edge is available
+  to snap a new piece to again afterward, not permanently stuck
+  "occupied" by the piece that no longer exists.
+- [ ] **Already at the highest tier:** since Rock/Metal don't exist yet,
+  upgrading a Plank Foundation should show "Already highest tier — hold
+  5s to destroy" and clicking it should do nothing (no infinite ladder,
+  no error).
+- [ ] **Not enough materials:** try upgrading without 8 Plank on hand —
+  confirm a "Not enough materials." message appears and nothing is
+  destroyed or replaced (the original Twig Foundation should remain
+  exactly as it was).
+- [ ] **Known gap, not a bug:** the 5-second destroy hold shows a text
+  countdown only, no graphical progress bar.
 
 ## 7. Equippable Gadgets
 

@@ -5,12 +5,547 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.148-dev` — must always match `GameVersion` in
+**Current version:** `0.1.157-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-08
+
+### v0.1.157-dev — Upgrade/destroy: click a placed piece to upgrade, hold 5s to destroy
+
+Ben: "lets go ahead and build it" — implements the click-vs-5s-hold
+mechanic from the ideation above, plus a real Plank Foundation to
+upgrade *to* (otherwise the mechanic would have nothing to prove out
+end-to-end, same "ship a real working example" discipline as every
+other system this session).
+
+- **`BuildPiece.nextTier`** — the next rung of the material ladder, null
+  at the top or if no upgrade exists yet.
+- **`BuildSocket.FreeConnectedSockets`** (static) — frees every socket on
+  a destroyed instance *and* whatever they were touching, without a
+  stored bidirectional link: two snapped sockets end up at the exact
+  same world position by construction (confirmed from the placement
+  math), so "find the other side" is just "find any other occupied
+  socket at that same point."
+- **`PlacedPiece`** (new, trivial) — tags a real (non-ghost) instance
+  with which `BuildPiece` it is; `PlayerBuilding.Confirm` now attaches
+  one to everything it places.
+- **`PlayerPieceUpgrade`** (new) — its own raycast/E-handling, not a
+  reuse of `IInteractable`'s hold-and-release: releasing early *is* the
+  upgrade action here, only holding past 5 seconds does something else
+  (destroy), which is backwards from how every other hold in the game
+  works (release early = cancelled). Requires a Hammer (any tier) in
+  hand for both actions. Upgrade is destroy-and-replace-in-place at the
+  identical transform, with old socket-occupied state carried over by
+  nearest-position match. Destroy frees connected sockets and refunds
+  nothing — a pure loss, per Ben's call.
+- **`PlankFoundation.prefab`/`PlankFoundationPiece.asset`** — identical
+  shape to Foundation (same 5×5 slab + 4 sockets), lighter material, 8
+  Plank, Woodworking-trained. `TwigFoundationPiece.nextTier` now points
+  to it, so the whole ladder step is real and testable, not just wired
+  infrastructure with nothing on the other end.
+- **Full UI on purpose** (unlike Magic) — a prompt names the upgrade
+  target and shows the destroy countdown live, plus a "not enough
+  materials"/"already highest tier" message, all deliberately visible.
+
+Verified via a full batch-mode compile check and by reading back the
+saved scene/asset YAML: `PlayerPieceUpgrade.hammerTiers` (all 5 real
+references), `TwigFoundationPiece.nextTier` (guid matches
+`PlankFoundationPiece.asset`'s own), and `PlankFoundation.prefab` (4
+sockets) — not just trusting the batch log.
+
+**Known gaps, flagged not hidden:** no progress bar for the 5s destroy
+hold (text countdown only); Rock/Metal tiers still don't exist, so the
+ladder stops at Plank for now; Wall/Pole/Door still don't exist, so
+Foundation is still the only upgradable/destroyable piece.
+
+### Roadmap notes: Nails + buildable Storage Box, storage-capacity motivation (doc-only, no version bump)
+
+Ben, mid-build of the upgrade/destroy system: "we need to implement
+nails (requiring iron and a hammer). this allows us to add a storage
+box that can be built with planks and nails," then "with the amount of
+materials to build a structure, we'll need to make sure we have storage
+so we can collect enough resources." Both captured in `docs/design-brief.md`'s
+Building System roadmap rather than expanding the in-progress
+implementation pass — Nails fits the material web's already-sketched
+but unbuilt Ingot→Forging→Forged Component branch (Forging-trained,
+consuming `Iron` directly for now); the Storage Box would reuse the
+existing `StorageBox`/`Inventory` components as a placeable `BuildPiece`
+rather than a new storage mechanism; the storage-capacity concern is the
+stated motivation for building it, not a separate ask. Not designed in
+detail or built. Continuing the already-committed upgrade/destroy +
+Plank Foundation build.
+
+### Upgrade/destroy: Hammer required for both, destroy refunds nothing (doc-only, no version bump)
+
+Ben: "destroying doesn't return materiel. upgrade or destroy requires
+the hammer" — resolves the two open questions left from the previous
+entry. Both now settled in `docs/design-brief.md`: destroy is **not**
+bare-handed after all (Hammer required for both actions), and destroying
+a piece is a **pure loss**, no partial material refund.
+
+No code touched — pure design.
+
+### Upgrade/destroy interaction corrected: click vs. 5s hold, not a skill-tiered hold (doc-only, no version bump)
+
+Ben: "we should have click to upgrade, and a click and hold to destroy
+- a 5 second timer." Corrects the upgrade-path entry from earlier the
+same session (which wrongly modeled upgrade as a skill-tiered hold) and
+adds a genuinely new mechanic — destroy — that hadn't been captured at
+all. Updated `docs/design-brief.md`'s Building System section:
+
+- **Click (instant, Hammer in hand) upgrades** one material tier
+  (Twig→Plank→Rock→Metal). Same destroy-and-replace-in-place mechanics
+  as before, just triggered by a tap, not a hold.
+- **Click-and-hold for a flat 5 seconds destroys** the piece outright —
+  not skill-tiered, unlike every other timed action in the game so far.
+- **Flagged as architecturally new**: this is tap-vs-hold-threshold on
+  one object (release early = upgrade, hold past 5s = destroy), not a
+  hold building toward one single outcome the way every other
+  `IInteractable` works (where releasing early always means "cancelled,
+  nothing happened"). Needs its own dedicated logic on placed pieces,
+  not a straight reuse of the existing hold-and-release code path.
+- **Left open**: whether destroy needs the Hammer too (leaning no — bare-
+  handed, just slow) and whether destroying refunds any materials.
+
+No code touched — pure design correction/addition.
+
+### Building upgrade path: Hammer + E upgrades a placed piece one material tier (doc-only, no version bump)
+
+Ben: "we also want to have an upgrade path. if you have a hammer in
+hand, you can upgrade from twig to plank etc." Added to `docs/design-brief.md`'s
+Building System section, reusing existing pieces rather than inventing
+new ones:
+
+- **Reuses the existing 5-tier Hammer item** as the upgrade tool (same
+  "any tier counts" gate convention every tool check already uses) —
+  not a new dedicated tool.
+- **Rides E, not the Left Mouse Button/scroll placement scheme** —
+  upgrading an existing placed piece is an `IInteractable` hold-and-
+  release action like everything else in the game, not a new placement.
+- **Destroy-and-replace in place**: old instance destroyed, target
+  tier's prefab instantiated at the same transform, socket-occupied
+  state carried over so neighbors don't read the connection as freed.
+- **Cost/skill training is just the target tier's own `BuildPiece`
+  data** — upgrading to Plank costs and trains exactly what building a
+  fresh Plank piece would, not a separate rule.
+
+No code touched — pure design, added alongside the Stairs/Ramps/Shelves
+roadmap note above in the same session.
+
+### Building roadmap: Stairs, Ramps, Shelves added (doc-only, no version bump)
+
+Ben: "we will need recipes for stairs, ramps, shelves, etc" — added to
+`docs/design-brief.md`'s Building System section as tracked-but-not-
+designed, split into the two categories they actually fall into:
+Stairs/Ramps are **vertical connectors** (need sockets at two different
+heights, which the current horizontal-only Foundation-to-Foundation
+socket system doesn't support yet); Shelves and other furniture/fixtures
+**mount onto a Wall** rather than tiling edge-to-edge with the
+structural shell, closer to how `IWishTarget`/`IEquippable` attach to
+something else. No code touched — Wall/Pole/Door are still the nearer
+gap.
+
+### v0.1.156-dev — Building System first slice: Foundation, free + edge-snapped placement
+
+Ben: "well, no time for the present, let's build it in" — first
+implementation off the Building System ideation above. Scoped to
+**Foundation only**, same "skeleton + one real path" discipline as
+Magic's first pass (Spark before Push/Heal Self) — Wall/Pole/Door reuse
+this exact machinery later, not a second system.
+
+- **`BuildPiece`** (new `ScriptableObject`) — sibling to `CraftingRecipe`/
+  `WishRecipe`: prefab, ingredients (reuses `CraftingRecipe.Ingredient`
+  directly), trainedSkill, unlockTier, skillGain, groundReach.
+- **`BuildSocket`** (new component) — typed anchor point
+  (`SocketType.FoundationEdge` is the only one used yet; `WallBottom`/
+  `WallTop`/`WallSide`/`PoleTop` are named ahead of time so the enum
+  doesn't need a second pass), `IsCompatibleWith` for pairing, `Occupied`
+  flag so a used socket can't be double-claimed.
+- **`PlayerBuilding`** (new component) — the placement state machine.
+  Every frame while a piece is armed: raycast for a nearby unoccupied
+  compatible socket first (edge-snap, position+rotation both implied,
+  one click confirms); otherwise a free-placement ghost follows the
+  raycast hit point. **Left Mouse Button** places/confirms, **scroll
+  wheel** rotates during the free-placement pending step — the exact
+  Valheim/Rust/Raft-borrowed scheme from the ideation, not mouse
+  movement (which is already camera look in this game).
+- **`BuildScreen`** (new tab, `PlayerMenuScreen`) — same select/arm shape
+  as `MagicScreen`, but **unlike Magic, fully visible on purpose**: shows
+  ingredient costs, skill-gate state, and a live ghost preview in the
+  world. Building is a deliberate, learnable system, not a hidden one.
+- **`Foundation.prefab`** — 5m×5m flat slab (collider matches), 4
+  `BuildSocket`s at the mid-edges facing outward. **Scoped down from the
+  full design**: no support-column/stilt visual yet (the design doc's
+  "buried block vs. stilted platform" question is still open) — a second
+  foundation still correctly inherits the first's exact top height when
+  snapped, and the 5m ground-reach tolerance is checked before allowing
+  a *snapped* placement, but the free-placement case (nothing to snap
+  to) always matches the raycast hit exactly, so there's no visible
+  pedestal to get wrong yet.
+- **`TwigFoundationPiece.asset`** — 6 Stick + 3 Rope, Woodworking-trained
+  (matches the existing Bow precedent: wood-defining material trains
+  Woodworking even with Rope also consumed), Crude unlock (always
+  available).
+
+**Real gotcha avoided, not hit this time:** `PlayerMenuScreen`'s new
+`[RequireComponent(typeof(BuildScreen))]` (and `BuildScreen`'s own
+requirement of `PlayerBuilding`) meant Unity auto-created both the
+moment the scene loaded, same as the `MagicScreen`/`PlayerMagic`
+incident in v0.1.148-dev — but both new components already had
+`[DisallowMultipleComponent]` from the start and the setup script used
+`GetComponent ?? AddComponent` throughout, so no duplicates landed this
+time. Verified by reading back the saved scene YAML for exactly one of
+each.
+
+Verified via a full batch-mode compile check and by reading back
+`Foundation.prefab` (4 sockets, correct `socketType`) and
+`TwigFoundationPiece.asset` (both ingredients, correct guids) directly
+rather than trusting the batch log alone.
+
+**Known gaps, flagged not hidden:** no support-column/stilt visual;
+mixed-material structures, Pole/Wall/Door, structural-integrity
+requirements beyond "a socket exists," and territory restrictions all
+remain exactly as open as the design doc already says.
+
+### Building System: own tab + Left Mouse Button/scroll-wheel placement (doc-only, no version bump)
+
+Follow-on to the Building System ideation above, same session. Ben: "we
+will need to add a building tab to our crafting area. it may be its own
+tab," then "can we borrow the mechanics from another similar game?" —
+two more real decisions added to `docs/design-brief.md`'s Building
+System section:
+
+- **Own tab, not folded into Crafting** — same reasoning that kept Magic
+  out of the Crafting tab: neither wishes nor building pieces resolve
+  via a click-Craft-into-inventory button, both happen out in the world.
+  A Build tab lists unlocked pieces and lets the player select which one
+  is armed, same select/active shape `MagicScreen` already has — but
+  **unlike Magic, Building gets full UI support** (ghost preview,
+  prompts, everything), since it's a deliberate learnable system, not a
+  hidden one. Worth keeping the two visually distinct on purpose.
+- **Placement input borrowed directly from Valheim/Rust/Raft's shared
+  convention**: Left Mouse Button places and confirms, scroll wheel
+  rotates in between. Not mouse movement — that's already camera look in
+  this game, so it can't also drive rotation without fighting itself,
+  which is exactly why those games use scroll/a dedicated key instead.
+  Not R (reserved for hidden magic) or E (already overloaded). Left
+  Mouse Button turned out to be genuinely unbound today — it did nothing
+  since punch-to-break was retired — so this is a clean reuse, not a
+  displaced binding.
+
+No code written — pure design.
+
+### Building System designed — Foundation/Pole/Wall/Door, socket-based placement (doc-only, no version bump)
+
+Ideation session on Phase 1's last untouched item, "Basic building" —
+Ben noticed Rope and Sticks already exist as real items and asked to
+explore a "twig" building tier: "we shouldn't give the 'Use R' type
+hint" energy but for construction — click to place, snap to edges.
+Converged on a real, buildable shape. Full detail in `docs/design-brief.md`'s
+new **Building System** section; summary:
+
+- **Modular by shape, not material** — Foundation/Wall/Door (and later
+  Floor/Ceiling/Window/Roof) each define a fixed shape+socket contract
+  once; material (Twig now, presumably Plank/Rock/Metal later) is a
+  separate layered axis, same "orthogonal" relationship the ore family
+  already has between metal type and CraftTier. Building material tiers
+  ride the *existing* Crafting pipeline's material web rather than
+  inventing a new one — Plank/Rock/Metal building pieces can't exist
+  before their own material refinement chain does.
+- **Two placement flows**: free (click-drop, release-to-rotate,
+  click-to-confirm) for anything with nothing to snap to; one-click
+  socket-snap for anything with a compatible edge in range — position
+  and rotation are both implied by the socket in that case.
+- **Foundation** — 5m×5m, reaches up to 5m downward from the aimed point
+  (top-anchored, not center) to level across moderate terrain; a
+  second panel snapped to a first inherits its exact top height rather
+  than re-raycasting, which is the actual leveling mechanism.
+- **Pole** — up to 10m reach, manually placed ahead of a Foundation when
+  5m isn't enough (cliffs, water), exposes its own top socket so it's
+  usable standalone too. No pole-to-pole stacking; unreachable terrain
+  just fails placement, no escalation path.
+- **Wall** — 5m wide × 3m high, one segment per Foundation edge exactly.
+  Height deliberately decoupled from Foundation's 5m (a burial-depth
+  tolerance, not a room-height statement).
+- **Door** — its own full piece, socket-compatible with the same slot a
+  Wall would occupy — a swap, not a runtime cutout.
+
+**Explicitly still open, written into the doc rather than assumed:**
+Foundation's visual (buried block vs. stilted platform), whether mixed-
+material structures are allowed, Floor/Ceiling/Window/Roof shapes,
+structural-support requirements beyond "a socket exists," where building
+is allowed once territory/multiplayer exist, and exact material costs.
+
+No code written this session — pure design, same status the Magic System
+had before its own first implementation pass.
+
+### MVP progress re-check (doc-only, no version bump)
+
+Ben: "how are we doing on our mvp progress" — updated the "MVP Progress
+Check-In" section in `docs/design-brief.md` (originally written earlier
+the same session, before the interaction-model rebuild and the whole
+Magic System) rather than re-answering from scratch.
+
+- **Magic lineage assignment + early-tier ability use moves from
+  not-built to built** — the single real status change. Three of four
+  lineages (Elemental, Kinetic, Restoration) now have one genuinely
+  working wish each; Illusion is still empty, so this is "built," not
+  "complete."
+- **Loot & gathering's interaction model was rebuilt** (`IPunchable`
+  retired, skill-tiered hold-and-release) — doesn't change its
+  built/not-built status, already counted as built, but flagged as a
+  real mechanical change, not just polish.
+- **Revised tally: 7 of Phase 1's 11 items built, 4 entirely unstarted**
+  (encumbrance, building, combat/first aid, NPCs) — was 6/11 and 5
+  unstarted at the last check-in.
+
+No gameplay code touched.
+
+### v0.1.155-dev — Magic gets zero UI hints, by design: "something people play with in order to explore it"
+
+Ben, from a screenshot of "Pick up Backpack    Wish it would move (3s)"
+showing simultaneously: "let's not share the 'wish' on the r at all. I
+want this to be something people play with in order to explore it." A
+real design stance, not just removing a redundant label — magic should
+be discovered through experimentation, not explained on screen.
+
+- **`PlayerInteraction.OnGUI` no longer shows any wish prompt text or
+  progress bar at all.** `ResolveWishTarget`/`HandleWish` are completely
+  unchanged — holding R still fills progress, still rolls success/
+  failure, still spends Will and trains skills exactly as before. Only
+  the player-facing hint is gone; the only feedback now is the world
+  itself reacting (a campfire lighting, an object sliding, health
+  climbing) or not.
+- **Removed the R entry from `GameMenuScreen.ControlsList`** (the `` ` ``
+  Game Menu's Controls tab) too — leaving an explicit "R: cast a wish"
+  reference there would undercut the same goal for anyone who checks
+  Controls, which is a normal, non-spoiler-breaking thing players do
+  early. E and F keep their existing prompts/entries; this is specifically
+  about hiding magic, not interaction in general.
+
+Verified via a full batch-mode compile check.
+
+### v0.1.154-dev — Fixed: R wish prompts always showed a "[R]" hint, even alone
+
+Ben, from a screenshot of "[R] Heal Self (3s)" showing while looking at
+plain grass with nothing else active: "we shouldn't give the 'Use R'
+type hint... for any skill." Real bug, not a style nitpick — the
+disambiguation logic (`bool multiple = ... || wishText != null`) bracketed
+R the moment *any* wish was present at all, regardless of whether
+anything else was actually competing for the same prompt line, unlike E
+(which only ever got bracketed when F was also active).
+
+- `PlayerInteraction.OnGUI` rewritten: E/F keep their existing bracketed
+  disambiguation between each other, unchanged. The wish prompt is now
+  always appended plain, with no `[R]` prefix, whether it's alone or
+  (hypothetically, not shipped anywhere) alongside E/F.
+
+Verified via a full batch-mode compile check.
+
+### v0.1.153-dev — Restoration's Heal Self: the first Unconditional wish
+
+Ben: "let's add a 'heal self' skill that give 10 health over 30 seconds.
+add to restoration skill set." First real use of the `Unconditional`
+targeting mode added in v0.1.152-dev specifically for a wish like this —
+no world object involved at all, just Will and skill.
+
+- **`PlayerVitals` gained heal-over-time state** — `StartHealOverTime
+  (amount, duration)` computes a flat rate and ticks it down each frame,
+  same shape as `bodyTemperature`'s drift-toward-neutral. Re-casting
+  while one's already active replaces it outright rather than stacking
+  or extending (simplest behavior, no spec given otherwise).
+- **New `HealSelfWish.asset`** — Restoration, Crude unlock,
+  `targeting = Unconditional`, same 60/40 Will split as Spark/Push (no
+  different numbers specified, kept consistent rather than inventing a
+  third placeholder pair).
+- **`PlayerInteraction` special-cases Heal Self** in its Unconditional
+  dispatch branch (`currentWish == healSelfWish` → `StartHealOverTime
+  (10, 30)`), same "fine for one wish, revisit if a second Unconditional
+  wish needs a real effect-dispatch abstraction" placeholder status as
+  `pushForce`'s handling of Push.
+- Added to `PlayerMagic.allWishes` (now 3 entries total) — Restoration
+  finally has a wish of its own, joining Elemental (Spark) and Kinetic
+  (Push); Illusion is still empty.
+- **No aiming required** — Unconditional wishes don't raycast at all
+  (see `ResolveWishTarget`'s `Unconditional` branch, v0.1.152-dev); a
+  Restoration character can hold R to heal anywhere, looking at anything.
+
+Verified via a full batch-mode compile check and by reading back the
+saved scene/asset YAML to confirm `targeting: 2` (Unconditional) on the
+new asset and real (non-`fileID: 0`) references throughout.
+
+### v0.1.152-dev — "Default skill" selection: the player picks which wish R attempts
+
+Ben: "let's consider the thought of being able to set a default skill.
+for example, I could set 'push' as default, and even if I was aiming at
+a fire, it would try to push if I had that skill... setting the default
+skill to 'fireball' means you could shoot a fireball anytime you had
+enough will." Real problem this solves: once a lineage has more than one
+wish (Fireball alongside Spark, per the design brief's own Elemental
+ladder sketch), the old model — R does whatever the crosshair happens to
+offer — has no way to choose between them, and no path at all for a wish
+that needs no physical target (Fireball flying at nothing in particular).
+
+- **`WishRecipe` gained a `WishTargeting` enum** (`SpecificObject` —
+  needs an `IWishTarget` offering this exact wish, the default, matches
+  Spark; `AnyRigidbody` — matches Push; `Unconditional` — no target
+  needed at all, gated purely on lineage/skill/Will, not used by any
+  shipped wish yet but the dispatch path exists for when Fireball lands).
+- **`PlayerMagic` is now the single source of truth for the wish list**
+  (`allWishes`, moved off both `MagicScreen` and `PlayerInteraction`,
+  which each held their own separate references before — only worked
+  because there were exactly two wishes total). Added `KnownWishes`
+  (filtered by lineage), `SelectedWish`, and `SelectWish(wish)`.
+  Auto-selects the first known wish in `Awake` so single-wish gameplay
+  keeps working with zero menu trips — explicit selection only matters
+  once a lineage actually has two.
+- **`MagicScreen` gained a real action** — a Select/Active button per
+  known wish, previously pure read-only reference.
+- **`PlayerInteraction`'s `ResolveWishTarget` rewritten to dispatch off
+  `magic.SelectedWish.targeting`** instead of "try IWishTarget, fall back
+  to Rigidbody" — it now only ever checks the one targeting mode the
+  selected wish actually needs. `HandleWish`'s completion routing
+  branches explicitly on targeting mode too, not on "is currentWishTarget
+  null," so a future Unconditional wish doesn't misfire down the Push
+  AddForce path.
+- `PushWish.asset` set to `targeting = AnyRigidbody`; `SparkWish.asset`
+  needed no change (`SpecificObject` is the default).
+
+**Real ops hiccup, not a code bug:** the first batch-mode rewiring
+attempt hung for 5+ minutes — a stale `bee_backend` process left over
+from an earlier session was holding the project's compile lock, so the
+new Unity instance sat blocked rather than failing fast the way "another
+Unity instance is running" normally does. Diagnosed by reading the
+partial log (`bee_backend: error: More than one copy of bee_backend
+running... PID waiting`), killed the stuck process, reran clean.
+
+Verified via a full batch-mode compile check, a grep for dangling
+references to the removed `pushWish` field, and by reading back the
+saved scene YAML to confirm `PlayerMagic.allWishes` holds both real
+references and `PushWish.asset`'s `targeting` reads `1` (AnyRigidbody).
+
+### v0.1.151-dev — All magic unified onto R; new IWishTarget interface
+
+Ben: "let's change the spark and all magic to activate with r. we'll use
+the mouse cursor to determine the target." Clarified on ask: no change to
+the mouse/camera model itself — still look-based, same crosshair raycast
+as everything else; "the cursor" just meant "wherever you're looking,"
+not a literal free-moving pointer. Net change: Spark moves off E onto R,
+joining Push, so all magic now shares one input.
+
+- **New `IWishTarget` interface** — `Prompt`, `GetWish(PlayerMagic)`
+  (returns null if this target has nothing for the given magic right now:
+  wrong lineage, or e.g. an already-lit campfire), `OnWishComplete(player,
+  succeeded)`. Distinct from `IInteractable`: every wish rides R, not E,
+  and gates on `PlayerMagic`, not a tool.
+- **`Campfire` converted from `IInteractable` to `IWishTarget`** — no
+  longer part of the E/hold-to-gather system at all. Same effect
+  (`SetLit`), just invoked via `OnWishComplete` instead of `Complete`.
+- **`PlayerInteraction` gained a unified `ResolveWishTarget`/`HandleWish`
+  pair**, replacing the Push-only version from v0.1.150-dev. Each frame:
+  raycast for an `IWishTarget` first (a specific object like Campfire);
+  if none, or its `GetWish` returns null, fall back to a plain
+  `Rigidbody` for the generic Push case. Same hold-and-release shape
+  either way — one shared progress counter, one shared green bar, one
+  shared "[R] ..." prompt slot, whichever kind of target is in play.
+- `GameMenuScreen.ControlsList`'s R entry generalized from
+  "Kinetic: wish it would move" to "Wish at whatever you're looking at —
+  Spark/Push/etc."
+
+Verified via a full batch-mode compile check and a grep for dangling
+references to the removed Push-only fields (`currentPushTarget`,
+`CanPush`, `pushHoldProgress`) — none found.
+
+### v0.1.150-dev — Kinetic's Push wish: a second, R-bound interaction channel
+
+Ben: "I think we need to bind a new key to magic, like maybe r if not
+used. that way we can use a kinetic 'push' skill to push the mid size
+rock a short distance." Confirmed `R` was genuinely unused (grepped the
+whole `Assets/Scripts/` tree) before binding it.
+
+- **Deliberately a new channel, not IInteractable/E like Spark.** Spark
+  targets one specific pre-flagged object (Campfire); Push needed to
+  target *any* nearby Rigidbody the player picked ("any nearby
+  Rigidbody-bearing chunk," Ben's call over a single dedicated pushable
+  object), which doesn't fit IInteractable's "one wishable object" shape.
+  Retrofitting every Rigidbody-bearing prefab in the game with a wish
+  interface wasn't worth it for one wish — `PlayerInteraction` instead
+  runs a second, independent raycast for `R`, generic against
+  `GetComponentInParent<Rigidbody>()` rather than a specific interface.
+- Same hold-and-release shape as E: hold R while aiming at a Rigidbody,
+  a green bar fills (same `DrawHoldBar` visual, shared with E's), duration
+  set by `PlayerSkills.GetHoldDuration(Kinetic)` — same skill-tiered
+  curve as everything else. On completion, `PlayerMagic.TryWish` runs the
+  same success/failure roll Spark uses (50%→90% by margin, 60/40 Will);
+  on success, `Rigidbody.AddForce` shoves the target (`ForceMode.Impulse`,
+  magnitude 6, placeholder/tunable) in the camera's forward direction.
+- **New `PushWish.asset`** (Kinetic, Crude unlock, 60/40 Will, same
+  numbers as Spark — no reason given yet to differ, kept consistent
+  rather than inventing new placeholders). Added to `MagicScreen.allWishes`
+  alongside Spark, so a Kinetic character's Magic tab now lists it.
+- **Prompt only shown to a player who actually knows Kinetic** — a real,
+  deliberate divergence from the tool-gated prompts elsewhere (Pickaxe
+  requirement shows to everyone, since anyone could pick one up). Under
+  today's single-starting-lineage rule a non-Kinetic character can never
+  attempt Push at all, so showing the prompt to them would be dead,
+  misleading UI rather than an honest "here's what you're missing" like
+  the tool prompts are.
+- `GameMenuScreen.ControlsList` updated with the new R binding, noted as
+  Kinetic-only.
+
+Verified via a full batch-mode compile check and by reading back the
+saved scene YAML to confirm both `pushWish` (on `PlayerInteraction`) and
+the 2-element `allWishes` array (on `MagicScreen`) hold real references,
+not `fileID: 0` — no repeat of the earlier stale-reference gotcha this
+time, since assets were loaded after `OpenScene` from the start.
+
+**Known gap, not fixed here:** if a player somehow holds both E and R at
+once, both progress bars share the same screen position/texture — an
+unlikely edge case, not engineered around.
+
+### v0.1.149-dev — Spark gets a real success/failure roll; Will costs and regen tuned
+
+Ben tested v0.1.148-dev live, confirmed Spark works end-to-end, then gave
+real tuning numbers: "at a successful use of the wish, will should drop
+by 60 points. it should regen 1 point every 5 seconds. a failure should
+cost 40 points."
+
+- **`WishRecipe.willCost` split into `successWillCost` (60) and
+  `failureWillCost` (40)** — different outcomes now cost different
+  amounts, which meant a wish attempt needed an actual outcome to
+  determine first.
+- **`PlayerMagic.TryWish` gained a binary success/failure roll**, same
+  interpolated-by-skill-margin shape as `PlayerCrafting`'s existing
+  chance-of-creation system (`RollOutcome`) — 50% success chance right at
+  the unlock threshold, rising to 90% once ~20 skill points past it.
+  Either outcome still trains the skill and spends Will (a failed attempt
+  isn't a non-attempt); only success grows Will's max and lets `Campfire`
+  actually light. This is closer to the ideation session's original
+  "with luck, it would actually start" pitch than the "weakest-link
+  against fuel tier" idea design-brief.md had settled on — **that idea
+  was never built**, flagged directly in the doc rather than left to look
+  like both are simultaneously true.
+- **`CanAttempt` gates on `successWillCost`, not `failureWillCost`** —
+  deliberate: success costs more, so requiring only the cheaper amount
+  could let a roll succeed and then be unable to actually pay for it.
+- Added a failure message ("The wish didn't take — Spark fizzled."),
+  same stacking convention as `PlayerSkills`'/`PlayerCrafting`'s own
+  messages (`y=150`, below both) — a held-and-completed action that does
+  nothing with zero feedback was exactly the kind of silent-failure gap
+  this project has repeatedly fixed elsewhere (see the chance-of-creation
+  system's own history).
+- **Will regen changed from a 4/s placeholder to 1 point per 5 seconds**
+  (`0.2f`), per Ben's number.
+- `SparkWish.asset` verified to actually deserialize the new fields
+  correctly (`successWillCost=60 failureWillCost=40`, confirmed via a
+  throwaway batch-mode script's log output, not just assumed) and
+  resaved to drop the now-dead `willCost: 10` YAML.
+
+Verified via a full batch-mode compile check, throwaway scripts deleted
+after. Docs updated: `docs/design-brief.md`'s Magic System section now
+flags the weakest-link-vs-actual-roll divergence explicitly.
 
 ### v0.1.148-dev — Magic System: first real slice — Will, starting lineage, and Spark lighting a Campfire
 

@@ -1,17 +1,17 @@
 using UnityEngine;
 
-// Magic tab inside PlayerMenuScreen (Tab key) — read-only reference, unlike
-// Crafting's clickable list, since wishes fire from in-world E-hold prompts
-// (see Campfire.cs) rather than a menu button. See design-brief.md's Magic
-// System "UI impact" note (2026-08-08).
+// Magic tab inside PlayerMenuScreen (Tab key). Reads PlayerMagic.KnownWishes
+// (the single source of truth as of 2026-08-08) and lets the player pick
+// their "default skill" — R attempts whichever wish is selected here,
+// against whatever target that wish's own WishTargeting mode calls for
+// (see PlayerInteraction). Was purely read-only before this; now has one
+// real action (Select).
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerVitals))]
 [RequireComponent(typeof(PlayerMagic))]
 public class MagicScreen : MonoBehaviour
 {
-    [SerializeField] private WishRecipe[] allWishes;
-
     private PlayerSkills skills;
     private PlayerVitals vitals;
     private PlayerMagic magic;
@@ -34,22 +34,30 @@ public class MagicScreen : MonoBehaviour
         GUILayout.Space(10);
 
         bool any = false;
-        if (allWishes != null)
+        foreach (var wish in magic.KnownWishes)
         {
-            foreach (var wish in allWishes)
-            {
-                if (wish == null || wish.lineage == null || !magic.IsLineageKnown(wish.lineage)) continue;
+            any = true;
+            int required = CraftTierScale.SkillRequirement(wish.unlockTier);
+            bool unlocked = skills.GetLevel(wish.lineage) >= required;
+            bool selected = magic.SelectedWish == wish;
 
-                any = true;
-                int required = CraftTierScale.SkillRequirement(wish.unlockTier);
-                bool unlocked = skills.GetLevel(wish.lineage) >= required;
+            string label = $"{wish.wishName} ({wish.lineage.skillName}, "
+                + $"{wish.successWillCost:F0} Will on success / {wish.failureWillCost:F0} on failure)";
+            if (!unlocked)
+                label += $"  — requires {wish.lineage.skillName} {required}";
 
-                string label = $"{wish.wishName} ({wish.lineage.skillName}, {wish.willCost:F0} Will)";
-                if (!unlocked)
-                    label += $"  — requires {wish.lineage.skillName} {required}";
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, unlocked ? DebugGUI.Label : DebugGUI.Warning);
 
-                GUILayout.Label(label, unlocked ? DebugGUI.Label : DebugGUI.Warning);
-            }
+            // Selecting an unlocked-later wish is allowed — CanAttempt still
+            // gates the actual attempt on skill tier, this just picks which
+            // wish R goes for once you do qualify.
+            GUI.enabled = !selected;
+            if (GUILayout.Button(selected ? "Active" : "Select", GUILayout.Width(70)))
+                magic.SelectWish(wish);
+            GUI.enabled = true;
+
+            GUILayout.EndHorizontal();
         }
 
         if (!any)

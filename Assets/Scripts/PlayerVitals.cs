@@ -44,7 +44,16 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float overdrinkSicknessDamagePerSecond = 5f;
     [SerializeField] private float overdrinkRecoveryThreshold = 50f;
     [SerializeField] private float overdrinkThirstRecoveryPerSecond = 10f;
-    [SerializeField] private float willRegenPerSecond = 4f;
+    // 1 point every 5 seconds, per Ben's call.
+    [SerializeField] private float willRegenPerSecond = 0.2f;
+
+    // Heal-over-time state (Restoration's Heal Self wish, 2026-08-08) — a
+    // flat rate computed once at StartHealOverTime and ticked down each
+    // frame, same shape as bodyTemperature's drift. Re-casting while one is
+    // already active replaces it outright (new rate/duration) rather than
+    // stacking or extending — simplest behavior absent any spec otherwise.
+    private float healOverTimeRatePerSecond;
+    private float healOverTimeSecondsLeft;
 
     private bool isOverdrunkSick;
 
@@ -109,6 +118,12 @@ public class PlayerVitals : MonoBehaviour
             bodyTemperatureDriftPerSecond * dt);
 
         will = Mathf.Min(maxWill, will + willRegenPerSecond * dt);
+
+        if (healOverTimeSecondsLeft > 0f)
+        {
+            health = Mathf.Min(100f, health + healOverTimeRatePerSecond * dt);
+            healOverTimeSecondsLeft -= dt;
+        }
     }
 
     public void ConsumeStamina(float amount)
@@ -135,6 +150,20 @@ public class PlayerVitals : MonoBehaviour
     {
         maxWill += amount;
         will += amount;
+    }
+
+    // Called by PlayerInteraction on a successful Heal Self wish. Duration
+    // <= 0 just applies the amount instantly instead of dividing by zero.
+    public void StartHealOverTime(float amount, float duration)
+    {
+        if (duration <= 0f)
+        {
+            Restore(VitalType.Health, amount);
+            return;
+        }
+
+        healOverTimeRatePerSecond = amount / duration;
+        healOverTimeSecondsLeft = duration;
     }
 
     // Direct health loss (e.g. a spectacular crafting failure) — distinct

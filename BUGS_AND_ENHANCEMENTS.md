@@ -507,24 +507,83 @@ work) — this is the backlog between the two. Check off and move the entry to
   Don't start implementing any further piece of this without
   re-reading the full design-brief section first — it's too
   interlocking to build from memory of this one-line summary.
-- [ ] **Magic System — first real slice shipped v0.1.148-dev, most of it
-  still design-only.** See `docs/design-brief.md`'s **Magic System**
-  section for the full plan. **Shipped:** Will (sixth vital, `PlayerVitals`),
-  `SkillCategory.Magic` + 4 lineage `SkillDefinition`s, `PlayerMagic`
-  (random starting lineage at spawn), `WishRecipe`, the `Magic` tab
-  (`MagicScreen`), and one working wish — Spark, lighting a `Campfire` via
-  the same skill-tiered hold mechanic gathering uses. **Still not built:**
-  Fireball (needs a combat system that doesn't exist), the Illusion/
-  Kinetic/Restoration lineages' own wishes (only Elemental has one), found
-  and scribed Scrolls, learnable additional lineages (both ride the
-  not-yet-built Phase 2 skill-books mechanic — every character is
+- [ ] **Magic System — three real wishes shipped (v0.1.148 through
+  v0.1.155-dev), most of it still design-only.** See `docs/design-brief.md`'s
+  **Magic System** section for the full plan. **Shipped:** Will (sixth
+  vital, `PlayerVitals`, regens 1/5s), `SkillCategory.Magic` + 4 lineage
+  `SkillDefinition`s, `PlayerMagic` (random starting lineage at spawn),
+  `WishRecipe`, the `Magic` tab (`MagicScreen`), and three working wishes —
+  **Spark** (Elemental, lights a `Campfire`), **Push** (Kinetic, shoves
+  whatever loose Rigidbody you're aiming at), and **Heal Self**
+  (Restoration, `Unconditional` targeting — no aiming needed, 10 health
+  over 30 seconds via `PlayerVitals.StartHealOverTime`). **Illusion is
+  still the only lineage with nothing.** **All magic activates with R**
+  (v0.1.151-dev) via a new `IWishTarget` interface for specific targets
+  like Campfire, with a generic-Rigidbody fallback for Push — Spark
+  briefly rode E/`IInteractable` in v0.1.148-dev before being unified onto
+  R. **No UI hint at all for any wish (v0.1.155-dev, deliberate)** — no
+  prompt text, no progress bar, no Controls-tab entry; the only feedback
+  is the world reacting or not, "something people play with in order to
+  explore it" per Ben. Anyone testing/onboarding to this system needs to
+  know that up front, or R will look completely broken/inert even when
+  it's working correctly. **Player-selectable "default skill" (v0.1.152-dev):**
+  `PlayerMagic.SelectedWish` (chosen via a Select button in the Magic
+  tab) decides which wish R attempts, dispatched by a new
+  `WishRecipe.WishTargeting` mode (`SpecificObject`/`AnyRigidbody`/
+  `Unconditional` — Heal Self is the first real user of the last one).
+  Still barely exercisable — each lineage has at most one wish, so
+  selection auto-defaults and there's nothing to actually choose between
+  until a lineage gets a second. All three wishes use the same
+  skill-tiered hold mechanic gathering uses and the same success/failure
+  roll (50%→90% by skill margin, mirroring `PlayerCrafting`'s
+  chance-of-creation shape) — success costs 60 Will, failure costs 40 and
+  still trains the skill (same numbers for all three so far, no reason
+  given yet to differ). **Still not built:** Fireball (needs a combat
+  system that doesn't exist), Illusion's own wish (still completely
+  empty), found and scribed Scrolls, learnable additional lineages (both
+  ride the not-yet-built Phase 2 skill-books mechanic — every character is
   permanently stuck on their one starting lineage until that's built), the
   Scribing skill itself, and tool-tier speed bonuses (same gap gathering
-  has). **Real simplification, not an oversight:** Spark's completion
-  doesn't weakest-link against any fuel/tinder tier — `Campfire` has no
-  material-quality input to cap against, unlike crafting's ingredients.
-  Don't assume any of the deferred pieces exist without checking — this
-  is a large, only-partially-built system.
+  has). **Real simplification, not an oversight:** no wish's roll
+  weakest-links against any material/fuel-tier input — the design-brief's
+  original weakest-link-quality idea for wishes was superseded by the
+  success/failure roll instead, flagged directly in that doc, not left
+  implying both are true. Don't assume any of the deferred pieces exist
+  without checking — this is a large, only-partially-built system.
+- [ ] **Building System — Foundation + Plank upgrade, shipped v0.1.156
+  through v0.1.157-dev, most of it still design-only.** See
+  `docs/design-brief.md`'s **Building System** section for the full
+  plan. **Shipped:** `BuildPiece`/`BuildSocket` data shapes,
+  `PlayerBuilding` (full placement state machine — free placement *and*
+  edge-snapping both work, Left Mouse Button + scroll wheel per the
+  Valheim/Rust/Raft-borrowed scheme), a new `Build` tab (`BuildScreen`,
+  fully visible on purpose — unlike Magic, Building is meant to show its
+  costs/prompts/ghost preview), **Foundation** (5m×5m, 4 edge sockets,
+  Twig material, 6 Stick + 3 Rope, Woodworking-trained), and
+  **click-to-upgrade/5s-hold-to-destroy** (`PlayerPieceUpgrade`, its own
+  dedicated interaction logic, not a reuse of `IInteractable` — releasing
+  early is the upgrade action here, backwards from every other hold in
+  the game) with a real upgrade target, **Plank Foundation** (8 Plank).
+  Requires a Hammer (any tier) in hand for both actions; destroy refunds
+  nothing. Two panels correctly tile edge-to-edge, with the second
+  inheriting the first's exact top height; upgrading preserves existing
+  snap connections, destroying frees them. **Scoped down from the
+  design, flagged not hidden:** Foundation/Plank Foundation are flat
+  slabs with no support-column/stilt visual — the design doc's
+  buried-block-vs-stilts question is still open; the 5-second destroy
+  hold shows a text countdown only, no graphical bar. **Still not
+  built:** Wall, Pole, Door (all meant to reuse this exact same
+  machinery, not a second pass), Floor/Ceiling/Window/Roof, Stairs/
+  Ramps (vertical connectors — need a new two-height socket shape),
+  Shelves/furniture (mount to Wall, not designed), Nails + a buildable
+  Storage Box (Iron + Hammer → Nails, Forging-trained; Storage Box would
+  reuse the existing `StorageBox`/`Inventory` components as a
+  `BuildPiece`), Rock/Metal material tiers (blocked on their own
+  crafting-pipeline chains), mixed-material-structure rules, structural-
+  integrity requirements beyond "a socket exists," Equip-to-Define (no
+  equipment-function system for a shell to plug into yet), and
+  territory/ownership restrictions (no multiplayer/macro-layer exists).
+  Don't assume any deferred piece exists without checking.
 - [ ] **Sky texture could use another pass.** Procedural cloudy skybox shipped
   v0.1.55-dev through v0.1.57-dev (`GenerateSkyTexture.cs`, throwaway —
   `Assets/Data/Sky.mat` + `Assets/Textures/SkyTexture.png` are the persistent

@@ -2418,6 +2418,9 @@ GameObject:
   - component: {fileID: 1681626264}
   - component: {fileID: 1681626266}
   - component: {fileID: 1681626265}
+  - component: {fileID: 1681626268}
+  - component: {fileID: 1681626267}
+  - component: {fileID: 1681626269}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -2506,6 +2509,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerInteraction
   playerCamera: {fileID: 724364631}
   interactRange: 3
+  pushForce: 6
+  healSelfWish: {fileID: 11400000, guid: 21f936dddf2f5e746be8914168d4a273, type: 2}
+  healSelfAmount: 10
+  healSelfDuration: 30
 --- !u!114 &1681626232
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3027,8 +3034,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fdb8c884b9de12147a618103365134b2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MagicScreen
-  allWishes:
-  - {fileID: 11400000, guid: b384b4e0233db2a40957974b946a78fe, type: 2}
 --- !u!114 &1681626266
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3046,7 +3051,62 @@ MonoBehaviour:
   - {fileID: 11400000, guid: ff6fc246acf5ae94a833b9aa314d9000, type: 2}
   - {fileID: 11400000, guid: 568a06a6f6c824c4eb93ec0d2066fe75, type: 2}
   - {fileID: 11400000, guid: 4026e37d40fc27344aabd6023b028fbf, type: 2}
+  allWishes:
+  - {fileID: 11400000, guid: b384b4e0233db2a40957974b946a78fe, type: 2}
+  - {fileID: 11400000, guid: b530708b64028a543890daf489beeb85, type: 2}
+  - {fileID: 11400000, guid: 21f936dddf2f5e746be8914168d4a273, type: 2}
   maxWillGrowthPerWish: 0.5
+--- !u!114 &1681626267
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b31138ef5274eb641a9d0c26c91d4427, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BuildScreen
+--- !u!114 &1681626268
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f435372a914db8347863ef0ee92f7ab6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerBuilding
+  allPieces:
+  - {fileID: 11400000, guid: e09af00f3a094ce4586fe78d80d1b4cb, type: 2}
+  interactRange: 10
+  snapRadius: 1.5
+  panelHalfSize: 2.5
+  rotationStepDegrees: 90
+  scrollThreshold: 20
+--- !u!114 &1681626269
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6544c15e1f1081f4691e123d7f7d8080, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerPieceUpgrade
+  hammerTiers:
+  - {fileID: 11400000, guid: d3dbb5fbb880fb6418f3f08df806b1d6, type: 2}
+  - {fileID: 11400000, guid: 8cdad264a739768478c14af1ebb648a4, type: 2}
+  - {fileID: 11400000, guid: c1cc15f12fe268f4ea539d0ce34a54b6, type: 2}
+  - {fileID: 11400000, guid: 92fa178ed407c5c42968c0abb8242bc6, type: 2}
+  - {fileID: 11400000, guid: 6b95fbeb9c150b34ba78b46a8d25cf29, type: 2}
+  interactRange: 3
+  destroyDuration: 5
 --- !u!1 &1708551381
 GameObject:
   m_ObjectHideFlags: 0

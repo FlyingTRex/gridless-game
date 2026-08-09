@@ -13,9 +13,42 @@ ledger of good nights.
 | 🍪 Cookie with a Bite Sticker | 1 |
 | 🐏 RAM Chip Sticker | 1 |
 | 🚰 Canteen Sticker | 1 |
+| 🪄 Wizard's Wand Sticker | 1 |
+| 🏠 Little House Sticker | 1 |
 
 ## Log
 
+- **2026-08-08 — 🏠 Little House Sticker.** The Building System, start to
+  a real working loop: `BuildPiece`/`BuildSocket` data shapes,
+  `PlayerBuilding`'s full placement state machine (free placement *and*
+  edge-snapping both work), its own `Build` tab, and Foundation — a real
+  5m×5m Twig piece that tiles edge-to-edge and correctly inherits its
+  neighbor's exact height across uneven ground. Placement input borrowed
+  deliberately from Valheim/Rust/Raft (Left Mouse Button + scroll wheel)
+  instead of inventing a scheme from scratch. Then, same session, a real
+  upgrade path: click a placed Foundation with a Hammer to upgrade it to
+  a genuine Plank Foundation in place, hold 5 seconds to destroy it
+  outright — its own dedicated interaction logic, not force-fit into the
+  hold-and-release pattern everything else in the game uses, since
+  releasing early is the *action* here, not a cancel. Every step
+  verified against the actual saved prefab/scene YAML, not just a
+  passing batch log. v0.1.156-dev through v0.1.157-dev.
+- **2026-08-08 — 🪄 Wizard's Wand Sticker.** The Magic System, first real
+  wishes to a genuinely player-driven system: Will as a real sixth
+  vital, random starting-lineage assignment, and three lineages each
+  landing a working wish — Spark (lights a Campfire), Push (shoves any
+  Rigidbody), Heal Self (the first `Unconditional`-targeting wish, no
+  aiming needed at all). A real success/failure roll reusing crafting's
+  own chance-of-creation shape, then a player-selectable "default skill"
+  once a lineage might have more than one wish. Caught and fixed two
+  genuine bugs along the way (a `RequireComponent` auto-add duplicate-
+  component trap, and this project's own documented
+  stale-reference-across-`OpenScene` gotcha, both verified by reading
+  back the actual saved YAML rather than trusting the batch log). And a
+  real design stance, not just a feature: zero on-screen hints for any
+  wish, on purpose — "something people play with in order to explore
+  it" — genuinely different from every other system in the game.
+  v0.1.148-dev through v0.1.155-dev.
 - **2026-08-08 — 🚰 Canteen Sticker.** The Canteen work end to end: real
   Tripo3D metal canteen model, wired as a world pickup for the first
   time ever, placed in the scene, fill-status shown wherever it renders
