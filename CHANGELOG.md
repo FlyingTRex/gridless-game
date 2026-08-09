@@ -5,12 +5,167 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.179-dev` — must always match `GameVersion` in
+**Current version:** `0.1.182-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-09
+
+### v0.1.182-dev — Foundation raised a bit higher; starting materials for wall-testing
+
+Two follow-ups after confirming the Wall snap system and the Foundation
+alignment fix both work correctly:
+
+- **Foundation's exposed lip doubled, 0.2m → 0.4m.** Ben's call after
+  seeing the now-correctly-aligned platform in game: "needs to be
+  slightly higher." `BoxCollider.center.y` raised from -0.3 to -0.1 on
+  both `Foundation.prefab` and `PlankFoundation.prefab` (still 1m
+  thick, same `-0.6`/`+0.4` split instead of `-0.8`/`+0.2` — still
+  reads as buried, just less of it). Twig Foundation's visual
+  re-aligned to the new collider position using the same measured-
+  bounds correction from the previous entry (only the position offset
+  changed, not the scale — thickness is unchanged). Plank Foundation's
+  visual is a plain Cube driven directly by a position value, not a
+  separate baked model — updated to match directly, no measurement
+  script needed for that one.
+- **Starting test materials, 24 Stick + 12 Rope — enough for exactly 3
+  Twig Walls** (8 Stick + 4 Rope each). Ben's ask, for iterating on
+  Wall placement without gathering/chopping first every time. Added to
+  `AdminSpawnScreen.Awake()` (same Editor-only scoping as the rest of
+  that tool — a testing convenience, not real game design; real players
+  gather their own materials) rather than as a permanent starting
+  loadout.
+
+### v0.1.181-dev — Foundation's visible mesh never actually matched its own collider; Admin Spawn's ground raycast simplified
+
+Two real bugs found live-testing the Wall, the second one hiding
+inside a report that first looked like something else entirely.
+
+**The actual bug: `Foundation.prefab`'s visible Twig mesh has never
+matched its own `BoxCollider`.** Reported as "Admin spawn Twig
+Foundation isn't working" — clicking Spawn appeared to do nothing,
+while Plank Foundation worked fine from the same code path. Ruled out
+several wrong theories in order before finding the real one: not a
+missing prefab reference (resolved fine in isolation), not a Play-mode-
+only exception (a reflection-driven live test threw nothing), not a
+broken material/shader (confirmed via the Scene view's selection
+outline actually tracing real geometry — the silhouette was there, just
+not filled in from that framing), not a Ground collider/mesh mismatch
+(a direct raycast test against the real Ground object landed exactly
+at Y=0, matching its mesh precisely). The real answer, found by
+measuring the instantiated prefab's actual renderer bounds against its
+collider bounds directly: the `BoxCollider` spans Y -0.8 to +0.2 (the
+documented "1m thick, mostly buried" design, correct and undisturbed),
+but the rendered mesh spans Y **-2.29 to -0.10** — more than a meter
+lower, with even its *top* sitting under the visible ground plane.
+Left over from the earlier double-scaling fix (v0.1.169-dev-ish): the
+footprint (X/Z) got corrected to a true 5×5, but the vertical scale/
+position was never actually re-verified against the collider — nothing
+exposed it before now because `IconBaker` frames every icon from the
+mesh's own measured bounds regardless of where those bounds sit
+relative to the collider, so it always looked correct in an icon,
+completely independent of whether it lined up with the physical piece
+in the world. Fixed by rescaling the nested model on its Y axis alone
+(footprint-preserving) so its measured height matches the collider's
+1m exactly, then repositioning it so its bottom lines up with the
+collider's bottom — verified by direct before/after bounds measurement,
+not just a visual glance. A same-day Twig Wall reported as "floating"
+was very likely this same bug in disguise: it was resting correctly on
+an already-placed Foundation's (real, correctly-positioned) collider
+top — there was simply nothing visible underneath it to show that.
+
+**Real but smaller: `AdminSpawnScreen.SpawnPiece` spawned pieces
+directly at the player's own feet, then rescued them from potential
+burial by teleporting the player onto the new piece's own measured top
+surface afterward.** For a large, flat, ground-level piece like
+Foundation, that rescue meant the player was immediately standing on
+top of whatever just spawned, looking outward across an unbroken
+horizon — visually indistinguishable from nothing having happened at
+all, which is what "isn't working" first looked like before the real
+bug above was found. Root-cause fix instead of another vantage-point
+workaround: spawn a few meters in front of the player rather than at
+their own position, so the piece is never underfoot to begin with — no
+burial risk at the source, so the teleport-the-player-onto-it rescue
+and the `CharacterController`-disable dance it needed are both gone
+entirely, not just papered over.
+
+### v0.1.180-dev — Twig Wall: a real placeable Wall, modeled and textured entirely in Blender
+
+Ben's ask: "let's do the blender deal to create a twig wall, and do the
+entire texture run as possible within blender" — the model *and* its
+texture built and baked fully offline this time, no Tripo3D API call
+anywhere in the pipeline. Scope confirmed up front (asked rather than
+assumed): not just the asset, but a genuinely placeable Wall that snaps
+to a Foundation edge in-game.
+
+**Geometry**, `bpy`/`bmesh`, matching Twig Foundation's "bundled sticks
+and branches lashed together with rope" material language as a
+vertical piece instead of a flat platform: 15 tapered vertical branch
+cylinders (each individually jittered in radius, height, lean, and a
+gentle organic wobble — same lesson as every prior Blender prop, avoid
+uniform/robotic repetition) packed across a 5m span (matching
+Foundation's own edge length) up to ~2.6m tall, plus 2 thin horizontal
+lashing bars wrapping across near the top and bottom on a separate
+"rope" material. Two materials on one mesh, same pattern as the Stone
+Knife/Hammer.
+
+**Real texture baking, new ground for this project:** the wood
+material's color comes from a procedural Noise+Wave node graph (fine
+grain stretched along the branch axis, plus a coarser blotch pattern
+for tonal variation, both driven by Object-space 3D coordinates rather
+than UV — keeps the pattern continuous across all 15 branches instead
+of reading as 15 separately-seamed tiles) baked to a real 1024×1024
+image via Cycles (`bpy.ops.object.bake`, `type='DIFFUSE'`) — glTF can't
+carry a procedural node graph, so this is the step that makes the
+texture actually exportable. A plain `smart_project` UV unwrap exists
+purely to give the bake somewhere to write pixels; it's not what drives
+the pattern. The rope material stays flat-colored, deliberately not
+baked — thin and small on screen, not worth the extra material-baking
+complexity (confirmed baking a multi-material mesh with only one
+material carrying an image node works cleanly, no error, just an
+informational skip for the un-baked one).
+
+Proved the whole bake pipeline on a plain test cube before touching the
+real geometry — cheap to debug there, expensive to debug tangled with
+the wall's actual mesh. Two real Blender gotchas hit and fixed on a
+separate tiny test object (a Berry Seed-scale detour) earlier the same
+day turned out to matter here too and were already known going in:
+`obj.bound_box` needs a real depsgraph pass before it's trustworthy,
+and small objects can clip against the default camera near-plane.
+Neither actually recurred on the wall itself (it's not tiny), but the
+awareness carried forward.
+
+**Making it a real placeable Wall, not just an importable model:**
+- `BuildSocket.IsCompatibleWith` extended — `FoundationEdge` now also
+  accepts a `WallBottom` socket (previously only paired with itself).
+- `PlayerBuilding.ResolveFollowing` gained real per-socket-type
+  placement math for this pairing, closing the gap its own
+  `panelHalfSize` comment already flagged ("Only correct for square,
+  axis-aligned pieces like Foundation; Wall/Door will need real
+  per-socket alignment math when they're added"). A Wall snapping onto
+  a Foundation edge now stands vertically (`Quaternion.LookRotation`
+  against the socket's own outward-facing direction) instead of lying
+  flat and offsetting sideways the way a second Foundation panel does.
+  Simplified by a real design choice: the wall's own `WallBottom`
+  socket sits at its exact visual origin (bottom-center), placed
+  directly at the Foundation's own edge-socket position — Foundation's
+  socket already sits ~0.2m below its visible top surface (the slab is
+  buried per its existing "1m thick, mostly buried" design), so the
+  wall's base ends up slightly embedded in the slab rather than
+  floating above it, with zero extra offset math and no risk of the
+  two connected sockets drifting outside `BuildSocket`'s same-point
+  tolerance.
+- New `TwigWallPiece.asset` (8 Stick + 4 Rope, Woodworking-trained,
+  Crude tier — a judgment call, not specified) and
+  `TwigWallPiece.prefab`, added to the scene's `PlayerBuilding.allPieces`
+  so it's actually selectable from the Build tab.
+
+Verified via batch-mode checks (measured import bounds confirmed
+height lands on Unity's Y axis with no axis-correction needed, and a
+direct logic test confirmed both socket-compatibility directions and
+the prefab's own socket wiring) — the live in-game placement/snap feel
+itself still needs a real playtest.
 
 ### v0.1.179-dev — Berry Bush searching gets its "super success" bonus: a 2% Berry Seed chance
 

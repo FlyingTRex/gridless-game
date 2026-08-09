@@ -140,8 +140,35 @@ public class PlayerBuilding : MonoBehaviour
         if (socket != null)
         {
             snappedSocket = socket;
-            Vector3 pos = socket.transform.position + socket.transform.forward * panelHalfSize;
-            Quaternion rot = socket.transform.root.rotation;
+            Vector3 pos;
+            Quaternion rot;
+
+            // A Wall rising from a Foundation edge needs real per-socket
+            // alignment (stand vertically, sit flush on the socket)
+            // instead of Foundation's own flat-tiling offset — the case
+            // this class's own panelHalfSize comment flagged as needing
+            // real math once Wall/Door existed. Foundation's own edge
+            // socket already sits ~0.2m below its visible top surface
+            // (the slab is buried per its "1m thick, mostly buried"
+            // design) — placing the wall's own WallBottom socket at that
+            // exact point embeds its base slightly into the slab rather
+            // than floating above it, and keeps BuildSocket's "two
+            // connected sockets share the same world position" invariant
+            // intact with no extra offset math.
+            bool wallOntoFoundation = socket.SocketType == SocketType.FoundationEdge
+                && System.Array.IndexOf(armedSocketTypes, SocketType.WallBottom) >= 0;
+
+            if (wallOntoFoundation)
+            {
+                pos = socket.transform.position;
+                rot = Quaternion.LookRotation(socket.transform.forward, Vector3.up);
+            }
+            else
+            {
+                pos = socket.transform.position + socket.transform.forward * panelHalfSize;
+                rot = socket.transform.root.rotation;
+            }
+
             ShowGhost(pos, rot);
             currentValid = true;
         }

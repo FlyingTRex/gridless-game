@@ -31,6 +31,24 @@ public class AdminSpawnScreen : MonoBehaviour
         dropping = GetComponent<PlayerDropping>();
         RefreshItemList();
         RefreshPieceList();
+        GrantStartingTestMaterials();
+    }
+
+    // Testing convenience (2026-08-09, Ben's ask): enough Stick + Rope on
+    // game start to build 3 Twig Walls (8 Stick + 4 Rope each) without
+    // gathering/chopping first. Same Editor-only scoping as the rest of
+    // this tool — never meant to ship; real players gather their own
+    // materials. Not the Admin item-spawn list above (that's a manual
+    // per-click tool) — this runs automatically once, at scene start.
+    private void GrantStartingTestMaterials()
+    {
+        var inventory = GetComponent<PlayerInventory>();
+        if (inventory == null) return;
+
+        var stick = AssetDatabase.LoadAssetAtPath<ItemDefinition>("Assets/Data/Stick.asset");
+        var rope = AssetDatabase.LoadAssetAtPath<ItemDefinition>("Assets/Data/Rope.asset");
+        if (stick != null) inventory.AddItem(stick, 24);
+        if (rope != null) inventory.AddItem(rope, 12);
     }
 
     private void RefreshItemList()
@@ -100,46 +118,38 @@ public class AdminSpawnScreen : MonoBehaviour
     }
 
     // Bug fixed 2026-08-09: spawning right under the player's own feet
-    // (the raycast originates from the player's position) put a solid
+    // (the raycast originated from the player's position) put a solid
     // collider around them — Foundation's box extends 0.8m below ground
     // and only 0.2m above, so CharacterController's own depenetration
     // resolved downward instead of up, pushing the player underground.
-    // Rather than rely on physics to sort out an overlap it doesn't
-    // expect, explicitly stand the player on the piece's own measured
-    // top surface afterward — generalizes to any piece shape, not just
-    // Foundation's specific dimensions.
+    // First fix stood the player on the piece's own measured top surface
+    // afterward instead — worked, but had a real side effect found the
+    // same day testing the Twig Wall: standing directly on top of a
+    // large, flat, ground-level piece (Foundation) while looking at the
+    // horizon doesn't visually read as "a piece exists" at all — it
+    // blends into the grass around it. Reported as "clicking Spawn does
+    // nothing"/"it's invisible", even though the Hierarchy proved it had
+    // spawned correctly every time.
     //
-    // Second bug fixed same day: the ground raycast hit the player's own
-    // CharacterController capsule (top at Center.y + Height/2 = 1.8) —
-    // Physics.Raycast doesn't exclude the caster's own collider — before
-    // it ever reached the real ground, so the piece spawned floating at
-    // roughly head height with its legs dangling in open air. Confirmed
-    // live via screenshot. Disabling the controller for the raycast (and
-    // the position set right after) avoids it self-hitting.
+    // Root-cause fix instead of another vantage-point workaround: spawn
+    // a few meters in front of the player rather than at their own
+    // position, so the piece is never underfoot to begin with. That
+    // removes the original burial risk at its source — no overlap ever
+    // happens — so the "teleport the player onto it afterward" rescue
+    // and the CharacterController-disable dance it needed are both gone
+    // too, not just papered over.
+    private const float SpawnForwardDistance = 4f;
+
     private void SpawnPiece(BuildPiece piece)
     {
         if (piece == null || piece.prefab == null) return;
 
-        var controller = GetComponent<CharacterController>();
-        if (controller != null) controller.enabled = false;
-
-        Vector3 position = transform.position;
-        if (Physics.Raycast(transform.position + Vector3.up * 2f, Vector3.down, out var hit, 10f))
+        Vector3 position = transform.position + transform.forward * SpawnForwardDistance;
+        if (Physics.Raycast(position + Vector3.up * 2f, Vector3.down, out var hit, 10f))
             position = hit.point;
 
         var instance = Instantiate(piece.prefab, position, Quaternion.identity);
         instance.AddComponent<PlacedPiece>().Piece = piece;
-
-        var pieceCollider = instance.GetComponentInChildren<Collider>();
-        if (pieceCollider == null)
-        {
-            if (controller != null) controller.enabled = true;
-            return;
-        }
-
-        float topY = pieceCollider.bounds.max.y;
-        transform.position = new Vector3(transform.position.x, topY + 0.1f, transform.position.z);
-        if (controller != null) controller.enabled = true;
     }
 #else
     public void DrawContent()

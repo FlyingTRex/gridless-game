@@ -3151,6 +3151,7 @@ MonoBehaviour:
   allPieces:
   - {fileID: 11400000, guid: e09af00f3a094ce4586fe78d80d1b4cb, type: 2}
   - {fileID: 11400000, guid: 27cf77db1d1e92f4c93cf5c4db3e36d8, type: 2}
+  - {fileID: 11400000, guid: dee94de95b98537458b02a97b51891df, type: 2}
   interactRange: 10
   snapRadius: 1.5
   panelHalfSize: 2.5

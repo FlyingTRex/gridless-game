@@ -559,8 +559,15 @@ work) — this is the backlog between the two. Check off and move the entry to
   an error) and `StorageBoxPiece` (4 Plank + 6 Nail, a real
   `BuildPiece` reusing the existing `StorageBox`/`Inventory`
   components exactly as planned, plus pick-up-when-empty support added
-  to `StorageBox.cs` itself). **Still not built:** Wall, Pole, Door
-  (all meant to reuse this exact same machinery, not a second pass),
+  to `StorageBox.cs` itself). **Wall shipped v0.1.180-dev** — a real
+  placeable Twig Wall (modeled and textured entirely in Blender, no
+  Tripo3D), snapping to a Foundation edge via a new `FoundationEdge`↔
+  `WallBottom` `BuildSocket` pairing and real per-socket placement math
+  in `PlayerBuilding` (previously only Foundation-to-Foundation flat
+  tiling worked). Shipped at 5.1m × ~2.6m, not the design-brief's
+  spec'd 3m height — a real, not-yet-resolved deviation, see that doc's
+  Building System section. **Still not built:** Pole, Door (both meant
+  to reuse this exact same machinery, not a second pass),
   Floor/Ceiling/Window/Roof, Stairs/Ramps (vertical connectors — need a
   new two-height socket shape), Shelves/furniture (mount to Wall, not
   designed), Rock/Metal material tiers beyond Nails (blocked on their

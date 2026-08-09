@@ -1164,12 +1164,15 @@ fix the coordinate in this file rather than assuming the step is wrong.
   placement always matches the raycast hit exactly).
 - [ ] **1m thick, mostly buried (v0.1.163-dev, supersedes an earlier
   same-day "fully raised" pass).** The slab is now 1m thick (was 0.3m)
-  and sits mostly below the raycast hit point — confirm a freshly placed
-  Twig Foundation shows roughly a 0.2m lip above the grass with the rest
-  buried, reading as a real foundation wall rather than a thin flush
-  slab or a raised deck. Applies to both Twig and Plank Foundation, and
-  to edge-snapped placement too (neighbors should still align exactly,
-  just all at the new height together).
+  and sits mostly below the raycast hit point — reading as a real
+  foundation wall rather than a thin flush slab or a raised deck.
+  Applies to both Twig and Plank Foundation, and to edge-snapped
+  placement too (neighbors should still align exactly, just all at the
+  new height together). **Lip raised 0.2m → 0.4m, v0.1.182-dev** — Ben's
+  call after seeing the (by-then correctly visible, see the entry
+  below) platform in game: "needs to be slightly higher." Confirm a
+  freshly placed Twig or Plank Foundation now shows roughly a 0.4m lip
+  above the grass, not 0.2m.
 - [ ] **Real Twig Foundation model (v0.1.169-dev).** The plain grey Cube
   slab is now a real Tripo3D-generated lashed-twig-and-rope platform on
   short legs — confirm it looks like a crude bundled-stick platform, not
@@ -1177,10 +1180,44 @@ fix the coordinate in this file rather than assuming the step is wrong.
   unchanged (edge-snapping a second Foundation should still align
   exactly flush, same as before this visual swap). **Plank Foundation
   still uses the plain Cube** — only the Twig tier got a real model this
-  pass.
-- [ ] **Wall, Pole, Door do not exist yet** — the Build tab should show
-  only Twig Foundation and Storage Box (added v0.1.160-dev, see below),
-  nothing else.
+  pass. **Real alignment bug fixed v0.1.181-dev, not caught until now:**
+  from this model swap up through v0.1.180-dev, the visible mesh never
+  actually matched the `BoxCollider` — the mesh sat over a meter lower
+  than the collider, with even its top under the visible ground plane.
+  Completely invisible in every icon/preview taken during that whole
+  stretch (`IconBaker` frames from the mesh's own bounds, independent of
+  the collider), only surfaced once someone tried to actually look at a
+  live-placed one. Confirm a freshly placed/spawned Twig Foundation now
+  shows a visible platform with a real lip above the grass (~0.4m as of
+  v0.1.182-dev, see the entry above), not a buried/invisible collider
+  with nothing to see.
+- [ ] **Pole, Door do not exist yet** — the Build tab should show Twig
+  Foundation, Storage Box, and Twig Wall (added v0.1.180-dev, see
+  below), nothing else.
+- [ ] **Twig Wall (v0.1.180-dev) — first piece that isn't Foundation.**
+  Modeled and textured entirely in Blender this time (no Tripo3D) — 15
+  individually irregular vertical branches lashed with 2 horizontal
+  rope bars, real baked wood-grain texture, not a flat color. Costs 8
+  Stick + 4 Rope, trains Woodworking, no skill requirement to start
+  (Crude tier). **Doesn't free-place meaningfully** — arm it with no
+  Foundation nearby and it'll follow your raycast like Foundation does,
+  but there's no reason to place one that way; the real test is the
+  snap case below. **Edge-snap onto a placed Foundation:** arm Twig
+  Wall and aim near one of a placed Foundation's 4 edge sockets — the
+  ghost should snap to stand vertically right at that edge (not lie
+  flat the way a second Foundation panel would), confirm with a single
+  Left Mouse Button press. Confirm the wall's base reads as sitting
+  right at (very slightly embedded into) the Foundation's top surface,
+  not floating above it or leaving a visible gap. **Known, flagged
+  deviation from the design-brief's spec:** shipped at ~2.6m tall, not
+  the documented 3m — see that doc's Building System section. **Confirmed
+  live, v0.1.182-dev** — Ben tested the actual Build-tab arm/aim/snap
+  flow (not Admin Spawn, which has no socket awareness at all — see the
+  entry below) and confirmed the ghost snaps correctly to a Foundation
+  edge and stands vertically as designed. **Starting materials for
+  testing (v0.1.182-dev):** a fresh game now grants 24 Stick + 12 Rope
+  automatically (`AdminSpawnScreen.Awake`, Editor-only) — exactly enough
+  for 3 Twig Walls (8 Stick + 4 Rope each) without gathering first.
 - [ ] **Upgrade/destroy on a placed piece (v0.1.157-dev).** Equip any
   tier of Hammer in a hand, look at a placed Twig Foundation — a prompt
   should read "Click to upgrade to Plank Foundation — hold 5s to
@@ -1574,3 +1611,16 @@ fix the coordinate in this file rather than assuming the step is wrong.
   onto a *normally-built* (not admin-spawned) Foundation with an
   ordinary jump, now that the admin tool's own bug isn't muddying
   whether climbing itself has a real problem.
+  **Simplified v0.1.181-dev, superseding both fixes above.** Found live-
+  testing the Twig Wall: standing directly on top of a large flat piece
+  right after it spawns doesn't visually read as "a piece exists" at
+  all (see the Foundation alignment bug entry elsewhere in this doc for
+  the bug this first looked like). Root-cause fix instead of another
+  stand-on-it workaround: pieces now spawn a few meters in front of the
+  player instead of at their own position, so there's never any burial
+  risk to rescue from in the first place — the player is no longer
+  auto-teleported onto the new piece at all. Confirm a spawned piece
+  now lands visibly on the ground a short walk in front of you, and
+  that the "reach it, aim a Hammer at it" upgrade/destroy check above
+  still works the same way, just from a few steps away instead of
+  standing on it immediately.

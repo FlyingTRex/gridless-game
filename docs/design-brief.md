@@ -1111,11 +1111,21 @@ not hidden:** no support-column/stilt visual yet (Foundation is a flat
 slab only — the buried-block-vs-stilts question below is still open, and
 without a visible pedestal there's nothing yet to *look* wrong on
 sloped terrain, even though the 5m reach check itself is real and does
-gate snapped placement). **Wall, Pole, and Door are not built** — next
-up, reusing this exact same `BuildPiece`/`BuildSocket`/`PlayerBuilding`
-machinery, not a second pass. See `CHANGELOG.md` v0.1.156-dev for the
-full build notes, including a `RequireComponent`-auto-add gotcha that
-was *avoided* this time (learned from the Magic System's own incident).
+gate snapped placement). **Pole and Door are not built; Wall shipped
+v0.1.180-dev** — a real placeable Twig Wall (modeled and its texture
+baked entirely in Blender, no Tripo3D), snapping to a Foundation edge
+via a new `BuildSocket.IsCompatibleWith` pairing
+(`FoundationEdge`↔`WallBottom`) and real per-socket placement math in
+`PlayerBuilding` — the "Wall/Door will need real per-socket alignment
+math" gap this section's own placement description already flagged is
+now closed for the Wall case specifically (Door will need its own pass
+when it's built). See `CHANGELOG.md` v0.1.180-dev for the full build,
+including the new-to-this-project real texture-baking pipeline. Pole
+and Door still reuse this exact same `BuildPiece`/`BuildSocket`/
+`PlayerBuilding` machinery, not a second pass, when they're built.
+See `CHANGELOG.md` v0.1.156-dev for Foundation's own build notes,
+including a `RequireComponent`-auto-add gotcha that was *avoided* this
+time (learned from the Magic System's own incident).
 **Upgrade/destroy shipped the same day, v0.1.157-dev:** click a placed
 Foundation with a Hammer in hand to upgrade it to **Plank Foundation**
 (8 Plank, real and built, not just wired infrastructure with nothing on
@@ -1267,11 +1277,18 @@ shapes later):
   fails, no escalation beyond that. **Exposes its own top socket
   independent of Foundation** — a cluster of Poles alone can be built on
   directly (stilt platforms, docks), not strictly a Foundation accessory.
-- **Wall** — 5m wide × 3m high, exactly one segment per Foundation edge
-  (clean 1:1 mapping, no fractional tiling). Height is deliberately
+- **Wall** — spec'd 5m wide × 3m high, exactly one segment per Foundation
+  edge (clean 1:1 mapping, no fractional tiling). Height is deliberately
   decoupled from Foundation's 5m figure, which is a burial-depth
   *tolerance*, not a stated room height — 3m was chosen as a human-scaled
   room height independent of that number.
+  **Shipped v0.1.180-dev at 5.1m × ~2.6m — a real deviation from this
+  spec, not a decision.** Built without re-reading this section first;
+  the height came from what looked reasonable in Blender's preview
+  render, not from the 3m figure above. The 1:1 width mapping did land
+  correctly (this section's other requirement). Worth deciding whether
+  to regenerate taller to match, or update this spec to 2.6m as the
+  real decision — not resolved either way yet.
 - **Door** — its own separate piece (full prefab, frame + door mesh baked
   in), socket-compatible with the exact same wall-slot a plain Wall would
   occupy. Placing one is choosing Door instead of Wall for that slot, not
@@ -1729,6 +1746,30 @@ transferable lesson for any future hafted tool: **a recognizable
 hammer/maul/axe-type silhouette needs its head built along an axis
 perpendicular to the handle**, not a continuation of it. Two separate
 ring-lofted tubes merged into one mesh, not one continuous profile.
+
+## A Visual Bake Tool Can Hide a Real Alignment Bug (2026-08-09)
+
+Found testing the Twig Wall, not the Wall itself: `Foundation.prefab`'s
+visible Twig mesh had never actually matched its own `BoxCollider` —
+the mesh sat over a meter lower than the collider, with even its top
+under the visible ground plane. Left over from the double-scaling fix
+mentioned in the Foundation model-swap history (footprint corrected,
+vertical alignment never re-verified against the collider afterward).
+Full diagnostic path in `CHANGELOG.md` v0.1.181-dev — several wrong
+theories ruled out in order (missing reference, Play-mode exception,
+broken shader, Ground collider mismatch) before directly measuring
+renderer bounds against collider bounds found the real, simple answer.
+
+**The transferable lesson: `IconBaker` (or any tool that frames a
+render from an object's own measured bounds) can make a badly-aligned
+model look completely correct forever**, because it never checks that
+alignment against anything external — not the collider, not where the
+piece actually sits in the world. A model can pass every icon-bake
+"looks right" check while being meters away from where its physics
+says it is. Worth a real visual check in an actual live scene (not
+just an icon) for any future piece where the collider and the visual
+are set up/scaled independently of each other, not just trusting that
+a good icon means a correctly-placed model.
 
 ## Open Questions / Next Decisions
 

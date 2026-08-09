@@ -24,13 +24,14 @@ public class BuildSocket : MonoBehaviour
     public SocketType SocketType => socketType;
     public bool Occupied { get; set; }
 
-    // FoundationEdge only pairs with another FoundationEdge for now (two
-    // foundation panels tiling side by side) — the only pairing the
-    // Foundation-only v1 needs. Extend this switch, not a new mechanism,
-    // when Wall/Pole/Door sockets are added.
+    // FoundationEdge pairs with another FoundationEdge (two foundation
+    // panels tiling side by side) or a Wall's WallBottom (a wall rising
+    // from that edge) — the two pairings the Wall pass needs. Extend this
+    // switch, not a new mechanism, when Pole/Door sockets are added.
     public bool IsCompatibleWith(SocketType other) => socketType switch
     {
-        SocketType.FoundationEdge => other == SocketType.FoundationEdge,
+        SocketType.FoundationEdge => other == SocketType.FoundationEdge || other == SocketType.WallBottom,
+        SocketType.WallBottom => other == SocketType.FoundationEdge,
         _ => false,
     };
 
