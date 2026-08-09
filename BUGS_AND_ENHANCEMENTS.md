@@ -46,7 +46,7 @@ work) — this is the backlog between the two. Check off and move the entry to
   give "Rock" a real purpose (a crafting ingredient? a coarser material
   than Small Rock for some recipe?) before it reads as forgotten dead
   content.
-- [ ] **Can't eat a Berry.** Reported by Ben during playtest, 2026-08-07.
+- [x] **Can't eat a Berry — fixed v0.1.161-dev.** Reported by Ben during playtest, 2026-08-07.
   Root cause confirmed via investigation: the data wiring is actually
   correct (`Berry.asset`/`BerryEdible.asset` match, and
   `PlayerEating.edibles` has `BerryEdible` wired in) — the bug is that
@@ -64,6 +64,16 @@ work) — this is the backlog between the two. Check off and move the entry to
   gap as the already-logged "Eat directly from a container" item below —
   this is really that bug, just hit for the first time via a real edible
   pickup rather than found in code review.
+  **Fixed alongside that item, v0.1.161-dev:** new
+  `PlayerEating.TryEatFrom(Inventory source, item)`; the generic move
+  popup (`InventoryScreen.DrawMoveDestinations`, used for hand slots,
+  backpack, and storage boxes alike) now shows a real Eat button
+  whenever the selected item is edible, instead of only ever offering
+  move-elsewhere options. Root cause of the silent failure this fix
+  also caught: `PlayerEating.TryEat` always removed from the main
+  inventory specifically regardless of where the item actually was, so
+  even a manually-added Eat button would have found the edible but
+  silently failed to remove it.
 - [ ] **Chunks/bonus-chunks spawned by `ResourceNode.SpawnChunk` can be
   un-pickupable if their prefab expects `Pickup.Configure()`.** Reported
   by Ben during playtest, 2026-08-07, as "when I chop the tree, if it
@@ -100,6 +110,16 @@ work) — this is the backlog between the two. Check off and move the entry to
   but the underlying systemic gap — `ResourceNode.SpawnChunk()` still
   never calls `Configure()` — remains unfixed, and `StickPickup` as a
   Log's `bonusChunkPrefab` is still affected by it.
+  **`StickPickup` itself fixed v0.1.164-dev** (option 2 again — `item`
+  now hardcoded directly on `StickPickup.prefab`, confirmed still in
+  place), alongside the same null-`item` pattern found and fixed on
+  `RopeCoilPickup.prefab` and `RockKnifePickup.prefab` in the same
+  sweep. **The specific reported symptom (Log's bonus branch) is
+  resolved. The systemic gap is not** — `ResourceNode.SpawnChunk()`
+  still never calls `Configure()` (reconfirmed by reading the method
+  directly, 2026-08-09), so this remains the default failure mode for
+  the *next* chunk prefab built by copying the wrong convention. Leaving
+  this open for that reason — it's a pattern risk, not a one-off.
 - [ ] **The two `TreeBranch_PolyByGoogle` instances in the scene are
   still non-interactive decoration.** Follow-up to the "only the
   procedural Tree is choppable" report from Ben's 2026-08-07 playtest —
@@ -113,17 +133,19 @@ work) — this is the backlog between the two. Check off and move the entry to
 - [ ] **Berry Bush searching — random 0-4 berry yield, plus a rare "super
   success" chance of a Berry Seed.** Ben's idea, 2026-08-07: "search the
   berry function... random chance of finding up to 4 berries.
-  additionally, a super success chance of finding a berry seed." Not
-  investigated or scoped yet — open questions for whenever this gets
-  picked up: is this a new "Search" interaction distinct from however
-  Berries are gathered today, does the 0-4 yield replace or sit alongside
-  the existing gather path, and does a Berry Seed imply Berry Bushes
-  becoming plantable/farmable eventually (a real new system) or just a
-  rare collectible for now. Same "chance of a bonus item" shape as the
-  Log's Stick chance (`ResourceNode.bonusChunkPrefab`/`bonusChunkChance`,
-  v0.1.83-dev) might be directly reusable here, if Berry Bush searching
-  turns out to fit the same punch-based `ResourceNode` model — worth
-  checking before building something new. *(Reported by Ben.)*
+  additionally, a super success chance of finding a berry seed."
+  **Berry Seed chance shipped v0.1.179-dev — the base yield range is
+  the one remaining gap.** `BerryBush.cs`'s F/search action rolls
+  `Random.Range(minBerries, maxBerries + 1)` (`minBerries=0`,
+  `maxBerries=3`, so 0-3 not 0-4 — `maxBerries` would need bumping to 4
+  to match exactly) for the normal yield, unchanged from v0.1.169-dev.
+  **New:** a separate, independent `berrySeedChance` roll (`[Range(0,1)]`,
+  wired to 0.02 = 2%) on every search regardless of the berry roll's own
+  outcome, spawning a real new `BerrySeed.asset`/`BerrySeedPickup.prefab`
+  (Blender-modeled, own icon) on success. Whether Berry Seed still
+  implies a future plantable/farmable system is exactly as open as it
+  was when first asked — this only added the item and its spawn chance.
+  *(Reported by Ben.)*
 - [ ] **Procedural tree (v0.1.58-dev) doesn't read as a tree yet.** Confirmed
   via screenshot: `GenerateTree.cs`'s branching mesh renders and is visible
   (the untested backface-culling safety net wasn't even needed, or at least
@@ -387,34 +409,6 @@ work) — this is the backlog between the two. Check off and move the entry to
     tab on the `` ` `` menu) landed first specifically to make testing this
     batch easier. See the follow-up item just below for its one known gap.
     *(Reported by Ben.)*
-- [ ] **Admin spawn tab can't spawn a working equippable gadget.**
-  `AdminSpawnScreen` (shipped v0.1.68-dev) spawns any `ItemDefinition` via
-  `PlayerDropping.SpawnPickup`, which instantiates `worldPickupPrefab` (or a
-  generic fallback) and calls `Pickup.Configure`. That's correct for plain
-  stackable items, but Backpack/Canteen/Sunglasses/Nav Computer/Health
-  Monitor/Mining Face Shield are `IEquippable` carriers whose real physical
-  form is a dedicated prefab, not the generic `Pickup` path — spawning one
-  from the Admin tab today produces a plain, non-equippable inventory stack
-  instead. Not urgent (those already have pre-placed world pickups near
-  spawn per `TEST_FEATURE_PLAN.md` §7, and tomorrow's tool batch doesn't need
-  it), but worth fixing if the Admin tab needs to cover gadgets too — likely
-  means giving each one a real `worldPickupPrefab` pointing at its own
-  carrier prefab instead of relying on the generic fallback.
-  **Same root cause hit again from the crafting side, 2026-08-06 —
-  crafting-side FIXED 2026-08-07 (`CHANGELOG.md` v0.1.79-dev), Admin-spawn
-  side still open.** `PlayerCrafting.TryCraft` used to always call
-  `inventory.AddItem(...)` too — also a plain stackable add with no
-  `.equipment` reference, surfaced while scoping Backpack/Belt recipes
-  (v0.1.75-dev). Fixed via a new `AddCraftedOutput` helper: when
-  `recipe.outputItem.worldPickupPrefab` has an `IEquippable`, instantiate
-  it stashed and add via `AddEquipmentItem` instead of `AddItem` — exactly
-  the mechanism this entry originally speculated about, and what made
-  `Crude Fiber Belt`/`Crude Fiber Backpack` (v0.1.79-dev) the first
-  working crafted equippables. **`AdminSpawnScreen`/`PlayerDropping.
-  SpawnPickup` is a separate code path and was NOT touched** — spawning a
-  gadget from the Admin tab still produces a non-equippable stack today.
-  Same underlying idea would fix it (check for `IEquippable` on
-  `worldPickupPrefab` there too) but wasn't done as part of this pass.
 - [ ] **Apply the Boulder/Rock hybrid shape technique to the ore nodes too,
   once the rock/boulder look itself is finalized.** Ben's explicit intent
   (2026-08-04) — the ore nodes (Copper/Iron/Silver/Gold/Platinum) are still
@@ -424,20 +418,6 @@ work) — this is the backlog between the two. Check off and move the entry to
   `GenerateDisplacedSphere`/`BuildClusteredRock`-style technique rather than
   reinventing it. Note the hidden-ore nodes (Silver/Gold/Platinum) would need
   this applied to *both* their hidden and revealed materials/meshes.
-- [ ] **Spawn a starting Pickaxe and Axe in the world for now.**
-  Ben hit this directly playtesting the ore work: `Crude Pickaxe`/`Crude Axe`
-  (renamed from `Pickaxe`/`Axe` in v0.1.69-dev, same recipe) are craft-only
-  today (2 Small Rock + 1 Stick / 1 Small Rock + 2 Stick), with no world pickup
-  instance anywhere — unlike Backpack/Canteen/Sunglasses/Nav Computer/Health
-  Monitor, which all have at least one pre-placed near spawn so a fresh
-  playthrough doesn't have to craft everything from zero before it can do
-  anything. Bare-handed Rock Node mining still works without a Pickaxe, so
-  gathering the materials to craft one isn't actually blocked — but the friction
-  of needing to know that and craft one first before ever touching ore is real.
-  A stopgap for now ("for now" — Ben's words), not necessarily a permanent
-  design call once the fuller skills/tools pipeline lands: place one Pickaxe
-  **and** one Axe (confirmed — both, same bootstrapping situation) as world
-  pickups near the other starter gear. *(Reported by Ben.)*
 - [ ] **Full crafting/gathering/skills redesign — partially built.** See
   `docs/design-brief.md`'s **Crafting, Gathering & Skills Pipeline (2026-08-04,
   amended 2026-08-05)** section for the complete plan: 7 new refining skills
@@ -571,19 +551,25 @@ work) — this is the backlog between the two. Check off and move the entry to
   design, flagged not hidden:** Foundation/Plank Foundation are flat
   slabs with no support-column/stilt visual — the design doc's
   buried-block-vs-stilts question is still open; the 5-second destroy
-  hold shows a text countdown only, no graphical bar. **Still not
-  built:** Wall, Pole, Door (all meant to reuse this exact same
-  machinery, not a second pass), Floor/Ceiling/Window/Roof, Stairs/
-  Ramps (vertical connectors — need a new two-height socket shape),
-  Shelves/furniture (mount to Wall, not designed), Nails + a buildable
-  Storage Box (Iron + Hammer → Nails, Forging-trained; Storage Box would
-  reuse the existing `StorageBox`/`Inventory` components as a
-  `BuildPiece`), Rock/Metal material tiers (blocked on their own
-  crafting-pipeline chains), mixed-material-structure rules, structural-
-  integrity requirements beyond "a socket exists," Equip-to-Define (no
-  equipment-function system for a shell to plug into yet), and
-  territory/ownership restrictions (no multiplayer/macro-layer exists).
-  Don't assume any deferred piece exists without checking.
+  hold shows a text countdown only, no graphical bar. **Nails + a
+  buildable Storage Box shipped v0.1.160-dev/161-dev** — `Nail.asset`
+  (1 Iron → 5 Nails, requires any Hammer tier in hand + a nearby
+  `AnvilSurface`; trains **Metalworking**, not Forging as originally
+  speculated here — a real decision made when actually building it, not
+  an error) and `StorageBoxPiece` (4 Plank + 6 Nail, a real
+  `BuildPiece` reusing the existing `StorageBox`/`Inventory`
+  components exactly as planned, plus pick-up-when-empty support added
+  to `StorageBox.cs` itself). **Still not built:** Wall, Pole, Door
+  (all meant to reuse this exact same machinery, not a second pass),
+  Floor/Ceiling/Window/Roof, Stairs/Ramps (vertical connectors — need a
+  new two-height socket shape), Shelves/furniture (mount to Wall, not
+  designed), Rock/Metal material tiers beyond Nails (blocked on their
+  own crafting-pipeline chains), mixed-material-structure rules,
+  structural-integrity requirements beyond "a socket exists,"
+  Equip-to-Define (no equipment-function system for a shell to plug
+  into yet), and territory/ownership restrictions (no multiplayer/
+  macro-layer exists). Don't assume any deferred piece exists without
+  checking.
 - [ ] **Sky texture could use another pass.** Procedural cloudy skybox shipped
   v0.1.55-dev through v0.1.57-dev (`GenerateSkyTexture.cs`, throwaway —
   `Assets/Data/Sky.mat` + `Assets/Textures/SkyTexture.png` are the persistent
@@ -641,13 +627,17 @@ work) — this is the backlog between the two. Check off and move the entry to
   (Sunglasses, a spare Canteen, Navigation Computer, Personal Health Monitor) has
   no direct Equip button; it has to be moved out to a hand or the main inventory
   first. *(Reported by Ben.)*
-- [ ] **Eat directly from a container.** Food items sitting in a backpack (or other
-  container) can't be eaten in place today — `DrawInventorySection` in
+- [x] **Eat directly from a container — fixed v0.1.161-dev, same fix as
+  "Can't eat a Berry" above.** Food items sitting in a backpack (or other
+  container) couldn't be eaten in place — `DrawInventorySection` in
   `InventoryScreen.cs` gives main-inventory items a direct "Eat" button via
   `PlayerEating.FindEdible`/`TryEat`, but `DrawContainerContents` (used for a worn
-  backpack's contents and nearby storage boxes) only offers the generic "where
-  should this go?" move popup for every item, edible or not. Player has to move food
-  out to the main inventory first.
+  backpack's contents and nearby storage boxes) only offered the generic "where
+  should this go?" move popup for every item, edible or not. Now fixed generically
+  for every popup use (hand slots too, not just containers) via
+  `PlayerEating.TryEatFrom` — see the Berry entry above for the full detail.
+  **Note: Drink/fill from a container is a separate, still-open gap** — the
+  fix only added an Eat button, not Drink/Fill (see below).
 - [ ] **Drink/fill directly from a container.** Same gap for a Canteen sitting in a
   backpack/container — no direct Drink/Fill buttons there, only the generic move
   popup (which, as of 2026-08-03, correctly preserves the equipment reference when

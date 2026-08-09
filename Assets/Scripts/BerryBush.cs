@@ -6,7 +6,9 @@ using UnityEngine;
 //   shape as ChoppableTree) — scatters loose Trimmed Stick pickups on the
 //   ground, doesn't hand them over directly.
 // - F: search for berries (no tool needed) — rolls 0 to maxBerries and
-//   scatters that many loose Berry pickups on the ground.
+//   scatters that many loose Berry pickups on the ground, plus a separate
+//   low-chance "super success" roll (berrySeedChance) for a bonus Berry
+//   Seed, independent of the normal yield (added 2026-08-09).
 // Both actions stay on their own independent respawn timer (same "hide
 // for a while, come back" shape as ResourceNode/ChoppableTree) rather
 // than the bush itself ever disappearing — chopping and searching are
@@ -30,6 +32,12 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable
     [SerializeField] private int maxBerries = 3;
     [SerializeField] private float searchScatterForce = 0.8f;
     [SerializeField] private float searchRespawnDelay = 180f;
+
+    // "Super success" bonus (2026-08-09, Ben's ask) - independent of the
+    // normal berry yield above, not a replacement for it. Rolled
+    // separately every search, including on a 0-berry roll.
+    [SerializeField] private GameObject berrySeedPrefab;
+    [SerializeField] [Range(0f, 1f)] private float berrySeedChance = 0.02f;
 
     private float chopRespawnAt = -1f;
     private float searchRespawnAt = -1f;
@@ -87,6 +95,9 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable
         int count = Random.Range(minBerries, maxBerries + 1);
         for (int i = 0; i < count; i++)
             SpawnScattered(berryPrefab, searchScatterForce);
+
+        if (Random.value < berrySeedChance)
+            SpawnScattered(berrySeedPrefab, searchScatterForce);
 
         if (searchRespawnDelay > 0f)
             searchRespawnAt = Time.time + searchRespawnDelay;

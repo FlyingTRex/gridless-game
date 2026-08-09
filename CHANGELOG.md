@@ -5,12 +5,56 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.178-dev` — must always match `GameVersion` in
+**Current version:** `0.1.179-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-09
+
+### v0.1.179-dev — Berry Bush searching gets its "super success" bonus: a 2% Berry Seed chance
+
+Closes most of a long-open enhancement request (`BUGS_AND_ENHANCEMENTS.md`,
+originally 2026-08-07): "search the berry function... random chance of
+finding up to 4 berries. additionally, a super success chance of
+finding a berry seed." The base random-yield search already existed
+(v0.1.169-dev); this adds the missing second half.
+
+`BerryBush.CompleteSecondary` now rolls a separate, independent chance
+(`berrySeedChance`, `[Range(0,1)]`, wired to 0.02 = 2%) on every search,
+regardless of the normal 0-3 berry roll's outcome — a search that finds
+zero berries can still find a seed, and a full-yield search can find
+one too. Deliberately independent rolls, not a bonus conditioned on
+"finding the max," since nothing in the original ask implied that
+coupling.
+
+New Berry Seed item, modeled the same way as the recent Blender props:
+a small teardrop/almond shape built via `bmesh` (136 verts, one
+material, dark reddish-brown). Two real bugs hit building it, both
+from working at a genuinely tiny scale (0.014m long) for the first
+time this session:
+- The Blender preview render came back blank — `obj.bound_box` read as
+  a stale zero-size box with no depsgraph evaluation pass between
+  building the mesh and reading it back; switched to computing bounds
+  directly from `mesh.vertices` instead.
+- Still blank after that fix — the real cause was the camera's default
+  near-clip plane (0.1m), well *larger* than the camera-to-object
+  distance for an object this small, clipping the entire model out of
+  frame. Fixed by setting `clip_start`/`clip_end` proportional to the
+  object's own measured radius instead of leaving Blender's default.
+- Also needed one round of the now-familiar color-darkening fix
+  (same root cause as the Stone Hammer, v0.1.177/178-dev) — the first
+  material read too light once baked through `IconBaker`.
+
+Unity side: new `BerrySeed.asset`/`BerrySeedPickup.prefab`
+(`SphereCollider`, `ContinuousDynamic` Rigidbody per the known thin-
+Ground-collider tunneling gotcha), icon baked via `IconBaker`, wired
+into the scene's `BerryBush.prefab` and verified resolving correctly
+via a batch-mode read-back before considering this done.
+
+**Not done, and not asked for:** whether a Berry Seed ever becomes
+plantable — that question is exactly as open as when first raised.
+This entry only adds the item and its spawn chance.
 
 ### v0.1.178-dev — Stone Hammer head redesigned: crosswise, not a fatter cylinder
 

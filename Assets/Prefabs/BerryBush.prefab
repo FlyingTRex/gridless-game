@@ -90,6 +90,8 @@ MonoBehaviour:
   maxBerries: 3
   searchScatterForce: 0.8
   searchRespawnDelay: 180
+  berrySeedPrefab: {fileID: 2844631088358528875, guid: 29b99b036e9deae43a82acadc230ec92, type: 3}
+  berrySeedChance: 0.02
 --- !u!1001 &5397169620152922521
 PrefabInstance:
   m_ObjectHideFlags: 0

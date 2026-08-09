@@ -798,6 +798,47 @@ for a third time by Ben ("what's left in the mvp to work on"):**
   is gone entirely now — retired for the hold-and-release gathering
   rework, v0.1.147-dev).
 
+**Updated again, v0.1.159-dev through v0.1.178-dev, asked for a fourth
+time by Ben ("let's take a moment to reflect and compare to our mvp to
+see where we are at").** Checked the same way as every prior check-in —
+directly against `Assets/Scripts/` (`grep` for `weight`/`Encumbrance`/
+`Strength`/`Athletics`, `NPC`/`Enemy`/`Combat`/`FirstAid`) and
+`Assets/Data/` (any Wall/Door/Roof/Pole/Floor/Ceiling/Stair `BuildPiece`)
+rather than trusting this doc's own prior notes:
+
+- **The net read has not moved: still 8 of 11, still the same 3
+  entirely unstarted** (Encumbrance, Combat + first aid, NPCs — zero
+  code for any of them, confirmed by grep coming back empty). Only 3
+  `BuildPiece` assets exist in the whole project (`TwigFoundationPiece`,
+  `PlankFoundationPiece`, `StorageBoxPiece`) — Building is still
+  Foundation-only, can't enclose a room.
+- This is despite a genuinely enormous volume of work across this
+  stretch: Nail + the `AnvilSurface` proximity-gate pattern, Storage
+  Box (build/pick-up/place-again), a full Berry Bush redesign
+  (independent chop/search actions, a real distinct model), the
+  Crafting and Build tabs rebuilt as tile grids with real batch
+  crafting (queue, cancel-with-refund, background-running), a Twig
+  Foundation model, and — the largest chunk — Trimmed Stick, Stone
+  Knife, and Stone Hammer all going from a shared placeholder model
+  (or no model) per tier to genuinely tier-distinct Blender-generated
+  geometry, plus a working Tripo3D re-texturing pipeline and two real
+  `IconBaker` bugs found and fixed along the way.
+- **Every one of those deepened a pillar already counted as built**
+  (Loot & Gathering, Crafting-quality content, Storage, Building's
+  existing Foundation-only scope) rather than starting Encumbrance,
+  Combat, or NPCs. Same distinction this section has flagged from the
+  start: content/tooling polish volume and MVP pillar coverage are
+  different measures, and this entire stretch was almost entirely the
+  former. `CraftTier` is also still assigned directly per-recipe, not
+  derived from live skill level — that gap from the original check-in
+  is unchanged too.
+- Not a criticism of the work itself — the Blender pipeline in
+  particular is a real, reusable capability gained this stretch, and
+  every fix shipped was a genuine bug. It's a scope observation: if
+  closing Phase 1 is the near-term goal, Encumbrance/Combat/NPCs need
+  their first lines of code at some point soon, since nothing currently
+  in flight is trending toward any of the three on its own.
+
 ## Crafting, Gathering & Skills Pipeline (2026-08-04)
 
 Planning session working out the "still open" gap from the Skill-tied crafting
@@ -1427,6 +1468,13 @@ find 0 to 3 berries which would drop to the ground."
   Stick lying on the ground), and whether other single-purpose gather
   objects in the project have this same "prefab secretly serves two
   roles" trap waiting — worth a quick audit if another one surfaces.
+- **Search's "super success" bonus added v0.1.179-dev:** a separate,
+  independent 2% chance (`berrySeedChance`) for a bonus Berry Seed on
+  every search, regardless of the normal 0-3 berry roll's own outcome —
+  not conditioned on rolling the max. New `BerrySeed.asset`/
+  `BerrySeedPickup.prefab`, a small Blender-modeled seed. Whether this
+  implies Berry Bushes becoming plantable/farmable eventually is still
+  completely open — nothing beyond the item and its spawn chance exists.
 
 ## Crafting Tab: Tile Grid + Real Batch Crafting (2026-08-09)
 

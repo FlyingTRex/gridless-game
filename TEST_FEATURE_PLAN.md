@@ -626,6 +626,15 @@ fix the coordinate in this file rather than assuming the step is wrong.
     cooldown) and that dropped Berries can be individually picked up
     (E), stacked in inventory, and eaten. Own independent ~180s
     cooldown from chop.
+  - **"Super success" Berry Seed chance (v0.1.179-dev):** every search
+    also rolls an independent 2% chance (`berrySeedChance`) for a bonus
+    Berry Seed, regardless of the normal berry roll's own outcome — a
+    0-berry search can still find a seed, a 3-berry search can too. At
+    2% this will take many searches to see live; if verifying quickly,
+    consider temporarily raising `berrySeedChance` in the Inspector
+    rather than brute-force searching. Confirm a found Berry Seed is a
+    real pickup (own icon, distinct small dark-brown teardrop model,
+    pickable/stackable) — no use for it yet beyond holding it.
   - Confirm the bush itself never disappears or hides — only whichever
     prompt (chop or search) is on cooldown changes, the model stays
     visible and both raycast targets remain hittable throughout.
