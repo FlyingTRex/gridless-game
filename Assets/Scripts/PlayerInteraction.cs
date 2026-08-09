@@ -34,7 +34,6 @@ public class PlayerInteraction : MonoBehaviour
     // the hit object) — HandleWish branches on that to know which
     // completion path to run.
     private GameObject currentWishGameObject;
-    private GameObject lastWishGameObject;
     private WishRecipe currentWish;
     private IWishTarget currentWishTarget;
     private float wishHoldProgress;
@@ -191,22 +190,31 @@ public class PlayerInteraction : MonoBehaviour
             playerCamera.transform.position, playerCamera.transform.forward, out hit, interactRange);
     }
 
-    // Same hold-and-release shape as E: keep R down on the same target to
+    // Same hold-and-release shape as E: keep R down on a valid target to
     // fill the bar, let go (or look away — ResolveWishTarget clears the
     // target too) to cancel and forfeit progress. On completion, resolves
     // through PlayerMagic.TryWish's success/failure roll either way, then
     // routes the effect to the target's own OnWishComplete (specific
     // wishes) or a direct AddForce (the generic Push fallback).
+    //
+    // Bug fixed 2026-08-09: this used to also require
+    // currentWishGameObject == <the previous frame's resolved object>,
+    // stricter than E's hold (which has no such check at all) — any
+    // one-frame raycast flicker (aim jitter, a multi-collider model like
+    // Backpack briefly resolving a different collider) silently reset
+    // progress to 0 with zero feedback, since wishes deliberately show no
+    // progress bar. Confirmed live: holding R on a Backpack (which does
+    // have a Rigidbody) for several seconds produced nothing at all, no
+    // message either way — the hold was never actually completing.
     private void HandleWish(Keyboard keyboard)
     {
         if (keyboard == null)
         {
-            lastWishGameObject = null;
             wishHoldProgress = 0f;
             return;
         }
 
-        if (currentWishGameObject != null && currentWishGameObject == lastWishGameObject && keyboard.rKey.isPressed)
+        if (currentWishGameObject != null && keyboard.rKey.isPressed)
         {
             wishHoldProgress += Time.deltaTime;
             if (wishHoldProgress >= skills.GetHoldDuration(currentWish.lineage))
@@ -240,7 +248,6 @@ public class PlayerInteraction : MonoBehaviour
         }
         else
         {
-            lastWishGameObject = currentWishGameObject;
             wishHoldProgress = 0f;
         }
     }

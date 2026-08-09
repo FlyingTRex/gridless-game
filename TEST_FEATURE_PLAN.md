@@ -135,6 +135,21 @@ fix the coordinate in this file rather than assuming the step is wrong.
   hand at all — this option only existed for items already inside a
   Backpack/Belt/Storage Box's contents grid or already equipped
   somewhere. Caught during the first full system-test pass.
+- [ ] **Drop quantity picker (v0.1.162-dev).** Clicking "Drop" (main
+  inventory list, or the move popup for a hand slot/Backpack/Storage
+  item) now opens a quantity popup — `-10`/`-1`/`+1`/`+10` steppers plus
+  "All", defaulting to the full count already held. Confirm dropping a
+  partial amount (e.g. 5 of 20 Stick) leaves the rest behind and spawns
+  exactly 5 in the world. **Regression this specifically fixes:** with 2
+  of the same Hammer tier (Hammer doesn't stack, `maxStack: 1`, so two
+  separate slots), Drop used to dump both — confirm the popup now lets
+  you drop just 1 and keep the other.
+- [ ] **Move-as-many-as-fit still applies at the popup's default.**
+  Since the quantity popup defaults to the full held count, clicking
+  Drop immediately (no adjustment) should behave exactly like the old
+  one-click Drop for a normal stackable item — confirm dropping a full
+  Rope stack still works in the same two clicks (Drop, then Drop again
+  in the popup) as before.
 - [ ] Equipment section lists all 14 slots (Head, Face ×2, Neck, Chest, Back, Left/
   Right Arm, Left/Right Wrist, Left/Right Hand, Waist, Leg, Feet) — empty ones show
   "Empty", occupied ones show the item name plus Equip/Unequip/Drop as applicable.
@@ -197,7 +212,18 @@ fix the coordinate in this file rather than assuming the step is wrong.
 ## 4. Gathering & World Interaction
 
 - [ ] **Sticks** (E, instant pickup) go straight to inventory/hands per the loot
-  priority below.
+  priority below. **Fixed v0.1.164-dev:** `StickPickup.prefab`'s
+  `Pickup.item` was never actually wired to the Stick `ItemDefinition`
+  (`{fileID: 0}`, silently null, same bug class as Berry) — picking one
+  up did nothing at all despite looking and behaving normally
+  otherwise (real collider, real Rigidbody, real model). Very likely
+  the actual explanation for repeated "Stick count doesn't change"
+  reports earlier in this same testing pass. Confirm picking up a
+  ground Stick now actually adds one to inventory. Swept every other
+  `*Pickup.prefab` for the same pattern and also fixed
+  `RopeCoilPickup.prefab` and `RockKnifePickup.prefab` (Crude Knife's
+  world pickup) — confirm dropping and re-picking-up a Rope or a Crude
+  Knife both work too.
 - [ ] **Stick visual (v0.1.73-dev):** both pre-placed "Stick Pickup" world
   objects and any freshly-dropped Stick should render as the imported
   branch model (real bark texture, natural shape), not the old plain box.
@@ -416,11 +442,16 @@ fix the coordinate in this file rather than assuming the step is wrong.
   - **Other 4 Knife tiers matched up (v0.1.138-dev):** Rudimentary/
     Knife (Normal)/Fine/Masterwork Knife already had real recipes since
     v0.1.69-dev but showed nothing/a generic grey cube when crafted or
-    dropped — should now all show the exact same knapped-stone-knife
-    model and icon as Crude Knife (deliberately identical across tiers,
-    same as every other tool — only the name/skill-gate differs, not
-    the visual). Confirm all 5 tiers look pixel-identical, not subtly
-    different sizes.
+    dropped — should now all show a real knapped-stone-knife model and
+    icon.
+  - **All 5 tiers get distinct real Blender models (v0.1.175-dev),
+    superseding the "pixel-identical across tiers" note above.** No
+    longer the same shared placeholder at different stretched scales —
+    confirm a real visual progression: Crude/Rudimentary have a rough
+    chipped-flint blade edge, Normal is a clean plain blade, Fine and
+    Masterwork are smooth with a ribbed handle-wrap detail and a
+    visibly darker (near-black by Masterwork) blade. All 5 should be
+    the same overall size (~0.28m).
   - **All 5 Pickaxe tiers get a real model (v0.1.141-dev):** Crude/
     Rudimentary/Pickaxe (Normal)/Fine/Masterwork Pickaxe all had real
     recipes but no model/icon at all before this — craft or spawn any
@@ -558,16 +589,54 @@ fix the coordinate in this file rather than assuming the step is wrong.
   player's own camera (same `WornEquipment` layer fix every other
   equippable already has) but visible on an external view. Should show
   a small icon in inventory UI.
-- [ ] **Berry Bush (real model v0.1.139-dev)** at `(-1.5, 0.2, 1.5)` —
-  should show a real strawberries model (CC-BY, Jarlan Perez), not the
-  old grey Sphere placeholder, plus an icon wherever Berry appears in
-  inventory UI. Picking a Berry gives a real inventory item (not an
-  instant-eat-on-touch). **Fixed v0.1.159-dev:** `BerryPickup.prefab`'s
-  `Pickup.item` field was never actually wired to the Berry
-  `ItemDefinition` (`{fileID: 0}`, silently null) — the model swap in
-  v0.1.139-dev fixed the visual but not the underlying pickup, so walking
-  into a Berry Bush did nothing at all. Confirm picking one up now
-  actually adds a Berry to inventory.
+- [ ] **Berry Bush (real model v0.1.139-dev, redesigned v0.1.166-dev,
+  visual swapped v0.1.171-dev)** at `(-1.5, 0.2, 1.5)` — a real
+  Tripo3D-generated leafy bush model (`GeneratedBerryBush.glb`, reused
+  from an earlier decorative comparison prop that's now removed from
+  the scene). **Deliberately not the Strawberries model anymore** —
+  that's reserved for the loose dropped Berry pickup only, so the
+  standing bush and a scattered berry are never visually confused for
+  each other again (they used to share the exact same model). No
+  longer an instant E-pickup — two independent gather actions instead:
+  - **E, chop:** hold to chop, prompt reads "Hold to chop (requires
+    Knife or Axe)" — requires any tier of either actually in hand (not
+    just carried) to actually work; without one, holding does nothing.
+    On success, 2 loose Trimmed Stick (Crude) pickups scatter on the
+    ground near the bush and Woodworking gains experience. Goes on a
+    ~180s cooldown afterward (prompt reads "Bush (branches regrowing)"),
+    independent of search's own cooldown below.
+  - **F, search:** no tool needed, prompt reads "Search for berries"
+    (hidden entirely while on cooldown, not shown as blocked). Rolls 0
+    to 3 and scatters that many loose Berry pickups on the ground —
+    confirm a 0-roll is possible (nothing drops, still goes on
+    cooldown) and that dropped Berries can be individually picked up
+    (E), stacked in inventory, and eaten. Own independent ~180s
+    cooldown from chop.
+  - Confirm the bush itself never disappears or hides — only whichever
+    prompt (chop or search) is on cooldown changes, the model stays
+    visible and both raycast targets remain hittable throughout.
+  - **Fixed v0.1.173-dev:** the scattered Trimmed Stick pickup used to
+    reuse the plain Stick's branch model as a placeholder visual
+    (indistinguishable from a regular dropped Stick). Now spawns the
+    real Crude-tier Trimmed Stick model (Blender-generated — see
+    `Tools/Tripo3D/README.md`). Confirm chopping the bush now drops a
+    visually distinct, slightly gnarled trimmed stick, not a plain
+    branch.
+  - **Fixed v0.1.169-dev:** a scattered Berry (or Trimmed Stick) could
+    land close enough to the bush's own collider to permanently block
+    raycasts from ever reaching it — aiming at what looked like a loose
+    berry showed the *bush's* chop/search prompt instead of "Pick up
+    Berry," and E did nothing. Scatter now spawns on a fixed ring
+    clearly outside the bush's collider instead of a fully random
+    offset. Confirm every berry/stick from a chop or search is
+    individually aimable and pickable, not just the ones that happened
+    to scatter far enough away by luck.
+  - **Berry resized v0.1.171-dev:** the loose Berry pickup shrank from
+    0.35m to 0.18m bounds — was sized to look right next to itself as
+    the old (identical-model) bush, read as oversized once the bush
+    became the bigger, visually distinct leafy model. Confirm a
+    dropped/scattered Berry now reads clearly as "a small handful,"
+    not competing in size with the bush itself.
 - [ ] **Eat from anywhere (fixed same day, v0.1.159-dev):** previously
   Eat only ever showed in the main inventory list — a Berry sitting in a
   hand slot, a Backpack, or a Storage Box had no Eat option at all,
@@ -576,7 +645,22 @@ fix the coordinate in this file rather than assuming the step is wrong.
   hand slot, or an item inside a Backpack/Storage contents grid) now
   shows an **Eat** button first when the item is edible. Confirm eating
   a Berry directly from your Left/Right Hand works, and from inside a
-  Backpack/Storage contents view too.
+  Backpack/Storage contents view too. **Fixed same day (v0.1.161-dev):**
+  the button appeared but eating from anywhere other than the main
+  inventory silently did nothing — `PlayerEating.TryEat` always removed
+  from the main inventory specifically, regardless of where the Berry
+  actually was. Confirm a Berry eaten from a hand/Backpack/Storage now
+  actually decrements from wherever it was and restores Hunger.
+- [ ] **Move-as-many-as-fit (fixed v0.1.161-dev):** every "To Left
+  Hand"/"To Right Hand"/"To Backpack"/"To Inventory"/"To Storage" button
+  used to pass the source's *entire* matched count as the move quantity
+  — fine for a stacking item, but a non-stacking item (any Hammer tier,
+  `maxStack: 1`, each instance its own slot) broke immediately: 2
+  Hammers into an empty single-capacity hand slot failed completely
+  instead of moving the 1 that fits. Confirm having 2 of the same Hammer
+  tier (craft or admin-spawn a second) in a Backpack, with an empty
+  hand, and clicking "To Left Hand" now moves exactly 1 — leaving 1
+  behind in the Backpack — instead of doing nothing.
 - [ ] **Loot priority:** with a Backpack equipped, new pickups go straight into
   it. With no backpack, pickups try Left Hand, then Right Hand; if both hands are
   full with non-stacking items, the new pickup evicts (physically drops, not
@@ -591,8 +675,9 @@ fix the coordinate in this file rather than assuming the step is wrong.
   fallback (both hands full with non-stacking items, no backpack
   equipped, picking up something new), disappears from the world after
   **2 minutes** (down from 15) if nobody picks it up. Confirm it does
-  *not* apply to world-placed pickups (Sticks, Berry Bush) or
-  `ResourceNode` chunk scatter (Logs, Planks, ore chunks, etc.) — those
+  *not* apply to world-placed pickups (Sticks) or `ResourceNode`/
+  `ChoppableTree`/`BerryBush` scatter (Logs, Planks, ore chunks, Berry
+  Bush's chopped Trimmed Sticks and found Berries, etc.) — those
   should sit indefinitely (or respawn per the item above), never
   silently vanish. Also confirm a *partial* pickup (leftover after your
   inventory fills up) keeps counting down from the original drop time,
@@ -616,11 +701,72 @@ fix the coordinate in this file rather than assuming the step is wrong.
 
 ## 5. Player Menu (Tab) — Crafting Tab
 
-- [ ] Clicking the **Crafting** tab lists every known recipe (not just ones you currently have materials for),
-  each showing every ingredient with "have N" counts.
-- [ ] Craft button greys out when short on materials or when the main inventory
-  has no room for the output — label appends "— inventory full" specifically when
-  that's the blocking reason (not just insufficient materials).
+- [ ] **Tile grid, not a list (redesigned v0.1.167-dev).** Clicking the
+  **Crafting** tab shows every known recipe (not just ones you currently
+  have materials for) as a grid of tiles, not a text list — each tile: a
+  big icon (blank spacer, not a placeholder glyph, for the handful of
+  items without one baked yet — currently Sunglasses/Nav Computer/Health
+  Monitor; all 5 Trimmed Stick tiers got real Blender-generated models
+  and icons in v0.1.173-dev. Masterwork got a real Tripo3D-generated
+  wood texture in v0.1.174-dev — confirm its icon shows visible wood
+  grain/warm tones, distinctly nicer than the other 4 tiers, which
+  still use a flat-color material, no image texture, for now), the
+  item name, materials with
+  live "have N" counts (red when short), tool/skill/Anvil-surface
+  requirement lines when applicable, a quantity stepper, a **Craft**
+  button, and a **Max** button. **Icon framing improved v0.1.169-dev:**
+  every icon (Crafting tiles, Build tiles, inventory/equipment icons —
+  53 total, re-baked in one pass) now fills its box tightly instead of
+  floating with visible padding, especially noticeable on non-cubic
+  shapes like Nail or Foundation which used to look small relative to
+  roughly-cube-shaped items baked with the same settings.
+- [ ] **Search bar (v0.1.167-dev), above the grid.** Typing filters every
+  discipline's recipes by name (case-insensitive substring), ignoring
+  the discipline-tab selection entirely while active — confirm typing
+  "ax" shows every unlocked-or-not Axe tier across all 5 tiers in one
+  list regardless of which tab was selected before searching, and that
+  clicking **Clear** (or emptying the box) reverts to the normal
+  per-discipline tab view. Empty search + no recipes in a discipline
+  still shows "No recipes yet."; a search with no matches shows
+  `No recipes match "<query>".` instead.
+- [ ] **Quantity + Max, not a single instant craft.** The stepper
+  defaults to 1; `-`/`+` adjust it, clamped between 1 and however many
+  the current materials actually support. **Max** jumps straight to
+  that ceiling. **Craft** starts a batch for whatever quantity is
+  currently selected — greyed out if materials/tool/skill/Anvil-surface/
+  output space don't support it, same "— inventory full" label as
+  before when that's specifically the blocking reason.
+- [ ] **Real batch crafting with a per-item timer (v0.1.167-dev).**
+  Starting a batch removes ingredients for the *whole* batch immediately
+  (not per item), then the tile's Craft/Max row is replaced by a
+  progress bar reading `Crafting 2 / 5  (1.4s)` — the per-item duration
+  is `CraftTierScale.HoldDuration`, the same skill-scaled ladder
+  gathering already uses (higher skill = faster). Confirm each
+  completed item lands in inventory as it finishes, not all at once at
+  the end, and that skill experience gains once per completed item, not
+  once per batch.
+- [ ] **Keeps running in the background.** Start a batch, then close the
+  Crafting tab entirely (or switch to a different PlayerMenuScreen tab,
+  or close the menu and walk around) — confirm the batch keeps
+  progressing and items keep completing while the tab isn't even open,
+  unlike every hold-and-release interaction elsewhere in the game which
+  cancels the moment you look away. Reopening the Crafting tab mid-batch
+  should show the progress bar picking up exactly where it actually is.
+- [ ] **Cancel refunds only the unfinished remainder.** With a batch of
+  5 running, cancel after 2 have completed — confirm the 2 already-
+  crafted items stay in inventory (nothing clawed back) and the
+  materials for the remaining 3 are refunded. The tile returns to the
+  normal stepper/Craft/Max view afterward.
+- [ ] **A broken tool stops the batch.** Queue a large batch of a
+  tool-gated recipe (Trimmed Stick, Knife required) at low skill (higher
+  spectacular-failure odds) and keep going until a "your Knife broke"
+  message appears — confirm the batch stops immediately afterward
+  (refunding the unfinished remainder) rather than continuing to
+  silently fail every remaining item with no tool in hand.
+- [ ] **One batch at a time, globally.** While any recipe's batch is
+  running, every *other* tile's Craft/Max should grey out with "Crafting
+  queue busy" — confirm you can't start a second batch on a different
+  recipe until the first finishes or is cancelled.
 - [ ] Crafting draws materials from the main inventory first, then an equipped
   Backpack, then nearby Storage Boxes (within range) in distance order — confirm
   a recipe reads "have N" correctly when materials are split across all three.
@@ -631,9 +777,9 @@ fix the coordinate in this file rather than assuming the step is wrong.
   priority as pickup once that's built), just not fixed yet.
 - [ ] Spot-check at least one multi-ingredient recipe (Crude Hammer: 1 Stick + 1
   Small Rock) and one single-ingredient recipe (Crude Knife: Small Rock).
-- [ ] **List now scrolls (v0.1.69-dev):** confirm the Crafting tab scrolls
-  to reach the bottom entries of a long discipline instead of running off
-  the screen, and that the tab bar/Close button stay fixed above/below the
+- [ ] **Grid scrolls:** confirm the Crafting tab scrolls to reach tiles
+  that run off the bottom of a long discipline instead of clipping, and
+  that the tab bar/search bar/Close button stay fixed above/below the
   scroll area.
 - [ ] **Discipline sub-tabs (v0.1.70-dev):** a second row of tabs —
   Woodworking, Stonework, Metalworking, Forging, Minting, Sewing, Other —
@@ -649,7 +795,7 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] **Tool-in-hand requirement (v0.1.71-dev):** the 5 Trimmed Stick
   recipes (Crude through Masterwork, under **Woodworking**) each need 1
   Stick *and* any tier of Knife held in a hand — the Knife is **not**
-  consumed. Without a Knife in hand, the label reads `— requires Knife in
+  consumed. Without a Knife in hand, the tile reads `— requires Knife in
   hand` and Craft is greyed out even with a Stick available. Equip a Knife
   to a hand and it should read `[Knife in hand]` instead and Craft should
   enable (assuming a Stick is also available). Confirm the Knife is still
@@ -665,6 +811,22 @@ fix the coordinate in this file rather than assuming the step is wrong.
   substitutes too, and that removal spends your raw/exact stock first
   before touching the refined substitute (hold both Stick and Trimmed
   Stick, craft an Axe, confirm the plain Stick disappears first).
+- [ ] **Nail (v0.1.160-dev, Metalworking tab):** `Nail  (needs 1x Iron)`
+  should craft into 5 Nails, require any tier of Hammer in hand (not
+  consumed), and train Metalworking. **New: requires a nearby Boulder or
+  Anvil.** With no Boulder/Anvil within 2m, the label should read
+  `— requires a Boulder or Anvil nearby` and Craft should stay disabled
+  even with Iron and a Hammer both available. Walk within 2m of either
+  the Boulder or the newly-placed Anvil (near the Boulder in
+  `TestScene`) and it should become craftable. Confirm this same gate
+  also blocks **Twig Foundation** if you strip 2m range away from both
+  (shouldn't — Foundation has no `requiresAnvilSurface`, only Nail does;
+  this is a per-recipe opt-in, not global). **Fixed same day (v0.1.161-dev):**
+  the recipe originally showed `— requires Metalworking 25` with no way
+  to reach it — `Nail.asset` defaulted to `tier: Normal` when created
+  (the skill gate reads the output item's own tier directly), instead of
+  `tier: Crude` like every other no-ladder item (Rope, Cloth). Confirm
+  Nail is craftable from skill 0 now, same as Rope/Cloth.
 - [ ] **Fiber byproduct (v0.1.77-dev):** crafting any tier of Trimmed
   Stick should show `Trimmed Stick + 1x Fiber  (needs ...)` in the recipe
   list, and produce 1 Fiber in the main inventory alongside the Trimmed
@@ -869,6 +1031,15 @@ fix the coordinate in this file rather than assuming the step is wrong.
   from you (`Rigidbody.AddForce`, impulse) — confirm it actually slides/
   rolls, not just teleports. On failure, same fizzle message, no
   movement, Will still drops 40 and Kinetic still gains experience.
+  **Fixed v0.1.164-dev:** the hold used to require the raycast to
+  resolve the *exact same* GameObject on every single frame — any
+  one-frame aim jitter (more likely on a bigger/multi-part model, e.g.
+  a dropped Backpack) silently reset progress to 0 with no feedback at
+  all, since wishes show no progress bar by design. Confirmed live: a
+  full multi-second hold on a Backpack produced nothing, no message.
+  Relaxed to match E's hold (no frame-to-frame identity check) —
+  confirm holding R on a Backpack now reliably completes the hold and
+  rolls, even with natural mouse movement during the hold.
 - [ ] **E and R are independent** — confirm holding E on an IInteractable
   (e.g. a Rock Node) and R on a separate loose Rigidbody chunk don't
   interfere with each other's progress if you were to somehow trigger
@@ -899,6 +1070,15 @@ fix the coordinate in this file rather than assuming the step is wrong.
   reads "Armed (click to cancel)" and clicking it again un-arms.
   **Unlike Magic, this tab is meant to be fully informative** — costs and
   requirements should be plainly visible, not hidden.
+- [ ] **Tile grid + search (v0.1.168-dev, same treatment as Crafting).**
+  Pieces show as tiles (icon, name, live materials have/need, skill
+  requirement if locked, Arm/Armed) instead of a text list — confirm
+  Twig Foundation and Storage Box both show a real baked icon, not a
+  blank spacer. A search bar above the grid filters by name (e.g.
+  "found" matches "Twig Foundation"); clearing it shows every piece
+  again. **Deliberately no batch/quantity/Max/timer here** — Arm still
+  works exactly as before, one piece placed per walk-and-aim act; this
+  redesign only touched the browsing/visual layer, not placement itself.
 - [ ] **Ingredient substitution (v0.1.159-dev):** Twig Foundation's 6x
   Stick requirement should also accept Trimmed Stick (any tier) as a
   substitute, same `IngredientMatching` mechanism as Crafting — confirm
@@ -959,8 +1139,25 @@ fix the coordinate in this file rather than assuming the step is wrong.
   terrain yet, even though the mechanical 5m reach check is real (it
   only actually gates the edge-snapped case in this build, since free
   placement always matches the raycast hit exactly).
+- [ ] **1m thick, mostly buried (v0.1.163-dev, supersedes an earlier
+  same-day "fully raised" pass).** The slab is now 1m thick (was 0.3m)
+  and sits mostly below the raycast hit point — confirm a freshly placed
+  Twig Foundation shows roughly a 0.2m lip above the grass with the rest
+  buried, reading as a real foundation wall rather than a thin flush
+  slab or a raised deck. Applies to both Twig and Plank Foundation, and
+  to edge-snapped placement too (neighbors should still align exactly,
+  just all at the new height together).
+- [ ] **Real Twig Foundation model (v0.1.169-dev).** The plain grey Cube
+  slab is now a real Tripo3D-generated lashed-twig-and-rope platform on
+  short legs — confirm it looks like a crude bundled-stick platform, not
+  a primitive shape, and that the collider/socket footprint is
+  unchanged (edge-snapping a second Foundation should still align
+  exactly flush, same as before this visual swap). **Plank Foundation
+  still uses the plain Cube** — only the Twig tier got a real model this
+  pass.
 - [ ] **Wall, Pole, Door do not exist yet** — the Build tab should show
-  only Twig Foundation, nothing else.
+  only Twig Foundation and Storage Box (added v0.1.160-dev, see below),
+  nothing else.
 - [ ] **Upgrade/destroy on a placed piece (v0.1.157-dev).** Equip any
   tier of Hammer in a hand, look at a placed Twig Foundation — a prompt
   should read "Click to upgrade to Plank Foundation — hold 5s to
@@ -991,8 +1188,26 @@ fix the coordinate in this file rather than assuming the step is wrong.
   exactly as it was).
 - [ ] **Known gap, not a bug:** the 5-second destroy hold shows a text
   countdown only, no graphical progress bar.
-
-## 7. Equippable Gadgets
+- [ ] **Storage Box, built (v0.1.160-dev).** Build tab lists
+  `Storage Box  (needs 4x Plank, 6x Nail)`, Crude tier (no skill
+  requirement to start). Arm it and place it same as Foundation (no
+  socket to snap to — it's always free placement: LMB drops the ghost,
+  scroll rotates, LMB again confirms). Confirm 4 Plank and 6 Nail leave
+  inventory, Woodworking gains experience, and the placed box registers
+  as a real `StorageBox` — walk up and open the Inventory tab, it should
+  show up in the nearby-storage section same as any other box.
+- [ ] **Storage Box, pickupable (v0.1.160-dev).** Look at any *empty*
+  placed Storage Box (the newly-built one, or the original "Small
+  Storage Box" already sitting in the scene) — prompt should read
+  "Pick up Storage Box" (or "Pick up Small Storage Box"), **E** picks it
+  up instantly (no hold, no tool needed), removes the placed box, and
+  adds a "Storage Box" item to your inventory. **Must be empty to pick
+  up:** put at least one item in a box first — prompt should instead
+  read "Storage Box (must be empty to pick up)" and E should do nothing.
+  **Place it again:** with a "Storage Box" item in inventory, Drop it —
+  confirm it spawns as a real, working, empty Storage Box (not an inert
+  prop) that you can store items in and pick back up again, for free (no
+  material cost the second time).
 
 - [ ] **Backpack** (world pickup near spawn): Equip puts it on Back and exposes its
   8-slot contents grid; Unequip falls back to main inventory → a hand → world-drop
@@ -1310,3 +1525,29 @@ fix the coordinate in this file rather than assuming the step is wrong.
   gadget (Backpack/Canteen/Sunglasses/Nav Computer/Health Monitor/Mining
   Face Shield) produces a plain inventory stack that can't actually be
   equipped — not fixed yet, see `BUGS_AND_ENHANCEMENTS.md`.
+- [ ] **Admin — Spawn Build Piece (v0.1.170-dev, same Admin tab).** A
+  second list below the item one — every `BuildPiece` alphabetically
+  (currently Twig Foundation, Storage Box), each with its own Spawn
+  button. Clicking Spawn places the piece directly on the ground under
+  the player — free (no materials removed, no skill-tier check) — via a
+  straight-down raycast from just above the player, same as a real
+  placement would land on flat ground. Confirm the spawned piece is
+  tagged as a real `PlacedPiece`: aim a Hammer at it afterward and
+  confirm the normal click-to-upgrade/hold-to-destroy prompt works on
+  it exactly like a normally-built one. Testing aid only, same
+  Editor-only scoping as the item spawn list above. **Fixed same day
+  (v0.1.171-dev):** spawning used to push the player underground —
+  the piece's collider materialized wrapped around the player's own
+  feet (raycast originates from the player's position) and
+  `CharacterController` depenetration resolved downward instead of up.
+  Confirm spawning Twig Foundation now lands the player standing on
+  top of the freshly-placed platform instead. **Fixed same day
+  (v0.1.172-dev):** the ground raycast was hitting the player's own
+  `CharacterController` capsule before it ever reached real terrain,
+  spawning the piece floating ~1.8m up (legs dangling in open air)
+  instead of flush with the ground. Confirm a freshly-spawned Twig
+  Foundation now sits with just its intended small lip above the
+  grass, not floating at head height — and that you can reach/climb
+  onto a *normally-built* (not admin-spawned) Foundation with an
+  ordinary jump, now that the admin tool's own bug isn't muddying
+  whether climbing itself has a real problem.

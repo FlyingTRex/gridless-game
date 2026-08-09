@@ -15,5 +15,7 @@ MonoBehaviour:
   itemName: Trimmed Stick
   maxStack: 20
   tier: 2
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 700564950636038080, guid: 80940adb5691be14b9f57c08f7a03f86, type: 3}
+  icon: {fileID: 21300000, guid: ed8f69e0e6ab68b47a3c00863318f89d, type: 3}
+  previewIcon: {fileID: 21300000, guid: 07b94c412bc5e194987f21cbba2f1208, type: 3}
   baseItem: {fileID: 11400000, guid: d492f069a86086445a701543be636fce, type: 2}

@@ -19,6 +19,11 @@ using UnityEngine.SceneManagement;
 //     -modelPath "Assets/Prefabs/SomeModel.prefab" ^
 //     -itemAssetPath "Assets/Data/SomeItem.asset"
 //
+// -itemAssetPath isn't limited to ItemDefinition — any asset with public
+// icon/previewIcon Sprite fields works (e.g. BuildPiece, added 2026-08-09
+// for the Build tab's own tile grid), since wiring happens generically via
+// SerializedObject.FindProperty by field name, not a hardcoded type.
+//
 // Optional args:
 //   -resolution <int>         small inline icon size, default 32
 //   -previewResolution <int>  also bakes a second, bigger image and wires
@@ -61,13 +66,6 @@ public static class IconBaker
             return;
         }
 
-        if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null)
-        {
-            Debug.LogError("IconBaker: graphics device is Null — this run was launched with " +
-                "-nographics, which disables RenderTexture. Re-run without that flag.");
-            return;
-        }
-
         var modelAsset = AssetDatabase.LoadAssetAtPath<GameObject>(modelPath);
         if (modelAsset == null)
         {
@@ -75,32 +73,48 @@ public static class IconBaker
             return;
         }
 
-        if (AssetDatabase.LoadAssetAtPath<ItemDefinition>(itemAssetPath) == null)
+        if (AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(itemAssetPath) == null)
         {
-            Debug.LogError($"IconBaker: no ItemDefinition found at {itemAssetPath}");
+            Debug.LogError($"IconBaker: no asset found at {itemAssetPath}");
             return;
         }
 
         if (string.IsNullOrEmpty(outputName))
             outputName = Path.GetFileNameWithoutExtension(itemAssetPath) + "Icon";
 
+        BakeAndWire(modelAsset, itemAssetPath, resolution, previewResolution, outputName);
+    }
+
+    // Reusable entry point for baking many icons in one process (e.g. a
+    // full re-bake sweep after a framing change) without a separate Unity
+    // launch per item — Bake() above is a thin command-line-args wrapper
+    // around this for the normal single-item case.
+    public static bool BakeAndWire(GameObject modelAsset, string itemAssetPath, int resolution, int previewResolution, string outputName)
+    {
+        if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null)
+        {
+            Debug.LogError("IconBaker: graphics device is Null — this run was launched with " +
+                "-nographics, which disables RenderTexture. Re-run without that flag.");
+            return false;
+        }
+
         // Bake everything first, wire it up last. BakeOne()'s
         // AssetDatabase.ImportAsset/SaveAndReimport calls can invalidate
-        // an ItemDefinition reference held from before they ran (turns
-        // into a stale/destroyed Unity Object) — reloading it fresh right
-        // before use, after all baking is done, sidesteps that.
+        // an object reference held from before they ran (turns into a
+        // stale/destroyed Unity Object) — reloading it fresh right before
+        // use, after all baking is done, sidesteps that.
         var sprite = BakeOne(modelAsset, resolution, outputName);
-        if (sprite == null) return;
+        if (sprite == null) return false;
 
         Sprite previewSprite = null;
         if (previewResolution > 0)
             previewSprite = BakeOne(modelAsset, previewResolution, outputName + "Preview");
 
-        var itemAsset = AssetDatabase.LoadAssetAtPath<ItemDefinition>(itemAssetPath);
+        var itemAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(itemAssetPath);
         if (itemAsset == null)
         {
-            Debug.LogError($"IconBaker: ItemDefinition at {itemAssetPath} became unavailable after baking — aborting wire-up.");
-            return;
+            Debug.LogError($"IconBaker: asset at {itemAssetPath} became unavailable after baking — aborting wire-up.");
+            return false;
         }
 
         var so = new SerializedObject(itemAsset);
@@ -114,6 +128,7 @@ public static class IconBaker
 
         Debug.Log($"IconBaker: DONE — {itemAssetPath}.icon = {sprite.name}" +
             (previewResolution > 0 ? $", .previewIcon baked at {previewResolution}x{previewResolution}" : ""));
+        return true;
     }
 
     // Renders one image at the given resolution and returns the imported
@@ -121,6 +136,18 @@ public static class IconBaker
     private static Sprite BakeOne(GameObject modelAsset, int resolution, string outputName)
     {
         var tempScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+
+        // A brand-new scene defaults to skybox ambient with Unity's blue-
+        // gradient procedural sky - invisible on saturated warm colors
+        // (every icon baked before this fix happened to be one), but a
+        // strong, wrong blue cast on light/neutral/glossy materials (found
+        // via the Stone Knife's grey stone blade). Flat neutral ambient
+        // instead, so the two directional lights below are the only light.
+        RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+        RenderSettings.ambientLight = Color.white;
+        RenderSettings.ambientIntensity = 1f;
+        RenderSettings.defaultReflectionMode = UnityEngine.Rendering.DefaultReflectionMode.Custom;
+        RenderSettings.customReflectionTexture = null;
 
         var instance = (GameObject)PrefabUtility.InstantiatePrefab(modelAsset, tempScene);
         instance.transform.position = Vector3.zero;
@@ -145,7 +172,6 @@ public static class IconBaker
 
         float maxDim = Mathf.Max(bounds.size.x, bounds.size.y, bounds.size.z);
         if (maxDim <= 0f) maxDim = 1f; // degenerate/zero-size mesh guard
-        cam.orthographicSize = maxDim * 0.65f; // padding around the model
         cam.nearClipPlane = 0.01f;
         cam.farClipPlane = maxDim * 10f;
 
@@ -155,6 +181,39 @@ public static class IconBaker
         Vector3 dir = new Vector3(1f, 0.8f, -1f).normalized;
         cameraGO.transform.position = bounds.center + dir * maxDim * 3f;
         cameraGO.transform.LookAt(bounds.center);
+
+        // Tight-fit framing (2026-08-09, Ben's call — icons were reading
+        // small/hard to make out). Sizing orthographicSize off maxDim
+        // alone was a diagonal-safe *guess*, not what this specific 3/4
+        // angle actually projects — the more a shape diverges from a
+        // cube (a wide flat Foundation, a long thin Nail), the more
+        // empty padding that guess left around it. Project the AABB's 8
+        // corners into camera space instead and size/center to the true
+        // on-screen extent, with a small margin so edges don't clip.
+        Vector3 ext = bounds.extents;
+        Vector3 center = bounds.center;
+        float minX = float.MaxValue, maxX = float.MinValue, minY = float.MaxValue, maxY = float.MinValue;
+        for (int i = 0; i < 8; i++)
+        {
+            Vector3 corner = center + new Vector3(
+                (i & 1) == 0 ? -ext.x : ext.x,
+                (i & 2) == 0 ? -ext.y : ext.y,
+                (i & 4) == 0 ? -ext.z : ext.z);
+            Vector3 local = cameraGO.transform.InverseTransformPoint(corner);
+            minX = Mathf.Min(minX, local.x); maxX = Mathf.Max(maxX, local.x);
+            minY = Mathf.Min(minY, local.y); maxY = Mathf.Max(maxY, local.y);
+        }
+
+        const float fillMargin = 1.08f;
+        cam.orthographicSize = Mathf.Max(maxX - minX, maxY - minY) * 0.5f * fillMargin;
+
+        // The projected extent's midpoint won't generally match
+        // bounds.center once viewed at an angle — shift the camera
+        // sideways/up in its own local plane so the object sits
+        // centered in frame instead of the look-at point being centered.
+        float offsetX = (minX + maxX) * 0.5f;
+        float offsetY = (minY + maxY) * 0.5f;
+        cameraGO.transform.position += cameraGO.transform.right * offsetX + cameraGO.transform.up * offsetY;
 
         var keyLightGO = new GameObject("IconKeyLight");
         SceneManager.MoveGameObjectToScene(keyLightGO, tempScene);

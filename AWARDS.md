@@ -15,9 +15,37 @@ ledger of good nights.
 | 🚰 Canteen Sticker | 1 |
 | 🪄 Wizard's Wand Sticker | 1 |
 | 🏠 Little House Sticker | 1 |
+| ⚒️ Anvil Sticker | 1 |
+| 🧊 Blender Cube Sticker | 1 |
 
 ## Log
 
+- **2026-08-09 — 🧊 Blender Cube Sticker.** Got Blender wired into the
+  pipeline as a genuine third asset-generation option alongside Tripo3D
+  and manual editing — headless, scripted, no GUI (`blender --background
+  --python script.py`), same discipline as every Unity batch-mode script
+  in this project. Proved it two ways in one session: a `bmesh`
+  flood-fill connectivity pass on the real Twig Foundation mesh (2,118
+  disconnected islands inside what Unity sees as one fused mesh —
+  "separate the posts" is a spatial-classification problem, not a
+  seam-cut, on hold for later), then the real test — building the 5
+  Trimmed Stick craft tiers completely from scratch as a procedurally-
+  varied family, something Tripo3D's independent AI generations
+  couldn't have given as a coherent progression. Found and fixed three
+  real Blender bugs along the way (a cone primitive with no length-wise
+  geometry to deform, `subdivide` cutting radially and ballooning one
+  tier to 3,250 verts, an unnormalized length parameter that put every
+  carved ring in the wrong place) by actually reading the rendered
+  preview at each step, not just trusting the export log. v0.1.173-dev.
+- **2026-08-09 — ⚒️ Anvil Sticker.** Ben liked the Anvil model specifically
+  — generated via the Tripo3D API on the first attempt, no retries, no
+  unwanted extra geometry (unlike the Crude Stone Knife's stubborn
+  handle a few sessions back): a clean, instantly-readable blacksmith's
+  anvil with a proper horn, sitting on a wooden stump base, exactly
+  matching the prompt. Imported and, in a later same-day pass, actually
+  placed in `TestScene` as a real `AnvilSurface`-tagged world object
+  powering the Nail recipe's proximity gate — not just a pretty render
+  left sitting in `Tools/Tripo3D/Output/`.
 - **2026-08-08 — 🏠 Little House Sticker.** The Building System, start to
   a real working loop: `BuildPiece`/`BuildSocket` data shapes,
   `PlayerBuilding`'s full placement state machine (free placement *and*
@@ -100,9 +128,17 @@ should have to get something right.
 | Demerit | Count |
 |---|---|
 | 🐸💥 Squished Frog Sticker | 1 |
+| 🍓💀 Spoiled Strawberry Sticker | 1 |
 
 ### Demerits Log
 
+- **2026-08-09 — 🍓💀 Spoiled Strawberry Sticker.** Fixed
+  `BerryPickup.prefab`'s null `Pickup.item` earlier the same day — and
+  had `canRespawn: 0` sitting right there in the same field block I
+  was reading, on the exact same object type (Stick pickups already
+  respawn) I'd just been comparing it against, and didn't act on it.
+  Berry Bush picked clean once and never grew back until Ben caught it
+  live-testing and had to ask for the obvious fix directly.
 - **2026-08-07 — 🐸💥 Squished Frog Sticker.** The Equipment/Inventory
   panel layout (see the Cookie with a Bite entry above) took roughly a
   dozen rounds of back-and-forth to get right — wrong Backpack model

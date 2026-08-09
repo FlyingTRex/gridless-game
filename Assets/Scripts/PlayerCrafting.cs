@@ -17,6 +17,11 @@ public class PlayerCrafting : MonoBehaviour
     private const float RiskMarginCap = 20f;
     private const float SpectacularFailureDamage = 10f;
 
+    // How close an AnvilSurface (Boulder, Anvil, ...) needs to be for a
+    // requiresAnvilSurface recipe — Ben's call, matches "within 2m" for
+    // the first recipe that needs this (Nail).
+    private const float AnvilSurfaceRange = 2f;
+
     // How long a chance-of-creation outcome message stays on screen.
     private const float MessageDuration = 3f;
 
@@ -29,6 +34,25 @@ public class PlayerCrafting : MonoBehaviour
 
     private string message;
     private float messageExpireTime;
+
+    // Batch crafting queue (2026-08-09, Ben's call): a single "Craft N"
+    // action runs one item at a time on a real timer instead of resolving
+    // instantly, and keeps running even if the player closes the Crafting
+    // tab or walks away — nothing here is gated on any screen being open
+    // or any key being held, unlike every hold-and-release interaction
+    // elsewhere in the game. Only one batch at a time; starting a new one
+    // while another's active isn't allowed (cancel it first).
+    private CraftingRecipe activeRecipe;
+    private int activeTotal;
+    private int activeCompleted;
+    private float activeElapsed;
+
+    public bool IsCrafting => activeRecipe != null;
+    public CraftingRecipe ActiveRecipe => activeRecipe;
+    public int ActiveTotal => activeTotal;
+    public int ActiveCompleted => activeCompleted;
+    public float ActiveItemDuration => CurrentItemDuration();
+    public float ActiveElapsed => activeElapsed;
 
     private enum CraftOutcome
     {
@@ -124,31 +148,160 @@ public class PlayerCrafting : MonoBehaviour
         return skills != null && skills.GetLevel(recipe.trainedSkill) >= required;
     }
 
-    public bool TryCraft(CraftingRecipe recipe)
+    // True if the recipe has no requiresAnvilSurface flag set, or an
+    // AnvilSurface (Boulder, Anvil, ...) sits within AnvilSurfaceRange.
+    public bool HasNearbyAnvilSurface(CraftingRecipe recipe)
     {
-        if (recipe == null || recipe.outputItem == null || recipe.ingredients == null) return false;
+        if (recipe == null || !recipe.requiresAnvilSurface) return true;
+
+        foreach (var surface in FindObjectsByType<AnvilSurface>(FindObjectsSortMode.None))
+        {
+            if (Vector3.Distance(surface.transform.position, transform.position) <= AnvilSurfaceRange)
+                return true;
+        }
+
+        return false;
+    }
+
+    // Largest quantity of recipe craftable right now, capped by materials
+    // only (not output space — a batch that wouldn't fit just fails to
+    // start via StartCraft's own HasSpaceFor check, same as before; Max
+    // is a convenience for the common case where materials run out first).
+    // Read by CraftingScreen's Max button.
+    public int MaxCraftable(CraftingRecipe recipe)
+    {
+        if (recipe?.ingredients == null) return 0;
+
+        int max = int.MaxValue;
+        bool any = false;
+        foreach (var ingredient in recipe.ingredients)
+        {
+            if (ingredient == null || ingredient.item == null || ingredient.count <= 0) continue;
+            any = true;
+            max = Mathf.Min(max, GetAvailableCount(ingredient.item) / ingredient.count);
+        }
+
+        return any ? Mathf.Max(0, max) : 0;
+    }
+
+    // Starts a batch of `quantity` — fails outright (no side effects) if
+    // the same gates a single craft always needed don't pass, or if
+    // another batch is already running. Ingredients for the *entire*
+    // batch are removed up front; CancelCraft refunds whatever's left
+    // for the not-yet-completed portion.
+    public bool StartCraft(CraftingRecipe recipe, int quantity)
+    {
+        if (IsCrafting) return false;
+        if (recipe == null || recipe.outputItem == null || recipe.ingredients == null || quantity <= 0) return false;
         if (!HasRequiredTool(recipe)) return false;
         if (!HasRequiredSkill(recipe)) return false;
+        if (!HasNearbyAnvilSurface(recipe)) return false;
 
-        // Checked before removing any ingredient so a full inventory can't
-        // consume materials without being able to hold the output(s).
-        // Every tier sibling of the same base item shares outputItem's
-        // maxStack, so this check stays valid even when ResolveOutcome
-        // below ends up producing lowerTierItem/higherTierItem instead.
-        if (!inventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount)) return false;
-        if (recipe.bonusItem != null && !inventory.Inventory.HasSpaceFor(recipe.bonusItem, recipe.bonusCount)) return false;
-        if (!HasIngredients(recipe)) return false;
+        if (!inventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount * quantity)) return false;
+        if (recipe.bonusItem != null && !inventory.Inventory.HasSpaceFor(recipe.bonusItem, recipe.bonusCount * quantity)) return false;
 
-        // Ingredients are gone regardless of outcome from here on — a bad
-        // or spectacular failure is specifically "the materials were
-        // wasted," not "the attempt silently didn't happen."
         foreach (var ingredient in recipe.ingredients)
-            RemoveAcrossReachable(ingredient.item, ingredient.count);
+        {
+            if (ingredient == null || ingredient.item == null) continue;
+            if (GetAvailableCount(ingredient.item) < ingredient.count * quantity) return false;
+        }
 
-        ResolveOutcome(recipe);
+        foreach (var ingredient in recipe.ingredients)
+        {
+            if (ingredient == null || ingredient.item == null) continue;
+            RemoveAcrossReachable(ingredient.item, ingredient.count * quantity);
+        }
 
-        skills?.GainExperience(recipe.trainedSkill, recipe.skillGain);
+        activeRecipe = recipe;
+        activeTotal = quantity;
+        activeCompleted = 0;
+        activeElapsed = 0f;
         return true;
+    }
+
+    // Stops the active batch, refunding ingredients for whatever hadn't
+    // completed yet (already-crafted items stay in inventory — nothing to
+    // undo there). No-op if nothing's running.
+    public bool CancelCraft()
+    {
+        if (!IsCrafting) return false;
+        RefundRemaining();
+        ClearActiveBatch();
+        return true;
+    }
+
+    private void RefundRemaining()
+    {
+        int remaining = activeTotal - activeCompleted;
+        if (remaining <= 0) return;
+
+        foreach (var ingredient in activeRecipe.ingredients)
+        {
+            if (ingredient == null || ingredient.item == null) continue;
+            inventory.Inventory.AddItem(ingredient.item, ingredient.count * remaining);
+        }
+    }
+
+    private void ClearActiveBatch()
+    {
+        activeRecipe = null;
+        activeTotal = 0;
+        activeCompleted = 0;
+        activeElapsed = 0f;
+    }
+
+    // How long one item of the active recipe takes — CraftTierScale's
+    // existing skill-scaled hold duration, same ladder gathering already
+    // uses, so higher skill crafts faster. Recipes with no trainedSkill
+    // (the 5 gadgets) stay instant (0), matching their existing
+    // no-roll-always-succeeds special case in ResolveOutcome below.
+    private float CurrentItemDuration()
+    {
+        if (activeRecipe == null) return 0f;
+        if (activeRecipe.trainedSkill == null) return 0f;
+        return skills != null ? skills.GetHoldDuration(activeRecipe.trainedSkill) : 0f;
+    }
+
+    private void Update()
+    {
+        if (!IsCrafting) return;
+
+        activeElapsed += Time.deltaTime;
+        float duration = CurrentItemDuration();
+        if (activeElapsed < duration) return;
+
+        activeElapsed -= duration;
+
+        // Tool-break-stops-batch (Ben's call): if the required tool isn't
+        // in hand anymore — most likely because a spectacular failure on
+        // a *previous* item in this same batch just broke it — stop here
+        // instead of silently no-oping through the rest of the queue.
+        if (!HasRequiredTool(activeRecipe))
+        {
+            RefundRemaining();
+            ClearActiveBatch();
+            return;
+        }
+
+        var recipe = activeRecipe;
+        ResolveOutcome(recipe);
+        skills?.GainExperience(recipe.trainedSkill, recipe.skillGain);
+        activeCompleted++;
+
+        if (activeCompleted >= activeTotal)
+        {
+            ClearActiveBatch();
+            return;
+        }
+
+        // A spectacular failure just now may have broken the tool this
+        // same item needed — check again before letting the queue
+        // continue into the next item.
+        if (!HasRequiredTool(activeRecipe))
+        {
+            RefundRemaining();
+            ClearActiveBatch();
+        }
     }
 
     // Chance-of-creation roll (Ben's call, v0.1.82-dev): recipes with no

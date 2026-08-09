@@ -5,12 +5,665 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.159-dev` — must always match `GameVersion` in
+**Current version:** `0.1.176-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-09
+
+### v0.1.176-dev — Full icon re-bake against the IconBaker ambient fix
+
+Follow-up to the blue-tint bug found while baking the Stone Knife
+(previous entry): re-baked every existing icon rather than leaving the
+other 52 to carry a possibly-subtler version of the same wrong blue
+ambient cast. One throwaway sweep script, `IconRebakeSweep.cs`, walked
+every `ItemDefinition` and `BuildPiece` asset and called
+`IconBaker.BakeAndWire` again straight from each item's own
+`worldPickupPrefab`/`prefab` — no need to track down each item's
+original source model separately, since `IconBaker` only needs a
+`Renderer` anywhere in the hierarchy and doesn't care about the extra
+`Pickup`/`Collider`/`Rigidbody` components a pickup prefab carries.
+56 items + 2 build pieces re-baked, 0 failures. Spot-checked a spread
+across material types (metal axe head, silver ore, copper, stone) —
+all read correctly with no unwanted color cast; nothing regressed.
+
+### v0.1.175-dev — Stone Knife tiers get real Blender models; IconBaker's blue-tint bug found and fixed
+
+Same approach as the Trimmed Stick tiers (v0.1.173-dev), applied to the
+Stone Knife: all 5 craft tiers previously shared one placeholder
+Tripo3D model (`CrudeStoneKnife.glb`) at different non-uniformly
+stretched scales — a real gap, and Ben's ask: "let's see if we can use
+blender to create better models for all 5 tiers... I'm thinking we can
+use noise applied base colors."
+
+Built via `bpy`/`bmesh`: a blade+handle shaft assembled ring by ring
+(60 segments), with a flattened diamond/lens cross-section (4 points
+for Crude/Rudimentary, 6-8 for Normal through Masterwork) instead of
+the stick's round one — width and thickness both follow a length-wise
+profile that stays roughly round through the grip, then widens into a
+leaf-shaped blade before tapering to a point. Two materials per mesh
+(blade and handle get independent face `material_index` assignment),
+so tier progression covers both shape and color at once:
+
+- **Crude → Normal**: blade edge noise (two layered sine components
+  per angular slot — chip-sized + fine micro-texture; a single
+  low-frequency term first read as a smooth wavy ribbon, not chipped
+  flint) fades to 0, radial segments rise 4→6, blade color moves from
+  dull grey flint toward a cleaner grey.
+- **Fine/Masterwork only**: a decorative handle-wrap detail (shallow
+  carved rings around the grip, like a wound cord binding) — first
+  attempt used the same depth/spacing as the stick's carving and came
+  out as a stack of beads, not a wrapped cord; widened and shallowed
+  until it read as ribbed/fluted instead.
+- **Blade color** shifts from grey flint to near-black glossy obsidian
+  by Masterwork (paired with falling Roughness, 0.90 → 0.10); handle
+  color warms from dark leather-brown to a lighter wood/bone tone.
+
+Real bug found and fixed in the shared `IconBaker` tool while baking
+these: every icon renders in a scratch scene that `IconBaker` never
+configured explicitly, so it inherited Unity's default skybox-ambient
+lighting (a blue-gradient procedural sky) — invisible on every icon
+baked so far since they all happened to be warm/saturated colors, but
+a strong, wrong blue cast on the knife's neutral grey stone (confirmed
+via a debug pass: the actual material `baseColorFactor` values were
+exactly correct, gamma-encoded as expected — the bug was purely in
+the render environment, not the material data). Fixed by setting flat
+white ambient and disabling environment reflections in `BakeOne()`
+before rendering. Not yet re-applied to the other 52 existing icons —
+they may have a subtle version of the same cast that was never
+noticeable against their own warmer palettes; worth a full re-bake
+sweep at some point but not done here.
+
+Separately, darkened the actual blade base colors after the ambient
+fix — the original values (chosen against the *buggy* blue-tinted
+render) turned out too light/washed-out once the render was color-
+correct, nearly blending into the icon background at the Crude end.
+
+Unity side: swapped each of the 5 existing pickup prefabs' model child
+in place (`RockKnifePickup`, `RudimentaryKnifePickup`,
+`NormalKnifePickup`, `FineKnifePickup`, `MasterworkKnifePickup` — all
+already correctly referenced by their item assets, so no rewiring
+needed) rather than creating new prefabs, mirroring the Masterwork
+stick retexture swap. Collider re-measured from each model's actual
+bounds (~0.28m long, consistent across all 5 — a real size chosen
+directly rather than inherited from the old placeholder's arbitrary
+non-uniform stretch). The original `CrudeStoneKnife.glb` placeholder is
+left in place, unreferenced.
+
+### v0.1.174-dev — Masterwork Trimmed Stick gets a real Tripo3D-generated wood texture
+
+Same-day follow-up to the flat-color Blender sticks: tested whether
+Tripo3D can texture a model *we* built rather than one it generated,
+since that combines controlled procedural geometry with real PBR
+texture quality. It can — `texture_model` accepts any model registered
+via `import_model` (an uploaded external file), not just Tripo3D's own
+generations.
+
+New `Tools/Tripo3D/Texture-Model.ps1`, a genuinely different pipeline
+from `Generate-Model.ps1`: that script's `v3` REST API
+(`openapi.tripo3d.ai/v3/generation/...`) has no documented endpoint for
+texturing an existing mesh, so this one uses the task-based `v2` API
+(`api.tripo3d.ai/v2/openapi`, `POST /task` with a `type` field) instead —
+confirmed against Tripo3D's own official Python SDK source
+(`VAST-AI-Research/tripo-python-sdk` on GitHub), since the interactive
+docs site is a JS-rendered SPA no simple fetch can read. Same API key
+works for both surfaces. Three real dead ends hit before landing on the
+working shape:
+
+- The obvious `/upload` endpoint rejected the `.glb` outright — turned
+  out to be image-only despite the SDK routing model files through it
+  as a "legacy" fallback.
+- The real path is STS-credentialed S3 upload (`POST /upload/sts/token`
+  returns temporary AWS credentials), which needs actual SigV4 request
+  signing — installed the `AWS.Tools.S3` PowerShell module
+  (`Install-Module -Name AWS.Tools.S3 -Scope CurrentUser`, plus the
+  NuGet provider it depends on) rather than hand-rolling AWS's signing
+  algorithm.
+- The STS response's `s3_host` pointed at a real `us-west-2` AWS
+  bucket, not a custom endpoint — the first attempt hardcoded
+  `us-east-1` and got a clean "region is wrong" error back.
+
+Ran the real pipeline once end to end: uploaded
+`TrimmedStickMasterwork.glb`, imported it as a Tripo3D task (free, 0
+credits), then textured it with a wood-grain prompt ("rich polished
+walnut wood, fine warm honey-brown grain... hand-oiled lacquered
+finish... photorealistic PBR wood material") at detailed quality (20
+credits). Confirmed via `GET /user/balance`: 340 credits remaining.
+Notable finding — texturing an existing model costs the *same* as a
+full from-scratch `text_to_model` generation (both 20 credits at
+default settings, confirmed against this session's own Twig Foundation
+log) — so the real advantage of building geometry in Blender first was
+never cost, it's that Blender can guarantee a coherent tier family in a
+way independent Tripo3D generations can't.
+
+Tripo3D's pipeline re-normalized the model's scale during import/
+texture (came back 1.0m long instead of the original 0.6m) — caught by
+re-measuring bounds after the swap rather than trusting the source
+file's known dimensions, and corrected by rescaling the pickup's model
+instance back to match the other 4 tiers and Stick's own real length.
+`TrimmedStickMasterworkPickup.prefab`'s model child swapped to the new
+textured asset (`Assets/Models/TrimmedStickMasterworkTextured.glb`),
+collider re-measured, icon re-baked. The original flat-color
+`TrimmedStickMasterwork.glb` is left in place, unreferenced, in case the
+pure-Blender version is wanted again. Crude/Rudimentary/Normal/Fine
+still use the flat-color material — this was a single-tier test, not
+yet applied to the rest of the set.
+
+### v0.1.173-dev — Trimmed Stick tiers get real models/icons, generated entirely in Blender (no Tripo3D)
+
+Filled a real gap — all 5 Trimmed Stick craft tiers (Crude through
+Masterwork) previously had no icon at all, and only Crude had a world
+pickup (a placeholder reusing the plain Stick's branch model). This
+doubled as the test Ben asked for after the Blender wall-separation
+research earlier in the session: could Blender build models from
+scratch, not just edit/split existing Tripo3D output?
+
+It can. `bpy`/`bmesh` scripted headless (`blender --background --python
+...`) built a tapered shaft (`bmesh`, ~40 rings along the length, quad
+bridged between them) and varied it procedurally per tier — a case
+Tripo3D genuinely can't do well, since 5 independent AI generations
+wouldn't relate to each other as a coherent progression:
+
+- **Crude → Normal**: fewer radial sides (5/6/8) and a smooth
+  low-frequency per-angular-slot wobble (not independent per-ring
+  noise, which read as spiky static — first attempt looked like a
+  crystal, not a branch) fading to ~0 by Normal, plus a single-arc bend
+  fading out the same way. Reads as an unevenly-shaped, roughly-trimmed
+  branch, straightening out tier by tier.
+- **Fine**: dead straight, smooth-shaded 12 sides, two shallow carved
+  rings (a Gaussian falloff cut inward at fixed points along the
+  shaft) — "a few little carvings," per Ben's direction.
+- **Masterwork**: 20 sides, straight, plus a finer/shallower ring
+  pattern and a wrapping spiral groove layered on top for a genuinely
+  ornate, engraved look (first attempt used the same depth as Fine's
+  rings plus a strong spiral — read as lumpy/caterpillar-like, not
+  ornate; toned down to a crisper, narrower carve).
+
+Real bugs hit and fixed along the way: (1) `primitive_cone_add` only
+has two vertex rings (base + tip) — bend/noise/carving had nothing to
+act on until rebuilding the shaft manually via `bmesh` with real
+length-wise resolution; (2) `bpy.ops.mesh.subdivide` on the cone
+subdivided radially too, not just along the length, ballooning one
+tier from 10 to 3,250 verts; (3) the length-position parameter `t` was
+computed as `x / length` (range roughly ±0.5) instead of normalized to
+0–1, so ring/spiral positions landed off the actual mesh and the bend
+formula tilted the stick diagonally instead of bowing it.
+
+Unity side: one throwaway batch-mode script (`TrimmedStickSetup.cs`,
+deleted after running, matching every other one-shot Editor script in
+this repo) built a `Pickup` prefab per tier (`BoxCollider`/`Rigidbody`
+sized from the model's actual measured bounds, `ContinuousDynamic`
+collision per the known thin-Ground-collider tunneling gotcha) and
+called `IconBaker.BakeAndWire` per tier (32px icon, 128px preview —
+matches the existing convention). All 5 came out at 0.6m long,
+matching the original Stick's own collider size. `BerryBush.prefab`'s
+chop-drop (`trimmedStickPrefab`) was repointed from the old placeholder
+to the new Crude-tier pickup, and the placeholder `TrimmedStickPickup.prefab`
+was deleted as orphaned once nothing referenced it anymore.
+
+Verified by rendering a quick preview PNG per tier straight out of
+Blender before ever touching Unity (caught the bugs above early/cheap),
+then by reading back each `ItemDefinition.asset`'s wired `icon`/
+`previewIcon`/`worldPickupPrefab` GUIDs and visually inspecting the
+baked icons themselves.
+
+### v0.1.172-dev — Admin-spawned pieces were floating at head height, not on the ground
+
+Same-day follow-up to the previous entry's "no longer bury the player"
+fix — Ben spawned a Twig Foundation, reported "can't climb onto it...
+can't even try running and jumping," and a corrected screenshot showed
+why: the piece was floating roughly 1.8m above real ground, legs
+dangling in open air, not sitting flush with a small lip like it's
+supposed to.
+
+Root cause: `AdminSpawnScreen.SpawnPiece`'s ground-detection raycast
+(cast straight down from 2m above the player) hit the **player's own
+`CharacterController` capsule** (top at `Center.y + Height/2` = 1.8)
+before it ever reached the actual terrain — `Physics.Raycast` doesn't
+exclude the caster's own collider by default. The piece spawned at
+that wrong, elevated hit point instead of on the ground. Fixed by
+disabling the `CharacterController` for the duration of the raycast
+(and the subsequent stand-the-player-on-top repositioning from the
+previous fix, which needed the same treatment to avoid fighting a
+direct `transform.position` set).
+
+This likely explains most of the original "can't climb onto it, need
+stairs/ramp" report on its own — a real ~1.8m gap obviously isn't
+reachable by a normal jump, versus the intended ~0.2m lip. Worth
+re-testing before concluding stairs/ramps are urgently needed for
+Foundation specifically.
+
+Verified via a full batch-mode compile check.
+
+### v0.1.171-dev — Berry Bush gets a genuinely distinct look; Admin-spawned pieces no longer bury the player
+
+Live-testing found two more real bugs, plus a design fix that resolves
+a confusing report from earlier in the session:
+
+- **Berry Bush now uses the "Generated Berry Bush" leafy model instead
+  of the Strawberries cluster.** Root cause of "the berries didn't get
+  fixed... you can't do anything with the bush": the standing bush and
+  every loose dropped Berry used the *exact same* Strawberries model —
+  visually indistinguishable, so a correctly-scattered, perfectly
+  pickable berry looked identical to the bush itself sitting right next
+  to it. Ben's call: reuse the "Generated Berry Bush" model (an
+  existing decorative comparison prop from an earlier session, `Assets/Models/GeneratedBerryBush.glb`,
+  never wired to any script) as the bush's real visual instead — now
+  genuinely different shapes, can't be confused again. All
+  `BerryBush` field wiring (chop tools, Trimmed Stick/Berry prefabs,
+  skill, cooldowns) carried over untouched; `berryPrefab` still points
+  at the original `BerryPickup.prefab`, so search still drops the same
+  strawberry-cluster pickup as before — that prefab was never touched
+  either, still plain `Pickup` (pick up + eat), never had chop/search.
+  Removed the now-redundant decorative duplicate from the scene, since
+  its model is doing real work now instead of just sitting there for
+  comparison. Also **shrank the loose Berry pickup** (0.35m bounds →
+  0.18m) — sized to look right next to itself as the old bush, it read
+  as oversized (a third of the *new*, bigger bush's size) once the bush
+  became a visually distinct, larger plant; re-baked its icon at the
+  new size.
+- **Admin-spawned Build Pieces no longer bury the player.** Ben:
+  "when I spawned the twig foundation, it pushed me under the world. I
+  should be pushed up onto it instead." Root cause: the spawn raycast
+  originates from the player's own position, so Foundation's collider
+  (extends 0.8m below ground, only 0.2m above) materialized wrapped
+  around the player's feet — `CharacterController`'s own depenetration
+  resolved downward instead of up. Rather than rely on physics to
+  guess correctly, `AdminSpawnScreen.SpawnPiece` now explicitly stands
+  the player on the freshly-spawned piece's own *measured* top surface
+  afterward (disabling/re-enabling `CharacterController` around the
+  direct position set) — generalizes to any piece shape, not just
+  Foundation's specific dimensions.
+
+Verified via full batch-mode compile checks; every visual re-baked and
+spot-checked directly (Berry's icon still reads clearly as strawberries
+at the smaller size, thanks to the tight-fit framing from the icon fix
+just before this).
+
+### v0.1.170-dev — Admin tab can spawn Build Pieces directly, for testing
+
+Ben: "let's spawn a foundation in place for now" — extended the
+existing Editor-only `AdminSpawnScreen` (already spawns any
+`ItemDefinition` for free) with a second list for `BuildPiece`s. Spawn
+places the piece on the ground directly under the player via a
+straight-down raycast, free of materials/skill gates, and tags it with
+a real `PlacedPiece` component so upgrade/destroy still works on it
+exactly like a normally-built one — a genuine placed piece, not a
+lookalike prop. Same Editor/testing-only scoping as the item list
+(`#if UNITY_EDITOR`, won't appear in a build).
+
+Verified via a full batch-mode compile check.
+
+### v0.1.169-dev — Scattered berry unpickable; real Twig Foundation model; icons re-baked to fill the frame
+
+Three pieces, caught/requested in quick succession:
+
+- **A scattered Berry could be permanently unpickable.** Root cause:
+  `BerryBush.SpawnScattered` used `Random.insideUnitSphere` for both the
+  spawn offset and the launch direction — capable of landing (and
+  settling, after gravity) close enough to overlap the bush's own
+  `SphereCollider` (radius 0.175). Unlike `ResourceNode`/`ChoppableTree`,
+  `BerryBush` never disables its collider (the whole point of the
+  redesign is it stays interactable throughout), so a scattered item
+  landing that close got its raycast permanently shadowed by the bush
+  itself — confirmed live via a screenshot showing the bush's own chop/
+  search prompt while aimed at what looked like a loose berry. Fixed by
+  spawning on a fixed 0.45 horizontal ring (guaranteed outside the
+  collider) and pushing further in that same outward direction instead
+  of a fully random one. Affects both chop's Trimmed Sticks and search's
+  Berries, since both go through the same helper.
+- **Real Twig Foundation model**, via the Tripo3D API — a genuine
+  lashed-twig-and-rope platform on short legs, replacing the plain
+  procedural Cube slab. Hit the same "stuck at 99%, actually succeeded
+  server-side" pattern documented in `Tools/Tripo3D/README.md`; recovered
+  by polling `GET /v3/tasks/{id}` directly rather than re-generating.
+  Swapped into `Foundation.prefab`'s `Slab` child only — the root's
+  `BoxCollider` and all 4 `BuildSocket`s are completely untouched, so
+  gameplay footprint/snapping/upgrades need no changes. Hit and fixed a
+  real double-scaling bug along the way (the `Slab` parent still carried
+  its old `{5,1,5}` cube-fitting scale, which stacked with the new
+  model's own footprint-fit scale to 25x instead of 5x) — caught by
+  re-baking the icon and seeing obviously-wrong bounds in the log before
+  it ever got visually reviewed.
+- **`IconBaker` reframed to actually fill the icon** — Ben: "when I look
+  at it, its hard to see the object clearly." Root cause: camera framing
+  sized off `maxDim` (the single largest axis) with a flat padding
+  guess, which was never what the fixed 3/4-angle camera actually
+  projects — the further a shape diverges from a cube (a wide flat
+  Foundation, a long thin Nail), the more empty space that guess left.
+  Now projects the AABB's 8 corners into camera space and sizes/centers
+  to the *true* on-screen extent, ~8% margin. Exposed a new
+  `IconBaker.BakeAndWire` so a sweep script could re-bake all existing
+  icons in one process instead of 50+ separate Unity launches — every
+  icon and BuildPiece tile in the game (53 total) re-baked in one pass,
+  0 skipped, 0 failed.
+
+Verified via full batch-mode compile checks throughout; every visual
+result (Twig Foundation, Storage Box, Nail) spot-checked directly before
+moving on.
+
+### v0.1.168-dev — Build tab gets the same tile-grid + search treatment as Crafting
+
+Ben: "let's do the same thing with the build tab" — same visual/browsing
+layer as Crafting's redesign, but deliberately **not** the batch/timer/
+cancel machinery, since placement has no analog for it: each piece is
+still one deliberate walk-and-aim act in the world, not something that
+produces instantly into inventory. `PlayerBuilding.ArmPiece` and the
+whole placement flow are completely untouched.
+
+- **`BuildPiece` gained `icon`/`previewIcon` fields**, same shape as
+  `ItemDefinition`'s. Baked both existing pieces (Twig Foundation,
+  Storage Box) via `IconBaker` from their own placed-piece prefabs.
+- **`IconBaker` generalized** — it was hardcoded to `ItemDefinition`
+  (a `LoadAssetAtPath<ItemDefinition>` type-gate), which silently
+  rejected `BuildPiece`. Wiring already happened generically via
+  `SerializedObject.FindProperty` by field name, so the fix was just
+  loosening the load/type-check to `UnityEngine.Object` — no other tool
+  needed for this, matching its own "one reusable icon tool" intent.
+  (Hit a real `CS0104` ambiguous-`Object` compile error along the way —
+  `System.Object` vs `UnityEngine.Object` — fixed by fully qualifying.)
+- **`BuildScreen` rewritten** from a text list to the same tile shape as
+  Crafting: big icon (blank spacer if unset), live materials have/need,
+  a skill-requirement line, and the existing Arm/Armed button —
+  unchanged interaction, just a tile instead of a row. `PlayerBuilding`
+  gained a public `GetAvailableCount` (same reach as its existing
+  `ReachableInventories`) so the tile can show live counts; `HasIngredients`
+  now just calls it instead of duplicating the summation.
+- **Search bar**, same shape as Crafting's — Build has no discipline
+  tabs to override, so this is a plain substring filter over
+  `pieceName`.
+
+Verified via a full batch-mode compile check; both new icons read
+clearly at preview size before wiring.
+
+Ideated first (an HTML mockup, matching the game's existing dark
+debug-panel look), then Ben resolved every open question in one message:
+background-continuing timer, `CraftTierScale.HoldDuration` reused for
+per-item time, cancel-with-refund, tool-break stops the batch. Two real
+systems, not just a reskin:
+
+- **`PlayerCrafting` gained a real batch-crafting queue**, replacing the
+  old instant single-craft `TryCraft` entirely. `StartCraft(recipe,
+  quantity)` removes ingredients for the *whole* batch up front (same
+  all-or-nothing gate checks `TryCraft` always had — tool, skill, Anvil
+  surface, output space), then `Update()` ticks one item at a time on a
+  timer sized by `PlayerSkills.GetHoldDuration` — the exact same
+  skill-scaled duration ladder gathering already uses, so higher skill
+  crafts faster, not a bespoke number. Deliberately **not** gated on the
+  Crafting tab being open or any key held — closing the menu or walking
+  away doesn't pause it, unlike every hold-and-release interaction
+  elsewhere in the game. `MaxCraftable(recipe)` (materials-only, read by
+  the new Max button) and `CancelCraft()` (refunds ingredients for
+  whatever hadn't completed yet — already-crafted items stay, nothing to
+  undo there) round it out. **Tool-break stops the batch:** if a
+  spectacular-failure roll breaks the required tool mid-batch, the next
+  tick detects the tool's gone and stops with a refund instead of
+  silently no-oping through the rest of the queue.
+- **`CraftingScreen` rewritten from a flat text list to a tile grid** —
+  each tile: a big icon (`previewIcon`, falling back to `icon`, falling
+  back to a blank spacer — Ben's call — rather than a placeholder glyph;
+  8 recipe outputs, mostly the Trimmed Stick tiers, don't have one baked
+  yet), materials with live have/need counts, tool/skill/Anvil
+  requirement lines, a quantity stepper, Craft, and Max. While a tile's
+  own batch is running, the stepper/Craft/Max row is replaced by a
+  progress bar + Cancel, reusing the exact green-fill bar look
+  `PlayerInteraction`'s gathering hold already uses. Only one batch at a
+  time — every other tile's Craft/Max greys out with "Crafting queue
+  busy" while one's active.
+- **Search bar**, right above the grid: case-insensitive substring match
+  against the recipe's output item name, ignoring the discipline tab
+  filter entirely while active (searches every discipline at once, not
+  just whichever tab happens to be selected) — "ax" finds every unlocked
+  or locked Axe tier in one view. Clearing the box reverts to the normal
+  per-discipline tab view.
+
+Verified two ways: a full batch-mode compile check, and a direct
+state-machine test (via reflection, since `Time.deltaTime` doesn't tick
+meaningfully in a non-play batch script) confirming `StartCraft`'s
+upfront removal, a second `StartCraft` correctly refusing while one's
+active, and `CancelCraft`'s partial refund math, all matched exactly.
+
+See `docs/design-brief.md`'s new section for the full shape and the
+ideation mockup.
+
+Ben: "let's add an action to the berry bush as well. e should chop it if
+you have a knife or ax in your hand. you should get trimmed sticks. f
+should search the bush to find 0 to 3 berries which would drop to the
+ground..." — replaces the old single instant-E-grabs-a-berry model
+entirely with two independent gather actions.
+
+- New `BerryBush.cs` implements both `IInteractable` (E — hold to chop,
+  gated on any Knife or Axe tier in hand, same shape as
+  `ChoppableTree`) and `ISecondaryInteractable` (F — search, no tool
+  needed). Each action has its own independent 180s respawn cooldown
+  (`chopRespawnAt`/`searchRespawnAt`) — the bush itself never
+  disappears, only each specific action goes quiet for a while, unlike
+  `ResourceNode`/`ChoppableTree`'s hide-the-whole-object model. Chopping
+  scatters 2 loose Trimmed Stick pickups (Crude tier) and trains
+  Woodworking; searching rolls 0–3 and scatters that many loose Berry
+  pickups — both reuse `ResourceNode`'s exact scatter-with-`Rigidbody.AddForce`
+  shape.
+- **Real structural snag, resolved:** `Berry.asset.worldPickupPrefab`
+  turned out to point at the *same* `BerryPickup.prefab` used for the
+  placed bush — a dual-purpose prefab. Repurposing it in place would
+  have broken dropping a Berry from inventory (no more `Pickup`
+  component to receive `PlayerDropping`'s `Configure` call). Split into
+  three: `BerryPickup.prefab` stays exactly as it was (the loose,
+  droppable single Berry — still `Berry.asset`'s `worldPickupPrefab`,
+  and now also what `BerryBush`'s search action spawns), a new
+  `BerryBush.prefab` (no `Pickup`, no `Rigidbody` — static, reuses the
+  same Strawberries visual) is the actual world bush, and a new
+  `TrimmedStickPickup.prefab` (reuses `StickPickup`'s branch model as a
+  placeholder visual) is `CrudeTrimmedStick.asset`'s new
+  `worldPickupPrefab`, since chopping needed a real ground-pickup
+  prefab to scatter and Trimmed Stick never had one before (it was
+  always crafted straight to inventory).
+- Scene's placed "Berry Bush" swapped from a `BerryPickup.prefab`
+  instance to the new `BerryBush.prefab`, same position — verified by
+  reading back the saved scene YAML, not just the batch log.
+
+See `docs/design-brief.md`'s new section for the full shape. Verified
+via a full batch-mode compile check.
+
+Ben: "the berry doesn't respawn. fix it" — fair demerit (🍓💀, see
+`AWARDS.md`): `canRespawn: 0` was sitting right in the `Pickup` field
+block I read and edited earlier today fixing Berry's null `item`
+reference, on the same object type (Stick pickups) I'd just been
+comparing it against for their own respawn behavior, and I didn't act
+on it. Added a `canRespawn: 1` override on the Berry Bush's scene
+`PrefabInstance` (mirroring exactly how the two Stick Pickup scene
+instances already override it, rather than changing
+`BerryPickup.prefab`'s own default — keeps a future non-respawning use
+of the same prefab, e.g. a dropped Berry, unaffected). Verified by
+having Unity actually open the scene and read back the resolved
+component value, not just trusting the hand-edited YAML: `canRespawn=True
+respawnDelay=180`.
+
+### v0.1.164-dev — Stick pickup never worked at all; Push's hold was fragile to aim jitter
+
+The likely real explanation for the whole-session "stick doesn't decrease"
+mystery, plus a genuine Magic System bug found live-diagnosing the
+"kinetic skill isn't pushing anything" report:
+
+- **`StickPickup.prefab`'s `Pickup.item` was null** — third instance of
+  the exact same bug class as Berry (`BerryPickup.prefab`, fixed
+  earlier today). This pickup point (world model literally named
+  `TreeBranch_PolyByGoogle`) never actually granted a real Stick at
+  all; walking up and picking one up did nothing. Swept every other
+  `*Pickup.prefab` in the project for the same pattern and found two
+  more: `RopeCoilPickup.prefab` and `RockKnifePickup.prefab` (the
+  Crude Knife's world pickup) — both fixed. (`DroppedItem.prefab`'s
+  null `item` is correct as-is — it's the generic fallback template
+  `PlayerDropping` configures dynamically per-instance at spawn time,
+  not a bug.)
+- **Push's hold was fragile to any one-frame raycast flicker.**
+  `PlayerInteraction.HandleWish` required the raycast to resolve the
+  *exact same* GameObject on every single frame of the hold — stricter
+  than the E-interaction hold (`HandleInput`), which has no such check
+  at all. Any momentary aim jitter, or a multi-collider model (like
+  Backpack) briefly resolving a different collider, silently reset
+  progress to 0 — and since wishes deliberately show no progress bar
+  (Ben's "zero on-screen hints" call), this was completely invisible.
+  Confirmed live: holding R on a Backpack (which does have a
+  Rigidbody) for several seconds produced nothing, no message either
+  way — ruled out lineage (Kinetic, correct), Will (100/100, well
+  above Push's 60 cost), and hold-duration awareness (held
+  continuously) before finding this. Relaxed to match E's proven
+  model — accumulate whenever a valid target is resolved and R is
+  held, no frame-to-frame identity requirement. `lastWishGameObject`
+  removed entirely.
+
+Verified via a full batch-mode compile check.
+
+### v0.1.163-dev — Foundation: 1m thick, mostly buried (superseding the "raised above ground" pass)
+
+Ben, immediately after the previous fix: "let's make the foundation 1
+meter thick. that way it will appear to be sitting in the ground with
+the top slightly above the ground and visible as a real foundation" —
+a different, more specific look than fully-raised. `Foundation.prefab`
+and `PlankFoundation.prefab`'s Slab child + collider now both scale to
+`y: 1` (was `0.3`) and sit at `y: -0.3` (was `0.15`), putting the top
+0.2m above ground and burying the remaining 0.8m — reads as a real
+poured foundation wall rather than a thin raised deck. Same pure-offset
+approach as the prior pass: sockets stay root-relative, so
+snapping/upgrades need no other changes.
+
+### v0.1.162-dev — Foundation raised above ground; Drop gets a quantity picker
+
+Two follow-ups from the same bug report, both Ben's call:
+
+- **Foundation raised above ground.** Ben thought "5m" meant Foundation
+  was 5m *thick* and expected it to stand above the grass — it's
+  actually a 5m × 5m *footprint*, 0.3m thick, and was positioned with
+  its top surface flush with y=0 (a poured-slab look). Ben's call: raise
+  it instead, so the whole 0.3m slab sits above ground level (bottom at
+  y=0) and reads as a visible platform. Moved both `Foundation.prefab`
+  and `PlankFoundation.prefab`'s Slab child + collider from
+  `y: -0.15` to `y: 0.15` — a pure offset change, so every socket/
+  snapping/upgrade calculation (all relative to the shared root)
+  stays correct automatically, no other logic touched.
+- **Drop gets a quantity picker.** Previously Drop always removed an
+  item's *entire* stack with no way to choose less — fine for most
+  stackable items, but the exact bug Ben hit: 2 Hammers (non-stacking,
+  `maxStack: 1`, so 2 separate slots) meant "Drop" dropped both when
+  only one was wanted. New `DrawItemDropPopup` mirrors the existing
+  Coin-drop popup exactly (-10/-1/+1/+10/All steppers) — except it
+  defaults to the *full* count already held rather than 0, since
+  "drop everything" is the common case for items (unlike coins), so
+  the popup doesn't turn a one-click action into a two-click one for
+  that case. `PlayerDropping.DropFrom` gained a quantity parameter
+  (old 2-arg call sites, e.g. `PlayerLoot`'s hand-eviction, are
+  untouched — still drop everything, no popup needed there).
+
+Verified via a full batch-mode compile check.
+
+### v0.1.161-dev — Nail's wrong skill gate; Eat and Move both broke on non-main-inventory items
+
+More bugs caught immediately in the same live-testing pass:
+
+- **Nail required Metalworking 25, with no way to reach it.** `Nail.asset`
+  (and `StorageBoxItem.asset`, same latent issue, not yet visibly broken)
+  were created via `ScriptableObject.CreateInstance`, which left `tier`
+  at its default `Normal` — `PlayerCrafting.HasRequiredSkill` reads
+  `outputItem.tier` directly to compute the skill gate, so an item with
+  no real tier ladder needs to explicitly opt out with `tier: 0` (Crude),
+  same as Rope/Cloth already do. Fixed both.
+- **Eating from a hand slot or a Backpack/Storage popup silently did
+  nothing.** Root cause: `PlayerEating.TryEat` always removed from the
+  main inventory specifically, regardless of where the item actually was
+  — the new Eat button (added earlier today) found the edible fine and
+  showed the button, but `RemoveItem` on the wrong inventory found zero
+  and quietly failed, while the popup still closed as if it worked. Added
+  `TryEatFrom(Inventory source, item)`; `TryEat` is now a thin wrapper
+  for the main-inventory case.
+- **Moving more than fits failed outright instead of moving what fits.**
+  Every "To Left Hand"/"To Right Hand"/"To Backpack"/"To Inventory"/"To
+  Storage" button passed the source's *full* matched count as the move
+  quantity. For a stacking item this is usually fine, but a non-stacking
+  item (Hammer, `maxStack: 1` — each occupies its own slot) breaks
+  immediately: 2 Hammers into an empty single-capacity hand slot failed
+  completely instead of moving the 1 that actually fits. New
+  `Inventory.SpaceFor(item)` (how many more fit) and
+  `InventoryTransfer.MoveAsManyAsFit(from, to, item)` (caps the move to
+  `min(available, space)`) — every move call site in `InventoryScreen`
+  now goes through it. Verified directly: 2 Hammers, empty hand, old path
+  moved 0; new path moves 1, leaves 1 behind.
+- **Investigated, not reproducible:** Ben's report that crafting Trimmed
+  Stick didn't decrement Stick or increment Trimmed Stick. A faithful
+  full-pipeline batch test (real `PlayerInventory`/`PlayerSkills`/
+  `PlayerEquipment`/`PlayerCrafting`, Sticks in inventory, Knife
+  equipped, `CrudeTrimmedStickRecipe`, 5 consecutive `TryCraft` calls)
+  showed correct behavior every time — Stick decremented, Trimmed Stick
+  incremented, skill rose, every attempt. No code bug found; needs a
+  clearer repro (see `TEST_FEATURE_PLAN.md`/design-brief for the open
+  question).
+
+Verified via full batch-mode compile checks; the Hammer-move fix also
+verified directly against the exact reported scenario, not just by
+reading the code.
+
+### v0.1.160-dev — Nail, the AnvilSurface gate, and a real buildable/pickupable Storage Box
+
+Ben: "let's use the api to create a nail model... the recipe will call for
+the iron chunks that are in inventory. you need a boulder or an anvil
+within 2m and a hammer in hand" — followed by "let's create a recipe for
+the storage box... 4 planks and 6 nails" and "we need to build icons for
+the storage box as well. we should be able to pick it up."
+
+- **Nail** — generated via Tripo3D (clean first attempt), imported as
+  `Assets/Models/Nail.glb`, icon baked via `IconBaker`. `NailPickup.prefab`
+  built from scratch (Pickup/Rigidbody/BoxCollider, same shape as
+  `RopeCoilPickup.prefab`). `NailRecipe.asset`: 1 Iron → 5 Nails, trains
+  Metalworking, any Hammer tier in hand (not consumed).
+- **New general gate: `CraftingRecipe.requiresAnvilSurface`.** Not
+  Nail-specific — a new `AnvilSurface` marker component (empty, just a
+  tag) that any world object can carry; `PlayerCrafting.HasNearbyAnvilSurface`
+  passes if any one is within 2m. Boulder is now tagged with it, and a
+  real placed Anvil object (the model from the prior session, previously
+  import-only) now sits in `TestScene` near the Boulder, also tagged —
+  positioned using its actual measured bounds so it sits on the ground
+  rather than floating/sinking (the project's documented model-pivot
+  gotcha). `CraftingScreen` shows "— requires a Boulder or Anvil nearby"
+  when out of range, same convention as the tool-in-hand gate.
+- **Storage Box, built.** `StorageBoxPiece.asset` — a real `BuildPiece`
+  (4 Plank + 6 Nail, trains Woodworking — Plank is the defining structural
+  material per the established discipline-sort rule, Nail is a fastener
+  like Rope was for Twig Foundation), placed through the existing Building
+  System exactly like Foundation. Reuses the placeholder Cube-primitive
+  look the fixed "Small Storage Box" scene object already had, extracted
+  into a real reusable `StorageBox.prefab`.
+- **Storage Box, pickupable.** `StorageBox.cs` now implements
+  `IInteractable` directly — Ben's call: must be empty first (no risk of
+  silently losing stored items), no tool required (a plain "pick up my
+  furniture" interaction, deliberately not routed through
+  `PlayerPieceUpgrade`'s Hammer-gated system at all). Picking one up
+  destroys the placed instance and adds a new portable `StorageBoxItem`
+  (icon baked) to inventory. That item's own `worldPickupPrefab` points
+  right back at the same `StorageBox.prefab` — dropping/placing it later
+  spawns a real, working, empty box again, not an inert prop, for free
+  (`PlayerDropping.SpawnPickup` already gracefully skips its `Pickup.Configure`
+  call when a prefab has no `Pickup` component, so this needed zero
+  changes to the drop path). Wired onto both the new buildable Storage Box
+  *and* the original pre-existing "Small Storage Box" scene object, so
+  every box in the game is pickupable, not just newly-built ones.
+
+See `docs/design-brief.md`'s new "Storage Box: Build, Pick Up, Place
+Again" section for the full shape. Verified via full batch-mode compile
+checks after each step, every asset/scene edit verified by reading back
+the actual saved YAML.
+
+### Anvil model generated and imported (doc-only, no version bump)
+
+Ben: "let's use the api to create an anvil" — generated via
+`Tools/Tripo3D/Generate-Model.ps1`, clean on the first attempt, imported
+as `Assets/Models/Anvil.glb`. Deliberately stopped there per Ben's
+call — no prefab, no scene placement, no recipe. There's no Forging/
+Metalworking mechanic to attach it to yet (Core Pillars' "hammer + anvil
++ wood fuel + steel → sword" is still aspirational text, not a designed
+system), so this is just the model sitting ready for whenever that gets
+built. See `Tools/Tripo3D/README.md`'s "Current status" for the prompt
+and details. No gameplay code changed, nothing on-screen differs.
 
 ### v0.1.159-dev (follow-up) — Build-cancel key conflicted with cursor unlock; Building couldn't see Backpack/Storage materials
 

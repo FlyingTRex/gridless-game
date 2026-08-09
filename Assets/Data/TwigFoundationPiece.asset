@@ -24,3 +24,5 @@ MonoBehaviour:
   skillGain: 1
   groundReach: 5
   nextTier: {fileID: 11400000, guid: e01316cb731b22545b237604e1b7b749, type: 2}
+  icon: {fileID: 21300000, guid: 8c766ee740fe1054b83867bd114a393d, type: 3}
+  previewIcon: {fileID: 21300000, guid: 8464e80f2a200c8418d669a9fcbfd625, type: 3}

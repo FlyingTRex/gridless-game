@@ -95,7 +95,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9f8654f1074c5cf46a102f59b6b914fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Pickup
-  item: {fileID: 0}
+  item: {fileID: 11400000, guid: fc31fc9fd8d24ad397bc4e646de0e557, type: 2}
   quantity: 1
   trainedSkill: {fileID: 0}
   skillGain: 0.05

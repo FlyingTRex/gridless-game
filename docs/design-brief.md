@@ -1324,6 +1324,326 @@ anything refined from it, without needing a second recipe per variant.
   than one hop will ever actually occur — not tested since nothing
   needs it yet.
 
+## Nail and the AnvilSurface Gate (2026-08-09)
+
+Ben: "the recipe will call for the iron chunks that are in inventory. you
+need a boulder or an anvil within 2m and a hammer in hand." First recipe
+with a *place* requirement, not just materials/tool/skill — decided as a
+general mechanism rather than a Nail-specific special case, same instinct
+as Ingredient Substitution above.
+
+- New `AnvilSurface` — an empty marker `MonoBehaviour`, no fields. Any
+  world object can carry one; `CraftingRecipe.requiresAnvilSurface` (a
+  plain bool, false by default like `requiredTools`) opts a recipe into
+  needing one within range. `PlayerCrafting.HasNearbyAnvilSurface` checks
+  a flat 2m radius (`AnvilSurfaceRange`, currently a private const —
+  worth promoting to a per-recipe field if a future recipe ever needs a
+  different range).
+- Boulder and the placed Anvil (see the entry below) both carry the
+  marker — "a Boulder or an Anvil" is satisfied by either, no
+  Nail-specific code anywhere.
+- **Still open:** whether every future metalworking recipe should also
+  require this (probably yes for anything forged), and whether the range
+  should ever vary by recipe rather than being one fixed constant.
+
+## Storage Box: Build, Pick Up, Place Again (2026-08-09)
+
+Ben: "let's create a recipe for the storage box. it should use 4 planks
+and 6 nails" — then, immediately after seeing it built: "we need to build
+icons for the storage box as well. we should be able to pick it up."
+That second request turned out to require a real fork: only
+`ItemDefinition`s have icons, so "give it an icon" meant Storage Box
+needed to exist as a real portable *item*, not just a `BuildPiece` — and
+"pick it up" meant an already-placed one needed a way back into
+inventory. Two follow-up decisions, both Ben's:
+
+- **Must be empty to pick up** — not "carries its contents with it."
+  Simple and safe; no risk of an item silently vanishing if pickup ever
+  had a bug. A fuller "portable container that remembers what's inside"
+  version (closer to how Backpack/Belt work) is a possible future
+  upgrade, not built.
+- **No tool required** — a plain interact, deliberately *not* routed
+  through `PlayerPieceUpgrade`'s Hammer-gated upgrade/destroy system at
+  all. Picking up furniture and destroying a Foundation are different
+  enough actions that forcing them through the same mechanic didn't make
+  sense.
+
+**Shape:** `StorageBoxPiece` (the `BuildPiece`, 4 Plank + 6 Nail, trains
+Woodworking — Plank is the defining structural material, Nail is a
+fastener, same rule Twig Foundation applies to Stick over Rope) is
+unchanged — placed through the normal Building System flow, first
+acquisition still costs materials. `StorageBox.cs` now implements
+`IInteractable` directly (Prompt reads "Storage Box (must be empty to
+pick up)" when blocked, matching the discoverable-by-default philosophy
+Building already commits to) — picking one up destroys the placed
+instance and adds a portable `StorageBoxItem` to inventory, for free
+(you already paid once). That item's own `worldPickupPrefab` points back
+at the *same* `StorageBox.prefab` a fresh build uses — dropping/placing
+it later spawns a real, working, empty box again, not an inert prop,
+which needed zero changes to `PlayerDropping`'s existing drop path (it
+already no-ops its `Pickup.Configure` call when the spawned prefab has
+no `Pickup` component). Wired onto both the new buildable Storage Box
+*and* the original pre-existing "Small Storage Box" scene prop, so every
+box in the game is pickupable now, not just newly-built ones.
+
+- **Still open:** whether relocating a box this way should have any cost
+  (currently free — you already paid once) and whether a "carries
+  contents" version is ever worth the added risk/complexity.
+
+## Berry Bush: Chop for Sticks, Search for Berries (2026-08-09)
+
+Ben's redesign, replacing the original single "E instantly grabs one
+Berry" model entirely: "e should chop it if you have a knife or ax in
+your hand. you should get trimmed sticks. f should search the bush to
+find 0 to 3 berries which would drop to the ground."
+
+- **E (chop, primary):** hold-and-release, gated on any Knife or Axe
+  tier in hand (10 tools total across both ladders) — same shape as
+  `ChoppableTree`. Scatters 2 loose Trimmed Stick (Crude) pickups on
+  success, trains Woodworking. Own 180s respawn cooldown.
+- **F (search, secondary):** no tool needed, `ISecondaryInteractable`.
+  Rolls 0–3 and scatters that many loose Berry pickups on the ground —
+  deliberately *not* a direct-to-inventory grant, so finding berries
+  now has the same "walk over and pick it up" step every other gathered
+  resource has. Own independent 180s respawn cooldown — chop and search
+  don't share a timer, and the bush itself never disappears the way a
+  broken `ResourceNode` does; only whichever action was just used goes
+  quiet for a while.
+- **A real structural snag surfaced by this:** `Berry.asset`'s
+  `worldPickupPrefab` turned out to already point at the same prefab
+  used for the placed world bush (`BerryPickup.prefab`) — a dual-purpose
+  object nobody had needed to split apart before. Repurposing it in
+  place for the new chop/search behavior would have silently broken
+  dropping a Berry from inventory. Resolved by splitting into three
+  single-purpose prefabs: `BerryPickup.prefab` (unchanged — the loose,
+  droppable/pickupable single Berry), `BerryBush.prefab` (new — the
+  static world bush, no `Pickup`/`Rigidbody`, just the new `BerryBush`
+  component + the same Strawberries visual), and `TrimmedStickPickup.prefab`
+  (new — Trimmed Stick never had a world-pickup prefab before, since it
+  was always crafted straight to inventory; reuses `StickPickup`'s
+  branch model as a placeholder visual rather than a dedicated one).
+- **Still open:** whether Trimmed Stick's ground pickup deserves its own
+  distinct model eventually (currently indistinguishable from a plain
+  Stick lying on the ground), and whether other single-purpose gather
+  objects in the project have this same "prefab secretly serves two
+  roles" trap waiting — worth a quick audit if another one surfaces.
+
+## Crafting Tab: Tile Grid + Real Batch Crafting (2026-08-09)
+
+Ideated first — an HTML mockup matching the game's actual dark
+debug-panel look (not a redesigned visual language), reviewed before any
+code changed. Ben then resolved every open question from that ideation
+in one message: "walking away or changing screens does not pause the
+creation... let's use the crafttierscale.hold duration as well. you can
+cancel the operation, and anything built you don't lose, but, cancelling
+would return the materials not used yet. if an item breaks, such as the
+knife, the operation would stop."
+
+**The queue (`PlayerCrafting`):** `StartCraft(recipe, quantity)` replaces
+`TryCraft` entirely — same gates a single craft always had (tool, skill,
+Anvil surface, output space), but removes ingredients for the *whole*
+batch up front rather than per item. `Update()` ticks one item at a time
+against `PlayerSkills.GetHoldDuration(recipe.trainedSkill)` — reusing
+gathering's own skill-scaled duration ladder rather than inventing a
+separate number, so a more practiced crafter genuinely crafts faster.
+Deliberately not gated on the Crafting tab being open, a key held, or
+even the player still being near whatever the recipe needed (an Anvil
+surface, say) — once started, it runs in the background exactly like
+Ben described, checked only at the gates that matter: `CancelCraft()`
+refunds ingredients for the not-yet-completed remainder (completed items
+already in inventory, nothing to claw back), and if a spectacular-failure
+roll breaks the required tool mid-batch, the next tick notices the tool's
+gone and stops with a refund rather than grinding through the rest of
+the queue failing silently. Only one batch at a time, project-wide — no
+support (or need surfaced) for running two recipes' timers in parallel.
+
+**The tile grid (`CraftingScreen`):** each recipe is a tile — big icon
+(`previewIcon`, falling back to `icon`, falling back to a blank spacer
+per Ben's call rather than a placeholder glyph, since several recipe
+outputs don't have one baked yet), live materials have/need, requirement
+lines, a quantity stepper, Craft, and Max (materials-only cap — a batch
+that wouldn't fit in inventory space just fails to start, same as
+before, rather than Max trying to account for space too). While a
+tile's own batch runs, the stepper/Craft/Max row swaps for a progress
+bar + Cancel, same green fill color `PlayerInteraction`'s gathering hold
+bar already uses. Every other tile's Craft/Max greys out with "Crafting
+queue busy" while one batch is active anywhere. A search bar above the
+grid (Ben's follow-up, same session) filters by name across every
+discipline at once while active, ignoring the tab selection entirely —
+"ax" surfaces every Axe tier in one view regardless of which tab was
+open.
+
+- **Still open:** whether the "one batch at a time, globally" limit is
+  the reasonable common case or a real constraint players will bump
+  into (no signal either way yet — first thing to revisit if it comes
+  up in testing). Also: 8 recipe outputs still don't have a baked icon
+  (all 5 Trimmed Stick tiers, plus the Sunglasses/Nav Computer/Health
+  Monitor gadgets) — worth a batch `IconBaker` pass whenever those
+  blank spacers get annoying to look at.
+
+## Build Tab: Same Tile Grid, No Batch Machinery (2026-08-09)
+
+Ben's follow-up immediately after Crafting's redesign: "let's do the
+same thing with the build tab." Deliberately scoped to the parts that
+actually transfer — tile grid, big icon, live materials, search — and
+**not** quantity/Max/timer/cancel, since Building has no analog for
+batching: placing a piece is still one deliberate walk-and-aim act per
+piece in the physical world, nothing produces instantly into inventory
+the way a crafted item does. `PlayerBuilding`'s whole placement flow
+(Arm, ghost preview, socket-snap, free placement) is untouched.
+
+- `BuildPiece` gained `icon`/`previewIcon` — same fields, same
+  fallback-to-blank-spacer convention as `ItemDefinition`'s. `IconBaker`
+  had been hardcoded to `ItemDefinition` specifically (a real gap, not
+  by design — the actual icon-wiring code was already generic via
+  `SerializedObject`, only the load/type-check line was narrow); loosened
+  to `UnityEngine.Object` so it works for any asset with those two
+  fields, matching its own intent as the one reusable icon tool rather
+  than writing a second one for BuildPiece.
+- Both existing pieces (Twig Foundation, Storage Box) got real baked
+  icons from their own prefabs, same as any Crafting recipe would.
+- Search bar, identical shape to Crafting's, minus the discipline-tab
+  override logic (Build has never had sub-tabs to fight with).
+
+## IconBaker: Tight-Fit Framing (2026-08-09)
+
+Ben, looking at the new tile grids: "when I look at it, its hard to see
+the object clearly on the screen. can it be made so the image of the
+item fills the icon space more?" Root cause: `IconBaker`'s camera
+framing sized `orthographicSize` off `maxDim` (the single largest axis)
+plus a flat padding multiplier — a diagonal-safe *guess*, never actually
+tied to what the fixed 3/4-angle camera really projects. The more a
+shape diverges from a cube, the worse the guess — a wide flat Foundation
+or a long thin Nail read noticeably smaller than a roughly-cubic object
+baked with the same settings.
+
+Fixed by projecting the model's AABB corners into camera space (at the
+same already-established angle) and sizing/centering the orthographic
+camera to the *true* on-screen extent, ~8% margin. Also exposed
+`IconBaker.BakeAndWire` as a reusable entry point (`Bake()` is now a
+thin command-line wrapper around it) so a one-shot sweep script could
+re-bake all 53 existing icons/BuildPiece tiles in a single process
+instead of one Unity launch each — every icon in the game reflects the
+new framing now, not just ones touched going forward.
+
+## Berry Bush: a Real Model, Not a Doppelganger of Its Own Drops (2026-08-09)
+
+Live-testing surfaced a real design flaw traced back to a decision that
+looked harmless at the time: the standing Berry Bush and every loose
+Berry it drops shared the *exact same* Strawberries model. A
+correctly-scattered, perfectly pickable berry looked visually identical
+to the bush sitting right next to it — no bug in the collision math, but
+an unworkable UX regardless. Ben: "let's use the generated berry bush,
+and move the chop/search function to that" — reuse
+`GeneratedBerryBush.glb` (an existing decorative comparison prop from an
+earlier session, never wired to gameplay) as the bush's real visual,
+freeing the Strawberries model to mean one thing only: a pickable berry,
+never the bush. `BerryBush.prefab`'s component wiring carried over
+untouched — only the visual child and its collider changed — and
+`BerryPickup.prefab` (search's actual drop target) was never modified,
+confirming it was already correctly scoped to plain pickup-and-eat. The
+now-redundant decorative duplicate was removed from the scene since its
+model does real work now.
+
+Follow-up, same session: with the bush now a visually distinct ~1m
+plant instead of a strawberry cluster, the loose Berry pickup (tuned to
+look right next to an identical-model bush) read as oversized —
+shrunk from 0.35m to 0.18m bounds to read as "a small handful" against
+the bigger bush.
+
+## Trimmed Stick Tiers: Blender-Generated Models, Not Tripo3D (2026-08-09)
+
+All 5 Trimmed Stick craft tiers (Crude/Rudimentary/Normal/Fine/Masterwork)
+had no icon at all, and only Crude had a world pickup (a placeholder
+reusing the plain Stick's model) — a real gap, and also the test Ben
+wanted after the Blender part-separation research earlier the same
+session: can Blender build a model completely from scratch, not just
+edit/split existing Tripo3D output? It can, and it's arguably the
+*better* tool for this specific case — 5 tiers need to read as one
+coherent progression, which independent Tripo3D generations wouldn't
+reliably give.
+
+Built headless via `bpy`/`bmesh` (`blender --background --python ...`):
+a tapered shaft assembled ring-by-ring and bridged with quads (Blender's
+own cone primitive turned out to only have two rings — base and tip, no
+length-wise resolution to deform), varied per tier per Ben's direction
+("ideally, for each tier, we want the stick to be straighter and
+smoother... perhaps the 4th tier we add a few little carvings and the
+last tier we make look ornately carved"):
+
+- **Crude → Normal**: fewer radial sides, a smooth low-frequency wobble
+  (per-angular-slot, not independent per-ring noise — that read as
+  spiky static on the first attempt) and a single-arc bend, both fading
+  to ~0 by Normal.
+- **Fine**: dead straight, smooth-shaded, two shallow carved rings.
+- **Masterwork**: straight, more sides, a finer ring pattern plus a
+  wrapping spiral groove — tuned down from an initial pass that read as
+  lumpy/caterpillar-like rather than ornate.
+
+Unity side followed the same batch-mode pattern as every other asset
+this session: one throwaway Editor script built a `Pickup` prefab per
+tier (collider/rigidbody sized from the model's own measured bounds)
+and called the existing `IconBaker.BakeAndWire` per tier. `BerryBush`'s
+chop-drop was repointed from the old placeholder to the real Crude
+model; the placeholder prefab was deleted once orphaned. Full build
+detail and the bugs hit along the way: `CHANGELOG.md` v0.1.173-dev,
+`Tools/Tripo3D/README.md`'s Blender lesson-learned entry.
+
+**Deliberately left alone:** the models carry only a flat PBR color
+material (Base Color + Roughness per tier), no image texture — glTF
+can't export Blender's procedural shader node graphs directly, so a
+real wood-grain look needs an extra bake-to-image step. Ben's call: skip
+it for now, revisit once there's a good texture-generation tool in the
+pipeline.
+
+## Texturing Our Own Models via Tripo3D (2026-08-09)
+
+Follow-up, same day, to the texture-generation tool question above:
+tested Tripo3D's `texture_model` task on the Blender-built Masterwork
+Trimmed Stick, and it works — real wood grain and PBR materials on
+geometry we control, not just Tripo3D's own from-scratch generations.
+Full technical detail (endpoint discovery, the STS/S3 upload dead end,
+AWS.Tools.S3 dependency) lives in `CHANGELOG.md` v0.1.174-dev and
+`Tools/Tripo3D/README.md`. Two decisions worth keeping visible here:
+
+- **Cost is a wash, not a reason to prefer either path.** Texturing an
+  existing model costs the same 20 credits as a full `text_to_model`
+  generation. The reason to build geometry in Blender first was always
+  about *coherence across a tier family* (Crude→Masterwork sharing one
+  controlled shape language), not about saving credits.
+- **Only Masterwork has been retextured so far** — a single-tier proof
+  of concept, deliberately not yet applied to the other 4 tiers.
+  Whether to do the rest (and whether every future tiered item family
+  gets this treatment going forward) is still open.
+- **The extracted wood PBR texture set is saved for reuse**, not
+  wired to any material yet: `Assets/Textures/Materials/PolishedWalnutWood/`
+  (base color, normal, metallic-roughness — pulled directly out of the
+  textured stick's `.glb`, which embeds all three at 4096×4096). Any
+  Tripo3D `texture_model` result can be mined the same way instead of
+  spending credits again for a similar look on a different shape.
+
+## Stone Knife Tiers: Blender Blade+Handle Shapes (2026-08-09)
+
+Same treatment as the Trimmed Stick tiers, applied to the Stone Knife —
+all 5 craft tiers previously shared one placeholder Tripo3D model at
+different non-uniform stretched scales, no real per-tier distinction.
+Full technical detail in `CHANGELOG.md` v0.1.175-dev. Worth keeping
+visible here:
+
+- **Found a real bug in the shared `IconBaker` tool**: every icon bakes
+  in a scratch scene that never explicitly configured ambient lighting,
+  so it silently inherited Unity's default blue-skybox ambient — never
+  visible on any icon baked so far (all warm/saturated colors), but a
+  clear wrong blue cast on the knife's neutral grey stone. Fixed by
+  flattening ambient to white before rendering. **Full re-bake done
+  same day (v0.1.176-dev)**: every existing icon (56 items + 2 build
+  pieces) re-baked straight from its own `worldPickupPrefab`/`prefab` —
+  spot-checked across metal/stone/wood, nothing regressed.
+- Two-material approach (blade + handle get independent colors/
+  roughness from one mesh) worked well and is a pattern worth reusing
+  for other compound props (anything with a distinct handle/head, grip/
+  blade, etc.) rather than defaulting to one flat material per model.
+
 ## Open Questions / Next Decisions
 
 Reconciliation with `docs/game-overview.md` resolved the big cross-doc conflicts

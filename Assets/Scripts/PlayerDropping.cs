@@ -21,14 +21,20 @@ public class PlayerDropping : MonoBehaviour
 
     public void Drop(ItemDefinition item) => DropFrom(playerInventory.Inventory, item);
 
-    // Removes all of `item` from the given inventory and spawns it as a
-    // physical pickup in the world in front of the player. Shared by the
-    // main inventory's Drop button, the inventory screen's move-popup Drop
-    // option, and PlayerLoot, which uses it to evict a hand slot when
-    // making room for a newly picked-up item.
-    public void DropFrom(Inventory source, ItemDefinition item)
+    // Drops every unit of `item` in source — used where no quantity
+    // choice makes sense (PlayerLoot evicting a hand slot to make room).
+    public void DropFrom(Inventory source, ItemDefinition item) =>
+        DropFrom(source, item, source != null ? source.GetCount(item) : 0);
+
+    // Removes up to `quantity` of `item` from the given inventory (capped
+    // to what's actually there) and spawns it as a physical pickup in the
+    // world in front of the player. An equipment-backed slot ignores
+    // quantity entirely — it's always exactly one real instance, nothing
+    // to partially drop. Shared by the inventory screen's quantity-picker
+    // Drop popup and PlayerLoot's hand-eviction path.
+    public void DropFrom(Inventory source, ItemDefinition item, int quantity)
     {
-        if (item == null || source == null) return;
+        if (item == null || source == null || quantity <= 0) return;
 
         // Equipment-backed slot (Canteen, Backpack, etc.) — release the
         // real object via its own carried state instead of the generic
@@ -59,10 +65,10 @@ public class PlayerDropping : MonoBehaviour
             return;
         }
 
-        int count = source.GetCount(item);
-        if (count <= 0 || !source.RemoveItem(item, count)) return;
+        int amount = Mathf.Min(quantity, source.GetCount(item));
+        if (amount <= 0 || !source.RemoveItem(item, amount)) return;
 
-        SpawnPickup(item, count);
+        SpawnPickup(item, amount);
     }
 
     // Instantiates item's world pickup prefab (or the generic fallback) at

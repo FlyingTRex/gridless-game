@@ -1,3 +1,5 @@
+using UnityEngine;
+
 public static class InventoryTransfer
 {
     // Moves quantity of item from one inventory-capable object to another.
@@ -38,5 +40,22 @@ public static class InventoryTransfer
         from.RemoveItem(item, quantity);
         to.AddItem(item, quantity);
         return true;
+    }
+
+    // Moves as much of item as actually fits in `to`, capped by how much
+    // `from` has — instead of failing outright the way a fixed "move
+    // everything" quantity would when the destination has less room than
+    // the source's full count (e.g. two non-stacking Hammers, maxStack 1,
+    // into an empty single-capacity hand slot: only one fits, this moves
+    // that one instead of moving nothing). Returns the amount actually
+    // moved (0 if nothing could move).
+    public static int MoveAsManyAsFit(Inventory from, Inventory to, ItemDefinition item)
+    {
+        if (from == null || to == null || item == null) return 0;
+
+        int quantity = Mathf.Min(from.GetCount(item), to.SpaceFor(item));
+        if (quantity <= 0) return 0;
+
+        return Move(from, to, item, quantity) ? quantity : 0;
     }
 }

@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17f85ac9db3fc704b91d2ef0a58fed7b, type: 3}
+  m_Name: StorageBoxPiece
+  m_EditorClassIdentifier: Assembly-CSharp::BuildPiece
+  pieceName: Storage Box
+  prefab: {fileID: 7370304361906988028, guid: 8e4096612f450cd4a9833d0708b0c760, type: 3}
+  ingredients:
+  - item: {fileID: 11400000, guid: e51a1943e164464b8d0533a24ee79519, type: 2}
+    count: 4
+  - item: {fileID: 11400000, guid: 2b36e703d09015046a72e40d36725d82, type: 2}
+    count: 6
+  trainedSkill: {fileID: 11400000, guid: a05cd28340d5c8b41bcf4af8f1892fe0, type: 2}
+  unlockTier: 0
+  skillGain: 1
+  groundReach: 0
+  nextTier: {fileID: 0}
+  icon: {fileID: 21300000, guid: 84f5efc44242bda40ae719a8b6c50949, type: 3}
+  previewIcon: {fileID: 21300000, guid: 6f90db66dfde7cd4daac97008b4bebf0, type: 3}

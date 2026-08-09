@@ -85,6 +85,16 @@ public class PlayerBuilding : MonoBehaviour
             yield return box.Inventory;
     }
 
+    // Read by BuildScreen's tile grid for live "have N" counts — same
+    // reach as ReachableInventories, not just the main inventory.
+    public int GetAvailableCount(ItemDefinition item)
+    {
+        int total = 0;
+        foreach (var inv in ReachableInventories())
+            total += IngredientMatching.GetCount(inv, item);
+        return total;
+    }
+
     public bool CanPlace(BuildPiece piece) =>
         piece != null && (piece.trainedSkill == null
             || skills.GetLevel(piece.trainedSkill) >= CraftTierScale.SkillRequirement(piece.unlockTier));
@@ -262,11 +272,7 @@ public class PlayerBuilding : MonoBehaviour
         foreach (var ingredient in piece.ingredients)
         {
             if (ingredient == null || ingredient.item == null) continue;
-
-            int total = 0;
-            foreach (var inv in ReachableInventories())
-                total += IngredientMatching.GetCount(inv, ingredient.item);
-            if (total < ingredient.count) return false;
+            if (GetAvailableCount(ingredient.item) < ingredient.count) return false;
         }
         return true;
     }

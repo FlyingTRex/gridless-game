@@ -28,15 +28,25 @@ public class PlayerEating : MonoBehaviour
         return null;
     }
 
-    public bool TryEat(ItemDefinition item)
+    // Eats from the main inventory specifically — used by DrawInventorySection,
+    // the only place that only ever shows a plain item from there.
+    public bool TryEat(ItemDefinition item) => TryEatFrom(inventory.Inventory, item);
+
+    // Eats from wherever the item actually is (a hand slot, a Backpack, a
+    // Storage Box) — previously TryEat always removed from the main
+    // inventory regardless of source, so eating a Berry sitting in a hand
+    // or a container silently did nothing (FindEdible still found it, so
+    // the Eat button showed, but RemoveItem on the wrong inventory found
+    // zero and failed quietly).
+    public bool TryEatFrom(Inventory source, ItemDefinition item)
     {
         var edible = FindEdible(item);
-        if (edible == null) return false;
-        if (!inventory.RemoveItem(edible.item, edible.consumeCount)) return false;
+        if (edible == null || source == null) return false;
+        if (!source.RemoveItem(edible.item, edible.consumeCount)) return false;
 
         vitals.Restore(edible.vital, edible.restoreAmount);
         if (edible.returnItem != null)
-            inventory.AddItem(edible.returnItem, edible.consumeCount);
+            source.AddItem(edible.returnItem, edible.consumeCount);
 
         return true;
     }

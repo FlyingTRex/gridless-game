@@ -18,3 +18,4 @@ MonoBehaviour:
   worldPickupPrefab: {fileID: 6679548372532663342, guid: bdfc1de833c73d147b3cb69a0a3ea456, type: 3}
   icon: {fileID: 21300000, guid: f575ec055dd1bdc4aa207537df5631c6, type: 3}
   previewIcon: {fileID: 21300000, guid: cdc2a110a9bd2af4aae8383f5ebd539a, type: 3}
+  baseItem: {fileID: 0}

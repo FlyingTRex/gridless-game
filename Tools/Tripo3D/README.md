@@ -146,9 +146,148 @@ balances, only within one.
   this specific concern. This is from search results summarizing their
   blog, not a direct read of the actual Terms of Service — worth a final
   direct check there before fully relying on it for a real release.
+- **Lesson learned (2026-08-09) — the API has a genuine two-step
+  text-to-image-then-image-to-model path, confirmed via
+  [docs.tripo3d.ai](https://docs.tripo3d.ai/), not yet used by
+  `Generate-Model.ps1`.** Came up chasing the "can we reuse/reshape part
+  of an existing model" question (see the design-brief's Foundation/Wall
+  reuse ideation) — the real answer turned out to be two related but
+  separate tools, neither built yet:
+  - **`text_to_image`** — a real, separate request type (5 credits,
+    same task_id/poll shape as `text_to_model`) that generates a 2D
+    concept image from a prompt, explicitly documented as "ideal inputs
+    for downstream 3D modeling." Much cheaper than a full model
+    generation (20 credits) — worth generating a few cheap variations
+    to check composition/style before committing to the pricier 3D
+    conversion, same idea Tripo Studio's web UI already does by hand
+    (see the Tree/Backpack entries below), just confirmed scriptable
+    too now.
+  - **`image_to_model`** — converts an existing image into a 3D model;
+    the image goes in via a file-upload token, not a raw URL, so this
+    needs an upload step first. Not yet tried.
+  - **Separately: Blender has a full Python API (`bpy`)**, scriptable
+    headless (`blender --background --python script.py`), which could
+    do genuine part-level mesh editing (separate the twig platform from
+    its posts, reshape a piece into a different one) that this pipeline
+    fundamentally can't do today (see "one fused mesh" above). **Not
+    installed on this machine as of 2026-08-09** — Ben's installing it;
+    revisit the "extract/reshape model parts" idea once it's available,
+    including whether Tripo3D's meshes actually have clean-enough seams
+    to separate this way at all (unconfirmed either way).
+  - **Update, same day, once installed** (`C:\Program Files\Blender
+    Foundation\Blender 5.2\blender.exe`, 5.2.0 LTS, Python 3.13.13):
+    tested both the "separate existing parts" question and, separately,
+    whether Blender can build a model *from scratch* (no Tripo3D input
+    at all).
+    - **Part-separation groundwork**: imported `Assets/Models/TwigFoundation.glb`
+      (793,896 verts, 1 Unity mesh object) and ran a `bmesh` flood-fill
+      connectivity pass. It's actually **2,118 separate disconnected
+      geometric islands** internally — individual twig/branch/rope
+      pieces positioned together, fused into one mesh only at export/
+      import time, not one continuous connected surface. So "separate
+      the posts from the platform" is a *spatial classification*
+      problem (group islands by position) rather than needing a clean
+      cut along a seam — more promising than either a flat yes or no,
+      but not yet proven to produce a clean, usable split when actually
+      attempted. Left on hold at Ben's direction in favor of the
+      from-scratch test below; revisit if/when part-reuse comes back up.
+    - **From-scratch modeling: confirmed, works well.** Built the 5
+      Trimmed Stick craft-tier models (Crude through Masterwork) as a
+      real test case — a procedurally-varied *family* of related models
+      (angularity/smoothness/carving scaled by tier) that Tripo3D
+      couldn't produce coherently across 5 independent generations
+      anyway. `bpy.ops.mesh.primitive_cone_add` turned out to only have
+      two vertex rings (base + tip, no length-wise resolution) — ended
+      up building the shaft directly via `bmesh` (rings bridged with
+      quads) for real control. See `CHANGELOG.md` v0.1.173-dev for the
+      full build and the bugs hit along the way. Bottom line: Blender is
+      a genuine third option alongside Tripo3D generation and manual
+      editing — good fit for anything proceduralizable (tiered
+      variants, primitive-based props), not a replacement for organic/
+      complex shapes Tripo3D is better suited to.
 
-## Current status (2026-08-06)
+- **Texturing a model we built ourselves (not a Tripo3D generation) —
+  confirmed working, same day.** `texture_model` needs an
+  `original_model_task_id` — i.e. the model must already exist as a
+  Tripo3D task. The path in: `import_model` (uploads an external file,
+  registers it as a task, free/0 credits) → `texture_model` on that
+  task ID with a text prompt (20 credits at detailed quality — same
+  price as a full from-scratch generation). New script:
+  `Tools/Tripo3D/Texture-Model.ps1`.
+  - This uses a **different API surface** than `Generate-Model.ps1`.
+    That script talks to the path-based `v3` REST API
+    (`openapi.tripo3d.ai/v3/generation/...`), which has no documented
+    texture-an-existing-mesh endpoint. `import_model`/`texture_model`
+    only exist on the older task-based `v2` API
+    (`api.tripo3d.ai/v2/openapi`, `POST /task` with a `"type"` field) —
+    confirmed against Tripo3D's own official Python SDK source
+    (`github.com/VAST-AI-Research/tripo-python-sdk`), since
+    `platform.tripo3d.ai/docs` is a JS-rendered SPA a simple fetch can't
+    read. Same API key/Bearer auth works on both.
+  - **File upload is a two-tier system, and the obvious endpoint is a
+    trap.** `POST /upload` looks like the generic upload endpoint but
+    is image-only — a real `.glb` gets a clean `"This image file type
+    is not supported"` rejection. The actual path for model files is
+    STS-credentialed S3 upload: `POST /upload/sts/token` returns
+    temporary AWS credentials (access key/secret/session token) good
+    for one object, which then needs a real SigV4-signed S3 PUT.
+    Installed the `AWS.Tools.S3` PowerShell module
+    (`Install-Module -Name AWS.Tools.S3 -Scope CurrentUser -Force`,
+    plus the NuGet provider it depends on) rather than hand-rolling AWS
+    signing — `Write-S3Object` with the STS credentials handles it in
+    one call. The STS response's `s3_host` is a real AWS host
+    (`s3.us-west-2.amazonaws.com` observed) with a real region, not a
+    custom S3-compatible endpoint — get the region wrong and S3 replies
+    with exactly which region it wanted.
+  - **Response field names for `texture_model`'s output are `output.model`
+    and `output.rendered_image`** (not `_url`-suffixed like `v3`'s
+    `output.model_url` — different API surface, different schema).
+  - **Cost finding:** texturing an existing model costs the same as
+    generating one from scratch (both 20 credits at default settings,
+    confirmed from two real task logs). Building geometry in Blender
+    first isn't a cost optimization — the payoff is controlled,
+    consistent geometry (e.g. a coherent 5-tier family) combined with
+    Tripo3D's real texture quality, for the same price either path
+    would've cost alone.
+  - Check current balance any time via `GET /user/balance` on the `v2`
+    host — returns `{"balance": N, "frozen": N}`.
+  - Tested on `TrimmedStickMasterwork.glb` (see CHANGELOG v0.1.174-dev)
+    — real wood grain, warm tones, genuinely better than the flat-color
+    material the other 4 tiers still use. Not yet applied beyond that
+    one tier.
 
+## Current status (2026-08-06, latest entry 2026-08-09)
+
+- **Twig Foundation (2026-08-09) — hit the "stuck at 99%" timeout
+  pattern, actually succeeded server-side, recovered by polling
+  directly.** Prompt: `"a crude foundation platform made of bundled
+  sticks and branches lashed together with rope, flat square panel,
+  primitive twig construction, isolated on a plain background, no
+  person, no model, low-poly game asset"`. `Generate-Model.ps1` gave up
+  after sitting at `progress: 99` past its own timeout — same failure
+  mode documented below for the Grass Belt/Crude Stone Knife — but a
+  direct `GET /v3/tasks/{id}` a few minutes later showed
+  `"status": "success"`. Downloaded the freshly-signed `model_url`/
+  `rendered_image_url` by hand via `curl` rather than re-generating (no
+  credits wasted). Result: a genuine lashed-twig-and-rope platform on
+  short legs, exactly matching the prompt. Imported as
+  `Assets/Models/TwigFoundation.glb` and swapped into
+  `Foundation.prefab`'s `Slab` child only — the root `BoxCollider` and
+  all 4 `BuildSocket`s stayed untouched, so gameplay
+  footprint/snapping/upgrades needed zero changes, only the visual.
+- **Anvil (2026-08-09) — clean on the first attempt, imported but not
+  wired to gameplay yet.** Prompt: `"a blacksmith's anvil, solid iron
+  block on a sturdy wooden stump base, worn dark metal with a pointed
+  horn, isolated on a plain background, no person, no model, low-poly
+  game asset"`. No 500s, no timeout — reads clearly as a classic anvil
+  on a wooden stump. Imported as `Assets/Models/Anvil.glb` (1 renderer,
+  1 mesh, 724,999 vertices — same "low-poly" wording doesn't guarantee
+  a low vertex count pattern seen on every generation so far; bounds
+  0.62 x 0.76 x 1.00). Ben's call: import only, no scene placement, no
+  prefab, no recipe — there's no Forging/Metalworking mechanic built
+  yet (the design-brief's "hammer + anvil + wood fuel + steel → sword"
+  is still aspirational vision text, not a concrete system), so this is
+  parked for whenever that system actually gets designed.
 - **Berry bush** — generated via the API (`a small berry bush, low-poly
   game asset`), imported into `Assets/Models/GeneratedBerryBush.glb`,
   placed in `TestScene.unity` at `(2, 0, 2)` as "Generated Berry Bush

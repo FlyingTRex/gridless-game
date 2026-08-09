@@ -43,6 +43,28 @@ public class Inventory
         return total;
     }
 
+    // How many more of item could be added right now — existing
+    // under-cap stacks first, then whatever fits in remaining free slots.
+    // Read by InventoryTransfer.MoveAsManyAsFit so a move can cap itself
+    // to what actually fits instead of failing outright when the source
+    // has more than the destination can hold (e.g. moving two
+    // non-stacking Hammers, maxStack 1 so two separate slots, into an
+    // empty single-capacity hand slot — only one fits).
+    public int SpaceFor(ItemDefinition item)
+    {
+        if (item == null) return int.MaxValue;
+
+        int maxStack = EffectiveMaxStack(item);
+        int total = 0;
+        foreach (var slot in slots)
+            if (slot.item == item && slot.count < maxStack)
+                total += maxStack - slot.count;
+
+        int freeSlots = capacity - slots.Count;
+        total += freeSlots * maxStack;
+        return total;
+    }
+
     public bool HasSpaceFor(ItemDefinition item, int quantity)
     {
         if (item == null || quantity <= 0) return true;

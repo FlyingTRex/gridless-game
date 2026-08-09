@@ -46,4 +46,10 @@ public class CraftingRecipe : ScriptableObject
     // tab, independent of which exact tier is actually held.
     public ItemDefinition[] requiredTools;
     public string requiredToolLabel;
+
+    // False (default) means no such requirement, same "most recipes don't
+    // need this" convention as requiredTools. True means an AnvilSurface
+    // (Boulder, Anvil, ...) must be within range — see
+    // PlayerCrafting.HasNearbyAnvilSurface.
+    public bool requiresAnvilSurface;
 }

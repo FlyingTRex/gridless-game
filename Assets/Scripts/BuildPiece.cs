@@ -26,4 +26,11 @@ public class BuildPiece : ScriptableObject
     // yet. Used by PlayerPieceUpgrade's click-to-upgrade action, added
     // 2026-08-08 — see design-brief.md's Building System section.
     public BuildPiece nextTier;
+
+    // Optional — same "bake from the prefab, blank spacer if unset"
+    // convention as ItemDefinition.icon/previewIcon (2026-08-09, Build
+    // tab's tile-grid redesign). Null (the default) means BuildScreen
+    // draws a blank spacer for this tile, not a placeholder glyph.
+    public Sprite icon;
+    public Sprite previewIcon;
 }

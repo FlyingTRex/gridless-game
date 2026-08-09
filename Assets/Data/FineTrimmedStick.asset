@@ -15,5 +15,7 @@ MonoBehaviour:
   itemName: Fine Trimmed Stick
   maxStack: 20
   tier: 3
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 2468024974208275258, guid: df33684a1aba96f47a5e45eb0c376263, type: 3}
+  icon: {fileID: 21300000, guid: a836f62e3a3a8fb46bf36459249e4050, type: 3}
+  previewIcon: {fileID: 21300000, guid: 0c67625d53bc3ae49aa851ef3469fb0e, type: 3}
   baseItem: {fileID: 11400000, guid: d492f069a86086445a701543be636fce, type: 2}

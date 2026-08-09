@@ -104,6 +104,17 @@ public class InventoryScreen : MonoBehaviour
     private CoinType? pendingDropCoinType;
     private int pendingDropAmount;
 
+    // Set when the player clicks Drop on a plain stackable item (main
+    // inventory list, or the move popup) — opens a quantity picker instead
+    // of always dropping the entire stack. Real gap found in playtesting
+    // (2026-08-09): dropping "one" of a non-stacking item (any Hammer
+    // tier, maxStack 1) dropped every one you had, since the old one-click
+    // Drop always removed the item's full count with no way to choose
+    // less. Mirrors DrawCoinDropPopup's shape exactly.
+    private ItemDefinition pendingDropItem;
+    private Inventory pendingDropItemSource;
+    private int pendingDropItemAmount;
+
     // Set when an Equip click has more than one valid destination (e.g. a
     // Canteen with both hands free and a Belt worn) — opens a popup
     // listing them instead of committing to whichever one the carrier
@@ -219,6 +230,7 @@ public class InventoryScreen : MonoBehaviour
         DrawPendingMovePopup();
         DrawPendingEquipPopup();
         DrawCoinDropPopup();
+        DrawItemDropPopup();
         DrawTooltip();
     }
 
@@ -254,6 +266,8 @@ public class InventoryScreen : MonoBehaviour
         pendingEquipChoose = null;
         pendingEquipLabel = null;
         pendingDropCoinType = null;
+        pendingDropItem = null;
+        pendingDropItemSource = null;
     }
 
     // Small "where should this go?" dialog shown after clicking an item
@@ -379,40 +393,47 @@ public class InventoryScreen : MonoBehaviour
         var edible = eating != null ? eating.FindEdible(pendingMoveItem) : null;
         if (edible != null && GUILayout.Button(edible.verb))
         {
-            eating.TryEat(pendingMoveItem);
+            eating.TryEatFrom(pendingMoveSource, pendingMoveItem);
             return true;
         }
 
         if (GUILayout.Button("Drop"))
         {
-            dropping?.DropFrom(pendingMoveSource, pendingMoveItem);
+            pendingDropItem = pendingMoveItem;
+            pendingDropItemSource = pendingMoveSource;
+            pendingDropItemAmount = pendingMoveSource.GetCount(pendingMoveItem);
             return true;
         }
 
+        // MoveAsManyAsFit, not Move — a destination with less room than
+        // the source's full count (e.g. two non-stacking Hammers, each
+        // their own slot since maxStack is 1, into an empty
+        // single-capacity hand) used to fail outright instead of moving
+        // what actually fits (real bug found in playtesting, 2026-08-09).
         var leftHand = equipment.GetSlot("Left Hand");
         if (leftHand != null && leftHand != pendingMoveSource && GUILayout.Button("To Left Hand"))
         {
-            InventoryTransfer.Move(pendingMoveSource, leftHand, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, leftHand, pendingMoveItem);
             return true;
         }
 
         var rightHand = equipment.GetSlot("Right Hand");
         if (rightHand != null && rightHand != pendingMoveSource && GUILayout.Button("To Right Hand"))
         {
-            InventoryTransfer.Move(pendingMoveSource, rightHand, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, rightHand, pendingMoveItem);
             return true;
         }
 
         var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
         if (equippedBackpack != null && equippedBackpack.Inventory != pendingMoveSource && GUILayout.Button("To Backpack"))
         {
-            InventoryTransfer.Move(pendingMoveSource, equippedBackpack.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, equippedBackpack.Inventory, pendingMoveItem);
             return true;
         }
 
         if (playerInventory.Inventory != pendingMoveSource && GUILayout.Button("To Inventory"))
         {
-            InventoryTransfer.Move(pendingMoveSource, playerInventory.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+            InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, playerInventory.Inventory, pendingMoveItem);
             return true;
         }
 
@@ -435,7 +456,7 @@ public class InventoryScreen : MonoBehaviour
 
             if (GUILayout.Button(box.DisplayName))
             {
-                InventoryTransfer.Move(pendingMoveSource, box.Inventory, pendingMoveItem, pendingMoveSource.GetCount(pendingMoveItem));
+                InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, box.Inventory, pendingMoveItem);
                 return true;
             }
         }
@@ -545,6 +566,73 @@ public class InventoryScreen : MonoBehaviour
         {
             pendingDropCoinType = null;
             pendingDropAmount = 0;
+        }
+    }
+
+    // Quantity picker for dropping a plain stackable item, opened by
+    // clicking Drop (main inventory list, or the move popup) instead of
+    // dropping the whole stack immediately. Same stepper shape as
+    // DrawCoinDropPopup, but defaults to the full count already held —
+    // unlike coins, "drop everything" is the common case for items, so
+    // starting full and decrementing (rather than starting at 0 and
+    // building up) keeps that a one-extra-click flow instead of a
+    // regression, while still making "drop just one" straightforward.
+    private void DrawItemDropPopup()
+    {
+        if (pendingDropItem == null || pendingDropItemSource == null) return;
+
+        int available = pendingDropItemSource.GetCount(pendingDropItem);
+        if (available <= 0)
+        {
+            pendingDropItem = null;
+            pendingDropItemSource = null;
+            return;
+        }
+        pendingDropItemAmount = Mathf.Clamp(pendingDropItemAmount, 0, available);
+
+        const float width = 260f;
+        const float height = 190f;
+        var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
+
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label($"Drop {pendingDropItem.itemName}", DebugGUI.Header);
+        GUILayout.Label($"Have: {available}", DebugGUI.Label);
+
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("-10", GUILayout.Width(45))) pendingDropItemAmount -= 10;
+        if (GUILayout.Button("-1", GUILayout.Width(35))) pendingDropItemAmount -= 1;
+        GUILayout.Label(pendingDropItemAmount.ToString(), DebugGUI.Header, GUILayout.Width(50));
+        if (GUILayout.Button("+1", GUILayout.Width(35))) pendingDropItemAmount += 1;
+        if (GUILayout.Button("+10", GUILayout.Width(45))) pendingDropItemAmount += 10;
+        GUILayout.EndHorizontal();
+
+        if (GUILayout.Button("All"))
+            pendingDropItemAmount = available;
+
+        pendingDropItemAmount = Mathf.Clamp(pendingDropItemAmount, 0, available);
+
+        bool itemResolved = false;
+
+        GUILayout.BeginHorizontal();
+        GUI.enabled = pendingDropItemAmount > 0;
+        if (GUILayout.Button("Drop"))
+        {
+            dropping?.DropFrom(pendingDropItemSource, pendingDropItem, pendingDropItemAmount);
+            itemResolved = true;
+        }
+        GUI.enabled = true;
+        if (GUILayout.Button("Cancel"))
+            itemResolved = true;
+        GUILayout.EndHorizontal();
+
+        GUILayout.EndArea();
+
+        if (itemResolved)
+        {
+            pendingDropItem = null;
+            pendingDropItemSource = null;
+            pendingDropItemAmount = 0;
         }
     }
 
@@ -681,13 +769,17 @@ public class InventoryScreen : MonoBehaviour
         if (eatClicked != null)
             eating.TryEat(eatClicked);
         if (dropClicked != null)
-            dropping.Drop(dropClicked);
+        {
+            pendingDropItem = dropClicked;
+            pendingDropItemSource = inv;
+            pendingDropItemAmount = inv.GetCount(dropClicked);
+        }
         if (leftHandClicked != null)
-            InventoryTransfer.Move(inv, equipment.GetSlot("Left Hand"), leftHandClicked, inv.GetCount(leftHandClicked));
+            InventoryTransfer.MoveAsManyAsFit(inv, equipment.GetSlot("Left Hand"), leftHandClicked);
         if (rightHandClicked != null)
-            InventoryTransfer.Move(inv, equipment.GetSlot("Right Hand"), rightHandClicked, inv.GetCount(rightHandClicked));
+            InventoryTransfer.MoveAsManyAsFit(inv, equipment.GetSlot("Right Hand"), rightHandClicked);
         if (packClicked != null)
-            InventoryTransfer.Move(inv, equippedBackpack.Inventory, packClicked, inv.GetCount(packClicked));
+            InventoryTransfer.MoveAsManyAsFit(inv, equippedBackpack.Inventory, packClicked);
         if (equipClicked != null)
             backpackCarrier.Equip(equipClicked);
         if (backpackDropClicked != null)
