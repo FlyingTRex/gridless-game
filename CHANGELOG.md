@@ -5,10 +5,48 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.157-dev` — must always match `GameVersion` in
+**Current version:** `0.1.158-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-09
+
+### v0.1.158-dev — Fixed: no way to move a plain item from the main inventory to a hand
+
+Caught by Ben during the first real system-test pass: a freshly crafted
+Pickaxe (or any plain tool) sitting in the main 4-slot inventory
+(`PlayerCrafting.AddCraftedOutput` sends plain output straight there,
+not to a backpack) had **no path to a hand at all**. The "To Left Hand"/
+"To Right Hand" options only ever existed inside a Backpack/Belt/Storage
+Box's contents grid (`DrawContainerContents`, which makes every occupied
+slot clickable to open the full move-destination popup) or on an item
+already sitting in an equip slot — the main inventory list
+(`DrawInventorySection`) only ever offered Eat/Drop/To Pack/To Storage
+for a plain item, never a hand. A tool crafted with no backpack equipped
+was effectively stuck — usable as a tool-gate check nowhere, since
+`ResourceNode`/`ChoppableTree` both require it actually held in a hand,
+not just carried.
+
+- Added "To L Hand"/"To R Hand" buttons directly to the main inventory
+  row, same `InventoryTransfer.Move` call the popup's own hand buttons
+  already use — no new mechanism, just closing a real gap in an
+  existing one.
+
+Verified via a full batch-mode compile check.
+
+## 2026-08-08
+
+### MVP progress re-check, third pass (doc-only, no version bump)
+
+Ben: "what's left in the mvp to work on" — updated `docs/design-brief.md`'s
+MVP Progress Check-In section again rather than re-deriving from scratch.
+Basic building moves from not-built to built (Foundation is real, not
+complete — no Wall/Door/Pole/Floor/Ceiling/Roof/Equip-to-Define yet).
+**Revised tally: 8 of Phase 1's 11 items built, 3 entirely unstarted:
+Encumbrance & skill-based movement, Basic combat + first aid, and
+Hireable autonomous NPCs** — nothing exists for any of the three, not
+even partially. No gameplay code touched.
 
 ## 2026-08-08
 

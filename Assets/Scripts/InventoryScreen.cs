@@ -542,6 +542,8 @@ public class InventoryScreen : MonoBehaviour
         ItemDefinition dropClicked = null;
         ItemDefinition packClicked = null;
         ItemDefinition eatClicked = null;
+        ItemDefinition leftHandClicked = null;
+        ItemDefinition rightHandClicked = null;
         Backpack equipClicked = null;
         Backpack backpackDropClicked = null;
         Belt beltEquipClicked = null;
@@ -635,6 +637,21 @@ public class InventoryScreen : MonoBehaviour
                 if (dropping != null && SafeButton("Drop", GUILayout.Width(50)))
                     dropClicked = slot.item;
 
+                // Real gap found in playtesting (2026-08-09): a plain item
+                // sitting directly in the main inventory (e.g. a freshly
+                // crafted Pickaxe — PlayerCrafting.AddCraftedOutput sends
+                // plain output straight here, not to a backpack) had no way
+                // to reach a hand at all. Backpack/Storage contents already
+                // had this via the click-to-open move popup
+                // (DrawContainerContents); the main list never did.
+                var leftHandSlot = equipment.GetSlot("Left Hand");
+                if (leftHandSlot != null && GUILayout.Button("To L Hand", GUILayout.Width(70)))
+                    leftHandClicked = slot.item;
+
+                var rightHandSlot = equipment.GetSlot("Right Hand");
+                if (rightHandSlot != null && GUILayout.Button("To R Hand", GUILayout.Width(70)))
+                    rightHandClicked = slot.item;
+
                 if (equippedBackpack != null && GUILayout.Button("To Pack", GUILayout.Width(60)))
                     packClicked = slot.item;
 
@@ -653,6 +670,10 @@ public class InventoryScreen : MonoBehaviour
             eating.TryEat(eatClicked);
         if (dropClicked != null)
             dropping.Drop(dropClicked);
+        if (leftHandClicked != null)
+            InventoryTransfer.Move(inv, equipment.GetSlot("Left Hand"), leftHandClicked, inv.GetCount(leftHandClicked));
+        if (rightHandClicked != null)
+            InventoryTransfer.Move(inv, equipment.GetSlot("Right Hand"), rightHandClicked, inv.GetCount(rightHandClicked));
         if (packClicked != null)
             InventoryTransfer.Move(inv, equippedBackpack.Inventory, packClicked, inv.GetCount(packClicked));
         if (equipClicked != null)

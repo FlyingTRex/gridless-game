@@ -783,6 +783,21 @@ more Phase 1 items moved since the check-in above, asked for again by Ben
   check-in; everything else in this stretch was infrastructure/tuning
   under a pillar already counted as built.
 
+**Updated again same session, v0.1.156-dev through v0.1.157-dev, asked
+for a third time by Ben ("what's left in the mvp to work on"):**
+- **Basic building moves from not-built to built.** Foundation is real
+  (Twig + Plank tiers, free placement + edge-snapping, upgrade/destroy
+  with a Hammer). **Built, not complete** — no Wall, Door, Pole, Floor,
+  Ceiling, Roof, Stairs, or Equip-to-Define yet, so a player can level
+  ground and tile panels but can't enclose a room.
+- **Revised net read: 8 of Phase 1's 11 items now built**, **3 entirely
+  unstarted: Encumbrance & skill-based movement, Basic combat + first
+  aid, and Hireable autonomous NPCs.** These three are the honest
+  next-frontier list — nothing exists for any of them, not even
+  partially (note `IPunchable`, the closest thing combat had to lean on,
+  is gone entirely now — retired for the hold-and-release gathering
+  rework, v0.1.147-dev).
+
 ## Crafting, Gathering & Skills Pipeline (2026-08-04)
 
 Planning session working out the "still open" gap from the Skill-tied crafting

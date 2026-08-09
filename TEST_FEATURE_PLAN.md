@@ -124,8 +124,17 @@ fix the coordinate in this file rather than assuming the step is wrong.
 - [ ] **Player tab** is intentionally blank right now (just a header) — same
   placeholder treatment as the `` ` `` menu's Player tab, not a bug.
 - [ ] Clicking the **Inventory** tab: main inventory list (4 slots) shows carried items with Eat/Drink (if
-  edible/drinkable), Craft (if a known recipe), Drop, To Pack, To Storage buttons
-  as applicable.
+  edible/drinkable), Craft (if a known recipe), Drop, **To L Hand, To R Hand**,
+  To Pack, To Storage buttons as applicable.
+- [ ] **To L Hand / To R Hand from the main inventory (v0.1.158-dev).**
+  Craft a Pickaxe (or any tool) with no backpack equipped — it lands in
+  the main inventory. Click "To L Hand" (or "To R Hand") and confirm it
+  actually moves there, and that holding it in that hand now satisfies a
+  tool-gated `ResourceNode` (e.g. a Copper Ore Node). **Regression:**
+  before this fix, a plain item in the main inventory had no path to a
+  hand at all — this option only existed for items already inside a
+  Backpack/Belt/Storage Box's contents grid or already equipped
+  somewhere. Caught during the first full system-test pass.
 - [ ] Equipment section lists all 14 slots (Head, Face ×2, Neck, Chest, Back, Left/
   Right Arm, Left/Right Wrist, Left/Right Hand, Waist, Leg, Feet) — empty ones show
   "Empty", occupied ones show the item name plus Equip/Unequip/Drop as applicable.
