@@ -562,13 +562,21 @@ fix the coordinate in this file rather than assuming the step is wrong.
   should show a real strawberries model (CC-BY, Jarlan Perez), not the
   old grey Sphere placeholder, plus an icon wherever Berry appears in
   inventory UI. Picking a Berry gives a real inventory item (not an
-  instant-eat-on-touch); Eat button only appears in the main inventory
-  list, never in a backpack/storage contents view. **Fixed v0.1.159-dev:**
-  `BerryPickup.prefab`'s `Pickup.item` field was never actually wired to
-  the Berry `ItemDefinition` (`{fileID: 0}`, silently null) — the model
-  swap in v0.1.139-dev fixed the visual but not the underlying pickup, so
-  walking into a Berry Bush did nothing at all. Confirm picking one up
-  now actually adds a Berry to inventory.
+  instant-eat-on-touch). **Fixed v0.1.159-dev:** `BerryPickup.prefab`'s
+  `Pickup.item` field was never actually wired to the Berry
+  `ItemDefinition` (`{fileID: 0}`, silently null) — the model swap in
+  v0.1.139-dev fixed the visual but not the underlying pickup, so walking
+  into a Berry Bush did nothing at all. Confirm picking one up now
+  actually adds a Berry to inventory.
+- [ ] **Eat from anywhere (fixed same day, v0.1.159-dev):** previously
+  Eat only ever showed in the main inventory list — a Berry sitting in a
+  hand slot, a Backpack, or a Storage Box had no Eat option at all,
+  forcing a move back to the main inventory first just to eat it. The
+  same "where should this go?" popup used for moving an item (click a
+  hand slot, or an item inside a Backpack/Storage contents grid) now
+  shows an **Eat** button first when the item is edible. Confirm eating
+  a Berry directly from your Left/Right Hand works, and from inside a
+  Backpack/Storage contents view too.
 - [ ] **Loot priority:** with a Backpack equipped, new pickups go straight into
   it. With no backpack, pickups try Left Hand, then Right Hand; if both hands are
   full with non-stacking items, the new pickup evicts (physically drops, not
@@ -895,6 +903,14 @@ fix the coordinate in this file rather than assuming the step is wrong.
   Stick requirement should also accept Trimmed Stick (any tier) as a
   substitute, same `IngredientMatching` mechanism as Crafting — confirm
   placing one with only Trimmed Stick on hand (no plain Stick) works.
+- [ ] **Materials from Backpack/Storage (fixed same day, v0.1.159-dev):**
+  previously `PlayerBuilding` only ever checked the main 4-slot
+  inventory — 6 Stick + 3 Rope sitting in an equipped Backpack (or a
+  nearby Storage Box) didn't count at all, showing "Not enough
+  materials" even when you genuinely had enough. Now reaches the same
+  three sources Crafting does (main inventory, equipped Backpack, nearby
+  Storage Box). Confirm placing a Foundation works with all 6 Stick + 3
+  Rope sitting entirely in a Backpack and none in the main inventory.
 - [ ] **Free placement (first Foundation, nothing to snap to):** with
   Twig Foundation armed, close the menu, aim at open ground, and confirm
   a translucent cyan ghost preview follows your crosshair in real time
@@ -909,14 +925,21 @@ fix the coordinate in this file rather than assuming the step is wrong.
   hand — confirm a message reading "Not enough materials." appears
   top-center (below the Magic/skill-up messages, same stacking
   convention) and nothing is spent, nothing spawns.
-- [ ] **Cancel out of build mode (fixed v0.1.159-dev):** previously, once
-  a piece was armed there was no way back out — Escape only stepped from
-  the rotate/confirm sub-phase back to the following ghost, never fully
-  disarmed, so a failed "Not enough materials" placement left you stuck
-  following a ghost forever. Confirm **Escape** while the ghost is
-  following the crosshair now fully cancels (ghost disappears, nothing
-  armed). Also confirm the Build tab's **"Armed (click to cancel)"**
-  button un-arms the piece the same way.
+- [ ] **Cancel out of build mode (fixed v0.1.159-dev, key changed same
+  day):** previously, once a piece was armed there was no way back out
+  at all, so a failed "Not enough materials" placement left you stuck
+  following a ghost forever. First attempt bound this to Escape, but
+  Escape is also read the same frame by `FirstPersonController` to
+  unlock the cursor — the two firing together left the cursor unlocked
+  with nothing actually open, and Tab's own guard (deliberately) refuses
+  to reopen the menu while the cursor's already unlocked, so Tab
+  appeared to do nothing. **Fixed for real with Right Mouse Button**
+  instead. Confirm **Right Mouse Button** while the ghost is following
+  the crosshair fully cancels (ghost disappears, nothing armed), while
+  Right Mouse Button during the rotate/confirm sub-phase just steps back
+  to following (doesn't fully cancel in one press). Also confirm the
+  Build tab's **"Armed (click to cancel)"** button un-arms the piece the
+  same way, and that Tab reopens the menu normally afterward either way.
 - [ ] **Edge-snapped placement (second Foundation):** with one Foundation
   already placed, arm Twig Foundation again and aim near one of its
   edges — the ghost should snap immediately to that edge (position *and*

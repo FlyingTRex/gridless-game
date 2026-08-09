@@ -35,11 +35,14 @@ public class PlayerBuilding : MonoBehaviour
     [SerializeField] private float panelHalfSize = 2.5f;
     [SerializeField] private float rotationStepDegrees = 90f;
     [SerializeField] private float scrollThreshold = 20f;
+    [SerializeField] private float storageRange = 10f;
     private const float MessageDuration = 3f;
 
     private PlayerInventory inventory;
     private PlayerSkills skills;
     private PlayerInteraction interaction;
+    private PlayerBackpack backpackCarrier;
+    private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
     private BuildPiece armedPiece;
     private SocketType[] armedSocketTypes = System.Array.Empty<SocketType>();
@@ -62,6 +65,24 @@ public class PlayerBuilding : MonoBehaviour
         inventory = GetComponent<PlayerInventory>();
         skills = GetComponent<PlayerSkills>();
         interaction = GetComponent<PlayerInteraction>();
+        backpackCarrier = GetComponent<PlayerBackpack>();
+    }
+
+    // Same reach as PlayerCrafting.ReachableInventories: main inventory
+    // first, then an equipped Backpack, then any nearby StorageBox — a
+    // player shouldn't have to empty their backpack onto the ground just
+    // to place a Foundation.
+    private IEnumerable<Inventory> ReachableInventories()
+    {
+        yield return inventory.Inventory;
+
+        var backpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
+        if (backpack != null)
+            yield return backpack.Inventory;
+
+        StorageBox.FindNearby(transform.position, storageRange, nearbyStorages);
+        foreach (var box in nearbyStorages)
+            yield return box.Inventory;
     }
 
     public bool CanPlace(BuildPiece piece) =>
@@ -154,17 +175,25 @@ public class PlayerBuilding : MonoBehaviour
     private void HandleInput()
     {
         var mouse = Mouse.current;
-        var keyboard = Keyboard.current;
         if (mouse == null) return;
+
+        // Right Mouse Button cancels — deliberately NOT Escape, which
+        // FirstPersonController also reads the same frame to unlock the
+        // cursor. Both firing together left the cursor unlocked with no
+        // screen actually open, and PlayerMenuScreen's Tab guard refuses
+        // to open while the cursor's already unlocked (avoids stacking on
+        // another screen) — net effect, Tab appeared to do nothing.
+        if (mouse.rightButton.wasPressedThisFrame)
+        {
+            if (phase == Phase.Locked)
+                phase = Phase.Following;
+            else
+                ArmPiece(null);
+            return;
+        }
 
         if (phase == Phase.Following)
         {
-            if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-            {
-                ArmPiece(null);
-                return;
-            }
-
             if (ghost != null && currentValid && mouse.leftButton.wasPressedThisFrame)
             {
                 if (snappedSocket != null)
@@ -192,10 +221,6 @@ public class PlayerBuilding : MonoBehaviour
             if (mouse.leftButton.wasPressedThisFrame)
             {
                 Confirm(lockedPosition, lockedRotation, null);
-            }
-            else if (keyboard != null && keyboard.escapeKey.wasPressedThisFrame)
-            {
-                phase = Phase.Following;
             }
         }
     }
@@ -237,7 +262,11 @@ public class PlayerBuilding : MonoBehaviour
         foreach (var ingredient in piece.ingredients)
         {
             if (ingredient == null || ingredient.item == null) continue;
-            if (IngredientMatching.GetCount(inventory.Inventory, ingredient.item) < ingredient.count) return false;
+
+            int total = 0;
+            foreach (var inv in ReachableInventories())
+                total += IngredientMatching.GetCount(inv, ingredient.item);
+            if (total < ingredient.count) return false;
         }
         return true;
     }
@@ -248,7 +277,19 @@ public class PlayerBuilding : MonoBehaviour
         foreach (var ingredient in piece.ingredients)
         {
             if (ingredient == null || ingredient.item == null) continue;
-            IngredientMatching.Remove(inventory.Inventory, ingredient.item, ingredient.count);
+
+            int amount = ingredient.count;
+            foreach (var inv in ReachableInventories())
+            {
+                if (amount <= 0) break;
+
+                int have = IngredientMatching.GetCount(inv, ingredient.item);
+                if (have <= 0) continue;
+
+                int take = Mathf.Min(have, amount);
+                IngredientMatching.Remove(inv, ingredient.item, take);
+                amount -= take;
+            }
         }
     }
 

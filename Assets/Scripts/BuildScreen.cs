@@ -24,7 +24,7 @@ public class BuildScreen : MonoBehaviour
     public void DrawContent()
     {
         GUILayout.Label("Building", DebugGUI.Header);
-        GUILayout.Label("Left Mouse Button to place, Scroll Wheel to rotate.", DebugGUI.Label);
+        GUILayout.Label("Left Mouse Button to place, Scroll Wheel to rotate, Right Mouse Button to cancel.", DebugGUI.Label);
         GUILayout.Space(10);
 
         bool any = false;

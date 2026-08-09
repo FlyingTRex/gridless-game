@@ -268,7 +268,7 @@ public class InventoryScreen : MonoBehaviour
         const float width = 220f;
         float height = choosingStorage
             ? 70f + Mathf.Max(nearbyStorages.Count, 1) * 26f
-            : 270f;
+            : 300f;
         var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
 
         DebugGUI.DrawPanel(rect);
@@ -371,6 +371,18 @@ public class InventoryScreen : MonoBehaviour
     // Normal destination list. Returns true once the popup should close.
     private bool DrawMoveDestinations()
     {
+        // Real gap found in playtesting (2026-08-09): Eat only ever showed
+        // in the main inventory list (DrawInventorySection) — an item
+        // sitting in a hand slot, backpack, or storage box (this popup)
+        // had no way to eat it at all without first moving it back to the
+        // main inventory.
+        var edible = eating != null ? eating.FindEdible(pendingMoveItem) : null;
+        if (edible != null && GUILayout.Button(edible.verb))
+        {
+            eating.TryEat(pendingMoveItem);
+            return true;
+        }
+
         if (GUILayout.Button("Drop"))
         {
             dropping?.DropFrom(pendingMoveSource, pendingMoveItem);

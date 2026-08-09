@@ -12,6 +12,37 @@ change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-09
 
+### v0.1.159-dev (follow-up) — Build-cancel key conflicted with cursor unlock; Building couldn't see Backpack/Storage materials
+
+Caught immediately by Ben re-testing the fixes above: arming a Foundation,
+failing to place it ("Not enough materials"), then pressing Escape to get
+out left the Player Menu unable to reopen at all ("nothing there" when
+pressing Tab). Two separate real bugs, not one:
+
+- **Escape was double-booked.** The build-cancel fix above bound cancel to
+  Escape, but `FirstPersonController` already reads Escape the same frame
+  to unlock the cursor. Both firing together left the cursor unlocked
+  with nothing actually open — and `PlayerMenuScreen`'s Tab handler
+  deliberately refuses to reopen while the cursor's already unlocked (so
+  it can't stack on top of another open screen), so Tab silently did
+  nothing. Moved build-cancel to **Right Mouse Button** instead, which
+  nothing else in `FirstPersonController` reads.
+- **`PlayerBuilding` only ever checked the main 4-slot inventory.** Ben
+  reported having enough Stick/Rope and still getting "Not enough
+  materials" — root cause: unlike `PlayerCrafting` (which already reaches
+  main inventory → equipped Backpack → nearby Storage Box), Building
+  never looked past the main inventory at all, from the very first
+  version of the system. Gave `PlayerBuilding` its own
+  `ReachableInventories()` mirroring Crafting's exact reach.
+- **Couldn't eat a Berry sitting in a hand.** Same shape of gap as the
+  Pickaxe-to-hand fix above, mirrored: Eat only ever showed in the main
+  inventory list (`DrawInventorySection`), never in the shared move-popup
+  used for a hand slot, Backpack, or Storage Box contents
+  (`DrawMoveDestinations`). Added an Eat button there too, shown first
+  when the item is edible.
+
+Verified via a full batch-mode compile check.
+
 ### v0.1.159-dev — Four more live-testing bugs: Berry pickup, Plank size, build-cancel, ingredient substitution
 
 Continuing the same-day system-test pass. Four issues from a single round
