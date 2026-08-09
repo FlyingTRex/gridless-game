@@ -5,12 +5,47 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.177-dev` — must always match `GameVersion` in
+**Current version:** `0.1.178-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-09
+
+### v0.1.178-dev — Stone Hammer head redesigned: crosswise, not a fatter cylinder
+
+Same-day follow-up to v0.1.177-dev. Ben's reaction to the shipped
+result, verbatim: "these models are horrible. can we make the hammer
+head look progressively like a real hammer instead of a cylinder of
+rock on a handle?" — accurate. The first version built the head as a
+continuation of the *same* axis as the handle, just widening — a
+lollipop/mace silhouette, not a hammer, regardless of how well the
+surface detail or tier progression worked.
+
+Rebuilt from scratch with the one change that actually mattered: the
+head is now a **separate tube built along a perpendicular axis** (Z,
+crosswise) centered where the handle (built along X, as before) meets
+it — the classic sledgehammer/maul silhouette, immediately readable at
+icon scale. Two independent ring-lofted meshes merged into one bmesh
+rather than one continuous profile function; the handle's far end
+extends slightly into the head's solid volume so there's no visible
+seam. Tier progression (head size shrinking from chunky/lumpy to
+compact/refined, surface noise fading, color darkening, a lashing
+collar at Fine/Masterwork) carried over unchanged from v0.1.177-dev's
+logic, just now applied along the head's own Z-axis length instead of
+continuing the handle's X-axis.
+
+Caught the fix's own rendering trap before it shipped: the throwaway
+Blender preview script had a fixed guessed camera position left over
+from the old shaft-and-blob layout, which badly cropped the new
+off-center head. Fixed by computing the camera position/orthographic
+scale from the object's actual bounding box instead of a hand-tuned
+guess - the same lesson `IconBaker` already applies for the real game
+icons, now applied to the throwaway Blender-side preview tooling too.
+
+Unity side: same in-place model swap as before. All 5 pickup prefabs
+re-swapped and re-baked; visually confirmed as a real, recognizable
+hammer at every tier before considering this done.
 
 ### v0.1.177-dev — Stone Hammer tiers get real Blender models; design constraint from Ben: the shaft doesn't improve with Hammer tier
 

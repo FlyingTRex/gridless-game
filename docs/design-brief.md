@@ -1672,6 +1672,16 @@ stay consistent with the already-completed full re-bake). The working
 fix was per-asset: push rough/matte base colors noticeably darker than
 they'd otherwise need to be once the model is smooth-shaded.
 
+**Same-day correction (v0.1.178-dev):** the shape lesson above was
+right, but the *first* shape shipped under it was wrong regardless —
+extending the head along the same axis as the handle just makes a
+bigger cylinder at the end (a lollipop/mace), not a hammer. Ben's
+verdict: "these models are horrible." The actual fix, and the
+transferable lesson for any future hafted tool: **a recognizable
+hammer/maul/axe-type silhouette needs its head built along an axis
+perpendicular to the handle**, not a continuation of it. Two separate
+ring-lofted tubes merged into one mesh, not one continuous profile.
+
 ## Open Questions / Next Decisions
 
 Reconciliation with `docs/game-overview.md` resolved the big cross-doc conflicts
