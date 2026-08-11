@@ -158,10 +158,63 @@ public class PlayerBuilding : MonoBehaviour
             bool wallOntoFoundation = socket.SocketType == SocketType.FoundationEdge
                 && System.Array.IndexOf(armedSocketTypes, SocketType.WallBottom) >= 0;
 
-            if (wallOntoFoundation)
+            // A Roof panel arming onto a Wall's own WallTop socket. The
+            // panel's pitch is already baked into its mesh geometry (built
+            // flat, then rotated and applied in Blender — see
+            // generate_roof_panel.py) with its eave sitting exactly at the
+            // model's local origin, same trick as Wall's own WallBottom.
+            // That means placement only needs a yaw. Same LookRotation as
+            // wallOntoFoundation below, not the mirrored/negated version —
+            // confirmed empirically (RoofDirectionCheck.cs, since-deleted):
+            // the Blender->glTF->Unity export flips the sign of the axis
+            // the branches run along, so the panel's baked-in ridge
+            // direction already lands inward, toward the building center,
+            // under the *same*-sign LookRotation. The negated version was
+            // tried first on hand math alone and put the ridge outside the
+            // building instead.
+            bool roofOntoWall = socket.SocketType == SocketType.WallTop
+                && System.Array.IndexOf(armedSocketTypes, SocketType.WallTop) >= 0;
+
+            // A Door arming onto a Door-Frame Wall's own DoorFrame socket.
+            // The frame socket sits at the doorway's hinge-side bottom
+            // corner, and the Door's own attach point sits at the exact
+            // same corner in its local space — the same point that also
+            // serves as its hinge pivot at runtime (see Door.cs), so no
+            // separate pivot child is needed either.
+            bool doorOntoFrame = socket.SocketType == SocketType.DoorFrame
+                && System.Array.IndexOf(armedSocketTypes, SocketType.DoorFrame) >= 0;
+
+            // A Foundation arming onto a Pole's own top-frame socket, to
+            // sit elevated on stilts. Foundation's new center-bottom
+            // PoleTop socket sits at the exact same local point its
+            // FoundationEdge sockets already use (local origin) — so it
+            // ends up "mostly buried" into the Pole's top frame the same
+            // way it's already mostly buried into the ground everywhere
+            // else, no new offset math, same visual convention either way.
+            bool foundationOntoPole = socket.SocketType == SocketType.PoleTop
+                && System.Array.IndexOf(armedSocketTypes, SocketType.PoleTop) >= 0;
+
+            if (wallOntoFoundation || roofOntoWall || foundationOntoPole)
             {
                 pos = socket.transform.position;
                 rot = Quaternion.LookRotation(socket.transform.forward, Vector3.up);
+            }
+            else if (doorOntoFrame)
+            {
+                // Negated, unlike the two cases above — confirmed
+                // empirically (DoorPlacementCheck.cs, since-deleted), not
+                // assumed from the Roof's own fix. generate_door.py builds
+                // the leaf spanning local X 0 -> doorWidth, but the
+                // measured imported bounds showed it actually sits in
+                // local -X after the Blender->glTF->Unity export — the
+                // same per-asset export-sign surprise the Roof hit on its
+                // Y axis, just on Door's X axis instead. Same-sign placed
+                // the leaf's bounds centered 1.15m off the doorway's
+                // actual center (outside the opening entirely); negated
+                // landed it 0.05m off (dead center, matching the small
+                // built-in clearance margin).
+                pos = socket.transform.position;
+                rot = Quaternion.LookRotation(-socket.transform.forward, Vector3.up);
             }
             else
             {

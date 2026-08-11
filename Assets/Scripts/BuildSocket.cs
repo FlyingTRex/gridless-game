@@ -11,6 +11,7 @@ public enum SocketType
     WallTop,
     WallSide,
     PoleTop,
+    DoorFrame,
 }
 
 // A typed anchor point on a build piece prefab — a child GameObject sitting
@@ -26,12 +27,24 @@ public class BuildSocket : MonoBehaviour
 
     // FoundationEdge pairs with another FoundationEdge (two foundation
     // panels tiling side by side) or a Wall's WallBottom (a wall rising
-    // from that edge) — the two pairings the Wall pass needs. Extend this
-    // switch, not a new mechanism, when Pole/Door sockets are added.
+    // from that edge). WallTop self-pairs — a Wall's own top socket and a
+    // Roof panel's eave socket are both WallTop, matching FoundationEdge's
+    // own self-pairing pattern for the same reason (either side of a Roof
+    // pass could arm first). Extend this switch, not a new mechanism, when
+    // Pole/Door sockets are added.
     public bool IsCompatibleWith(SocketType other) => socketType switch
     {
         SocketType.FoundationEdge => other == SocketType.FoundationEdge || other == SocketType.WallBottom,
         SocketType.WallBottom => other == SocketType.FoundationEdge,
+        SocketType.WallTop => other == SocketType.WallTop,
+        // A Door-Frame Wall's own frame opening and a Door piece's hinge
+        // attach point — same self-pairing shape as WallTop, since either
+        // side could in principle arm first.
+        SocketType.DoorFrame => other == SocketType.DoorFrame,
+        // A Pole's own top frame and Foundation's new center-bottom socket
+        // (2026-08-10) — same self-pairing shape again: a Foundation
+        // stacks on top of a Pole to sit elevated on stilts.
+        SocketType.PoleTop => other == SocketType.PoleTop,
         _ => false,
     };
 

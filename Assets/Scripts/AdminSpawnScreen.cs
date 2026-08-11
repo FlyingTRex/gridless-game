@@ -18,20 +18,32 @@ using System;
 // to update, unlike e.g. GameMenuScreen.ControlsList or PlayerCrafting's
 // recipes array.
 [RequireComponent(typeof(PlayerDropping))]
+[RequireComponent(typeof(PlayerGuilds))]
 public class AdminSpawnScreen : MonoBehaviour
 {
 #if UNITY_EDITOR
     private PlayerDropping dropping;
+    private PlayerGuilds playerGuilds;
     private ItemDefinition[] allItems = Array.Empty<ItemDefinition>();
     private BuildPiece[] allPieces = Array.Empty<BuildPiece>();
+    private GuildDefinition[] allGuilds = Array.Empty<GuildDefinition>();
     private Vector2 scrollPos;
 
     private void Awake()
     {
         dropping = GetComponent<PlayerDropping>();
+        playerGuilds = GetComponent<PlayerGuilds>();
         RefreshItemList();
         RefreshPieceList();
-        GrantStartingTestMaterials();
+        RefreshGuildList();
+        // GrantStartingTestMaterials() call disabled 2026-08-10, Ben's
+        // call — its 56 lbs of free Stick/Rope/Plank (every item still at
+        // the untuned default 1 lb weight) put a fresh character straight
+        // into Encumbrance's >95% overload tier before they'd picked
+        // anything up, making it impossible to test the lower tiers or a
+        // genuinely empty-inventory baseline. Method kept intact (not
+        // deleted) — re-enable this call whenever testing the Twig->Plank
+        // build-upgrade path again, which is what it was built for.
     }
 
     // Testing convenience (2026-08-09, Ben's ask): enough Stick + Rope on
@@ -40,6 +52,16 @@ public class AdminSpawnScreen : MonoBehaviour
     // this tool — never meant to ship; real players gather their own
     // materials. Not the Admin item-spawn list above (that's a manual
     // per-click tool) — this runs automatically once, at scene start.
+    //
+    // Plank grant added 2026-08-10 after Ben hit exactly the gap this
+    // comment already predicted — Admin Spawn's item list only grants 1
+    // per click (same as every item), and the new Plank-tier pieces cost
+    // 5-12 Plank each (69 total to build one of everything), so testing
+    // the Twig->Plank upgrade path meant either dozens of individual
+    // Admin Spawn clicks or grinding a tree for logs. 80 comfortably
+    // covers one of each Plank piece with slack to spare.
+    //
+    // Disabled (not called) as of 2026-08-10 — see the Awake() comment.
     private void GrantStartingTestMaterials()
     {
         var inventory = GetComponent<PlayerInventory>();
@@ -47,8 +69,10 @@ public class AdminSpawnScreen : MonoBehaviour
 
         var stick = AssetDatabase.LoadAssetAtPath<ItemDefinition>("Assets/Data/Stick.asset");
         var rope = AssetDatabase.LoadAssetAtPath<ItemDefinition>("Assets/Data/Rope.asset");
+        var plank = AssetDatabase.LoadAssetAtPath<ItemDefinition>("Assets/Data/Plank.asset");
         if (stick != null) inventory.AddItem(stick, 24);
         if (rope != null) inventory.AddItem(rope, 12);
+        if (plank != null) inventory.AddItem(plank, 80);
     }
 
     private void RefreshItemList()
@@ -71,6 +95,16 @@ public class AdminSpawnScreen : MonoBehaviour
         Array.Sort(allPieces, (a, b) => string.Compare(a?.pieceName, b?.pieceName, StringComparison.OrdinalIgnoreCase));
     }
 
+    private void RefreshGuildList()
+    {
+        var guids = AssetDatabase.FindAssets("t:GuildDefinition");
+        allGuilds = new GuildDefinition[guids.Length];
+        for (int i = 0; i < guids.Length; i++)
+            allGuilds[i] = AssetDatabase.LoadAssetAtPath<GuildDefinition>(AssetDatabase.GUIDToAssetPath(guids[i]));
+
+        Array.Sort(allGuilds, (a, b) => string.Compare(a?.guildName, b?.guildName, StringComparison.OrdinalIgnoreCase));
+    }
+
     // Called by GameMenuScreen while its Admin tab is active.
     public void DrawContent()
     {
@@ -81,6 +115,7 @@ public class AdminSpawnScreen : MonoBehaviour
         {
             RefreshItemList();
             RefreshPieceList();
+            RefreshGuildList();
         }
         GUILayout.Space(6);
 
@@ -111,6 +146,34 @@ public class AdminSpawnScreen : MonoBehaviour
             GUILayout.Label(piece.pieceName, DebugGUI.Label, GUILayout.Width(240));
             if (GUILayout.Button("Spawn", GUILayout.Width(70)))
                 SpawnPiece(piece);
+            GUILayout.EndHorizontal();
+        }
+
+        GUILayout.Space(14);
+        GUILayout.Label("Admin — Guilds", DebugGUI.Header);
+        GUILayout.Label($"Join/leave for testing — max {PlayerGuilds.MaxGuilds} at once, one Player-tab tile per joined guild. No in-world way to join yet.", DebugGUI.Label);
+        GUILayout.Space(6);
+
+        foreach (var guild in allGuilds)
+        {
+            if (guild == null) continue;
+
+            bool isMember = playerGuilds.IsMember(guild);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(guild.guildName, DebugGUI.Label, GUILayout.Width(240));
+
+            if (isMember)
+            {
+                if (GUILayout.Button("Leave", GUILayout.Width(70)))
+                    playerGuilds.Leave(guild);
+            }
+            else
+            {
+                GUI.enabled = playerGuilds.Joined.Count < PlayerGuilds.MaxGuilds;
+                if (GUILayout.Button("Join", GUILayout.Width(70)))
+                    playerGuilds.Join(guild);
+                GUI.enabled = true;
+            }
             GUILayout.EndHorizontal();
         }
 

@@ -11,6 +11,7 @@ public enum MovementStance
 
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerVitals))]
+[RequireComponent(typeof(PlayerEncumbrance))]
 public class FirstPersonController : MonoBehaviour
 {
     // Stamina tiers below SprintStaminaThreshold (see PlayerVitals) that
@@ -18,6 +19,23 @@ public class FirstPersonController : MonoBehaviour
     private const float LowStaminaThreshold = 10f;
     private const float LowStaminaSpeedMultiplier = 0.5f;
     private const float ZeroStaminaSpeedMultiplier = 0.1f;
+
+    // Carried-weight speed tiers (2026-08-10, Ben's call: "let's match the
+    // movement rates to strength rates") — reuses PlayerEncumbrance's own
+    // load-ratio breakpoints (50/80/90/95%) instead of a separate pair of
+    // thresholds, so the two systems agree on what "encumbered" means.
+    // Full speed and sprint below 50% (matches "no strength gain" —
+    // barely a burden); a graduated slowdown from there, sprint cut off
+    // once it stops being "marginal" (80%+); heaviest penalty plus the
+    // extra stamina drain lines up with the same >95% band that already
+    // costs health, so the worst movement state and the dangerous-overload
+    // state are the same moment, not two different thresholds to track.
+    private const float NoPenaltySpeedMultiplier = 1.0f;
+    private const float MarginalSpeedMultiplier = 0.85f;
+    private const float BetterTierSpeedMultiplier = 0.65f;
+    private const float MostTierSpeedMultiplier = 0.45f;
+    private const float OverloadedSpeedMultiplier = 0.25f;
+    private const float OverloadedExtraStaminaDrainPerSecond = 5f;
 
     [SerializeField] private Camera playerCamera;
     [SerializeField] private float moveSpeed = 4.5f;
@@ -33,11 +51,15 @@ public class FirstPersonController : MonoBehaviour
 
     private CharacterController controller;
     private PlayerVitals vitals;
+    private PlayerEncumbrance encumbrance;
     private PlayerRenaming renaming;
     private PlayerMenuScreen playerMenuScreen;
     private BankScreen bankScreen;
     private LockboxScreen lockboxScreen;
     private GameMenuScreen gameMenuScreen;
+    private NPCHiringScreen npcHiringScreen;
+    private NPCJobScreen npcJobScreen;
+    private PlayerNPCDeposit npcDeposit;
     private Vector3 velocity;
     private float pitch;
     private MovementStance stance = MovementStance.Standing;
@@ -46,11 +68,15 @@ public class FirstPersonController : MonoBehaviour
     {
         controller = GetComponent<CharacterController>();
         vitals = GetComponent<PlayerVitals>();
+        encumbrance = GetComponent<PlayerEncumbrance>();
         renaming = GetComponent<PlayerRenaming>();
         playerMenuScreen = GetComponent<PlayerMenuScreen>();
         bankScreen = GetComponent<BankScreen>();
         lockboxScreen = GetComponent<LockboxScreen>();
         gameMenuScreen = GetComponent<GameMenuScreen>();
+        npcHiringScreen = GetComponent<NPCHiringScreen>();
+        npcJobScreen = GetComponent<NPCJobScreen>();
+        npcDeposit = GetComponent<PlayerNPCDeposit>();
     }
 
     private void OnEnable()
@@ -74,6 +100,16 @@ public class FirstPersonController : MonoBehaviour
 
         if (keyboard.escapeKey.wasPressedThisFrame)
         {
+            // Targeting runs WITH the cursor locked (normal aiming), unlike
+            // every other screen here -- Escape should just cancel it and
+            // stay in gameplay, not also unlock the cursor into a state
+            // nothing else is expecting.
+            if (npcDeposit != null && npcDeposit.IsTargeting)
+            {
+                npcDeposit.CancelTargeting();
+                return;
+            }
+
             bool wasLocked = Cursor.lockState == CursorLockMode.Locked;
             Cursor.lockState = wasLocked ? CursorLockMode.None : CursorLockMode.Locked;
             Cursor.visible = wasLocked;
@@ -88,6 +124,8 @@ public class FirstPersonController : MonoBehaviour
                 bankScreen?.Close();
                 lockboxScreen?.Close();
                 gameMenuScreen?.Close();
+                npcHiringScreen?.Close();
+                npcJobScreen?.Close();
             }
         }
     }
@@ -140,9 +178,11 @@ public class FirstPersonController : MonoBehaviour
         if (keyboard.aKey.isPressed) input.x -= 1f;
         input = Vector2.ClampMagnitude(input, 1f);
 
+        float loadRatio = encumbrance.LoadRatio;
+
         bool isMoving = input.sqrMagnitude > 0.01f;
         bool wantsSprint = keyboard.leftShiftKey.isPressed && isMoving && stance == MovementStance.Standing;
-        bool isSprinting = wantsSprint && vitals.CanSprint;
+        bool isSprinting = wantsSprint && vitals.CanSprint && loadRatio <= PlayerEncumbrance.BetterGainThreshold;
         vitals.IsSprinting = isSprinting;
 
         // Regular movement drains stamina too, just slower than sprinting
@@ -172,7 +212,20 @@ public class FirstPersonController : MonoBehaviour
         else if (vitals.Stamina < LowStaminaThreshold)
             staminaMultiplier = LowStaminaSpeedMultiplier;
 
-        float speed = baseSpeed * staminaMultiplier;
+        float encumbranceMultiplier = NoPenaltySpeedMultiplier;
+        if (loadRatio > PlayerEncumbrance.OverloadThreshold)
+            encumbranceMultiplier = OverloadedSpeedMultiplier;
+        else if (loadRatio > PlayerEncumbrance.MostGainThreshold)
+            encumbranceMultiplier = MostTierSpeedMultiplier;
+        else if (loadRatio > PlayerEncumbrance.BetterGainThreshold)
+            encumbranceMultiplier = BetterTierSpeedMultiplier;
+        else if (loadRatio > PlayerEncumbrance.MarginalGainThreshold)
+            encumbranceMultiplier = MarginalSpeedMultiplier;
+
+        if (isMoving && loadRatio > PlayerEncumbrance.OverloadThreshold)
+            vitals.ConsumeStamina(OverloadedExtraStaminaDrainPerSecond * Time.deltaTime);
+
+        float speed = baseSpeed * staminaMultiplier * encumbranceMultiplier;
         Vector3 move = (transform.right * input.x + transform.forward * input.y) * speed;
 
         if (controller.isGrounded)
@@ -196,7 +249,20 @@ public class FirstPersonController : MonoBehaviour
         lastSprinting = isSprinting;
     }
 
-    private const string GameVersion = "0.1.182-dev";
+    // CharacterController.Move() resolves through its own kinematic capsule
+    // cast, not the normal PhysX solver, so it never fires OnCollisionEnter
+    // on whatever it touches — this is the actual message it does send, on
+    // the controller's own GameObject, once per thing it bumps into. Only
+    // consumer today is SoccerBall (2026-08-09), found live after it turned
+    // out completely un-kickable — walking into a Rigidbody without this
+    // hook just walks through it, no contact event fires anywhere.
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        if (hit.gameObject.TryGetComponent(out SoccerBall ball))
+            ball.TryKick(gameObject);
+    }
+
+    private const string GameVersion = "0.2.3-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

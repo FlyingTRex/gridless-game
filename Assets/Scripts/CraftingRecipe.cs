@@ -52,4 +52,15 @@ public class CraftingRecipe : ScriptableObject
     // (Boulder, Anvil, ...) must be within range — see
     // PlayerCrafting.HasNearbyAnvilSurface.
     public bool requiresAnvilSurface;
+
+    // False (default) means no such requirement. True means an equipped
+    // Canteen holding Water must have at least canteenWaterAmount —
+    // consumed on craft the same way Canteen.Drink consumes it, just
+    // feeding this recipe instead of Thirst (2026-08-10, Ben's call for
+    // Healing Paste: "combine the herbs with water" — water is a real
+    // tracked resource on the Canteen, not a stackable inventory item, so
+    // it can't be a normal Ingredient). See
+    // PlayerCrafting.HasCanteenWater/ConsumeCanteenWater.
+    public bool requiresCanteenWater;
+    public float canteenWaterAmount = 20f;
 }

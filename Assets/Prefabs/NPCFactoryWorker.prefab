@@ -1,0 +1,238 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &2377398613865981679
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_Name
+      value: NPCFactoryWorker
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6214440921828389087}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 18442220453067582}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6110376193284447232}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6138024901249061618}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4055500810525801307}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1629579989075382140}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 281308210804502276}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4874102329834152249}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4316012993688278746}
+  m_SourcePrefab: {fileID: -4161369568681901532, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+--- !u!1 &384420937806375696 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+  m_PrefabInstance: {fileID: 2377398613865981679}
+  m_PrefabAsset: {fileID: 0}
+--- !u!136 &6214440921828389087
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Radius: 0.3
+  m_Height: 1.4
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.7, z: 0}
+--- !u!114 &18442220453067582
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 33e7df5434f0c404d80fc4f2c4dffc9a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCWander
+  wanderRadius: 6
+  moveSpeed: 1.2
+  pauseDurationMin: 2
+  pauseDurationMax: 5
+  modelForwardOffsetY: 90
+--- !u!114 &6110376193284447232
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 174db652323496b48852818a839a0e1c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
+  npcName: Factory Worker
+  dialogueLine: Been a long shift out here. Never seen anything like this place before.
+  dialogueDuration: 4
+--- !u!114 &6138024901249061618
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: daca107e03e28594cb1220f0af726a52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCHiring
+  hireCoinType: 0
+  hireCoinAmount: 10
+--- !u!114 &4055500810525801307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ab9a28f2defe39458fa5fd21a9d987f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCJob
+--- !u!114 &1629579989075382140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1bfc1308da2c24945a027e52defbf225, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCSkills
+  startingLevels:
+  - skill: {fileID: 11400000, guid: 8060b273cf89ae84f83f7a2f6e18ef33, type: 2}
+    level: 30
+  - skill: {fileID: 11400000, guid: 7bc8b6051aa4fe7468a79381cfff10da, type: 2}
+    level: 30
+  - skill: {fileID: 11400000, guid: 7ba00d07aae8bc34ca076c0a09a0bef2, type: 2}
+    level: 30
+  - skill: {fileID: 11400000, guid: 0a07867101084164ca570ddefe76cda0, type: 2}
+    level: 30
+  - skill: {fileID: 11400000, guid: e72a58bed72a2b340817fd25c3af1927, type: 2}
+    level: 0
+--- !u!114 &281308210804502276
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 210182f2e349c9146bd6a4b90b98abfb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCEncumbrance
+  strengthSkill: {fileID: 11400000, guid: 8060b273cf89ae84f83f7a2f6e18ef33, type: 2}
+--- !u!114 &4874102329834152249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9c0ff12735c8c16479c7ee66b1cdedca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCCargo
+  capacity: 20
+--- !u!114 &4316012993688278746
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 10f34e8dfc5717645ae0b7c3c80800cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCMining
+  searchRadius: 50
+  mineRange: 2
+  mineDuration: 3
+  moveSpeed: 1.5
+  obstacleCheckDistance: 1.5

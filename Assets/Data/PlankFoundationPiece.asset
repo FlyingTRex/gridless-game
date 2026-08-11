@@ -18,7 +18,9 @@ MonoBehaviour:
   - item: {fileID: 11400000, guid: e51a1943e164464b8d0533a24ee79519, type: 2}
     count: 8
   trainedSkill: {fileID: 11400000, guid: a05cd28340d5c8b41bcf4af8f1892fe0, type: 2}
-  unlockTier: 0
+  unlockTier: 1
   skillGain: 1
   groundReach: 5
   nextTier: {fileID: 0}
+  icon: {fileID: 21300000, guid: 444f8f2f7ad46b6419a53d9f5fa550e1, type: 3}
+  previewIcon: {fileID: 21300000, guid: 81654cd7582e8d4499cf9d431b109562, type: 3}

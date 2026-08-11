@@ -5,6 +5,7 @@ using UnityEngine;
 // whatever's in a hand if both are already occupied by something the new
 // item can't stack into.
 [RequireComponent(typeof(PlayerEquipment))]
+[RequireComponent(typeof(PlayerEncumbrance))]
 public class PlayerLoot : MonoBehaviour
 {
     // Tried in order; Left Hand is evicted first if both are occupied.
@@ -13,18 +14,29 @@ public class PlayerLoot : MonoBehaviour
     private PlayerEquipment equipment;
     private PlayerBackpack backpackCarrier;
     private PlayerDropping dropping;
+    private PlayerEncumbrance encumbrance;
 
     private void Awake()
     {
         equipment = GetComponent<PlayerEquipment>();
         backpackCarrier = GetComponent<PlayerBackpack>();
         dropping = GetComponent<PlayerDropping>();
+        encumbrance = GetComponent<PlayerEncumbrance>();
     }
+
+    // At or over max capacity, refuse every pickup outright (2026-08-10,
+    // Ben's call: "whatever you try to pick up, you can't") — a hard gate
+    // on current load, not a per-item "would this specific pickup push
+    // you over" check. Existing callers (Pickup.Complete) already treat a
+    // full return value as "nothing fit, leave it on the ground," so no
+    // caller-side change was needed to make this land correctly.
+    private bool IsAtOrOverCapacity => encumbrance != null && encumbrance.LoadRatio >= 1f;
 
     // Returns the amount that did NOT fit anywhere (0 means fully picked up).
     public int Receive(ItemDefinition item, int quantity)
     {
         if (item == null || quantity <= 0) return quantity;
+        if (IsAtOrOverCapacity) return quantity;
 
         var backpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
         if (backpack != null)
@@ -70,6 +82,7 @@ public class PlayerLoot : MonoBehaviour
     public bool ReceiveEquipment(ItemDefinition item, IEquippable equippable)
     {
         if (item == null || equippable == null) return false;
+        if (IsAtOrOverCapacity) return false;
 
         var backpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
         if (backpack != null && !ReferenceEquals(backpack, equippable) && backpack.Inventory.AddEquipmentItem(item, equippable))

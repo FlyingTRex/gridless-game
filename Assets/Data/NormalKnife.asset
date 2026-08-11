@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Knife
   maxStack: 1
+  weight: 1
   tier: 2
   worldPickupPrefab: {fileID: 6877766037698798086, guid: 04c3c2843ba3e9c48b9ef93e926e7f6b, type: 3}
   icon: {fileID: 21300000, guid: fa761f1be17db7d40abdd88146c5077a, type: 3}

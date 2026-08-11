@@ -198,5 +198,8 @@ public class GameMenuScreen : MonoBehaviour
         GUILayout.Label("Pickaxe by CreativeTrio [Public Domain] via Poly Pizza", DebugGUI.Label);
         GUILayout.Label("Low Poly Axe by suerozcelik [CC-BY] via Poly Pizza", DebugGUI.Label);
         GUILayout.Label("Grass Wispy by Quaternius [Public Domain] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("Wolf by Quaternius [Public Domain] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("beef steak by Dario Demi (D911C) [CC-BY] via Poly Pizza", DebugGUI.Label);
+        GUILayout.Label("SD Macross Factory Worker by Tipatat Chennavasin [CC-BY] via Poly Pizza", DebugGUI.Label);
     }
 }

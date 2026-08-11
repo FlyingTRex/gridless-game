@@ -107,14 +107,25 @@ screen at character creation, staying consistent with the skill-via-use philosop
   allocation screen. These emerge over time as skills that grow through play — the
   same skill-via-use model as crafting (Pillar 2) — confirming how the Phase 1
   encumbrance item's "strength/athletics" skill is meant to work: it's grown, not
-  chosen.
+  chosen. **Shipped 2026-08-10 (`CHANGELOG.md` v0.1.189-dev), exactly as this
+  section anticipated:** Strength/Dexterity/Constitution/Intelligence are ordinary
+  `SkillDefinition`s (new `SkillCategory.Attribute`), grown via the same
+  `GainExperience` curve as every crafting skill, just surfaced on a new Player tab
+  instead of the Skills tab — no allocation screen was built. Only Strength has a
+  real mechanical hook so far (Encumbrance); the other three are display-only,
+  their planned hooks logged in `BUGS_AND_ENHANCEMENTS.md`.
 - **Skills grow through use, not assignment:** combat, crafting trades, medical, and
   foraging/gathering all improve through active use.
 - **Magic lineage** is the one randomized element at character creation — confirms
   Pillar 7 / Magic System above. Randomized only as a *starting point*, not a
   lifetime lock — see Magic System's learnable-lineage note.
 - **Deferred/optional layers:** Sanity/Morale and Reputation/Fame are candidates for
-  later phases, not part of the initial character model.
+  later phases, not part of the initial character model. **Placeholder UI only,
+  2026-08-10:** the Player tab (built for the core stats above) picked up `Fame: 0`
+  and `Faction: None` tiles the same day, purely so the full tab layout could be
+  judged together — no backing system, no data, nothing feeding them. Doesn't
+  change this section's "later phase" placement, just flagging that inert UI now
+  exists ahead of the real system.
 
 **Still open — flagged, not resolved here:** Ben's note that Reputation/Fame is a
 "later phase" candidate is worth squaring against this brief's existing Phase 2
@@ -839,6 +850,119 @@ rather than trusting this doc's own prior notes:
   their first lines of code at some point soon, since nothing currently
   in flight is trending toward any of the three on its own.
 
+**Updated again, v0.1.189-dev, after the previous session's Plank tier work
+closed out Building's own open items — Ben moved straight to "let's ideate
+on the encumbrance," so this update reflects real progress rather than a
+requested check-in:**
+- **Encumbrance & skill-based movement moves from not-built to built.**
+  `PlayerEncumbrance` (carried weight vs. a Strength-scaled capacity curve),
+  movement-speed and Stamina costs tied to load ratio, Strength itself
+  grown from carrying weight (real-time-calibrated pacing, not a guessed
+  number), and pickup blocked once at/over capacity. The one line-item this
+  wishlist entry asked for that's *not* built — "movement efficiency" also
+  improving with skill, on top of capacity — was explicitly closed as not
+  wanted rather than left open (Ben's call after reviewing the actual
+  numbers). See `CHANGELOG.md` v0.1.189-dev for the full build, and the
+  **Character Creation & Stats** section above for how the underlying
+  Strength/Dexterity/Constitution/Intelligence stats themselves reconcile
+  against this doc's existing "no point-buy" decision.
+- **Revised net read: 9 of Phase 1's 11 items now built, 2 entirely
+  unstarted: Basic combat + first aid, and Hireable autonomous NPCs.**
+  These two are now the whole remaining Phase 1 gap — nothing exists for
+  either, not even partially.
+- **Not part of Phase 1, but shipped alongside it and worth noting:** a
+  small Guild system (join up to 3, tiles on the new Player tab) and
+  Fame/Faction placeholder tiles — neither was a wishlist item for this
+  phase; both rode the same Player-tab UI work Encumbrance's stats needed
+  and are logged as their own open items in `BUGS_AND_ENHANCEMENTS.md`
+  rather than counted against this Phase 1 tally.
+
+**Updated again, v0.1.190-dev — Ben moved to "let's ideate on the combat
+and first aid" straight after Encumbrance closed:**
+- **Basic combat + basic first aid moves from not-built to built.** A
+  generic `IDamageable`/`HostileCreature` pair (not Wolf-specific — any
+  future hostile plugs into the same contact point), a tap-to-punch
+  `PlayerCombat` with its own cooldown, and a real Bare-handed
+  `SkillDefinition` that gains XP on hit. The placeholder hostile is a
+  Wolf (Quaternius model, scaled to size), tool-gated skinning on death
+  drops a 50% chance of Wolf Pelt plus 1-2 Raw Meat, tying combat
+  straight into the existing hunting/gathering loop rather than sitting
+  isolated. First Aid is a separate small system: a duplicated,
+  independent Herb Bush (F-key search, matching Berry Bush's own search
+  key rather than the primary-interact E it was first built on — Ben's
+  live correction after the shared model read as "looks the same, acts
+  different") feeding a new Medicine crafting discipline — Healing Paste
+  (3 Herb + Canteen water, gated/consumed via new
+  `CraftingRecipe.requiresCanteenWater` fields) and Bandage (Cloth +
+  Healing Paste) — both applied through a new `PlayerMedicine` that
+  mirrors `PlayerEating` exactly except routing into
+  `PlayerVitals.StartHealOverTime` for a gradual heal instead of an
+  instant one. Passive health regen was also slowed roughly 20x
+  (`healthRegenPerSecond` 1 → 0.05) per Ben's live call that it "regained
+  really quickly" — first aid needed to matter more than just waiting.
+  See `CHANGELOG.md` v0.1.190-dev for the full build, including two real
+  bugs found and fixed along the way (new pickups tunneling through
+  Ground from default `Discrete` collision detection; new colliders sized
+  from world-space `Renderer.bounds` coming out scaled wrong relative to
+  their local-space `Collider` fields).
+- **Revised net read: 10 of Phase 1's 11 items now built, 1 entirely
+  unstarted: Hireable autonomous NPCs.** That's the whole remaining Phase
+  1 gap now. Ben's already named the first step (an SD Macross Factory
+  Worker model, to start NPC interaction) but no code exists for it yet
+  as of this entry.
+
+**Updated same day, v0.1.191-dev — the first step named above landed
+right after this entry was written:**
+- **Hireable autonomous NPCs moves from zero code to a first placeholder
+  — still far from "hireable" or "autonomous" in any real sense.** SD
+  Macross Factory Worker (CC-BY, Poly Pizza) placed once in
+  `TestScene.unity`: idle-wanders within a radius of its spawn point (no
+  NavMesh in the project, same flat-ground `Vector3.MoveTowards` as
+  `HostileCreature`), and a minimal `NPCDialogue` gives it a Talk
+  interaction — one static placeholder line, no branching, no memory of
+  the player — that pauses the wander for its duration (Ben's explicit
+  call: "engaging the dialog should stop movement until the dialog is
+  complete"). No hiring, no tasks, no relationship/trust state, nothing
+  autonomous beyond picking a random point to walk to — genuinely just
+  "something stands in the world and you can talk to it," the floor
+  Ben asked to start from. See `CHANGELOG.md` v0.1.191-dev.
+- **Revised net read: still 10 of 11 by the wishlist's own bar** (the
+  item asks for *hireable* NPCs, which this isn't), but the "zero code,
+  not even partially" gap called out above is now closed — there's a
+  real placeholder to iterate on rather than a blank slate.
+
+**Updated same day, v0.1.192-dev through v0.1.198-dev — the placeholder
+above became the real thing, built in 6 reviewable chunks straight through
+in one sitting:**
+- **Hireable autonomous NPCs is now genuinely built, not just placeholder
+  wander-and-talk.** Click the NPC for a Hire/Fire/Pay menu (costs real
+  Coin via `PlayerCurrency`); once hired, assign it a job through a
+  `CraftingScreen`-style family→tiles picker (`Mining` → `Mine Ore`, gated
+  on the NPC's own Mining skill level, same tier curve crafting quality
+  already uses); hand it the tools it needs one at a time; it then walks
+  out on its own, finds and mines real ore/rock nodes in the world (not a
+  fake parallel system), carries what it mines in a real inventory, grows
+  its own Strength/Mining stats through the work, stays under an 80%
+  encumbrance cap, walks back to a player-designated Storage Box to
+  deposit once full, and works in real-world-time shifts (a 5-minute
+  stand-in for the wishlist's original "5 real days" — this project still
+  has no persistence layer, so the real duration waits on that being
+  built first) before needing to be paid to continue. Full build story,
+  including two real discoveries made mid-build (ore nodes turned out to
+  be multi-stage, not single-stage; batch-mode verification doesn't run
+  `Awake()`/`Update()` outside Play Mode, a lesson relearned across
+  several chunks) — see `CHANGELOG.md` v0.1.192-dev through v0.1.198-dev,
+  and `BUGS_AND_ENHANCEMENTS.md` for what's still genuinely open for a v2
+  pass (real persistence, more job types, visual tool equip, real
+  pathfinding, more than one hireable NPC at a time).
+- **Net Phase 1 read: 11 of 11 MVP items now built.** Every item on the
+  original Phase 1 wishlist has real, playtested code behind it as of
+  this entry — the first time that's been true this entire session.
+  Genuinely "done" only in the sense that every item has *a* build behind
+  it, not that any of them are feature-complete or fully polished — see
+  each system's own `BUGS_AND_ENHANCEMENTS.md` entries for what's still
+  open. Phase 2 scoping is the natural next planning conversation.
+
 ## Crafting, Gathering & Skills Pipeline (2026-08-04)
 
 Planning session working out the "still open" gap from the Skill-tied crafting
@@ -1078,8 +1202,12 @@ interaction primitive.
   `SkillDefinition`, keyed per item-family instead; nothing about how it's
   tracked, displayed, or how quickly it climbs has been designed.
 - The weapon-usage skills (Archery/Spear/Sword/Gun/Bare-handed, 2026-08-05) don't
-  mean anything without an actual combat/hunting system, which doesn't exist and
-  isn't designed here — only the skill *shape* is settled, nothing mechanical.
+  mean anything without an actual combat/hunting system — **updated
+  2026-08-10: Bare-handed is now a real, trained `SkillDefinition`, gaining
+  XP from `PlayerCombat`'s punch hits, since basic combat shipped that
+  session (see MVP Progress Check-In above).** Archery/Spear/Sword/Gun
+  remain purely design-only — only the skill *shape* is settled for those
+  four, nothing mechanical, and no ranged/melee-weapon combat exists yet.
 - Whether tool tier also boosts skill-gain rate, separately from yield/quality/speed.
 - Whether final Crafting (assembly) becomes a timed click-and-locked action or
   stays the current instant menu-based "Craft" button.
@@ -1106,26 +1234,147 @@ machine — free placement and edge-snapping both work), `BuildScreen` (its
 own tab, fully visible per the UI note below), and one real piece —
 **Foundation** (5m×5m, 4 edge sockets, Twig material, 6 Stick + 3 Rope).
 Two panels correctly tile edge-to-edge and the second inherits the
-first's exact top height. **Scoped down from the full design, flagged
-not hidden:** no support-column/stilt visual yet (Foundation is a flat
-slab only — the buried-block-vs-stilts question below is still open, and
-without a visible pedestal there's nothing yet to *look* wrong on
-sloped terrain, even though the 5m reach check itself is real and does
-gate snapped placement). **Pole and Door are not built; Wall shipped
+first's exact top height. **Scoped down from the full design at the
+time, later closed:** no support-column/stilt visual existed for a
+while (Foundation was a flat slab only), until **Pole shipped
+v0.1.187-dev** — see below for the full build. **Wall shipped
 v0.1.180-dev** — a real placeable Twig Wall (modeled and its texture
 baked entirely in Blender, no Tripo3D), snapping to a Foundation edge
 via a new `BuildSocket.IsCompatibleWith` pairing
 (`FoundationEdge`↔`WallBottom`) and real per-socket placement math in
 `PlayerBuilding` — the "Wall/Door will need real per-socket alignment
 math" gap this section's own placement description already flagged is
-now closed for the Wall case specifically (Door will need its own pass
-when it's built). See `CHANGELOG.md` v0.1.180-dev for the full build,
-including the new-to-this-project real texture-baking pipeline. Pole
-and Door still reuse this exact same `BuildPiece`/`BuildSocket`/
-`PlayerBuilding` machinery, not a second pass, when they're built.
+now closed for the Wall case specifically (Door got its own pass,
+v0.1.184-dev, below). See `CHANGELOG.md` v0.1.180-dev for the full
+build, including the new-to-this-project real texture-baking pipeline.
+Pole reused this exact same `BuildPiece`/`BuildSocket`/`PlayerBuilding`
+machinery too when it shipped (v0.1.187-dev, below), not a second pass.
 See `CHANGELOG.md` v0.1.156-dev for Foundation's own build notes,
 including a `RequireComponent`-auto-add gotcha that was *avoided* this
 time (learned from the Magic System's own incident).
+**Roof shipped v0.1.183-dev** — two Twig Roof Panels, placed one at a
+time (one per opposite wall), meet at a real ridge line. Same "same
+visual" Blender build as Wall, but with the 35° pitch baked directly
+into the mesh (built flat, rotated, applied) instead of runtime pitch
+math — placement only needs a yaw `LookRotation`, same pattern as
+`wallOntoFoundation`. Needed a new self-pairing `WallTop`↔`WallTop`
+socket case (a Wall's own new top socket and the Roof panel's eave
+socket are both `WallTop`) — the first socket pairing that isn't
+Foundation-rooted. See `CHANGELOG.md` v0.1.183-dev for the full build,
+including a real sign bug in the placement math (hand math said the
+panel's baked run direction needed negating; direct measurement in a
+throwaway batch-mode check showed the *un*-negated formula was
+correct — the Blender→glTF→Unity export flips the sign of the axis
+the branches run along). No ridge-socket lock between the two
+panels — they rely on matching math and symmetric wall placement to
+meet, which only holds when both walls sit on opposite Foundation
+edges of the same building.
+**Door solution shipped v0.1.184-dev** — three pieces: Twig Half-Wall
+(a 2.5m-wide Wall variant, zero new socket logic, reuses
+`wallOntoFoundation` as-is), Twig Door-Frame Wall (full 5m Wall
+footprint with a 1.2m×2.0m doorway cut in, exposing a new self-pairing
+`DoorFrame` socket at the doorway's hinge-side corner), and Twig Door
+itself — the first placed piece with any runtime behavior at all.
+`Door.cs` is bound to F (`ISecondaryInteractable`), not E
+(`IInteractable`) — tried E first, but every placed piece also becomes
+a `PlayerPieceUpgrade` target (E is its click-to-upgrade/hold-to-
+destroy key), so a Hammer equipped — the normal state while
+building — blocked the door's own E entirely. Ben caught this live
+within moments of testing; fixed by moving Door onto the
+already-existing "optional second action on its own key" system
+instead of trying to arbitrate ownership of E. Door opens away from
+wherever the player is standing at the moment of the click (a
+dot-product side test against the door's own forward), auto-closes 60s
+later. Its own local origin does double duty as both the socket attach
+point and the hinge pivot, so opening is just rotating the placed
+instance's root transform — no separate pivot child. Needed its own
+placement-math sign fix too, same shape as Roof's: hand math said the
+same-sign `LookRotation` `wallOntoFoundation`/`roofOntoWall` already
+use would work, but Door's own asymmetric model (built spanning local
+X 0→doorWidth) surfaced a second real Blender→glTF→Unity export sign
+flip, this time on the X axis — direct measurement showed the
+*negated* formula was actually correct here. Also found live, same
+category as the Foundation visual/collider lesson above: Door-Frame
+Wall's own `BoxCollider` was originally sized from the whole mesh's
+AABB, which can't carve out a hole — the doorway was completely solid
+(unwalkable, and silently blocking the interaction raycast before it
+ever reached the Door), fixed by splitting it into 3 boxes matching
+only the actual solid geometry. A third bug followed immediately:
+even with the doorway physically open, the player still couldn't fit
+through it. Foundation's own edge socket sits 0.4m below Foundation's
+actual walkable top surface — a "mostly buried" offset every wall
+inherits, invisible for a solid Wall but directly eating into a
+doorway's usable headroom. The original 1.2m×2.0m opening gave only
+1.6m of effective clearance above the real floor, against the
+CharacterController's 1.8m height. Resized to 1.5m×2.4m (2.0m
+effective clearance), confirmed this time with a batch-mode capsule
+check sized to the exact CharacterController dimensions rather than
+trusting the nominal doorway numbers again. See `CHANGELOG.md`
+v0.1.184-dev for the full build. The half-wall/door-frame/door plan
+floated alongside the roof (2026-08-09) is now fully built.
+**Gable Panel shipped v0.1.186-dev** — fills the last gap in a full
+4-wall building: the two Foundation edges that don't carry a Roof
+Panel sit under a *triangular* gap, not a rectangular one, since the
+ridge runs across the middle of the building parallel to the
+Roof-Panel walls. Base 5m, apex 1.75m (the same rise the Roof Panel
+already climbs at 35°, so the two meet flush by construction). Needed
+zero new `PlayerBuilding`/`BuildSocket` code at all — its own attach
+socket is `WallTop`, identical to Roof Panel's own, so it falls
+straight into the already-existing `roofOntoWall` placement branch.
+Known gap: its Build-tab icon renders unreadably small via
+`IconBaker`'s normal path for reasons not yet root-caused (see
+`BUGS_AND_ENHANCEMENTS.md`) — shipped with a manually-baked rough icon
+instead. This closes the wall-to-roof gap item from 2026-08-09's
+closing plan.
+**Pole shipped v0.1.187-dev** — the `PoleTop` socket type finally used
+for what it was named for back on 2026-08-08. One piece, Foundation's
+own 5m×5m footprint as an open stilt frame (4 corner posts, a beam
+frame at the top, another at half-height, no floor) instead of a solid
+slab. Tiles beside a Foundation with zero new code (its 4 edge sockets
+exactly mirror Foundation's own, so the existing flat-tiling formula
+just works); stacking a Foundation on top needed one new thing —
+Foundation itself gained a `SocketPoleTop` at its own local origin
+(the same point its `FoundationEdge` sockets already sit, 0.4m below
+its visible top surface), so a stilted Foundation keeps the exact same
+"mostly buried" look it already has on the ground, just embedded into
+the Pole's top frame instead. Closes the "buried-block-vs-stilts"
+question flagged as open all the way back at Foundation's own first
+build. Per-element colliders (one per post, one per beam) rather than
+one bounding box — the Door-Frame Wall doorway lesson applied
+proactively this time instead of found live. This was the last item
+from 2026-08-09's closing plan.
+**Plank tier shipped v0.1.188-dev** — Wall, Half-Wall, Door-Frame Wall,
+Door, Roof Panel, Gable Panel, Pole, and (finally) a real visual for
+Plank Foundation, which had sat as a placeholder flat-colored Cube
+since whenever the upgrade path was first wired. All 8 share one
+Blender pipeline (solid panel/box/triangle/frame + baked board-seam-
+and-grain texture) instead of Twig's bundled-branches-with-gaps look,
+and all reuse their Twig counterpart's exact socket layout, so every
+existing `PlayerBuilding` placement branch works completely unmodified
+— the only new work was wiring each one up as data. Also directly
+buildable from the Build tab now (`unlockTier` Rudimentary), not just
+reachable via the Hammer upgrade — including a retroactive fix to
+`PlankFoundationPiece.asset`, which had sat at `unlockTier: 0` (no
+skill gate) and outside `allPieces` entirely since v0.1.156-dev. See
+`CHANGELOG.md` v0.1.188-dev for the full build, including a real
+`shade_smooth()`-on-boxy-geometry bug caught and fixed along the way
+(same root cause on Pole's posts and every flat panel, one obviously
+wrong — rounded tubes — one subtle — a brightness shift), and a still-
+open icon-paleness issue affecting all 8 (`BUGS_AND_ENHANCEMENTS.md`).
+**The doorway-walkability bug from 2026-08-09 finally found its real
+cause the same day**, via Ben's own diagnostic catch (walking blocked,
+jumping through cleared it) — not a doorway or collider problem at
+all. Foundation's own exposed lip (0.4m, raised from 0.2m earlier the
+same day it was originally logged) exceeded the Player's
+`CharacterController.stepOffset` (0.3m), silently blocking walking
+onto *any* Foundation edge from ground level project-wide, not just
+through a doorway. Fixed by raising `stepOffset` to 0.45 rather than
+reverting the lip height. Confirmed live: "the door works much better
+just walking through it now." With this and Plank tier both done,
+Plank-tier pieces + upgrade-path testing — the last item from
+2026-08-09's closing plan — is built and batch-verified; live-testing
+each piece is still Ben's call before considering the Building System
+MVP item fully wrapped.
 **Upgrade/destroy shipped the same day, v0.1.157-dev:** click a placed
 Foundation with a Hammer in hand to upgrade it to **Plank Foundation**
 (8 Plank, real and built, not just wired infrastructure with nothing on

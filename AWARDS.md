@@ -8,6 +8,7 @@ ledger of good nights.
 
 | Award | Count |
 |---|---|
+| 🏆 MVP Trophy Sticker | 1 |
 | 🥈 Silver Star Sticker | 1 |
 | 🪓 Small Axe Sticker | 1 |
 | 🍪 Cookie with a Bite Sticker | 1 |
@@ -17,9 +18,47 @@ ledger of good nights.
 | 🏠 Little House Sticker | 1 |
 | ⚒️ Anvil Sticker | 1 |
 | 🧊 Blender Cube Sticker | 1 |
+| 🧮 Calculator Sticker | 1 |
 
 ## Log
 
+- **2026-08-10 — 🏆 MVP Trophy Sticker.** Hireable, Autonomous NPCs, start
+  to a genuinely working loop, all 6 chunks in one sitting: Hire/Fire/Pay
+  off real Coin, a `CraftingScreen`-style job picker gated on the NPC's
+  own skill tier, tool hand-off, core stats that actually grow, an 80%
+  encumbrance cap, a real autonomous mining loop against live world
+  `ResourceNode`s (not a fake parallel system), point-and-confirm deposit
+  targeting, and a real-time work/payment cycle. Two genuine mid-build
+  discoveries, not assumed away: ore nodes turned out to be multi-stage
+  (`PeekYield` now walks the whole `chunkPrefab` chain recursively,
+  confirmed live at 3×2×1=6 Copper from one node) and batch-mode edit-time
+  verification doesn't run `Awake()`/`Update()` the way Play Mode does,
+  relearned and worked around across several chunks rather than trusted
+  blind. Every chunk verified end-to-end via batch before being handed
+  over, not just structurally. Closes out the very last unbuilt item on
+  the whole Phase 1 wishlist — 11 of 11 MVP items now have real,
+  playtested code behind them, first time that's been true this session.
+  v0.1.192-dev through v0.1.198-dev.
+- **2026-08-09 — 🧮 Calculator Sticker.** The mathiest day yet, four
+  separate real-numbers problems in one session. Roof Panel pitch:
+  worked the 5m building width down to a 35° panel angle, 3.05m slant
+  length, and 1.75m ridge rise, then caught a genuine sign error by
+  measuring rather than trusting the trig — hand math said the placement
+  rotation needed negating, direct measurement said the opposite.
+  Door-Frame Wall clearance: traced "player too fat and tall" back to
+  Foundation's own socket sitting 0.4m below its walkable surface,
+  recomputed the doorway size against the CharacterController's actual
+  1.8m/0.4m dimensions instead of eyeballing a bigger number. Soccer
+  Ball launch: derived the real projectile-range formula
+  (`speed = sqrt(distance × gravity / sin(2 × angle))`) so a kicked
+  ball actually lands at its randomly-picked distance instead of just
+  getting shoved, then reverse-solved the resulting velocity back into
+  implied angle/distance to verify it. Soccer Ball rolling: simulated
+  real physics steps (`Physics.Simulate`, manual stepping) across five
+  damping candidates to find one that actually settles in a game-
+  reasonable time instead of guessing a damping constant. Every one of
+  the four checked against an actual measurement or simulation before
+  being trusted, not just the arithmetic on its own.
 - **2026-08-09 — 🧊 Blender Cube Sticker.** Got Blender wired into the
   pipeline as a genuine third asset-generation option alongside Tripo3D
   and manual editing — headless, scripted, no GUI (`blender --background
@@ -129,9 +168,29 @@ should have to get something right.
 |---|---|
 | 🐸💥 Squished Frog Sticker | 1 |
 | 🍓💀 Spoiled Strawberry Sticker | 1 |
+| 👓 Coke-Bottle Glasses Sticker | 1 |
 
 ### Demerits Log
 
+- **2026-08-09 — 👓 Coke-Bottle Glasses Sticker.** Built a genuine
+  truncated-icosahedron Soccer Ball in Blender — real pentagon/hexagon
+  geometry, correct black/white pattern — then handed Ben a plain grey
+  cube with a "Pick up Soccer Ball" prompt on first test. Verbatim:
+  "you clearly have never seen a soccer ball." Root cause: gave the
+  ball's `ItemDefinition` no `worldPickupPrefab`, so Admin Spawn (which
+  auto-lists it now that it's a real item) fell back to the game's
+  generic placeholder pickup instead of the actual model — a wiring
+  gap in the same setup pass that baked a perfectly good ball, not a
+  modeling mistake. Same night also shipped without testing that
+  `CharacterController` contact even fires a usable event (it doesn't
+  — see `OnControllerColliderHit`, CHANGELOG v0.1.185-dev) and without
+  simulating whether the kick would ever stop rolling (it wouldn't — a
+  rigid sphere in pure rolling never loses energy to friction alone).
+  Three real bugs on one "just for fun" feature, all found by Ben
+  actually playing with it, none caught by the batch-mode checks run
+  beforehand — the checks verified the math in isolation but never
+  once exercised the real spawn path, the real contact path, or the
+  real over-time physics.
 - **2026-08-09 — 🍓💀 Spoiled Strawberry Sticker.** Fixed
   `BerryPickup.prefab`'s null `Pickup.item` earlier the same day — and
   had `canRespawn: 0` sitting right there in the same field block I

@@ -5,8 +5,594 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## Next Session: Scene, Save/Load, Digging & Water (ideation only, 2026-08-10 — nothing built yet)
+
+Grew across one ideation conversation from "let's think about digging" into three
+related pieces. **Sequencing confirmed by Ben**, build in this order:
+
+### 1. Larger, organized test scene
+
+Ben's framing: "build a larger test scene, so we can start building some
+organization, and have space to build the next couple MVPs." Physical space
+for digging/water plus whatever Phase 2 work follows.
+
+- [ ] **Target size confirmed: 4x current total area.** `Ground` is
+  currently a 100×100 unit plane (Unity's built-in 10×10 Plane primitive,
+  scaled ×10 in X/Z, confirmed by reading the scene directly). 4x *area*
+  (not 4x each linear dimension, which would've been 16x area/400×400) —
+  Ben's pick — means **200×200**, i.e. doubling both X and Z scale.
+  Existing placed objects this session all sit within roughly ±20 units of
+  center, so there's real headroom even before the resize.
+- [ ] **Still fully open:** layout and how "organization" should actually
+  look (zoned by system? by biome? something else?) — not decided, work it
+  out live at the start of the session rather than guessing here.
+- [ ] **Procedurally generated with gentle hills — Ben's ask, confirmed
+  direction: Unity Terrain, not a bigger flat Plane.** `Ground` today is a
+  flat mesh, can't fake real elevation. Terrain's heightmap supports actual
+  hills via Perlin/Simplex noise sampled at a small amplitude (a few
+  meters of rise/fall across 200×200, "gentle" not mountainous — exact
+  amplitude/steepness left as tune-by-feel next session, not pinned down
+  now), scripted in a batch-mode Editor pass same as everything else this
+  project builds. **Real bonus, not just flavor:** Terrain's `SetHeights()`
+  API supports runtime height modification — adopting Terrain now plausibly
+  sets up real free-form dig-anywhere later (lower the heightmap locally at
+  a dig point) instead of needing a wholly separate system for that down
+  the road.
+  - **Two real migration costs, flagged honestly, not deferred as a
+    surprise:** (1) every object placed this session assumes flat `y=0`
+    ground — re-leveling every existing placement to the new surface
+    height at its (x,z) is real work, not just a resize, **still not
+    done**. (2) [x] **Movement height-tracking — done ahead of schedule,
+    shipped v0.2.3-dev.** New shared `GroundHeight` utility (a Ground-
+    layer-restricted raycast-down helper) wired into
+    `HostileCreature`/`NPCWander`/`NPCMining` at each spot they already
+    compute a new (x,z) — Y now snaps to the real ground surface instead
+    of staying untouched. Built and verified on today's still-flat
+    `Ground` (confirmed a genuine no-op there — same as before, down to
+    float noise) specifically so it's already correct by the time real
+    hills exist, no retrofit needed later. Full story in `CHANGELOG.md`.
+  - [x] **Grass texture itself already done, ahead of schedule — shipped
+    v0.2.1-dev.** `Ground.mat` now uses a real Gemini-generated, hand-fixed
+    seamless texture (`Assets/Textures/GrassTexture_Healed.png`) instead
+    of the old blurry 1024×1024 placeholder — full story in
+    `CHANGELOG.md` v0.2.1-dev (two Gemini attempts, an offset-and-heal
+    fix on the better one, verified live at the real 20×20 tiling
+    density, not just an isolated test). One faint residual seam line
+    remains, Ben's call to accept it for now. Whatever tiling
+    scale/repeat frequency the eventual Terrain layer ends up using will
+    need revisiting — this was tuned for the current flat Plane's 20×20,
+    not necessarily what 200×200 Terrain should use.
+- [ ] **Scatter a random number of trees (20-75) across the new scene,
+  placed once — Ben's ask.** Baked into the scene in a one-time batch pass
+  (same discipline as everything else hand-placed this project), not
+  regenerated every launch. [x] **Prerequisite done, ahead of schedule —
+  shipped v0.2.2-dev:** `Assets/Prefabs/Tree.prefab` now exists as a real,
+  reusable asset (extracted from the old one-off scene instance via
+  `PrefabUtility.SaveAsPrefabAssetAndConnect`, also renamed from a stale
+  "comparison only" label — full story in `CHANGELOG.md`). Actual
+  scattering itself is still not built. Placement rules to build
+  in from the start: **respect terrain height** at each tree's (x,z)
+  (same height-snapping concern as the hills work above — trees need it
+  too, not just moving NPCs), and **minimum spacing** both between trees
+  themselves and away from already-placed important objects (the NPC,
+  ore nodes, Water Puddle, spawn point) so a random roll can't drop one
+  on top of something that matters.
+- [ ] **Scatter ore the same way, using Boulders as the shared "ore"
+  object — Ben's explicit call, not 5 separately-modeled Ore Node
+  types.** [x] **Prerequisite done, ahead of schedule — shipped
+  v0.2.2-dev:** `Assets/Prefabs/Boulder.prefab` now exists as a real,
+  reusable asset, same extraction as Tree. **Found along the way:**
+  Boulder already carries an `AnvilSurface` component alongside
+  `ResourceNode` — every future scattered boulder will also work as a
+  crafting proximity point, not just an ore/rock source, for free. Actual
+  scattering/scarcity-config itself is still not built. **Real
+  pivot from how ore works today, not just a reskin:** checked Boulder's
+  actual config — it's currently a *plain* generic rock node (yields
+  Rock, trains `Gathering`, no tool required, `hiddenMaterial`/
+  `revealedMaterial` both unset). The 5 named Ore Nodes (Copper/Iron/
+  Silver/Gold/Platinum) are separate, differently-modeled objects today,
+  and only Silver/Gold/Platinum use the hidden-material disguise system.
+  Ben's ask means unifying these: every scattered rock is visually a
+  Boulder, and each instance's `chunkPrefab`/`trainedSkill`/
+  `requiredTools`/hidden-material config decides what it *actually*
+  yields — mostly plain Rock, with a randomized subset configured as
+  Copper/Iron/Silver/Gold/Platinum per the scarcity curve below, reusing
+  the same disguise mechanic the named Ore Nodes already use for the rare
+  tiers so nothing's knowable without cracking it open (or revealing it
+  with a Shield). **Still open, not decided:** whether Copper/Iron should
+  also go fully disguised under this new scheme (today they're always
+  visibly labeled "ore," not hidden) or keep reading as identifiable via
+  their required-tool prompt text before breaking — worth deciding
+  explicitly next session rather than assuming either way.
+  - **Proposed scarcity curve** (first-pass numbers, tune by feel like
+    everything else in this project — not locked): builds on the
+    existing 5-tier Copper→Iron→Silver→Gold→Platinum ladder (same order
+    as the currency tiers) and the fact Silver+ are already the
+    "hidden" tier. Copper ~15-25 (common), Iron ~10-15 (common), Silver
+    ~5-8 (hidden), Gold ~2-4 (hidden, rarer), Platinum 1-2 (hidden,
+    genuinely scarce — not "always findable" like today's guaranteed
+    single instance). Rest of the scattered boulders (not configured as
+    any ore tier) yield plain Rock, same as today's Boulder.
+  - Same placement rules as trees above (terrain-height respect, minimum
+    spacing from other boulders and important objects) apply here too.
+- [ ] **Scatter Berry Bush and Herb Bush the same way — Ben's ask.** No
+  prerequisite gap here, unlike Tree/Boulder: `BerryBush.prefab` and
+  `HerbBush.prefab` already exist as real, reusable prefabs (`HerbBush`
+  was built earlier this session, `BerryBush` already proper) — this is
+  placement work only. No tier/scarcity curve needed either, unlike ore —
+  each is a single gatherable type, not a 5-tier ladder. **Still open, not
+  decided:** how many of each (proposing a smaller range than trees as a
+  starting point, e.g. ~10-20 each, since understory bushes read as
+  sparser than trees in most games — not confirmed, adjust freely). Same
+  placement rules apply (terrain-height respect, minimum spacing from
+  each other and from important objects).
+- [ ] **Up to 5 Wolves the same way — Ben's ask.** No prerequisite gap:
+  `Wolf.prefab` already exists as a real, reusable prefab (built during
+  this session's Combat work). Random count, capped at 5 rather than an
+  open range like the passive resources — wolves are hostile, more of
+  them changes how dangerous the scene feels to move around in while
+  testing everything else, not just a density choice. **One placement
+  rule that's genuinely different from the passive scattering above:**
+  keep a deliberate minimum distance from the *player's spawn point*
+  specifically, not just from other objects — the two wolves already in
+  the scene were hand-placed at ±14/±8 for exactly that reason (a fresh
+  spawn shouldn't get immediately jumped). Same terrain-height/minimum-
+  spacing rules otherwise apply.
+- [ ] **3-5 NPCs the same way — Ben's ask, to really stress-test the
+  Hireable NPC system.** No prerequisite gap: `NPCFactoryWorker.prefab`
+  already exists as a real, reusable prefab (every Hireable NPC chunk
+  built onto it). **Genuinely valuable beyond just more content:**
+  multiple clones of the same prefab each need their own persistent
+  identity (hired state, job, tools, cargo, skill growth) rather than
+  sharing one — exactly the kind of case that would catch a broken
+  stable-ID design in the save/load work early instead of after the
+  fact. Also gives real resource contention for free once boulders are
+  scattered too — two NPCs' `FindTarget` competing for the same nearby
+  node, one falling back to the next-nearest once the first claims it.
+  **Two real resource considerations to have ready, not blockers:**
+  hiring costs 10 Copper each (5 NPCs = 50 Copper, but the player starts
+  with only 20 — needs Admin-spawned currency or a starting-balance
+  bump to actually test "hire all 5"), and each Mining-assigned NPC needs
+  its own Pickaxe + Mining Face Shield + Backpack (5 NPCs = 15 tools
+  total to fully equip everyone). **Still open:** whether multiple NPCs
+  share one deposit container or each get their own — either is
+  technically fine (`NPCJob.DepositContainer` has no exclusivity today),
+  worth deciding live next session depending on what's more useful to
+  test. Same placement rules as Wolves (spawn-point distance, terrain
+  height, minimum spacing) apply.
+
+### 2. Save/load persistence (v1, deliberately narrow scope)
+
+Ben's framing: "we'll need to do a 'save state' so that the game can continue
+where we're at, instead of restarting at every test." Nothing in this project
+persists anything today — confirmed by grepping the whole codebase, zero
+`DateTime`/save-file/serialization code exists anywhere. This is the biggest
+of the three pieces and the one most worth getting the shape right on before
+building more content on top of it. Real design problems to solve, not just a
+file format choice:
+
+- **Reference resolution** — `Inventory` slots store direct `ItemDefinition`
+  references (a ScriptableObject asset), and `PlayerSkills`/`NPCSkills` key
+  off `SkillDefinition` the same way. Neither serializes cleanly to
+  JSON/binary as-is; needs a stable string ID per asset (name or a assigned
+  key) plus a runtime lookup registry to resolve back to the real asset on
+  load.
+- **Stable identity for world objects** — nothing in this project has a
+  persistent identity today; everything is "whatever object happens to sit at
+  this spot in the hand-edited scene file." Saved data (a Storage Box's
+  contents, an ore node's broken/respawning state, the NPC's hired/job/cargo
+  state) needs some way to reattach to the *same* object when the scene loads
+  fresh next time — likely a small `SaveId`-style component/GUID tag on each
+  persistent object, mirroring how small single-purpose interfaces
+  (`IWaterSource`, `IRenameable`) are already this project's convention for
+  "mark an object as having this capability."
+- **Proposed shape** (not committed, discuss before building): a central
+  `SaveManager` writing/reading one JSON file
+  (`Application.persistentDataPath`), plus a small interface (e.g.
+  `ISaveable` — `CaptureState()`/`RestoreState()`) that relevant components
+  implement, same convention as everything else in this codebase.
+- **Deliberately narrow v1 scope** — same "ship the real useful slice,
+  document the gaps" discipline as every other system this session. Covers:
+  Player (inventory, vitals, skills, currency, equipment, position),
+  Storage Boxes, ore/resource nodes, and the Hireable NPC (hired state, job,
+  tools, cargo, stats, position). **Explicitly deferred, not a v1 gap to
+  silently fix:** loose dropped/spawned world pickups, built structures
+  (`BuildPiece` placements), Lockbox/Bank contents — revisit once v1's
+  actually proven.
+
+### 3. Digging + water scarcity, built into the new space from day one
+
+Original digging plan (Shovel + dig sites + new raw material) unchanged from
+the first pass — see below — plus a new tie-in Ben asked to fold into the same
+session:
+
+- [ ] **Shovel — 5-tier item + recipe**, same pattern as Pickaxe/Knife/
+  Hammer/Axe (Crude/Rudimentary/Normal/Fine/Masterwork). Stonework
+  discipline — same "stone head/edge defines the tool" rule the other
+  stone tools already follow, no new discipline needed. Needs a real
+  model (Blender tier-shape family or a Poly Pizza source, session
+  execution detail, not decided here).
+- [ ] **Dig sites, not free-form digging (Ben's pick, session 1)** — a
+  `ResourceNode` instance dressed as a loose dirt/clay/sand patch,
+  `requiredTools` = the Shovel tiers, same hold-to-break shape every
+  gathering node in this game already uses. **Ground itself almost
+  certainly does NOT need to change for this** — a self-contained "hole"
+  prop (its own small crater mesh, walls + a fake-depth floor) can sit at
+  the dig site and appear on break, the same "swap in a prop" trick a
+  chopped tree's stump or a broken Rock Node's chunks already use. Needs
+  one small, generic addition to `ResourceNode`: an optional
+  `holeVisualPrefab` field shown on break / hidden on respawn — reusable
+  by any future node that wants a "left a mark" visual, not Shovel-only.
+  **Free-form dig-anywhere (point the shovel at any ground point) is
+  explicitly deferred** — that's what would actually require giving
+  `Ground` real volume (it's currently a bare Unity Plane primitive, zero
+  thickness, confirmed by reading the scene directly) or moving to a real
+  terrain/heightmap system. Genuinely harder, its own later multi-session
+  arc, not part of this first pass.
+- [ ] **New raw material — Clay/Dirt/Sand (Ben's pick over buried loot or
+  earthworks for session 1)**. Exact name/count of materials not decided.
+  **Still fully open, explicitly deferred to next session:** what actually
+  consumes it. Leading idea floated but not committed: a new Building
+  material tier (Clay/Adobe bricks after Plank, or a mortar ingredient) —
+  gives Building a real next step and digging an immediate payoff, but
+  Ben's call was "figure it out next session," not decided now. Don't
+  assume this without checking in first.
+- [ ] **Still open, same shape as the Mining-vs-Gathering question from
+  Hireable NPCs:** does digging train the existing generic `Gathering`
+  skill, or does it warrant its own dedicated skill? Worth deciding
+  explicitly rather than defaulting either way.
+- [ ] **Water becomes a locally-limited resource, reusing the same prop
+  trick.** There's already a real, working proof this trick works for water
+  specifically — a single `WaterSource` in `TestScene.unity`, literally
+  named "Water Puddle," a flat disc prop (not a `Ground` cut) that already
+  powers both Drink (`IInteractable`) and canteen-Fill
+  (`ISecondaryInteractable`) via the existing `IWaterSource` marker
+  interface. The only thing missing is scarcity — it's currently
+  **unlimited**, no capacity tracked at all. Plan: give `WaterSource` a real
+  `remaining` amount that both Drink and Fill draw down, dry up at 0, and
+  slowly regenerate over time (same shape as `ResourceNode.respawnDelay`,
+  continuous instead of binary) standing in for rain/runoff until a real
+  weather system exists. Ponds are just a bigger version of the same prop
+  (bigger radius/capacity). **Possible later tie-in, not committed:** a dug
+  hole eventually becoming its own small water catchment over time — nice
+  connective tissue between the two systems, not part of this pass.
+  **Build this through the new save/load system from day one** rather than
+  retrofitting persistence onto it afterward — `WaterSource.remaining` and
+  each dig site's broken/respawning state are exactly the kind of world
+  state save/load v1 needs to prove itself against.
+
+## Enhancements — Phase 2 (MVP 2) Backlog
+
+**Draft, not finalized (2026-08-10) — Ben's explicit call: "we won't
+consider this finalized yet."** Pulled together from `docs/design-brief.md`'s
+existing "Phase 2 — Settlement depth" list (Systems Wishlist section) and its
+dedicated Factions, Guilds & Warbands section, now that Phase 1 closed out in
+full, so there's a working list to pick off chunk-by-chunk the same way
+Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
+every item below as a discussion candidate, not a committed plan, until Ben
+signs off on scope and order.
+
+- [ ] **Universal degradation** — nothing lasts forever; gear, buildings, and
+  vehicles decay if left unmaintained.
+- [ ] **Skill books/magazines** — readable items granting basic training or
+  boosting an existing skill, an alternate path alongside learn-by-doing.
+  Also the unlock vehicle for learning a second magic lineage and for
+  found/scribed Scrolls (see design-brief.md's Magic System section) — those
+  ride this same mechanic, not separate systems.
+- [ ] **Gardening** — harvest seeds, plant and grow crops.
+- [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
+  extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather
+  than replacing it.
+- [ ] **Fame/reputation system** — skill mastery earns fame in that trade
+  line, and fame feeds back into the world (a renowned hunter attracts
+  rarer/better game, a famous blacksmith draws better customers/prices).
+  Distinct from Phase 1's skill-tied quality mechanic: quality is about
+  *your* competence, fame is the world *recognizing* it. **Already has
+  inert placeholder UI** (`Fame: 0` tile on the Player tab, zero backing
+  system) — see design-brief.md line ~124. **Still open, flagged but not
+  resolved:** Ben separately floated Fame/Reputation as a possible *later*
+  phase (pushed past Phase 2 entirely) — never confirmed either way against
+  this Phase 2 placement. Worth deciding explicitly before building.
+- [ ] **Basic transportation** — log raft/boat up through a cart; a tamed
+  animal can pull a cart or carry loot.
+- [ ] **Larger/settlement-level storage** — distinct from Phase 1's personal
+  `StorageBox`.
+- [ ] **Building tiers beyond shelter** — progressing toward town-scale
+  construction; includes real-estate options beyond building from scratch
+  (rent, buy, construct).
+- [ ] **Combat/medical tiers deepen** — ranged weapons; first aid grows
+  toward surgery. Includes equippable infirmaries within a player's
+  compound, staffable with hired NPC medics — direct extension of the
+  Hireable NPCs work that just shipped (a new job family/type, same
+  `NPCJob`/`NPCJobDefinition` shape Mining already uses).
+- [ ] **Reverse engineering & manuals** — disassemble items to learn their
+  schematics, then write instructional manuals/grimoires to mentor other
+  players or NPCs. Ties into the skill-books item above as the inverse
+  (author your own instead of finding a pre-made one).
+- [ ] **Factions** — reputation/trust standing driven by behavior (safe,
+  productive settlements build trust; raiding erodes it). Separate from
+  Fame above and from Warbands below. **Already has inert placeholder UI**
+  (`Faction: None` tile), same as Fame.
+- [ ] **Merchant Guilds** — craft-skill bonuses and trade perks, not
+  territorial. Structured apprenticeships for advanced crafting tiers,
+  exclusive trade contracts, preferential exchange rates on volatile
+  assets (gems), guild-backed caravan protection. **Partially seeded**: a
+  small real "join up to 3 Guilds" system (`PlayerGuilds`) already shipped
+  ahead of schedule this session — membership only, none of the
+  bonus/perk/apprenticeship mechanics described here yet.
+- [ ] **Warbands/Militias** (Phase 3, listed here for context since it's
+  part of the same Factions/Guilds/Warbands trio) — the literal combatant
+  groups in Settlement Warfare. A Warband's conduct can move its members'
+  Faction standing even though the two systems are otherwise separate.
+
 ## Bugs
 
+- [x] **Hireable, autonomous NPCs — v1 COMPLETE (2026-08-10), all 6 chunks
+  shipped same day (v0.1.192-dev through v0.1.198-dev).** This closes out
+  the last of Phase 1's 11 MVP items — see `docs/design-brief.md`'s MVP
+  Progress Check-In for the full tally. Kept here (not moved to
+  `CHANGELOG.md` outright) because several real follow-ups below are
+  still genuinely open for a v2 pass, not resolved by v1 shipping.
+  Ideation session straight after placing
+  `NPCFactoryWorker`, working out Core Pillar 3's actual shape
+  (design-brief.md line 36: "you assign them jobs... they execute
+  autonomously over time — Dwarf Fortress-style delegation"). Full
+  mechanic, as agreed:
+  - **Hire/Fire/Pay is a click-driven menu on the NPC, separate from the
+    existing Talk interaction — shipped, Chunk 1.** `NPCHiring` +
+    `NPCHiringScreen`, see `CHANGELOG.md` v0.1.192-dev. Hiring costs 10
+    Copper via `PlayerCurrency.Spend`. `IsWaitingForPayment`/`TryPay`
+    finally have a real caller — Chunk 6's work timer, see below.
+  - **Job assignment reuses `CraftingScreen`'s family→tiles shape — shipped,
+    Chunk 2.** `NPCJobDefinition`/`NPCJob`/`NPCJobScreen`, see
+    `CHANGELOG.md` v0.1.193-dev. Pick a job family (a real discipline
+    `SkillDefinition` — `Mining`, newly created, not a separate NPC-only
+    skill system), then a job tile within it (`Mine Ore`, the only one
+    that exists). **Tier gating shipped, Chunk 3** — see below. **Can be
+    reassigned to a different family later** — an already-hired NPC
+    isn't locked to its first job forever, though reassigning wipes its
+    currently-equipped tools (see below).
+  - **Core stats start at a flat 3 — shipped, Chunk 3; growth now actually
+    happens — shipped, Chunk 4.** New `NPCSkills`
+    (Strength/Dexterity/Constitution/Intelligence, on the same 0.25-10
+    displayed scale `PlayerEncumbrance` already uses for the player —
+    Strength 3 ≈ 90 lb capacity via the existing `17.3925 × Strength^1.5`
+    curve, confirmed live) and Mining at true zero. `NPCMining` now calls
+    `GainExperience` on the job's family skill (Mining) every time it
+    mines a node — confirmed live via batch (0 → 0.5 after one mine).
+    Visible in `NPCHiringScreen`'s Stats section.
+  - **Never picks up past 80% loaded — shipped, Chunk 3; now actually
+    fed real weight — shipped, Chunk 4.** New `NPCEncumbrance.CanPickUp`,
+    reuses `PlayerEncumbrance.BetterGainThreshold` directly rather than a
+    new NPC-only constant. `CarriedWeight` is computed from a real
+    `NPCCargo` inventory (Chunk 4) rather than a manually-incremented
+    number — Chunk 3's original `AddCarriedWeight`/`RemoveCarriedWeight`
+    never got a real caller and were removed in favor of this. No
+    Strength-grows-from-carrying-load tick exists yet (unlike the player)
+    — Mining trains directly off the job's skill-gain instead.
+  - **Job tiers now actually gate on skill — shipped, Chunk 3.** Reuses
+    `CraftTierScale.SkillRequirement` directly (job tier 1 → Crude → level
+    0, tier 2 → Rudimentary → level 10, ...) instead of a second threshold
+    curve. `Mine Ore` requires level 0, so it's always available at a
+    fresh NPC's Mining 0 — the gating is real even though today's single
+    job never actually gets hidden by it.
+  - **Player supplies the tools (mining: shield, pickaxe, backpack) at
+    assignment time — shipped, Chunk 2**, one "Give" button per tool
+    category, pulling from the player's main inventory only (not hands/
+    backpack — simplest first pass). **Tools are lost for good on Fire or
+    on reassignment to a different job** — deliberately no
+    return-to-player-inventory step, Ben's explicit call for simplicity.
+    **No visual equip** — `NPCFactoryWorker` has no rig/attachment points,
+    so this is data-only for now, matching `HostileCreature`'s "death is
+    just a rotation" level of visual investment.
+  - **The autonomous mining loop itself — shipped, Chunk 4.** New
+    `NPCMining`: finds the nearest available `ResourceNode` within 50m
+    (real world objects — every Ore Node/Rock Node/Boulder in the scene,
+    not a fake parallel system) it can use and carry, walks to it, mines
+    it via a new `ResourceNode.TryMineForNPC`/`PeekYield` pair (the
+    existing `Complete()` is hard-wired to `PlayerEquipment`/
+    `PlayerSkills`), repeats. **Stops entirely once full** — no deposit
+    destination exists yet, that's Chunk 5.
+  - **Real discovery mid-build: ore nodes are multi-stage.** Copper Ore
+    Node's `chunkPrefab` is itself another `ResourceNode`
+    (`CopperOreChunk`), not a `Pickup` — only that yields the real item.
+    `PeekYield` now walks the chain recursively (guarded depth, same
+    shape `IngredientMatching.Satisfies`'s `baseItem` walk already uses),
+    multiplying counts (3 × 2 × 1 = 6 Copper, confirmed live). See
+    `CHANGELOG.md` v0.1.195-dev for the full story.
+  - **Deposits mined ore at a player-designated container — shipped,
+    Chunk 5.** New `PlayerNPCDeposit` (point-and-confirm targeting, same
+    shape Ben compared to Building's socket selection) sets
+    `NPCJob.DepositContainer`; `NPCMining` walks back once it can't find
+    anything else to mine, drains cargo into the box (leftover-safe if it
+    doesn't fully fit), then resumes searching. **Falls back to Chunk 4's
+    "just stop" behavior if no deposit point has ever been set** — a job
+    assigned before targeting a container still works, just doesn't
+    self-manage. New `PlayerInteraction.SuppressInteraction` flag so
+    confirming the target (E) doesn't also trigger `StorageBox`'s own
+    pickup interaction (also E) in the same keystroke.
+  - **No NavMesh in this project (same constraint `HostileCreature`/
+    `NPCWander` already live with) — bump-and-turn shipped, Chunk 4.**
+    A short forward raycast before each move step; if blocked, slides
+    along the obstacle's surface tangent instead of pushing through or
+    getting stuck. Not real pathfinding — an NPC boxed in on all sides
+    (e.g. inside an unfinished building) could still get stuck; not yet
+    hit live, flagged proactively.
+  - **NPC trains its own job-family skill (Mining), not the node's own
+    `trainedSkill` (still `Gathering` on every ore node — `Mining` didn't
+    exist before this session's Chunk 2).** The same physical action
+    training a different skill depending on who's doing it is a real,
+    known quirk — not fixed here, since retroactively repointing every
+    ore node's `trainedSkill` would also change what the *player* trains
+    by mining them, not something to decide silently mid-chunk. Worth a
+    real decision from Ben before Mining/Gathering diverge further.
+  - **Work period is a 5-minute real-world timer for now, explicitly a
+    stand-in — shipped, Chunk 6.** This project has zero persistence
+    anywhere (`grep` confirmed no `DateTime`/save-load/`PlayerPrefs` code
+    exists at all), so the design brief's original "5 real days" can't be
+    built or even tested without a save system that survives closing the
+    Editor. **Real persistence (replacing the 5-minute stand-in with an
+    actual multi-day real-world timer) stays a separate, later
+    prerequisite, not part of this feature.** New `NPCJob.IsReady`
+    (pulled out of `NPCMining`'s own duplicated check) gates the timer —
+    only ticks while actually working. `NPCMining` now also refuses to
+    work while `IsWaitingForPayment`, as a third condition in its own
+    readiness gate rather than routing through the `SetPaused` mechanism
+    `NPCDialogue` already uses (multiple independent pausers fighting over
+    one shared bool was a real risk — Talk ending mid-payment-wait could
+    have wrongly resumed a should-still-be-stopped NPC).
+  - **Scope, deliberately chunked rather than one build** (Ben's call,
+    matches how every other big system this session shipped in
+    reviewable passes) — all 6 shipped: **(1)** Hire/Fire/Pay state
+    machine + currency spend — v0.1.192-dev. **(2)** job family/tier
+    picker screen + tool hand-off (data-only, no auto-equip visual) —
+    v0.1.193-dev. **(3)** NPC core stats (flat 3) + the 80% encumbrance
+    cap + skill-gated job tiers — v0.1.194-dev. **(4)** the actual
+    autonomous mining loop, including the bump-and-turn obstacle behavior
+    and the multi-stage ore-node discovery — v0.1.195-dev. **(5)**
+    container-targeted deposit + return-to-mining — v0.1.197-dev. **(6)**
+    the work timer/waiting-for-payment state — v0.1.198-dev.
+  - **Still genuinely open for a v2 pass** (not resolved by v1 shipping):
+    real persistence + the actual multi-day timer; more job families/jobs
+    beyond Mining → Mine Ore; visual tool equip (`NPCFactoryWorker` has no
+    rig/attachment points); unifying Mining vs. the older Gathering skill
+    that every ore node still trains for the player; real pathfinding
+    (today's bump-and-turn can still get an NPC boxed in stuck); hiring
+    more than one NPC at a time (only one exists in the world today).
+- [ ] **`CraftingRecipe.requiresCanteenWater` only checks a Canteen held
+  in a hand, not one attached to a Belt (2026-08-10).**
+  `PlayerCrafting.FindEquippedCanteen` only looks at `PlayerEquipment`'s
+  Left/Right Hand slots. A Belt-worn Canteen (the Belt system supports
+  carrying a Canteen on an attachment point as an alternative to a hand,
+  per `CHANGELOG.md`'s Belt entry) would silently fail Healing Paste's
+  water-gate check even with plenty of water aboard. Not yet hit live,
+  flagged proactively rather than found the hard way — fix would mean
+  reaching into `Belt`'s own attachment points the same way `PlayerLoot`/
+  `PlayerCanteen` already do for equip-destination purposes.
+- [ ] **Only Bare-handed exists of the five weapon-usage skills named back
+  in the 2026-08-05 Crafting/Gathering/Skills Pipeline planning
+  (Archery/Spear/Sword/Gun/Bare-handed) — 2026-08-10.** Basic Combat
+  shipped with fists-only; no melee weapon (Spear, Knife-as-weapon) or
+  ranged weapon (Bow) actually deals combat damage yet, so those four
+  skills still have nothing to train them, same as before this session's
+  Combat work. Bare-handed's own numbers (9 dmg, 0.7s cooldown) were
+  picked to fit a first-pass placeholder Wolf, not vetted against a real
+  weapon-tier progression.
+- [ ] **Dexterity / Constitution / Intelligence — display-only, no growth
+  hooks or mechanical effects yet (2026-08-10).** Strength shipped fully
+  (see `CHANGELOG.md` v0.1.189-dev); the other three core stats exist as
+  real `SkillDefinition`s (`SkillCategory.Attribute`) with a Player-tab
+  tile and a "Growth" bar each, but nothing ever calls `GainExperience`
+  on them and they have no mechanical effect on anything. Ben's explicit
+  scope call: build these later, following Strength's exact established
+  pattern for consistency. Planned shape for each, from the original
+  ideation conversation (not yet built, not yet confirmed final):
+  - **Dexterity** — grows from sprinting, jumping, sneaking, ranged
+    combat. Drives movement efficiency under load — though note
+    Encumbrance's own movement-efficiency question was explicitly
+    closed as *not wanted* (Ben, 2026-08-10: "I think that the relative
+    amounts apply nicely. no change to that") — worth confirming
+    Dexterity's hook still makes sense before building it, rather than
+    assuming the original ideation note still holds.
+  - **Constitution** — grows from surviving damage, repeatedly hitting 0
+    Stamina, environmental exposure. Drives max Health/Stamina growth
+    over time (both vitals are currently a fixed 100 cap in
+    `PlayerVitals` — would need the same "grows through use" treatment
+    `Will`/`GrowMaxWill` already has).
+  - **Intelligence** — grows from completing wishes (magic discovery).
+    Drives `PlayerVitals.GrowMaxWill` growth, *and* a proposed global
+    multiplier on XP gained by every other skill (smart characters learn
+    faster) — rough shape floated: `xpGained *= 1 + (intLevel / 200)`,
+    capping at +50% at Intelligence 100. Not vetted against real numbers
+    the way Strength's capacity/gain-rate curves were (comparison
+    artifacts, calibrated pacing) — treat as a starting point, not a
+    locked formula.
+  *(Reported by Ben.)*
+- [ ] **Fame / Faction — placeholder tiles only, no backing system
+  (2026-08-10).** Added to the Player tab alongside the 4 core stats
+  purely so the full tab layout could be seen and judged together; both
+  read a static `Fame: 0` / `Faction: None` with nothing feeding them.
+  Conceptually different from the core stats — reputation/standing
+  driven by other NPCs'/factions' view of the player, not personal
+  `GainExperience` — so building these out is a different kind of system
+  than Dexterity/Constitution/Intelligence above, not just "the next
+  stat in line." No design work done beyond the placeholder tiles.
+  *(Reported by Ben.)*
+- [ ] **32 `ItemDefinition` items still need a deliberate `weight` value —
+  all currently sitting at the untuned 1 lb default (2026-08-10).**
+  `CraftTierScale.WeightModifier` (Backpack/Knife/Axe/Hammer/Pickaxe
+  ladders) and the Small Rock/Ore hand-tuned values are done; everything
+  else (raw/refined materials, the Trimmed Stick and Leather Backpack
+  ladders, standalone gear, wearable gadgets, Soccer Ball) hasn't been
+  touched yet. Full categorized list, with the already-tuned values for
+  reference:
+  https://claude.ai/code/artifact/7d9bc035-141e-457d-98bf-c7e45da9464c
+  *(Reported by Ben — "go through all items, and create an artifact of
+  the items that need a weight assigned... log an enhancement with the
+  link... so we can go back and build this later.")*
+- [ ] **Upgrading a placed Twig Door to Plank Door visibly misaligns it
+  in the frame — a real gap on one side, live-confirmed by Ben
+  2026-08-10 ("door issue is really bad when upgraded to plank").**
+  Suspected root cause, not yet confirmed: `PlayerPieceUpgrade.Upgrade()`
+  doesn't re-run `PlayerBuilding`'s own `doorOntoFrame` placement
+  formula when swapping a piece to its next tier — it just copies the
+  *old* instance's exact world position/rotation onto the new prefab
+  (`Vector3 pos = target.transform.position; Quaternion rot = target.
+  transform.rotation;`, same for every piece type, not door-specific).
+  That only stays correct if Twig Door and Plank Door share the *exact*
+  same local convention (hinge at local origin, body extending the same
+  direction post-export) — worth directly measuring both models' own
+  bounds at identical transforms to confirm whether they actually
+  match, rather than assuming. Deliberately not investigated further
+  yet — Ben's call to log it and revisit later rather than keep
+  debugging in the moment.
+- [ ] **Every Plank-tier icon (Wall/Half-Wall/Door/Door-Frame Wall/Roof/
+  Gable/Pole/Foundation, all 8) bakes visibly pale/washed-out under
+  `IconBaker`, unlike every Twig-tier icon with the identical lighting
+  rig (2026-08-10).** Root cause identified, not yet fixed: Plank's own
+  established base color (0.78, 0.65, 0.42 — matching `PlankFoundation`'s
+  pre-existing flat material) is light enough that `IconBaker`'s ambient
+  (flat white, intensity 1.0) + 2 directional lights push it toward
+  white, while Twig's much darker wood-grain tones (0.10-0.34 range)
+  have enough headroom under the identical rig to not clip. Confirmed
+  by ruling out two other hypotheses first: bumping material roughness
+  0.55→0.82 (matching Twig's own value) made no difference; neither did
+  switching from smooth to flat shading (a real, separate bug found and
+  fixed along the way — see `CHANGELOG.md` v0.1.188-dev — but not the
+  cause of the paleness). Fixing this for real means either darkening
+  Plank's own color (which would then mismatch `PlankFoundation`'s
+  already-established shade) or adjusting `IconBaker`'s lighting
+  intensity (shared by every icon, Twig included — risky to touch
+  without re-baking the whole existing set). Left unfixed per Ben's
+  call rather than picking one of those trade-offs unilaterally.
+- [ ] **`IconBaker`'s tight-fit framing renders `TwigGablePanelPieceIcon`
+  tiny and off-center, tried multiple camera directions, none worked
+  (2026-08-10).** Not a bad-angle problem — a bad angle reads as
+  foreshortened-but-full-frame (what Roof Panel's icon looked like
+  before its own fix), not tiny-in-a-corner. Tried the exact direction
+  already proven working for Roof Panel's own flat/wide shape
+  (`(0, 0.6, 1.5)`) and it still came out tiny. A simpler debug camera
+  using a fixed `orthographicSize` (bypassing `IconBaker`'s tight-fit
+  corner-projection math in `BakeOne()` entirely) produced a clean,
+  correctly-framed result with the *same* direction — isolating the
+  bug specifically to that corner-projection/offset logic, not the
+  camera angle or this piece's own geometry. Root cause not found;
+  shipped with the rough icon (Ben's call, rather than keep guessing
+  blind) — see `CHANGELOG.md` v0.1.186-dev. Worth investigating if
+  another asset hits the same failure, since a real fix there would
+  also un-block using `IconBaker`'s normal path for this piece instead
+  of the manual bake-and-wire workaround currently in place.
+  **Second confirmed case, 2026-08-10 (`BandageIcon`):** identical
+  symptom — baked as two thin crossing lines, not the actual roll+tail
+  model — isolated the same way (a manual fixed-orthographic bake of the
+  identical geometry came out clean). Not an elongated-shape-specific
+  quirk either — Gable Panel is flat/wide, Bandage is a short chunky roll
+  with a thin tail, different proportions entirely — so whatever's wrong
+  in `BakeOne()`'s corner-projection math isn't narrowly scoped to one
+  geometry class. Shipped with the same manual-bake workaround again.
+  Two independent confirmations now; worth prioritizing a real fix if a
+  third asset hits it, rather than accumulating more manual-bake
+  one-offs.
 - [ ] **Silver/Gold/Platinum still don't have a refined "bar" item the
   way Copper/Iron do** (v0.1.121-dev gave them the missing punchable
   mid-tier, matching Copper/Iron structurally, but the final tier still

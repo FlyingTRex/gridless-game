@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17f85ac9db3fc704b91d2ef0a58fed7b, type: 3}
+  m_Name: TwigRoofPanelPiece
+  m_EditorClassIdentifier: Assembly-CSharp::BuildPiece
+  pieceName: Twig Roof Panel
+  prefab: {fileID: 7138679834811550140, guid: c01fb2a8ded5fc1439a1d55a7d15cfe9, type: 3}
+  ingredients:
+  - item: {fileID: 11400000, guid: d492f069a86086445a701543be636fce, type: 2}
+    count: 10
+  - item: {fileID: 11400000, guid: fc31fc9fd8d24ad397bc4e646de0e557, type: 2}
+    count: 5
+  trainedSkill: {fileID: 11400000, guid: a05cd28340d5c8b41bcf4af8f1892fe0, type: 2}
+  unlockTier: 0
+  skillGain: 1
+  groundReach: 0
+  nextTier: {fileID: 11400000, guid: 04bc973e0511bd848822b13b825005a7, type: 2}
+  icon: {fileID: 21300000, guid: 068447f3e28ed5a429344912bc58d21d, type: 3}
+  previewIcon: {fileID: 21300000, guid: 3ee0aa4ea33527740b1d00cdbdbe63c0, type: 3}

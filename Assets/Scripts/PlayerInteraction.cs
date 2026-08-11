@@ -29,6 +29,17 @@ public class PlayerInteraction : MonoBehaviour
     private string currentSecondaryPrompt;
     private float holdProgress;
 
+    // Lets an external "point at a world object and press E to confirm"
+    // flow (e.g. PlayerNPCDeposit, Chunk 5 of the Hireable NPCs build,
+    // 2026-08-10) claim E for its own purposes without also triggering
+    // whatever IInteractable the player happens to be aiming at (a
+    // StorageBox's own E is "pick up the box" -- confirming it as a
+    // deposit target would otherwise also pick it up in the same
+    // keystroke). Only suppresses Complete()/CompleteSecondary() calls,
+    // not ResolveTarget() itself, so `current` doesn't go stale while
+    // suppressed and hold progress can't silently keep counting up either.
+    public bool SuppressInteraction { get; set; }
+
     // Resolved fresh each frame by ResolveWishTarget. currentWishTarget is
     // null for the generic Rigidbody-push case (no specific IWishTarget on
     // the hit object) — HandleWish branches on that to know which
@@ -63,7 +74,7 @@ public class PlayerInteraction : MonoBehaviour
 
         var keyboard = Keyboard.current;
 
-        if (current != null && keyboard != null)
+        if (current != null && keyboard != null && !SuppressInteraction)
         {
             if (current.IsInstant)
             {
@@ -97,7 +108,7 @@ public class PlayerInteraction : MonoBehaviour
             holdProgress = 0f;
         }
 
-        if (!string.IsNullOrEmpty(currentSecondaryPrompt) && keyboard != null && keyboard.fKey.wasPressedThisFrame)
+        if (!SuppressInteraction && !string.IsNullOrEmpty(currentSecondaryPrompt) && keyboard != null && keyboard.fKey.wasPressedThisFrame)
             currentSecondary.CompleteSecondary(gameObject);
 
         ResolveWishTarget();

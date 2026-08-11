@@ -192,6 +192,22 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
         return true;
     }
 
+    // Same mechanics as Drink (decrements Amount, empties out at 0) but
+    // feeds a recipe instead of Thirst — added 2026-08-10 for
+    // CraftingRecipe.requiresCanteenWater. Only succeeds against Water
+    // specifically (a recipe combining herbs with, say, carried juice
+    // wouldn't make sense) and only if amount is fully available — no
+    // partial consumption, matching how ingredient counts work elsewhere.
+    public bool ConsumeWater(float amount)
+    {
+        if (Liquid != LiquidType.Water || Amount < amount) return false;
+
+        Amount -= amount;
+        if (Amount <= 0f) Liquid = null;
+        UpdateVisuals();
+        return true;
+    }
+
     // Fully hides the object while it's stashed in a regular inventory slot
     // rather than sitting in the world or carried in hand/on the belt.
     public void Stash()

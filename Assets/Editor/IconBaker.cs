@@ -89,7 +89,16 @@ public static class IconBaker
     // full re-bake sweep after a framing change) without a separate Unity
     // launch per item — Bake() above is a thin command-line-args wrapper
     // around this for the normal single-item case.
-    public static bool BakeAndWire(GameObject modelAsset, string itemAssetPath, int resolution, int previewResolution, string outputName)
+    //
+    // cameraDirection overrides the default fixed 3/4-from-above angle —
+    // needed for pieces whose own long axis happens to run close to
+    // parallel with that default (found on the Roof Panel, 2026-08-09: its
+    // baked-in slope direction nearly lines up with the default angle,
+    // foreshortening the whole fan of branches into what reads as a single
+    // line). Null (the default) keeps every already-baked icon's framing
+    // exactly as it was — this is an opt-in per-asset override, not a
+    // change to the shared default.
+    public static bool BakeAndWire(GameObject modelAsset, string itemAssetPath, int resolution, int previewResolution, string outputName, Vector3? cameraDirection = null)
     {
         if (SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null)
         {
@@ -103,12 +112,12 @@ public static class IconBaker
         // an object reference held from before they ran (turns into a
         // stale/destroyed Unity Object) — reloading it fresh right before
         // use, after all baking is done, sidesteps that.
-        var sprite = BakeOne(modelAsset, resolution, outputName);
+        var sprite = BakeOne(modelAsset, resolution, outputName, cameraDirection);
         if (sprite == null) return false;
 
         Sprite previewSprite = null;
         if (previewResolution > 0)
-            previewSprite = BakeOne(modelAsset, previewResolution, outputName + "Preview");
+            previewSprite = BakeOne(modelAsset, previewResolution, outputName + "Preview", cameraDirection);
 
         var itemAsset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(itemAssetPath);
         if (itemAsset == null)
@@ -133,7 +142,7 @@ public static class IconBaker
 
     // Renders one image at the given resolution and returns the imported
     // Sprite, or null if anything failed (already logged).
-    private static Sprite BakeOne(GameObject modelAsset, int resolution, string outputName)
+    private static Sprite BakeOne(GameObject modelAsset, int resolution, string outputName, Vector3? cameraDirection = null)
     {
         var tempScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
@@ -177,8 +186,11 @@ public static class IconBaker
 
         // Fixed 3/4-from-above angle — matches the framing every icon
         // baked with this tool so far has used, for a consistent look
-        // across the whole icon set.
-        Vector3 dir = new Vector3(1f, 0.8f, -1f).normalized;
+        // across the whole icon set. Overridable per-asset via
+        // cameraDirection for the rare shape (e.g. Roof Panel) whose own
+        // long axis runs close enough to parallel with this default to
+        // foreshorten it into an unreadable sliver.
+        Vector3 dir = (cameraDirection ?? new Vector3(1f, 0.8f, -1f)).normalized;
         cameraGO.transform.position = bounds.center + dir * maxDim * 3f;
         cameraGO.transform.LookAt(bounds.center);
 

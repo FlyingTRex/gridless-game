@@ -126,6 +126,31 @@ models and their own (different) licensing situation.
   otherwise. Actively being used. **In the Credits tab as of
   v0.1.139-dev.**
 
+## Wolf by Quaternius
+
+- File: `Assets/Models/Wolf_Quaternius.glb`
+- Source: [Poly Pizza](https://poly.pizza)
+- License: **Public domain** — no attribution required, but Ben asked
+  for the full credits treatment anyway per the download popup:
+  `Wolf by Quaternius`
+- Status (2026-08-10, v0.1.190-dev): first Basic Combat target —
+  `HostileCreature` (idle/detect/chase/attack/death), skinnable with a
+  Knife once dead for Wolf Pelt + Raw Meat, first real user of the new
+  `Bare-handed` weapon-usage skill (`SkillCategory.Combat`, previously
+  design-only). Actively being used. **In the Credits tab as of
+  v0.1.190-dev.**
+
+## beef steak by Dario Demi (D911C)
+
+- File: `Assets/Models/BeefSteak_DarioDemi.glb`
+- Source: [Poly Pizza](https://poly.pizza)
+- License: CC-BY — attribution required.
+- **Required attribution text (exact, from the download popup):**
+  `beef steak by Dario Demi (D911C) [CC-BY] via Poly Pizza`
+- Status (2026-08-10, v0.1.190-dev): `RawMeat.asset`'s `worldPickupPrefab`
+  — Raw Meat drops from skinning a killed Wolf (`HostileCreature`).
+  Actively being used. **In the Credits tab as of v0.1.190-dev.**
+
 ## Wood Planks by Quaternius
 
 - File: `Assets/Models/WoodPlanks_Quaternius.glb`
@@ -140,3 +165,25 @@ models and their own (different) licensing situation.
   v0.1.137-dev** — unlike Rock by Quaternius above, added to the live
   tab despite being public domain, per Ben's explicit request this
   time.
+
+## SD Macross Factory Worker by Tipatat Chennavasin
+
+- File: `Assets/Models/NPCFactoryWorker.glb`
+- Source: [Poly Pizza](https://poly.pizza)
+- License: CC-BY — attribution required.
+- **Required attribution text (exact, from the download popup):**
+  `SD Macross Factory Worker by Tipatat Chennavasin [CC-BY] via Poly Pizza`
+- Status (2026-08-10): first step toward Hireable autonomous NPCs (Phase
+  1's last unbuilt item) — Ben's explicit request. Raw import was a
+  static (no armature/animations) 6-mesh chibi/SD figure roughly 0.71m
+  tall; rejoined into one mesh, uniformly scaled to a 1.4m target
+  height, and re-origined to feet-at-ground in Blender before export so
+  no additional Unity-side scale was needed (avoiding the world/local
+  collider-scale bug hit on `RawMeatPickup`/`Wolf` earlier this
+  session — collider numbers here were hand-computed directly in local
+  space instead). Placed once in `TestScene.unity` with a new
+  `NPCWander` component (idle wander within a radius of its spawn
+  point, same flat-ground `Vector3.MoveTowards` approach as
+  `HostileCreature`, no NavMesh) — deliberately no interaction, dialogue,
+  or AI yet, since nothing about NPCs is designed beyond the name.
+  **In the Credits tab as of this entry.**

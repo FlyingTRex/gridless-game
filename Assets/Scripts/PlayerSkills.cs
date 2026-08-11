@@ -56,10 +56,32 @@ public class PlayerSkills : MonoBehaviour
         },
     };
 
+    [System.Serializable]
+    public class StartingLevel
+    {
+        public SkillDefinition skill;
+        public float level;
+    }
+
+    // Core stats start above the .25 floor (2.0 displayed, per Ben's call
+    // 2026-08-10) rather than untrained-from-zero like crafting skills —
+    // everyone has SOME baseline strength/dexterity/etc. Level 20 here
+    // maps to GetAttributeValue's displayed 2.0 (level/10). Crafting
+    // skills need no entry here; they're meant to start at true zero.
+    [SerializeField] private StartingLevel[] startingLevels;
+
     private readonly Dictionary<SkillDefinition, float> levels = new Dictionary<SkillDefinition, float>();
 
     private string message;
     private float messageExpireTime;
+
+    private void Awake()
+    {
+        if (startingLevels == null) return;
+        foreach (var entry in startingLevels)
+            if (entry.skill != null)
+                levels[entry.skill] = entry.level;
+    }
 
     // Read by SkillsScreen (the Skills tab of PlayerMenuScreen, Tab key) to
     // render the level list — this component no longer draws its own UI.
@@ -67,6 +89,15 @@ public class PlayerSkills : MonoBehaviour
 
     public float GetLevel(SkillDefinition skill) =>
         skill != null && levels.TryGetValue(skill, out var level) ? level : 0f;
+
+    // Core stats (Strength today; Dexterity/Constitution/Intelligence
+    // later, see BUGS_AND_ENHANCEMENTS.md) grow on this same 0-100
+    // GainExperience track as every other skill, just remapped to a
+    // .25-10 display range on the Player tab per Ben's call (2026-08-10)
+    // — a .25 floor so an untrained stat never reads as literal zero, and
+    // 1.0 lands at skill level 10 (a modest early gain).
+    public float GetAttributeValue(SkillDefinition skill) =>
+        Mathf.Max(0.25f, GetLevel(skill) / 10f);
 
     // How long a hold-based action gated on this skill takes right now —
     // read by ResourceNode/ChoppableTree (and, later, timed Crafting) via

@@ -70,6 +70,13 @@ public class ResourceNode : MonoBehaviour, IInteractable
 
     public bool IsInstant => false;
 
+    // Read by NPCMining (2026-08-10, Chunk 4 of the Hireable NPCs build)
+    // to find/filter targets and check its own equipped tools without
+    // needing PlayerEquipment, which it doesn't have.
+    public bool IsAvailable => respawnAt < 0f;
+    public ItemDefinition[] RequiredTools => requiredTools;
+    public float SkillGain => skillGain;
+
     // Replaced the old hitsToBreak/punch-N-times model 2026-08-08 — see
     // design-brief.md's Interaction model note. Duration is skill-driven
     // (low tier takes longest), not fixed per node.
@@ -140,6 +147,81 @@ public class ResourceNode : MonoBehaviour, IInteractable
 
         SetVisible(false);
         respawnAt = Time.time + respawnDelay;
+    }
+
+    // NPC-compatible break (2026-08-10, Chunk 4 of the Hireable NPCs
+    // build). Mirrors Complete()'s yield/respawn logic but deliberately
+    // skips the tool check -- NPCMining checks the NPC's own equipped
+    // tools against RequiredTools itself before ever calling this, since
+    // there's no PlayerEquipment to check here -- and returns the mined
+    // item/count instead of spawning physical world pickups, since an NPC
+    // has no separate "walk over and grab it" step to collect them with.
+    // Always yields the true item, ignoring hiddenMaterial/disguise --
+    // Mine Ore already requires a Mining Face Shield to even be assigned,
+    // so treating an equipped NPC as always-revealed is a deliberate
+    // simplification, not an oversight. bonusChunkPrefab is also skipped
+    // for the same reason: keeps the NPC path predictable rather than
+    // matching the player's exact roll-based yield.
+    public bool TryMineForNPC(out ItemDefinition item, out int count)
+    {
+        if (!PeekYield(out item, out count)) return false;
+
+        if (respawnDelay <= 0f)
+        {
+            Destroy(gameObject);
+            return true;
+        }
+
+        SetVisible(false);
+        respawnAt = Time.time + respawnDelay;
+        return true;
+    }
+
+    // Read-only version of TryMineForNPC's yield resolution -- doesn't
+    // break the node. Lets NPCMining check "could I even carry this" via
+    // NPCEncumbrance.CanPickUp before committing to a target.
+    //
+    // Real ore nodes turn out to be multi-stage (discovered live verifying
+    // Chunk 4, not assumed): Copper Ore Node's chunkPrefab is itself
+    // ANOTHER ResourceNode (CopperOreChunk, no tool required), which only
+    // THEN yields the real Pickup (CopperChunk, the actual CopperOre
+    // item) -- mirroring the player's own two-step break-the-node-then-
+    // break-the-chunk-then-pick-it-up flow. An NPC has no equivalent to
+    // that multi-step physical process, so this walks the whole
+    // chunkPrefab chain down to the real item and multiplies counts along
+    // the way (3 chunks x 2 sub-chunks x 1 each = 6 total, for Copper Ore
+    // Node) rather than stopping at the first (intermediate) stage. Same
+    // guarded-depth-walk shape as IngredientMatching.Satisfies's baseItem
+    // chain -- guards an accidental cycle in the data, not a real
+    // expected case.
+    private const int MaxChunkChainDepth = 5;
+
+    public bool PeekYield(out ItemDefinition item, out int count)
+    {
+        item = null;
+        count = 0;
+        if (!IsAvailable) return false;
+        return ResolveYieldChain(chunkPrefab, chunkCount, out item, out count, 0);
+    }
+
+    private static bool ResolveYieldChain(GameObject prefab, int multiplier, out ItemDefinition item, out int count, int depth)
+    {
+        item = null;
+        count = 0;
+        if (prefab == null || depth >= MaxChunkChainDepth) return false;
+
+        if (prefab.TryGetComponent(out Pickup pickup))
+        {
+            if (pickup.Item == null) return false;
+            item = pickup.Item;
+            count = multiplier;
+            return true;
+        }
+
+        if (prefab.TryGetComponent(out ResourceNode nested))
+            return ResolveYieldChain(nested.chunkPrefab, multiplier * nested.chunkCount, out item, out count, depth + 1);
+
+        return false;
     }
 
     private void SpawnChunk(GameObject prefab)

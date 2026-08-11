@@ -34,7 +34,13 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float hungerDrainPerSecond = 100f / (20f * 60f);
     [SerializeField] private float thirstDrainPerSecond = 100f / (12f * 60f);
     [SerializeField] private float starvationDamagePerSecond = 2f;
-    [SerializeField] private float healthRegenPerSecond = 1f;
+    // Slowed 2026-08-10 (Ben's call, live-testing Combat): the old 1/s
+    // rate healed a full 0-100 in under 2 minutes with zero player
+    // action, which made taking real damage (the new Wolf bite) feel
+    // consequence-free. 0.05/s is a genuine slow crawl — ~33 minutes for
+    // a full passive heal — deliberately punishing until a real first-aid
+    // system exists to counter it (Basic Combat's other still-open half).
+    [SerializeField] private float healthRegenPerSecond = 0.05f;
     [SerializeField] private float staminaDrainPerSecond = 10f;
     [SerializeField] private float walkStaminaDrainPerSecond = 2f;
     [SerializeField] private float staminaRegenPerSecond = 6f;

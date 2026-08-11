@@ -6,6 +6,13 @@ public class ItemDefinition : ScriptableObject
     public string itemName = "New Item";
     public int maxStack = 20;
 
+    // Pounds, read by PlayerEncumbrance to total up what the player is
+    // carrying (see design-brief.md's Encumbrance section, 2026-08-10).
+    // Defaults to 1 so every pre-existing item gets a sane starting value
+    // for free instead of silently weighing nothing — first-pass numbers,
+    // trivially rebalanced later since it's just a serialized float.
+    public float weight = 1f;
+
     // Normal (the default) means "no tier concept" for items that don't
     // have one (Stick, Small Rock, ore, ...), matching CraftTierNames'
     // existing "no prefix" convention for the baseline tier. Meaningful

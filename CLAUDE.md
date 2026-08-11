@@ -295,3 +295,32 @@ just this one — procedural objects built in this project don't need this
 (their pivot is already correct by construction), but anything pulled in
 from outside (Tripo3D, Poly Pizza, or any future source) should have its
 bounds checked before assuming `y = 0` is correct.
+
+## Gotcha: a tier-scaling ratio tuned for one quantity doesn't transfer to another
+
+`CraftTierScale.Modifier(tier)` (Crude 0.2x → Masterwork 5x) was tuned for capacity
+and price, where a 25x spread top-to-bottom reads as normal RPG-tier-ladder scaling —
+a Masterwork Lockbox holding 25x a Crude one's capacity, or costing 25x as much, both
+feel right. Encumbrance (2026-08-10) needed the *opposite* relationship for a related
+but different quantity — better-made gear should be **lighter**, not heavier — and
+the first attempt just inverted the existing table (`weight = base / Modifier(tier)`).
+That produced a 25 lb Crude Backpack and a hypothetical 5 lb Crude Knife (a Normal
+Knife weighing 1 lb) — Ben's call: "a 5lb knife would be horrible... a 25lb backpack
+would be terrible as well." The ratio that's sane for "how much more capacity/value"
+is a wildly different claim from "how much heavier" — a 25x spread on weight reads as
+broken, not epic.
+
+**The fix — a dedicated table, not a repurposed one:** `CraftTierScale.WeightModifier(tier)`
+is deliberately narrow (Crude 1.5x, Rudimentary 1.2x, Normal 1x, Fine 0.8x,
+Masterwork 0.6x) — better tiers still get lighter, but by a believable amount.
+`weight = normalTierWeight * WeightModifier(tier)`. Applied first to the Backpack
+ladder (Normal = 5 lbs → Crude 7.5, Rudimentary 6, Fine 4, Masterwork 3 lbs) —
+apply the same table to any other tiered `ItemDefinition` that should get lighter
+with quality (tools are the obvious next candidate).
+
+**How to apply:** before reusing *any* existing per-tier scale for a new quantity,
+compute the actual resulting numbers at both ends of the tier ladder and sanity-check
+them in real units (lbs, seconds, coins) — don't assume a ratio that's correct for
+one quantity is correct for another just because both are "tier scaling." When in
+doubt, give the new quantity its own table (see `WeightModifier` for the pattern)
+rather than a formula derived from an unrelated one.

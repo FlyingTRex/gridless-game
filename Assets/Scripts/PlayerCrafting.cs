@@ -163,6 +163,31 @@ public class PlayerCrafting : MonoBehaviour
         return false;
     }
 
+    // True if the recipe has no requiresCanteenWater flag set, or an
+    // equipped Canteen currently holds at least canteenWaterAmount of
+    // Water. Hands only for now (not a Belt-attached Canteen) — matches
+    // the common case; worth revisiting if that gap actually bites.
+    public bool HasCanteenWater(CraftingRecipe recipe)
+    {
+        if (recipe == null || !recipe.requiresCanteenWater) return true;
+
+        var canteen = FindEquippedCanteen();
+        return canteen != null && canteen.Liquid == LiquidType.Water && canteen.Amount >= recipe.canteenWaterAmount;
+    }
+
+    private Canteen FindEquippedCanteen()
+    {
+        if (equipment == null) return null;
+
+        foreach (var handSlotName in HandSlotNames)
+        {
+            if (equipment.GetEquipped(handSlotName) is Canteen canteen)
+                return canteen;
+        }
+
+        return null;
+    }
+
     // Largest quantity of recipe craftable right now, capped by materials
     // only (not output space — a batch that wouldn't fit just fails to
     // start via StartCraft's own HasSpaceFor check, same as before; Max
@@ -196,6 +221,7 @@ public class PlayerCrafting : MonoBehaviour
         if (!HasRequiredTool(recipe)) return false;
         if (!HasRequiredSkill(recipe)) return false;
         if (!HasNearbyAnvilSurface(recipe)) return false;
+        if (!HasCanteenWater(recipe)) return false;
 
         if (!inventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount * quantity)) return false;
         if (recipe.bonusItem != null && !inventory.Inventory.HasSpaceFor(recipe.bonusItem, recipe.bonusCount * quantity)) return false;
@@ -211,6 +237,14 @@ public class PlayerCrafting : MonoBehaviour
             if (ingredient == null || ingredient.item == null) continue;
             RemoveAcrossReachable(ingredient.item, ingredient.count * quantity);
         }
+
+        // Consumed upfront for the whole batch, same as ingredients above
+        // — deliberately NOT refunded on CancelCraft (unlike ingredients),
+        // a known first-pass simplification since partially "un-pouring"
+        // water back into a Canteen is a stranger edge case than refunding
+        // a stackable item.
+        if (recipe.requiresCanteenWater)
+            FindEquippedCanteen()?.ConsumeWater(recipe.canteenWaterAmount * quantity);
 
         activeRecipe = recipe;
         activeTotal = quantity;

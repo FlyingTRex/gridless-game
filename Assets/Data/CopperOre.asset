@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Copper Ore
   maxStack: 20
+  weight: 0.9
   tier: 2
   worldPickupPrefab: {fileID: 2015791843943886014, guid: e635527bfa63bea44bb9e3465c6a39b7, type: 3}
   icon: {fileID: 21300000, guid: 91ef6bb0e9eff7b4e966564ffb6f588e, type: 3}

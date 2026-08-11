@@ -5,12 +5,1201 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.1.182-dev` — must always match `GameVersion` in
+**Current version:** `0.2.3-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-09
+## 2026-08-10
+
+### v0.2.3-dev — Ground-height tracking for Wolf/NPC movement, ahead of the Terrain/hills work
+
+Second concrete step of the scene-expansion prep (after Tree/Boulder prefab
+extraction in v0.2.2-dev) — built now, on today's still-flat `Ground`, so it's
+already correct by the time real hills exist instead of needing a retrofit across
+three files under time pressure later.
+
+- **New `GroundHeight` static utility** — one shared raycast-down helper used by
+  `HostileCreature`, `NPCWander`, and `NPCMining` instead of three separate
+  copies, matching this project's usual "promote to a shared piece once a third
+  use case shows up" pattern. Terrain-representation-agnostic by design — it's
+  just "raycast down the Ground layer, use whatever height comes back," so it'll
+  work identically once `Ground` becomes a real hilly Terrain without needing to
+  change again.
+- **New dedicated "Ground" physics layer** (`ProjectSettings/TagManager.asset`,
+  slot 3 — no custom layers existed in this project before now). `Ground`'s
+  `MeshRenderer`/`MeshCollider` GameObject is now on it, and `GroundHeight`'s
+  raycast is restricted to that layer specifically. **Real bug this avoids, not
+  just tidiness**: a plain "raycast everything" approach would have let a Wolf or
+  NPC walking near a Boulder or Tree snap onto the *top* of that object's own
+  collider instead of the ground beside it. Confirmed via batch: sampling directly
+  at the Boulder's (x,z) position correctly returns ground level (~0), not the
+  boulder's own collider top (0.6).
+- **Wired into all three movement systems** at the exact point each already
+  computes a new (x,z) via flat `Vector3.MoveTowards` — Y now gets sampled and
+  snapped there instead of being left untouched.
+- **Verified as a genuine no-op on today's ground, not just "compiles"**: sampled
+  height at multiple points on the existing flat `Ground` came back ~0 (down to
+  float noise, ~1e-17), a point well outside `Ground`'s 100×100 extent correctly
+  fell back to the caller's own Y instead of returning something wrong, and a
+  fresh Wolf instance's Y stayed sane (no jump, no `NaN`) after one movement tick
+  through the new height-snap path.
+
+### v0.2.2-dev — Tree and Boulder extracted into real, reusable prefabs
+
+First concrete step of the scene-expansion work (see `BUGS_AND_ENHANCEMENTS.md`'s
+"Next Session: Scene, Save/Load, Digging & Water" plan) — the prerequisite gap
+found while planning the tree/boulder scattering: neither existed as a real
+`.prefab` asset, only as one-off `TestScene.unity` instances (gameplay components
+added directly to the imported model in the scene, never saved out separately).
+
+- **`Assets/Prefabs/Tree.prefab`** — extracted from the tree's existing scene
+  instance via `PrefabUtility.SaveAsPrefabAssetAndConnect`, which both creates the
+  new asset and rewires the original scene object into a real instance of it
+  (rather than leaving an orphaned duplicate). **Renamed from its old label** —
+  the GameObject was still called "Big Tree by 3Donimus (CC-BY, comparison only)",
+  a stale name from when it was placed purely for a visual side-by-side against a
+  procedural tree, well before it was made choppable and became an actively-used
+  gameplay object. Renamed to plain "Tree" before extraction — that stale name
+  would otherwise have become the name of every future scattered copy.
+- **`Assets/Prefabs/Boulder.prefab`** — same extraction, no rename needed.
+  **Found along the way**: Boulder already carries an `AnvilSurface` component
+  alongside `ResourceNode` — meaning every future scattered boulder will also work
+  as a crafting proximity point (`CraftingRecipe.requiresAnvilSurface`), not just
+  an ore/rock source. Not something anyone had to add; it was already on the one
+  existing instance and comes along for free with every new copy.
+- **Verified via batch, not just "no errors on save"**: instantiated two fresh
+  copies of each prefab (independent of the original scene instance), confirmed
+  `ChoppableTree`/`Collider` on the trees and `ResourceNode`/`AnvilSurface` on the
+  boulders all came through intact on every copy, and that the instances are
+  genuinely independent objects, not accidentally sharing state.
+
+### v0.2.1-dev — New grass texture for Ground, generated + hand-fixed
+
+Landed early, ahead of the Terrain/hills work it was originally scoped alongside
+(see `BUGS_AND_ENHANCEMENTS.md`'s scene-expansion plan) — Ben wanted to evaluate a
+real replacement for `GrassTexture.png` (a blurry 1024x1024 placeholder from very
+early in the project) before committing to the full Terrain migration.
+
+- **Source generated via Gemini**, not Tripo3D — Tripo3D is a 3D-*model* texturing
+  tool (re-textures meshes), not suited to a standalone flat tileable ground
+  texture, so this used an external image generator instead, with a written prompt
+  spec (seamless/tileable, top-down, flat lighting, natural color variation, no
+  discrete marks) handed to Ben to run.
+- **First attempt had two real problems, caught by testing rather than assumed
+  fine**: rendered a 2×2 tile in Blender (`Mapping` node UV scale, orthographic
+  camera) to check honestly before ever touching the live scene, which showed a
+  visible seam. Applying it to `Ground.mat` at the real 20×20 tiling density (not
+  just the 2×2 test) showed an even more obvious checkerboard/grid pattern in
+  actual game lighting — confirms the isolated test undersold how bad tiling
+  artifacts get at full density.
+- **Second Gemini attempt, with a stronger prompt, was worse, not better** — an
+  internal repeating polka-dot pattern baked into the source image itself, which
+  compounded into a very obvious regular grid once tiled, plus the same small
+  sparkle/watermark-like artifact showed up again in almost the same spot despite
+  the prompt explicitly asking to avoid it — two attempts in a row suggests that's
+  a consistent quirk of this generator, not something a prompt rewrite reliably
+  fixes.
+- **Fixed the original (better) image directly instead of continuing to re-roll**:
+  a numpy-based offset-and-heal pass (Blender's Python, `numpy` confirmed bundled)
+  — wraparound-shifts the image by half its width/height so the tiling seam moves
+  from the edges to the center, blends a narrow band around that new center seam
+  to soften the discontinuity, and patches out the sparkle artifact (located via a
+  brightness/desaturation pixel mask, then replaced with a feathered clean patch
+  sampled from elsewhere in the image, verified by comparing mean pixel values
+  before/after the patch — not just assumed from a visual glance). First blend
+  pass was too strong (an obvious blurry cross, worse than the seam it was meant
+  to hide) — caught by re-inspecting the result rather than shipping the first
+  attempt, then re-tuned narrower.
+- **Result**: `Assets/Textures/GrassTexture_Healed.png`, now `Ground.mat`'s
+  `_BaseMap`/`_MainTex` (same 20×20 tiling scale as before — a fair like-for-like
+  swap). Confirmed live: no more checkerboard, artifact fully gone, one faint
+  residual seam line visible up close (a genuine brightness mismatch between the
+  original image's edges that blur alone softens but doesn't fully erase) —
+  reads more like a natural terrain shading line than a tiling artifact at normal
+  play distance. **Ben's call: good enough to keep for now**, revisit only if it
+  actually bothers gameplay once the real Terrain/hills work changes the tiling
+  density and viewing angles anyway.
+
+### v0.2.0-dev — Milestone bump: Phase 1 (MVP) complete, Phase 2 (MVP 2) begins
+
+No gameplay code changed in this entry — a deliberate version-number milestone,
+not a build. `0.1.x` covered the entire Phase 1 MVP arc, ending with Hireable
+NPCs' Chunk 6 (`0.1.198-dev`) closing out the last of Phase 1's 11 wishlist items.
+Ben's call: bump to `0.2.0-dev` to mark that transition explicitly, and increment
+from here for Phase 2 (MVP 2) work — see `BUGS_AND_ENHANCEMENTS.md`'s new
+"Enhancements — Phase 2 (MVP 2) Backlog" section (draft, not yet finalized) for
+what that covers.
+
+### v0.1.198-dev — Hireable NPCs, Chunk 6: the work timer — v1 complete, Phase 1 fully built
+
+Sixth and final chunk. The Hire/Fire/Pay state machine's `IsWaitingForPayment`/
+`TryPay` (built empty back in Chunk 1, "ready for whatever wants to draw on it
+later") finally has a real caller. With this, every one of Phase 1's 11 MVP items
+has shipped — see `docs/design-brief.md`'s MVP Progress Check-In for the full tally.
+
+- **New `NPCJob.IsReady`** — `AssignedJob != null && HasAllTools(AssignedJob)`,
+  pulled out of `NPCMining`'s own duplicated version of the same check so both it
+  and the new work timer agree on what "working" means instead of drifting apart.
+- **New work timer on `NPCHiring`** — a 5-minute real-world stand-in for the design
+  brief's original "5 real days" (this project still has zero persistence — no
+  `DateTime`/save-load anywhere — so a genuine multi-day timer can't be built or
+  tested without a save system that survives closing the Editor; real persistence
+  stays a separate, later prerequisite). Only ticks while `NPCJob.IsReady` — an
+  unassigned or unequipped NPC isn't "working," so its clock shouldn't run down
+  either, matching Ben's own framing exactly. Once it elapses, `IsWaitingForPayment`
+  flips on and the timer resets; `TryPay`/`Fire` both reset it too.
+  `NPCHiringScreen` now shows "Working — payment due in Ns" while active, and the
+  existing "Waiting for payment" + Pay button (Chunk 1) finally has something
+  that actually sets the flag it was built to respond to.
+- **`NPCMining` now refuses to work while unpaid** — added `IsWaitingForPayment` as
+  a third condition alongside `IsReady` in its own readiness gate, rather than
+  routing through the existing `SetPaused`/`NPCDialogue` mechanism, which is driven
+  by multiple independent callers (Talk pausing/unpausing) that could otherwise
+  fight over the same shared bool and incorrectly resume a should-still-be-stopped
+  NPC. Mid-walk cargo isn't lost when payment comes due — it just holds in place,
+  same as any other "not ready" state, and resumes exactly where it left off once
+  paid.
+- **Verified via batch**: forced the timer past its threshold directly (real
+  elapsed time is unreliable in edit-mode batch, same class of limitation hit in
+  every prior chunk's verification) and confirmed the full cycle end to end —
+  `IsWaitingForPayment` flips true and the timer resets, `NPCMining` correctly
+  finds no target while unpaid, `TryPay` clears the flag and resets the timer
+  again, and `Fire` resets it too even mid-countdown.
+
+### v0.1.197-dev — Hireable NPCs, Chunk 5: container-targeted deposit + return-to-mining
+
+Fifth of six chunks. The NPC no longer just stops when full — it walks back to a
+player-designated Storage Box, drops everything off, and goes right back to mining.
+
+- **New point-and-confirm targeting** (`PlayerNPCDeposit`) — Ben's own design
+  explicitly compared this to Building's socket selection ("point at a target,
+  confirm"). "Set Deposit Container" in `NPCJobScreen` closes the menu, re-locks
+  the cursor so the player can aim normally, and shows "[E] Set X as deposit point"
+  once a `StorageBox` is in the crosshair. New `PlayerInteraction.
+  SuppressInteraction` flag makes this safe: `StorageBox` already implements
+  `IInteractable` for its own "pick up the box" action, so confirming a deposit
+  target on the same E press would otherwise also pick the box up in the same
+  keystroke. Escape cancels targeting without also unlocking the cursor into a
+  state nothing else expects (targeting runs *with* the cursor locked, unlike
+  every other screen here, so it needed its own branch in
+  `FirstPersonController`'s Escape handling rather than reusing the existing
+  close-all-screens chain).
+- **New `NPCJob.DepositContainer`** — deliberately *not* cleared by job
+  reassignment (unlike equipped tools) since a Storage Box is a physical spot in
+  the world, not a consumable tool; changing jobs doesn't invalidate "where should
+  mined stuff go." `Fire()` still clears it, same full-reset treatment as
+  everything else.
+- **`NPCMining` gained a return-to-deposit state.** Once it can't find any node it
+  can both use and carry, it now checks for a deposit point: if one's set, it walks
+  there (same bump-and-turn movement Chunk 4 already uses, just re-parameterized to
+  target either a `ResourceNode` or a `StorageBox`), drains cargo into it, and goes
+  right back to searching. **If no deposit point has been set yet, falls back to
+  Chunk 4's original behavior** (just stops) rather than assuming one exists —
+  assigning Mine Ore without ever setting a deposit point still works, it just
+  caps out once full instead of self-managing.
+- **Leftover-safe transfer** — if the box doesn't have room for everything, whatever
+  doesn't fit stays in cargo instead of being lost, same "leftover" convention
+  every other item transfer in this game already uses.
+- **Verified via batch**: placed a live NPC next to the real "Small Storage Box,"
+  loaded its cargo with 6 Copper, set it as the deposit container, and drove the
+  actual `UpdateReturning` state directly — confirmed cargo went from 6 to 0 and
+  the box's inventory went from 0 to 6, nothing lost or duplicated.
+
+### v0.1.196-dev — NPCHiringScreen scroll fix
+
+Confirmed live straight off Chunk 4's playtest: a working NPC mining several ore
+types at once (Copper/Iron/Silver Ore/Gold Ore and more) overflowed the fixed-size
+hire menu panel, cutting off items with no way to see the rest ("this window may
+need a scroll bar" — Ben). The Stats/Carrying section (the only part that grows
+without bound as an NPC mines more item types) is now its own bounded
+`GUILayout.BeginScrollView`/`EndScrollView` area — the Talk/Hire/Assign Job/Fire
+buttons above it stay fixed and always visible, only the stats+cargo list scrolls.
+Panel grew slightly (320×420 → 340×460) to give the scroll view room to breathe.
+
+### v0.1.195-dev — Hireable NPCs, Chunk 4: the actual autonomous mining loop
+
+Fourth of six chunks, and the one that finally makes Chunks 1-3's scaffolding do
+something — the NPC now genuinely walks out, mines real ore nodes, carries the
+yield, and trains its own skill, with no player input once assigned.
+
+- **New `NPCMining`** — once assigned Mine Ore and fully equipped, finds the
+  nearest available `ResourceNode` within 50m it can both use (a matching tool)
+  and carry the output of, walks to it, mines it, repeats. Stops (doesn't wander,
+  doesn't work) once full — Chunk 5 adds walking back to a deposit container and
+  resuming. Targets **real** world `ResourceNode` objects (every Ore Node, Rock
+  Node, and the Boulder — every `ResourceNode` in this scene is mining-flavored,
+  trees/bushes are separate component types), not a fake parallel system.
+- **`ResourceNode` gained an NPC-compatible break path** (`TryMineForNPC`/
+  `PeekYield`) alongside the existing player-only `Complete()`, which is hard-wired
+  to `PlayerEquipment`/`PlayerSkills` and therefore unusable by an NPC. The new
+  path skips the tool check (`NPCMining` checks the NPC's own equipped tools
+  against `RequiredTools` itself first) and returns the mined item/count directly
+  instead of spawning physical world pickups, since an NPC has no "walk over and
+  grab it" step to collect them with.
+- **Real discovery mid-build, not assumed**: ore nodes turned out to be
+  **multi-stage** — Copper Ore Node's `chunkPrefab` is itself *another*
+  `ResourceNode` (`CopperOreChunk`, no tool required), which only then yields the
+  real `Pickup` (`CopperChunk`, the actual Copper item) — mirroring the player's
+  own break-the-node-then-break-the-chunk-then-pick-it-up flow. Found live via a
+  batch verification pass that came back with a `Pickup` component missing where
+  one was assumed to always exist. **Fixed** by having `PeekYield` walk the whole
+  `chunkPrefab` chain recursively down to the real item, multiplying counts along
+  the way (3 chunks × 2 sub-chunks × 1 each = 6 total, confirmed exactly via
+  batch), same guarded-depth-walk shape `IngredientMatching.Satisfies`'s `baseItem`
+  chain already uses. An NPC has no equivalent to the player's multi-step physical
+  process, so this collapses the whole chain into one resolved item+count.
+- **New `NPCCargo`** — a real `Inventory` (same class `PlayerInventory`/
+  `PlayerEquipment` slots/`Lockbox` already use) holding what's been mined but not
+  yet deposited, rather than a bare number. **`NPCEncumbrance` revised**: now
+  computes `CarriedWeight` from `NPCCargo`'s actual contents (same pattern
+  `PlayerEncumbrance.ComputeCarriedWeight` uses for the player) instead of Chunk
+  3's manually-incremented `AddCarriedWeight`/`RemoveCarriedWeight`, which never
+  had a real caller anyway — keeps weight and actual carried items from ever being
+  able to drift apart.
+- **Bump-and-turn obstacle avoidance** (Ben's call, 2026-08-10: "build a collision
+  idea to allow the npc to hit something and change direction") — a short forward
+  raycast before each move step; if something's in the way, the NPC slides along
+  the tangent of the obstacle's surface normal instead of pushing straight through
+  or getting stuck. Not real pathfinding, just enough to route around a single
+  obstacle edge, matching the project's existing no-NavMesh constraint
+  (`HostileCreature`/`NPCWander` already live with the same limitation).
+  `NPCWander.FaceToward` made public so `NPCMining` reuses the exact same
+  model-forward-offset correction rather than duplicating it.
+- **Trains the job's own family skill (Mining), not the node's `trainedSkill`**
+  (still `Gathering` on every ore node in the scene — `Mining` didn't exist until
+  this session's Chunk 2). The same physical action training a different skill
+  depending on who's doing it is a real quirk, flagged in
+  `BUGS_AND_ENHANCEMENTS.md` rather than silently retconning every existing ore
+  node's `trainedSkill` (which would also change what the *player* trains by
+  mining them) mid-chunk without Ben's sign-off.
+- **`NPCDialogue` now also pauses `NPCMining`** (optional `GetComponent`, not a
+  hard requirement — not every NPC has a job loop) — Talk should freeze the NPC
+  completely regardless of which component happens to be moving it at that moment.
+- **Cargo is now visible too** — `NPCHiringScreen`'s Stats section gained a
+  "Carrying" list (item name × count) alongside the stats/Encumbrance line already
+  there.
+- **Verified end-to-end via batch** (not just structural checks this time, given
+  the size of this chunk): placed a live NPC instance 3m from the real Copper Ore
+  Node, gave it the job/tools programmatically the same way the real UI would,
+  confirmed `FindTarget` correctly resolves a valid nearby node, confirmed
+  `PeekYield` resolves the full multi-stage chain to 6 Copper, and confirmed an
+  actual `TryMineForNPC` call added 6 Copper to cargo, grew Mining from 0 to 0.5,
+  set `CarriedWeight` to 6, and put the real node on cooldown — all numbers
+  matched hand-calculation exactly. Two more batch-mode-only quirks hit and fixed
+  along the way (not game bugs): edit-mode scene loading doesn't run `Awake()` on
+  scene-resident objects any more than it does on freshly-instantiated ones, so
+  `ResourceNode`'s cached `renderers` was null until the verification script
+  invoked `Awake()` explicitly via reflection, same as Chunk 3's fix.
+
+### v0.1.194-dev — Hireable NPCs, Chunk 3: core stats, encumbrance cap, skill-gated tiers
+
+Third of six chunks. Gives the NPC real stats for the first time — up to now
+`NPCJobDefinition.tier` was inert and nothing about the NPC was visible at all.
+
+- **New `NPCSkills`** — a deliberately separate, smaller component rather than
+  reusing `PlayerSkills` directly: `PlayerSkills.OnGUI` draws a "skill increased"
+  banner on whichever screen it's attached to, which would mean an NPC's skill
+  ticking up fires a Player-styled banner on the *player's* screen (`OnGUI` runs
+  per-instance, not per-player) — confusing, and not asked for. Same
+  diminishing-returns growth curve as `PlayerSkills.GainExperience`, just silent.
+  Seeded with Strength/Dexterity/Constitution/Intelligence at displayed **3.0**
+  (raw level 30 — above a fresh player's own starting 2.00, since a hired worker
+  isn't a total novice) and Mining at **0** (true zero, same as every crafting/
+  gathering skill starts for the player).
+- **New `NPCEncumbrance`** — same capacity curve as `PlayerEncumbrance`
+  (`17.3925 × Strength^1.5`, confirmed live via a batch check: Strength 3.0 →
+  **~90.4 lb** capacity). `CanPickUp(weight)` gates at 80% of capacity, reusing
+  `PlayerEncumbrance.BetterGainThreshold` directly rather than a new NPC-only
+  constant — confirmed live (10 lbs allowed, 1000 lbs rejected against the ~90.4
+  lb capacity). Deliberately stricter than the player's own pickup gate (blocked
+  at/over 100%) — an NPC always keeps a buffer instead of maxing out, Ben's
+  explicit call. `CarriedWeight` stays 0 for now — no `AddCarriedWeight` caller
+  exists yet (Chunk 4's mining loop is what will), and there's no Strength-grows-
+  from-load tick either, unlike the player — building that against a value that
+  can never move yet would be premature; it lands with Chunk 4 instead.
+- **Job tiers actually gate now.** `NPCJobScreen` hides any job the NPC's family
+  skill hasn't reached, reusing `CraftTierScale.SkillRequirement` directly (job
+  tier 1 → `CraftTier.Crude` → level 0, tier 2 → Rudimentary → level 10, ...)
+  rather than inventing a second threshold curve — confirmed live via batch
+  (`Mine Ore`, tier 1, requires level 0, so it's always available at Mining 0).
+  Shows "No jobs unlocked at this NPC's current skill yet." distinctly from "No
+  jobs in this family yet." so an empty family and a not-yet-earned family read
+  differently.
+- **NPC stats are now visible for the first time** — `NPCHiringScreen`'s hired
+  view gained a Stats section: every entry in `NPCSkills.Levels` (Attribute-
+  category skills shown on the .25-10 displayed scale, same as the player's own
+  Player tab; everything else — Mining — shown as a raw 0-100 level, same as
+  SkillsScreen), plus an Encumbrance line paired with Strength the same way
+  `PlayerMenuScreen`'s own Strength tile already does it.
+- **Real technique note, not a bug this time**: an early verification attempt
+  (instantiating the prefab in batch mode and reading live stat values) came back
+  wrong — Strength read as the 0.25 floor instead of 3.0. Not a code bug:
+  `Awake()`/`Update()` don't run on edit-mode-instantiated objects without
+  `[ExecuteAlways]`, so the dictionary was legitimately never populated in that
+  check. Fixed by invoking `Awake()`/`Update()` explicitly via reflection in the
+  verification script itself — the actual game code was correct the whole time
+  and behaves normally in real Play Mode.
+
+Second of the six chunks. Adds the actual job-assignment UI on top of Chunk 1's
+Hire/Fire/Pay shell — a hired NPC can now be pointed at a real job and handed the
+tools it needs, though nothing runs autonomously yet (Chunk 4).
+
+- **New `NPCJobDefinition`** (data, mirrors `CraftingRecipe`'s role): a job name, a
+  `family` that's a real discipline `SkillDefinition` (not an NPC-only concept —
+  the NPC's job skill is meant to be a genuinely trainable skill later), a `tier`
+  (not enforced against anything yet — every job shows regardless of NPC skill
+  until Chunk 3 adds a real level to gate on), and `ToolRequirement[]` — each one a
+  named category (`"Pickaxe"`) with an OR-set of acceptable items, same convention
+  `ResourceNode.requiredTools` already uses. A job needing several categories at
+  once (Pickaxe *and* Shield *and* Backpack) lists each as its own requirement,
+  since that's an AND across categories, not one shared OR list.
+- **New `Mining` skill** (`SkillCategory.Gathering`) — didn't exist before despite
+  being name-dropped in `SkillDefinition`'s own doc-comment ("Gathering, Mining").
+  **New `MineOreJob.asset`**: family Mining, tier 1, needs Crude Pickaxe + Mining
+  Face Shield + Backpack (the baseline tier of each — the tool-requirement arrays
+  support multiple tiers per category, only one is wired in for now, trivially
+  expandable later without a code change).
+- **New `NPCJob`** (NPC-side): tracks the assigned job and which tools have been
+  handed over, in a runtime-only dictionary (same convention `NPCHiring`'s
+  `isHired`/`isWaitingForPayment` already use — no `[SerializeField]` needed for
+  state that only ever changes through code). `TryGiveTool` pulls one matching item
+  from the player's **main inventory only** (not hands/backpack — simplest first
+  pass) and hands it to the NPC. **Re-assigning to a genuinely different job wipes
+  every tool already given — Ben's explicit "lost forever" rule** — but
+  re-confirming the *same* already-assigned job is a no-op on the equipped set, not
+  a wipe (matters once a player re-opens the screen to give a tool they missed the
+  first time). `NPCHiring.Fire()` now also clears the job.
+- **New `NPCJobScreen`** — family tabs → job tiles, same two-step shape as
+  `CraftingScreen`'s discipline tabs → recipe tiles, since Ben's own design was
+  explicitly modeled on the Crafting menu ("first you pick the family... it offers
+  up the tiers"). Opened from a new "Assign Job" button in `NPCHiringScreen` (hired
+  state only), which closes itself first — same one-modal-at-a-time pattern Talk
+  already used. Selecting an unassigned job shows an "Assign" button (with a
+  lost-tools warning if reassigning away from an existing job); the assigned job
+  shows its tool requirements with a "Give" button per missing one, greyed out if
+  the player's inventory doesn't have it.
+- **No visual equip** — `NPCFactoryWorker`'s model has no rig/attachment points, so
+  handed-over tools are tracked as data only, not rendered on the NPC. Matches this
+  session's general pattern of shipping the mechanical layer before the visual one
+  (`HostileCreature`'s death is "just a rotation" for the same reason).
+- **Known real bug hit and fixed during this build**: the batch script wiring
+  `NPCJobScreen.families`/`.jobs` via `SerializedObject` on the Player scene object
+  silently produced `{fileID: 0}` (empty) array entries despite the script running
+  and logging success — re-confirmed live by re-reading the saved scene YAML
+  directly rather than trusting the log, per this project's own established
+  discipline. **Fixed** by patching `TestScene.unity`'s YAML directly with the
+  correct `{fileID, guid, type: 2}` references instead, then re-verified by
+  re-opening the scene in a fresh batch pass and reading the values back through
+  `SerializedObject` (not just the raw text) — confirmed both arrays actually
+  resolve to the `Mining`/`MineOreJob` assets by name.
+
+First of the six chunks scoped in `BUGS_AND_ENHANCEMENTS.md`'s Hireable NPCs
+design session. No job logic yet — this is purely "can the player hire this NPC,
+does it cost real money, can they fire it" — but it's the foundation every later
+chunk (job assignment, the mining loop, the work timer) hangs off of.
+
+- **E on the NPC no longer goes straight to dialogue — it opens a menu.** New
+  `NPCHiring`, now the *only* `IInteractable` on the NPC (two implementers on one
+  GameObject would leave `PlayerInteraction`'s `GetComponentInParent<IInteractable>()`
+  picking one arbitrarily, so `NPCDialogue` gave up the interface — see below). New
+  `NPCHiringScreen` on the player, same `Open(target)`/`Close()`/`IsOpen` shape and
+  cursor-unlock behavior `LockboxScreen` already established, wired into
+  `FirstPersonController`'s Escape-closes-everything chain the same way.
+- **Hire spends real currency** — `PlayerCurrency.Spend`, which has existed since
+  the Commerce system shipped but had nothing drawing on it yet ("ready for
+  whatever wants to draw on it later," per its own comment). Costs 10 Copper by
+  default; the Hire button greys out via `GUI.enabled` if the wallet can't cover it,
+  same pattern `LockboxScreen`'s Deposit/Withdraw buttons already use.
+- **Fire resets hire state immediately**, no confirmation step. Tools will be lost
+  for good on Fire once Chunk 2 (equip hand-off) exists — Ben's explicit call,
+  documented now even though there's nothing to lose yet.
+- **`IsWaitingForPayment`/`TryPay` exist already, unused** — nothing sets that flag
+  yet (Chunk 6's 5-minute work timer is what will), but building the full
+  Hire/Fire/Pay state machine in one pass now means Chunk 6 only has to flip a bool,
+  not come back and redesign this file.
+- **`NPCDialogue` restructured, not removed** — dropped `IInteractable` entirely,
+  gained a public `BeginDialogue()` + `DisplayName` that `NPCHiring`'s menu calls
+  into. Talk still works exactly as before (pauses `NPCWander` for the line's
+  duration) — it just lives behind the new menu's "Talk" button instead of firing
+  directly off E.
+- Confirmed live: hiring correctly deducted 10 Copper from the wallet.
+
+Straight off Combat/First Aid, Ben moved to the last unstarted Phase 1 pillar —
+placing the model named a session earlier ("SD Macross Factory Worker by Tipatat
+Chennavasin") "to start the process of NPC interaction." Deliberately the smallest
+possible first step: **Place it + idle wander**, chosen explicitly over a
+stand-in-only prop or a talk-first version, since nothing about NPC AI, dialogue, or
+hiring is designed beyond the Phase 1 wishlist's name for the item.
+
+- **Import pipeline.** Raw `.glb` was a static (no armature/animations) 6-mesh
+  chibi/SD figure, ~0.71m tall, facing an arbitrary Blender axis. Rejoined into one
+  mesh in Blender, uniformly scaled to a 1.4m target height (kept deliberately
+  shorter than a realistic ~1.7m human — it's an SD/chibi figure, scaling it to full
+  human height would fight the model's own proportions), and re-origined to
+  feet-at-ground before export — so, unlike Wolf/RawMeat earlier this session, no
+  additional Unity-side scale was needed. Learned from those same two bugs:
+  `CapsuleCollider` numbers were hand-computed directly in local space (radius 0.3,
+  height 1.4, center (0, 0.7, 0)) instead of measured off `Renderer.bounds`, so the
+  world/local double-scale bug had no chance to recur here.
+- **New `NPCWander`** — same shape as `HostileCreature`'s movement (no NavMesh in
+  the project, flat-ground `Vector3.MoveTowards`): picks a random point within 6m of
+  its spawn, walks over at 1.2 m/s, pauses 2-5s, repeats. `SetPaused(bool)` freezes
+  the whole state machine (walk progress and pause countdown both hold in place)
+  rather than resetting anything, so wandering resumes exactly where it left off.
+- **Real bug found and fixed live: model faced 90° off from its travel direction**
+  ("our npc is moving the right" — confirmed via follow-up question as crab-walking
+  sideways, not a facing-direction confirmation). The model's authored forward axis
+  didn't match Unity's `Quaternion.LookRotation` convention (local +Z). Root-caused
+  by re-deriving the Blender→glTF→Unity axis chain from the model's own preview
+  renders (front/side orthographic camera shots taken during the Blender build,
+  confirming the character's nose pointed along Blender +X) — independently
+  cross-checked by working out which way "crab-walking to its right" implies the
+  mismatch runs. Both derivations agreed on the fix: a `modelForwardOffsetY = 90`
+  correction applied on top of `LookRotation` in `NPCWander.FaceToward`, exposed as
+  a serialized field (not hardcoded into the math) so a future model on this same
+  component just needs a different number, not a rewrite, if it needs -90 or 180
+  instead.
+- **New `NPCDialogue`** — added after Ben's live follow-up ("when I put my cursor on
+  the model, it doesn't give me a choice to have a dialog" — this pass had
+  deliberately shipped with zero interaction first). `IInteractable`, tap E
+  (instant, not hold — same reasoning `PlayerCombat`/`PlayerPieceUpgrade` already
+  used for tap-not-hold actions): shows "Talk to Factory Worker" in range, and on
+  press shows one static placeholder line for 4 seconds via its own `OnGUI` box,
+  calling `NPCWander.SetPaused(true)` for the duration per Ben's explicit call
+  ("engaging the dialog should stop movement until the dialog is complete") and
+  unpausing automatically when it ends. Re-pressing E mid-dialogue dismisses early.
+  No branching, no memory, no real conversation system — one line, matching exactly
+  how far NPCs are designed today.
+- **Credits:** SD Macross Factory Worker by Tipatat Chennavasin, CC-BY via Poly
+  Pizza — added to both `GameMenuScreen`'s Credits tab and
+  `Assets/Models/THIRD_PARTY_CREDITS.md` in the same pass (not left for a follow-up
+  catch, unlike the Strawberries gap found earlier this session).
+- **Net Phase 1 read:** still 10 of 11 by the wishlist's own bar (this is a
+  placeholder, not *hireable* or *autonomous* anything), but the last item's "zero
+  code, not even partially" gap is closed — there's a real, walking, talkable NPC to
+  build the rest on top of rather than a blank slate. See `docs/design-brief.md`'s
+  MVP Progress Check-In for the corresponding update.
+
+### v0.1.190-dev — Basic Combat + Basic First Aid, closing the second of three remaining Phase 1 items
+
+Straight off Encumbrance, Ben moved to the two remaining unstarted Phase 1 pillars —
+"let's ideate on the combat and first aid." Both shipped end-to-end this pass,
+deliberately scoped to the design-brief's own "floor of the combat/healing module"
+language, not the deeper Phase 2 versions (ranged weapons, hunting/taming, surgery).
+
+- **A real fight, from scratch, with nothing to fight before today.** Neither the
+  Animal & Hunting module nor Hireable NPCs exist yet, so — Ben's explicit call —
+  this needed a minimal placeholder hostile rather than either system. **Wolf by
+  Quaternius** (public domain, Poly Pizza), imported at a corrected ~1.05m/1.9m
+  scale (the raw import came in the size of a car). New `HostileCreature` (generic,
+  not Wolf-specific — reusable for a future second creature): idle until the player
+  closes within 10m, chases at 5 m/s, gives up past 20m, bites for 8 dmg on a 1.5s
+  cooldown once in range. Dies at 60 HP, flops onto its side (no animation system
+  exists yet — a static rotation is the whole "death" visual), and becomes
+  skinnable with a Knife (same tool-gated hold-to-break shape `ResourceNode`
+  already uses) for a 50% chance of 1 Wolf Pelt plus a guaranteed 1–2 Raw Meat.
+  New `IDamageable` interface — a clean, reusable contact point for any future
+  combat target, not hardcoded to Wolf.
+- **The player's half: a bare-handed punch, deliberately not `IInteractable`'s
+  hold-and-release model** (an attack has to resolve on a tap, not a multi-second
+  hold — same reasoning `PlayerPieceUpgrade` already used for a different action).
+  New `PlayerCombat`: Left Mouse Button, short-range raycast, ~9 dmg on a 0.7s
+  cooldown, trains a new **Bare-handed** skill — the first of the five
+  weapon-usage skills named back in the original Crafting/Gathering/Skills Pipeline
+  planning (2026-08-05) to actually exist as a real `SkillDefinition`, finally
+  giving `SkillCategory.Combat` its first real entry. Silently no-ops while a
+  Build piece is armed (Building's own Left Click takes priority on a click).
+- **Two real bugs caught mid-build, not shipped blind:**
+  - **Ground tunneling** on the new Wolf Pelt/Raw Meat drop prefabs — a
+    documented gotcha from an earlier session (a plain Discrete `Rigidbody` can
+    tunnel straight through the paper-thin Ground collider) that this session's
+    own setup script forgot to apply proactively. Confirmed live by Ben (a Raw
+    Meat drop landed under the world) and fixed with `ContinuousDynamic`.
+  - **Colliders ~20x too small on any scaled-down prefab** — the same batch
+    setup script measured a model's bounds *after* scaling it down (world space)
+    but assigned those numbers straight to `Collider.size`/`center`/`radius`
+    (local space), so Unity's own scale multiplier applied a second time.
+    Confirmed live ("finally found the pick up point. that's VERY VERY small") on
+    both the Raw Meat pickup and the Wolf's own hitbox — the latter meaning
+    punches were likely whiffing far more than they should have. Fixed by
+    dividing the wrongly-world-scale numbers back down by the transform's own
+    scale on both affected prefabs.
+- **Passive Health regen slowed 20x** (1/s → 0.05/s, ~33 minutes for a full
+  heal with zero effort) — Ben's call, live-testing combat: the old rate healed
+  a full 0–100 in under 2 minutes, making a real Wolf bite feel consequence-free.
+  Deliberately punishing until First Aid (below) gives the player a real
+  counter-lever.
+- **First Aid — a real crafted-consumable healing loop, reusing existing systems
+  wherever one already fit** rather than inventing new plumbing:
+  - **Herb Bush**, a full *duplicate* of Berry Bush (Ben's explicit call: "we
+    don't want to use the existing berrybush... we need to duplicate and
+    rename it") rather than reusing/repurposing it, simplified down to just the
+    search mechanic (no chop action — herbs have no branches to trim). **First
+    shipped on E, live-corrected to F** after Ben hit exactly the confusion this
+    invited: Herb Bush reuses Berry Bush's own visual model outright, so it
+    looks identical, and Berry Bush's own search is on F (E there is spoken for
+    by its chop action) — matching that key removed the "looks the same, acts
+    different" trap a first pass on E caused live.
+  - **Healing Paste — Herb + Canteen water, not a normal ingredient.** There's no
+    stackable "Water" item in this game at all; water is a tracked fill-level on
+    the equipped Canteen instance. Rather than invent a Water item/economy, new
+    `CraftingRecipe.requiresCanteenWater`/`canteenWaterAmount` fields (mirroring
+    the existing `requiresAnvilSurface` shape) gate and consume real Canteen
+    water on craft — a new `Canteen.ConsumeWater` mirrors `Drink`'s exact
+    mechanics minus the Thirst restore. 3 Herb + 20 water → 1 Healing Paste,
+    training a new **Medicine** discipline (its own tab in the Crafting screen
+    now, alongside Woodworking/Stonework/etc.). Heals 10 HP over 10s.
+  - **Bandage — 1 Cloth + 1 Healing Paste, heals 15 HP over 10s** — a second,
+    stronger tier riding the exact same Medicine recipe/consumable plumbing, no
+    new mechanism needed.
+  - **Apply Medicine — a real mirror of eating, not a new UI pattern.** Ben's
+    explicit ask: "an apply medicine function that mimics eating — it consumes
+    one of the resource." New `MedicineItem` (mirrors `EdibleItem` exactly) +
+    `PlayerMedicine` (mirrors `PlayerEating` exactly, `TryApply`/`TryApplyFrom`)
+    + an "Apply" button wired into both places Eat already shows (the main
+    inventory list and the generic hand/backpack/container move popup) —
+    routes through `PlayerVitals.StartHealOverTime`, the same method
+    Restoration's Heal Self wish already uses.
+- **A second confirmed case of `IconBaker`'s tight-fit framing bug** — the
+  Bandage icon baked as two thin crossing lines, not the roll+tail shape;
+  isolated (same method as the earlier Gable Panel case) via a manual bake with
+  a plain fixed-orthographic camera on the identical geometry, which came out
+  clean. Same root cause, still not fixed in `IconBaker` itself — shipped with
+  the same manual-bake workaround as Gable Panel.
+- **Net Phase 1 read: 10 of 11 MVP items now built.** Only Hireable autonomous
+  NPCs remains — Ben's already lined up the first step (an SD Macross Factory
+  Worker model, to place as a first NPC-interaction placeholder), not yet built
+  as of this entry.
+
+### v0.1.189-dev — Encumbrance ships end-to-end, plus the Player tab's first real content
+
+Ben's ask, continuing straight off the prior session's Building work: "let's ideate
+on the encumbrance." What started as one Phase 1 wishlist line (`design-brief.md`:
+"carried weight affects movement speed and stamina; carry capacity and movement
+efficiency improve as related skills increase with use") became a full day's build:
+four new core stats, a real Player tab, a Guild system, and Encumbrance itself
+working end-to-end from carried weight through to movement, Strength growth, and
+health cost.
+
+- **Core stats, reconciled against an existing design-brief decision.**
+  `design-brief.md` (2026-08-08) explicitly rejected a point-buy Strength/
+  Constitution/Dexterity/Intelligence attribute screen — flagged directly, not
+  silently overridden. Resolution: all four are ordinary `SkillDefinition`s (new
+  `SkillCategory.Attribute`), grown via the exact same `PlayerSkills.GainExperience`
+  diminishing-returns curve every crafting skill uses, just displayed on the new
+  Player tab instead of the Skills tab. Displayed on a **.25–10 scale**
+  (`PlayerSkills.GetAttributeValue`, `max(0.25, level/10)`), not the raw 0–100 every
+  other skill shows — Ben's call, floor at .25 so untrained never reads as literal
+  zero. All four start at displayed 2.00 (raw level 20), not the .25 floor —
+  `PlayerSkills.StartingLevel[]`, a small new seeding array, generic enough that
+  future non-craft skills can reuse it too. Only Strength has any mechanical hook
+  today (see Encumbrance below); Dexterity/Constitution/Intelligence are display-only
+  — their planned hooks (movement efficiency, max Health/Stamina, Will growth + a
+  global skill-XP multiplier) are logged in `BUGS_AND_ENHANCEMENTS.md`, explicitly
+  written to follow Strength's exact pattern when built.
+- **Player tab, previously a deliberate blank stub, gets real content.** A tile grid
+  (`DebugGUI.Slot` boxes): the 4 stats + Fame/Faction (placeholders — no backing
+  system, reputation-flavored rather than skill-via-use) fill a 3-tile-per-row grid;
+  a new Guild system's tiles (see below) follow as full-width one-per-row entries.
+  Tile width is computed from `Screen.width`, not a fixed pixel size, so the grid
+  fills the screen edge-to-edge on any resolution (Ben's follow-up call the same
+  day, after the fixed-220px version left visible empty space). Each stat tile
+  carries a labeled "Growth" progress bar — same anatomy as `VitalsBarHUD`'s vital
+  bars (background + fill + centered label) per Ben's call to make it "look like
+  the health bar" — filling 0→1 toward the *next .25 point*, not the 0–100 cap (a
+  bar that's nearly always empty for the first many hours of play wouldn't read as
+  useful feedback).
+- **Guilds — a small new system riding the same tab.** `GuildDefinition`
+  (ScriptableObject, just a name) + `PlayerGuilds` (membership list, capped at
+  `MaxGuilds = 3`). Three test guilds — Masonry, Carpentry, **Smithing** (picked to
+  match the trade-noun register of the other two rather than reusing the existing
+  "Metalworking" skill name). Join/Leave via a new "Admin — Guilds" section on the
+  existing Admin tab (no in-world way to join yet) — confirmed live: joining adds a
+  full-width tile to the Player tab immediately, leaving removes it, Join disables
+  once at the 3-guild cap.
+- **Encumbrance — the actual Phase 1 item, built in layers with Ben reviewing each
+  one before the next:**
+  - `ItemDefinition.weight` (new field, lbs, defaults to 1). `PlayerEncumbrance`
+    (new component) sums it across the main inventory, every `PlayerEquipment` slot
+    (including a worn Backpack's own item weight), and that Backpack's contents —
+    deliberately **not** nearby Storage Boxes, unlike `PlayerBuilding`/
+    `PlayerPieceUpgrade`'s `ReachableInventories` — a storage box in the world isn't
+    weight you're carrying, and dropping things into one is the intended way to
+    unburden yourself.
+  - **Capacity formula**, decided by building a comparison artifact (linear vs. a
+    small exponential curve, both anchored so Strength 10.00 caps at 550 lbs) and
+    having Ben pick from the actual resulting numbers rather than guessing blind:
+    `Capacity = 17.3925 × Strength^1.5`. Deliberately front-loaded — ~49 lbs at the
+    starting Strength of 2.00, not the ~110 lbs flat scaling would give. Ben's own
+    framing: "it makes the player need to concentrate on inventory management and
+    strength in the early game."
+  - **Strength grows from carrying weight**, tiered by load ratio: ≤50% capacity,
+    no gain (a light load teaches nothing); 50–80% marginal; 80–90% better; 90–95%
+    the best rate; >95% ("Overloaded") the rate drops back down *and* Health drains
+    at 2/s while sustained. **Real-time-calibrated**, not a raw XP number picked by
+    feel: Ben's spec was "at a strength of 2, it should take 2 actual days of
+    playing to raise by .25" — solved as a continuous-growth equation
+    (`dL/dt = R(1 - L/100)`, `GainExperience`'s own diminishing curve treated as an
+    ODE) anchored to the fastest tier. Every tier beyond that slows down further for
+    free, off the same formula, correctly reaching exactly zero gain at Strength 10
+    (level 100) — no separate slowdown mechanism was ever needed, just calibrating
+    the existing one to the right magnitude.
+  - **Real float-precision bug caught before shipping, not after:** at the
+    calibrated rate, a single frame's gain is smaller than what a `float` can even
+    represent added onto Strength's current level — confirmed by simulation (level
+    stayed frozen after a simulated 2 days), not assumed. Fixed with a pending-gain
+    accumulator that only flushes to `GainExperience` once enough has banked up to
+    survive float precision at any level up to 100; re-simulated afterward to
+    confirm the fix actually lands the target (22.4997 vs. a 22.5 target — correct).
+  - **Movement tiers share Encumbrance's own thresholds, not a separate pair.**
+    First pass used an independent 100%/150% breakpoint (a leftover from before the
+    real capacity numbers existed); Ben's follow-up call — "let's match the movement
+    rates to strength rates" — replaced it with the same 50/80/90/95% breakpoints
+    Strength's own gain tiers use, now `public` on `PlayerEncumbrance` so both
+    systems read one source of truth. ≤50% full speed; 50–80% 0.85x; 80–90% 0.65x,
+    sprint disabled; 90–95% 0.45x; >95% 0.25x plus an extra 5/s Stamina drain while
+    moving — the worst movement tier and the health-cost tier are now the same
+    threshold, not two to track separately.
+  - **Pickup blocked at/over capacity** (`PlayerLoot.Receive`/`ReceiveEquipment`) —
+    "whatever you try to pick up, you can't" once `LoadRatio >= 1.0`. Existing
+    callers already treated "nothing fit" as "leave it on the ground," so no
+    caller-side change was needed.
+  - **Reflected against the original wishlist line** once built: capacity growing
+    with Strength ✅, movement speed/stamina cost ✅, tied to loot (pickup gate) ✅,
+    tied to storage (only on-person weight counts) ✅. The one line-item gap —
+    "movement *efficiency* also improving with skill," not just capacity — was
+    explicitly closed as *not wanted*, Ben's call after reviewing the relative
+    numbers: "I think that the relative amounts apply nicely. no change to that."
+- **Item weights, tuned in passes, with a new shared table for "better = lighter."**
+  A first attempt inverted the existing `CraftTierScale.Modifier` (built for
+  capacity/price, 0.2x–5x) directly for weight — produced a 25 lb Crude Backpack and
+  a hypothetical 5 lb Crude Knife, both rejected on sight ("a 5lb knife would be
+  horrible... a 25lb backpack would be terrible as well"). Replaced with a dedicated,
+  much narrower `CraftTierScale.WeightModifier` (Crude 1.5x → Masterwork 0.6x) — see
+  `CLAUDE.md`'s new "a tier-scaling ratio tuned for one quantity doesn't transfer to
+  another" gotcha, written up specifically so this doesn't get relearned by a future
+  session or the other collaborator. Applied to the full Backpack (5 lbs Normal →
+  7.5/6/5/4/3), Knife (1 lb → 1.5/1.2/1/0.8/0.6), Axe/Hammer (4 lbs →
+  6/4.8/4/3.2/2.4), and Pickaxe (6 lbs → 9/7.2/6/4.8/3.6) ladders. Small
+  Rock/Copper/Silver/Gold/Platinum Ore also hand-assigned (1.5/0.9/0.9/1.8/1.5 lbs)
+  from an ad hoc tier-position mapping Ben specified directly. **32 `ItemDefinition`s
+  still sit at the untuned 1 lb default** — full categorized list generated and
+  logged in `BUGS_AND_ENHANCEMENTS.md` with a link, not silently left for someone to
+  rediscover from scratch.
+- **Testing-friction cleanup:** `AdminSpawnScreen`'s pre-existing 80-Plank/24-Stick/
+  12-Rope auto-grant (built last session for testing the Plank build tier) was
+  silently putting a fresh character 56 lbs into Encumbrance before they'd picked
+  anything up — call disabled (method kept, easy to re-enable when next testing the
+  Plank path specifically), so a fresh spawn now genuinely starts at 0 lbs carried.
+
+### v0.1.188-dev — Plank tier for the whole Building System, and the real doorway bug found at last
+
+Ben's ask: "we need plank versions of all of these building panel
+models. the planks should fit nicely and should be visually
+appealing... we don't want the gaps." Then, mid-build: Plank pieces
+must also be directly buildable once a player has the skill, not just
+upgrade-only targets — "any version they have the skill for, and
+upgrade to the next as they get skills to do it."
+
+- **7 new Plank pieces** (Wall, Half-Wall, Door-Frame Wall, Door, Roof
+  Panel, Gable Panel, Pole) plus a **real visual for Plank Foundation**,
+  which had never gotten one — it was still a plain Unity default Cube
+  with a flat-color material from whenever the Twig→Plank upgrade path
+  was first wired, invisible as a placeholder until Ben actually looked
+  at one ("the plank foundation doesn't look real good"). All 8 now
+  share one real Blender pipeline: a solid flat panel (or, for
+  Door-Frame Wall, three boxes matching its own known-good doorway
+  collider split; for Gable, a triangular prism; for Pole, square
+  post-and-beam framing) with a baked board-seam-and-grain texture
+  (`ShaderNodeTexWave` bands + `ShaderNodeTexNoise` grain, multiplied
+  over a flat tan matching `PlankFoundation`'s own established color)
+  instead of Twig's bundled-branches-with-gaps look — a real material-
+  tier visual difference, not just a recolor.
+- **Every Plank piece reuses its Twig counterpart's socket layout
+  exactly** (same local positions/types), so all of `PlayerBuilding`'s
+  existing placement branches (`wallOntoFoundation`, `roofOntoWall`,
+  `doorOntoFrame`, the Door-Frame Wall's collider split, Pole's ground-
+  tiling/stacking) work unmodified — zero new C# needed for placement,
+  only for wiring each piece up as data. Confirmed via a full
+  batch-mode sweep after all 8 were built: all 17 pieces resolve in
+  `PlayerBuilding.allPieces`, all 8 Twig→Plank `nextTier` links point
+  correctly, Roof's placement sign still lands inward, Door's still
+  lands centered in its frame, the Door-Frame Wall's doorway is still
+  walkable, and Pole's tiling/stacking both land with zero gap —
+  reusing the same verification techniques proven on the Twig family
+  rather than re-deriving them.
+- **Plank pieces are directly buildable, not upgrade-only.** Set
+  `unlockTier = CraftTier.Rudimentary` (skill level 10) on all 7 new
+  pieces and wired them into `TestScene`'s `PlayerBuilding.allPieces`
+  directly, per Ben's mid-build correction. Also retroactively fixed
+  `PlankFoundationPiece.asset`, which had sat at `unlockTier: 0`
+  (Crude — no skill gate at all) and was never in `allPieces` to begin
+  with, meaning it was *only* ever reachable via the Hammer upgrade
+  action, not really "directly buildable" despite existing as a real
+  BuildPiece asset since v0.1.156-dev.
+- **Real Blender bug found and fixed mid-build, not just flagged**:
+  `shade_smooth()` on a low-poly box (the Pole's square posts/beams,
+  and — found copy-pasting the same mistake into every panel script —
+  the flat wall/roof/gable panels too) averages vertex normals across
+  each shared corner's adjacent faces, which reads as an obviously
+  rounded look on thin square posts but a much subtler, easy-to-miss
+  lighting/brightness shift across even a large flat panel face. Caught
+  first on Pole (posts rendered as tubes, not square lumber) and fixed
+  there; initially suspected the *other* symptom — every Plank icon
+  reading pale/washed-out — was the same bug wearing a different face,
+  but disproved that directly (flat-shading the icon test model made no
+  visible difference) before accepting the paleness is a separate,
+  still-open issue (see `BUGS_AND_ENHANCEMENTS.md`) rather than
+  conflating two bugs that happened to surface the same day.
+- **The real doorway-walkability bug, finally found.** Logged
+  2026-08-09 as unsolved after a resize (1.2m×2.0m → 1.5m×2.4m) passed
+  every batch-mode check but still failed live. The missing piece came
+  from Ben's own diagnostic observation: walking was blocked, but
+  jumping or running through cleared it — the signature of a step-
+  height problem, not a doorway/collider problem at all. Foundation's
+  own exposed lip (top surface 0.4m above ground) was deliberately
+  raised from 0.2m to 0.4m on 2026-08-09, the same day, a few hours
+  before the doorway resize — but the Player's `CharacterController.
+  stepOffset` (0.3m) was never revisited against that change. 0.4m >
+  0.3m: walking onto *any* Foundation edge from ground level should
+  have been blocked project-wide the whole time, not just at a
+  doorway — the doorway just happened to be the one place someone
+  actually tries to walk onto a Foundation, since Walls block every
+  other edge outright. Every earlier check (`Physics.OverlapCapsule`,
+  even a real `CharacterController.Move()` simulation without gravity)
+  missed this because none of them tested walking up onto the
+  Foundation's own edge specifically — they all tested clearing the
+  doorway opening itself, which was never actually the problem. Fixed
+  by raising `stepOffset` to 0.45 (keeping the lip height Ben chose,
+  rather than reverting it) — confirmed via a real grounded
+  `CharacterController.Move()` simulation (matching `FirstPersonController`'s
+  own gravity/isGrounded handling) walking from open ground, through
+  the doorway, past an open Door, all the way through — and confirmed
+  live by Ben immediately after: "the door works much better just
+  walking through it now."
+- **Admin Spawn granted enough Stick/Rope for Twig testing but nothing
+  for Plank** — Ben hit this immediately trying to test the new
+  upgrade path ("waiting for the tree to respawn, only have 7 planks,
+  so I can't test the upgrade"). Added an 80-Plank starting grant next
+  to the existing one in `AdminSpawnScreen.Awake()`, covering one of
+  every Plank piece (69 total) with slack to spare.
+- **A real, separate bug found right after: upgrading Twig→Plank failed
+  with "Not enough materials" even with 20 Plank on hand** ("same as
+  the door" — hit on both Door-Frame Wall and Door, not piece-specific).
+  Root cause: `PlayerPieceUpgrade.HasIngredients`/`RemoveIngredients`
+  only ever called `inventory.GetCount()`/`RemoveItem()` directly — the
+  player's own main-inventory list only, never the equipped Backpack or
+  nearby StorageBox. `PlayerBuilding` already reaches all three
+  (`ReachableInventories`) for placing a *new* piece; the *upgrade*
+  action never got the same treatment. Same class of bug as the
+  original "can't eat a Berry" fix — an item sitting somewhere other
+  than the main list is invisible to a check that only looks there.
+  Fixed by porting `PlayerBuilding`'s exact `ReachableInventories`/
+  `GetAvailableCount` shape into `PlayerPieceUpgrade` (new
+  `PlayerBackpack`/`StorageBox` reach, `storageRange` field). Verified
+  with a real functional test, not just a compile check: 12 Plank
+  placed in a nearby `StorageBox`, zero in the player's own main
+  inventory — confirmed `GetAvailableCount` found all 12,
+  `HasIngredients` passed, and calling `Upgrade()` actually consumed
+  the box's Plank and swapped the placed piece from Twig to Plank
+  Door-Frame Wall.
+
+### v0.1.187-dev — Twig Pole: elevates a Foundation on stilts
+
+The `PoleTop` socket type has sat unused in `SocketType` since the
+Building System's very first pass (named ahead of time, 2026-08-08) —
+this is what it was for. Ben's design, refined over three short
+exchanges: "same as Foundation, but without the flat horizontal parts
+filled in," then "4 poles and frame, one piece," landing on 4 corner
+posts + a frame around the top + a frame around the middle, no solid
+floor, genuinely walkable underneath.
+
+- **One piece, Foundation's exact footprint (5m×5m), hollow.** 4
+  corner posts (2m tall), a beam frame at the top (what a Foundation
+  rests on) and another at half-height (bracing) — no slab anywhere.
+  12 Stick, no Rope (plain post-and-beam joinery, not lashed like the
+  Wall family — a deliberate visual differentiation, not an oversight).
+- **Pole tiles beside a Foundation using zero new code** — its own 4
+  edge sockets are plain `FoundationEdge` type, positioned/rotated to
+  exactly match Foundation's own (North/South/East/West at the same
+  local points, same yaw), so it drops straight into the existing
+  generic flat-tiling formula every Foundation-to-Foundation placement
+  already uses. Confirmed via batch mode: zero gap between a tiled
+  Pole's own edge socket and the Foundation it tiled against.
+- **Foundation stacking is the one genuinely new piece.** Foundation
+  gained a new `SocketPoleTop` at its own local origin — the *exact*
+  same point its `FoundationEdge` sockets already sit at, 0.4m below
+  its own visible top surface. That means a stacked Foundation keeps
+  its existing "sits slightly embedded" look, just embedded into the
+  Pole's top frame instead of the ground, with no new offset math —
+  same origin-socket trick as Wall/Roof/Door/Gable, just applied to a
+  piece (Foundation) that predates that convention. New
+  `foundationOntoPole` branch in `PlayerBuilding.ResolveFollowing`,
+  reusing the same `LookRotation(socket.forward, up)` formula the
+  majority of origin-socket cases already use (verified unnecessary to
+  negate — Foundation's 4-fold symmetry means sign doesn't change the
+  outcome, unlike Door). Confirmed via batch mode: zero gap between
+  Foundation's own new socket and the Pole's top socket, and the
+  resulting elevated Foundation's top surface lands at exactly 2.4m
+  (2.0m post height + Foundation's own 0.4m socket-to-top-surface
+  offset) — a sensible, walkable stilt height.
+- **Per-element colliders, not one bounding box** — learned directly
+  from Door-Frame Wall's own doorway bug two days ago: a single AABB
+  over this whole open frame would have made the entire hollow middle
+  solid. 4 post colliders + 8 beam colliders instead, matching only
+  the real geometry, so the space underneath is actually walkable.
+  This time the lesson was applied proactively, not found live.
+  Icon baked cleanly via `IconBaker`'s normal path on the first try
+  (unlike Gable Panel's still-open framing bug the day before).
+
+### v0.1.186-dev — Twig Gable Panel: fills the roof's triangular gable ends
+
+Building System item 2 of tomorrow's 3-item plan (see 2026-08-09's
+closing notes): the wall-to-roof gap above the Foundation's other two
+edges — the ones that don't carry a Roof Panel.
+
+- **The math**: a gable roof's ridge runs across the *middle* of the
+  building, parallel to the two walls carrying Roof Panels — meaning
+  the two remaining walls (perpendicular to the ridge) sit under a
+  *triangular* gap, not a rectangular one. Base = 5m (the wall's own
+  width), apex height = 2.5 × tan(35°) ≈ 1.75m — the exact same rise
+  the Roof Panel already climbs over its own 2.5m horizontal reach, so
+  the triangle's sloped edges land at 35° too and the roof panels sit
+  flush against them with no gap, by construction rather than by luck.
+- **Twig Gable Panel**: branches follow a linear triangular envelope
+  (`height(x) = apexHeight × (1 - |x|/2.5)`) instead of Wall's uniform
+  height, two lashing bars placed at a fixed *fraction* of each
+  branch's own height (not a fixed world height) so they read as
+  straight lines following the roofline instead of a flat bar poking
+  through the sloped edge partway across. Built vertically like Wall/
+  Half-Wall (no tilt, no Blender→Unity export sign surprise to check
+  for this time — confirmed empirically anyway: same-sign and negated
+  placement rotations gave identical results, since this piece is
+  symmetric in its own local X, unlike Door).
+- **Zero new C# needed.** The Gable Panel's own attach socket is
+  `WallTop` (matching Roof Panel's own convention exactly), so it
+  drops straight into `PlayerBuilding`'s existing `roofOntoWall`
+  placement branch — same target-socket type, same armed-socket type,
+  no new case to add. Confirmed via a full 4-wall test (Roof Panels on
+  North/South, Gable Panels on East/West): the Gable's own apex height
+  (4.422) lines up with the computed ridge height (4.4367) within the
+  same branch-radius tolerance the Roof-to-Roof ridge meeting already
+  accepted.
+- 6 Stick + 3 Rope, same Woodworking skill gate as the rest of the
+  Wall family. Wired into `TestScene`'s `PlayerBuilding.allPieces` and
+  confirmed resolving via a fresh batch-mode read (all 8 pieces now
+  present).
+- **Known gap, not fixed here**: the icon renders unreadably small and
+  off-center regardless of camera direction tried — including one
+  direction already proven working for Roof Panel's own similarly
+  flat/wide shape — while a simpler fixed-orthographic-size debug
+  camera (bypassing `IconBaker`'s tight-fit corner-projection framing
+  entirely) produced a clean, well-framed result with the identical
+  direction. That isolates the bug to `IconBaker`'s own tight-fit math
+  specifically, not the camera angle or this piece's geometry — but
+  the actual root cause wasn't found before Ben called it (reasonable
+  — this had already gone through several dead-end attempts). Shipped
+  with the rough icon rather than keep guessing blind; worth root-
+  causing if another asset hits the same framing bug.
+
+### v0.1.185-dev — A kickable Soccer Ball, for fun
+
+Ben's ask, verbatim: "let's have a moment of fun." A real truncated-
+icosahedron soccer ball, built and textured entirely in Blender, that
+gets booted a random distance when the player walks into it.
+
+- **Genuine soccer-ball geometry, not a texture trick**: start from an
+  icosahedron (`primitive_ico_sphere_add(subdivisions=1)` — exactly 12
+  verts/20 triangular faces), bevel every *vertex* by one segment (the
+  standard trick for turning an icosahedron into a truncated
+  icosahedron — each vertex becomes a small pentagon, each triangle
+  shrinks into a hexagon), then push every vertex back onto the sphere
+  so the flat polyhedron panels curve like a real ball. Confirmed
+  exactly 12 pentagons + 20 hexagons came out the other end. The
+  classic black/white pattern is just two flat materials assigned by
+  each face's own vertex count (5 → black, 6 → off-white) — no UV
+  texture or baking needed at all, unlike every wood-grain piece so
+  far.
+- **`SoccerBall.cs`** — a pure physics toy, not an `IInteractable`/
+  `ISecondaryInteractable`: `OnCollisionEnter` checks for a
+  `CharacterController` on whatever it touched, reads
+  `PlayerVitals.IsSprinting`, and launches the ball with
+  `Rigidbody.linearVelocity` set from the real projectile-range formula
+  (`speed = sqrt(distance × gravity / sin(2 × angle))`) so it actually
+  *lands* at the randomly-picked distance instead of just getting some
+  force shoved at it. Normal contact: 3-7m at a random 5-30° angle.
+  Sprinting: 5-12m at 5-45°. A short cooldown (0.4s) stops a rolling
+  ball from re-triggering the kick every physics tick while still
+  touching the player.
+- **Two real sign/math checks caught before relying on a live kick to
+  find them** (same discipline as the Roof/Door placement bugs): (1)
+  confirmed `Quaternion.AngleAxis(-angle, player.right) * forward`
+  actually tilts *upward*, not into the ground — hand math alone
+  wasn't trusted this time. (2) A reflection-based check called the
+  ball's own private kick method directly for both the normal and
+  sprint case, then reverse-solved the resulting `Rigidbody.linearVelocity`
+  back into an implied angle/distance via the same range formula, to
+  confirm the actual physics output lands inside the requested ranges
+  — not just that some plausible-looking vector got set.
+- Regulation size-5 dimensions (22cm diameter, 0.43kg mass). One
+  instance placed 3m in front of the player's spawn point in
+  `TestScene` for immediate testing. Also given a real `ItemDefinition`
+  (`SoccerBall.asset`) purely so it has a baked icon — not wired into
+  Pickup/drop mechanics, since the ball's only interaction is the
+  kick-on-contact, not inventory. Same "asset exists ahead of the
+  mechanic using it" pattern already accepted elsewhere in this
+  project (see `BUGS_AND_ENHANCEMENTS.md`'s Copper/Iron entries).
+- **Two real bugs caught live within moments of Ben testing it, neither
+  about the ball model itself.** First: "you clearly have never seen a
+  soccer ball" — a plain grey cube with a "Pick up Soccer Ball" prompt,
+  not the real ball. Root cause: `SoccerBall.asset` had no
+  `worldPickupPrefab` set, so `PlayerDropping.SpawnPickup` (used by
+  Admin Spawn, which now auto-lists the item since it's a real
+  `ItemDefinition`) fell back to the game's generic placeholder pickup
+  prefab instead. Fixed by wiring `worldPickupPrefab` to the real
+  `SoccerBall.prefab` — confirmed via batch mode that the fallback
+  simulation now produces the actual ball, and (a useful side effect)
+  that it correctly gets *no* Pickup component and therefore no
+  "Pick up" prompt at all, since `SoccerBall.prefab` never had one —
+  matching the original intent of a pure physics toy, not an
+  inventory item.
+- **Second: "when the player runs into it, it doesn't get kicked, you
+  just run over it."** Not a tuning problem — `CharacterController.Move()`
+  resolves movement through its own kinematic capsule cast, not the
+  normal PhysX solver, so it never fires `OnCollisionEnter` on anything
+  it touches. `SoccerBall.cs` only listened for `OnCollisionEnter`,
+  which is exactly why the batch-mode kick-math check (which called the
+  kick method directly, bypassing real collision entirely) passed clean
+  while live contact did nothing — the check never exercised the actual
+  contact-detection path at all. Fixed by making `TryKick` public and
+  adding `OnControllerColliderHit` to `FirstPersonController` — the
+  real message `CharacterController` *does* send, on the player's own
+  GameObject, once per thing it bumps into — which calls into the
+  ball directly. `OnCollisionEnter` stays too, for genuine
+  Rigidbody-vs-Rigidbody contact. Re-verified both the normal and
+  sprint kick land in range through the now-public method, and
+  confirmed the new method actually exists on `FirstPersonController`
+  via reflection rather than just eyeballing the diff.
+- **Third bug, right after the kick started working: "it rolled forever,
+  and never stopped... rolled off the edge of the screen."** Not a fluke
+  and not a friction-tuning problem — a rigid sphere in pure rolling
+  (no slip) has ~zero relative velocity at its own contact point, so
+  friction does essentially no work on it. An idealized PhysX sphere
+  with only default friction genuinely never stops rolling on a flat
+  plane; this is real physics, not a bug in Unity's friction model.
+  The only real fix is Rigidbody linear/angular damping (continuous
+  exponential decay, independent of contact/friction) — the original
+  values (`linearDamping`/`angularDamping` 0.15/0.05) were far too low.
+  Simulated several candidate values directly with `Physics.Simulate`
+  (manual stepping, `SimulationMode.Script`) rather than guessing:
+  0.15/0.05 never settled within 20 simulated seconds and covered
+  33m+ (matches Ben's report almost exactly); 0.6/0.6 settles in
+  ~5.6s over ~8m, chosen as a natural "rolls a good distance on grass
+  then stops" feel over the faster-settling options tested (which felt
+  more like hitting mud than rolling to a stop). Re-verified against
+  the actual saved prefab's own values afterward, not just the test's
+  local override.
+
+### v0.1.184-dev — Door solution: Half-Wall, Door-Frame Wall, and a real working Door
+
+The Building System's door plan, built in the order agreed with Ben: the
+cheap reuse first, the genuinely new piece last.
+
+- **Twig Half-Wall** — 2.5m wide (half of Wall's 5m), same 2.6867m height
+  and bundled-branches-plus-rope visual language, half the branch count.
+  Snaps to a Foundation edge with the exact same `wallOntoFoundation`
+  placement math Wall already uses — no new socket logic needed at all,
+  since its own `SocketBottom` sits at local origin same as Wall's.
+  4 Stick + 2 Rope.
+- **Twig Door-Frame Wall** — same 5m×2.6867m footprint as Wall, with a
+  1.2m×2.0m doorway cut into the branch fan: thicker uniform-radius jamb
+  posts flank the opening, a wood header beam (not rope) bridges the top,
+  and the two rope lashing bars split around the gap instead of floating
+  across it. New self-pairing `SocketType.DoorFrame` (same shape as
+  `WallTop`'s), exposed as `SocketFrame` at the doorway's hinge-side
+  bottom corner. Confirmed by direct measurement: placed on a Foundation
+  edge, the frame socket lands exactly 0.6m off the wall's own root, not
+  centered — the actual hinge corner, not a guess. 10 Stick + 4 Rope.
+- **Twig Door** — the only genuinely new piece: no existing system
+  animates, hinges, or times anything on a placed piece. `Door.cs` is the
+  first `IInteractable` on a `PlayerBuilding`-placed piece. Modeled
+  spanning local X 0 → doorWidth in Blender so its own local origin sits
+  at the hinge corner — the same point it's placed at *and* the pivot it
+  rotates around at runtime (no separate hinge child needed). Opens away
+  from wherever the player is standing at the moment of the click (dot
+  product against the door's own forward decides which side, so the leaf
+  always swings to the side the player *isn't* on — Ben's ask: "that way
+  it won't ever cause a problem opening or closing"), auto-closes 60s
+  later if left open. 4 Stick + 2 Rope.
+- **A second real export-sign surprise, caught the same way as Roof's.**
+  Door's own measured bounds after import showed the leaf sitting in
+  local **-X**, not the 0→+doorWidth range it was built in — the
+  Blender→glTF→Unity pipeline flips both the "long axis" *and* the
+  X axis relative to a naive same-sign copy (a consistent 180°-about-Y
+  relationship once both this and Roof's own sign finding are put
+  together, not two unrelated bugs). Hand math alone would have placed
+  the door leaf 1.15m off the doorway's actual center — outside the
+  opening, behind the jamb. Caught first, before it ever needed a live
+  report: a throwaway batch-mode check (`DoorPlacementCheck.cs`,
+  since-deleted) placed the door both ways and measured which one's
+  bounds actually centered on the doorway gap. The *negated* formula
+  was correct here — opposite of `wallOntoFoundation`/`roofOntoWall`,
+  which both use the same-sign version. `Door.cs`'s own swing-direction
+  math needed no change either way, since it only cares about relative
+  sides, not an absolute forward convention.
+- **Caught live, not by a batch-mode check: Door originally used E
+  (`IInteractable`), same as every other interaction — but E is also
+  `PlayerPieceUpgrade`'s own click-to-upgrade/hold-to-destroy key on
+  any `PlacedPiece` (which every placed piece becomes, Door included).
+  Ben found it immediately testing the real building: "since destroy
+  the panel relies on E, there's no key press that opens the door" —
+  with a Hammer equipped (the normal state while building), E never
+  reached the door at all.** Root-cause fix, not a workaround: switched
+  Door onto `ISecondaryInteractable` (F) instead — a system that
+  already exists in this codebase for exactly this shape (an optional
+  second action on its own key, currently used elsewhere for e.g. a
+  water source's "Fill"). Door has no primary E action at all now, so
+  it doesn't implement `IInteractable` in the first place — there's no
+  overlap left to flag, not just a mitigated one. Confirmed via a
+  throwaway reflection-based check that toggling `ISecondaryInteractable`
+  directly still opens/closes correctly after the interface swap.
+- **The real bug behind "F does not open the door" (Ben's next live
+  report) wasn't the keybind at all — `TwigDoorFrameWallPiece`'s
+  `BoxCollider` was sized from the whole mesh's AABB, and an AABB can't
+  carve out a hole. It silently spanned the doorway gap too**, making
+  the opening solid: unwalkable, and swallowing any interaction raycast
+  aimed through it before it ever reached the Door standing behind. Same
+  category of bug as Foundation's visual/collider mismatch earlier this
+  week — a collider built from "the whole mesh's bounds" without
+  checking whether the mesh actually fills that whole box. Fixed by
+  splitting the one `BoxCollider` into three (`ColliderLeftFlank`,
+  `ColliderRightFlank`, `ColliderHeader`) matching the solid geometry
+  only, leaving the doorway's own X/Y region genuinely open. Confirmed
+  via a throwaway raycast check: a ray through the doorway gap now hits
+  the placed `TwigDoorPiece` and resolves its `ISecondaryInteractable`
+  directly, while a ray at the flanking section still hits the wall.
+- **A third real bug, found immediately after fixing the collider one:
+  the doorway was open but still physically too tight to walk
+  through.** Foundation's own edge socket sits 0.4m below Foundation's
+  actual walkable top surface — the "mostly buried" offset every wall
+  already inherits invisibly (it's why a Wall's base sits flush instead
+  of floating), but for a doorway it directly eats into the usable
+  headroom instead of being hidden inside a solid wall. The original
+  1.2m×2.0m opening measured fine on paper but only gave 1.6m of
+  *effective* clearance above the real floor — less than the
+  CharacterController's 1.8m height. Resized both `generate_doorframe_wall.py`
+  (1.2×2.0 → 1.5×2.4) and `generate_door.py` (1.1×1.95 → 1.35×2.3) to
+  match, rebuilt both prefabs in place (same guids/paths, so neither
+  the `BuildPiece` assets nor `TestScene`'s wiring needed touching).
+  Confirmed this time with a batch-mode capsule check sized to the
+  exact CharacterController dimensions (radius 0.4, height 1.8)
+  standing at the doorway center — not just re-measuring the nominal
+  opening size again, which is exactly what missed the deficit the
+  first time. (One methodology wrinkle along the way: a capsule tested
+  with its bottom sitting *exactly* at floor level always reads as
+  "overlapping" the ground — normal standing contact, not a block —
+  so the check needed a small standoff off the floor to give a real
+  answer instead of a permanent false positive.)
+  **Not actually fixed, per Ben's next live test (2026-08-09)** — the
+  doorway is still unwalkable in the real game despite the resize and
+  the clean batch-mode capsule result. Logged as an open bug in
+  `BUGS_AND_ENHANCEMENTS.md` rather than shipped as resolved; the gap
+  between a synthetic instantiate-and-query check reporting clear and
+  the live `CharacterController.Move()` still blocking is itself the
+  open question for next session.
+- **Scene wiring bug from Roof Panel recurred twice more** (Half-Wall,
+  then again before the fix stuck) — the reload-before-use guard added
+  after Roof's own incident didn't actually fix it; the real cause looks
+  like a timing race between `AssetDatabase.Refresh()`/`SaveAssets()`
+  and the scene write, not a stale C# reference. Every subsequent piece
+  in this batch (Door-Frame Wall, Door) skipped the automated
+  `SerializedObject` scene-array write entirely and went straight to
+  reading the asset's real guid (`AssetDatabase.AssetPathToGUID`) and
+  patching `TestScene.unity`'s YAML directly, verified each time via a
+  fresh batch-mode read of `PlayerBuilding.AllPieces`. Root cause still
+  not found — flagging here so a future session doesn't re-attempt the
+  "just reload the asset first" fix and rediscover the same failure.
+- All three new pieces wired into `TestScene`'s `PlayerBuilding.allPieces`
+  and confirmed resolving via a fresh batch-mode read. Full project
+  recompile clean.
+
+### v0.1.183-dev — Twig Roof Panel: two-piece ridge roof, same Blender pipeline as Wall
+
+The Building System's third piece, and the first one that snaps onto
+another *piece's* socket instead of onto Foundation. Ben's ask: two
+panels, placed one at a time, one per wall, oriented to meet correctly
+at a ridge — reusing Wall's exact visual language ("same visual").
+
+- **Geometry built the same way as Wall**: `generate_roof_panel.py`,
+  bundled branches + 2 rope lashing bars, same procedural Object-space
+  wood-grain shader baked to a diffuse texture via Cycles. The one real
+  difference: branches run along the panel's *slope* instead of
+  standing vertically, and the 35° pitch is baked directly into the
+  mesh (built flat, then rotated 35° about the width axis and applied)
+  rather than handled as runtime math — same "simplify by design"
+  approach that made Wall's own placement trivial.
+- **Math**: for a 5m building width, each panel needs 2.5m horizontal
+  reach to the ridge. At 35°, slant length = 2.5/cos(35°) ≈ 3.05m,
+  ridge rise above wall-top ≈ 2.5×tan(35°) ≈ 1.75m — confirmed by
+  direct measurement of the imported mesh (1.98m rise incl. branch
+  radius, matches).
+- **New `WallTop` socket on `TwigWallPiece.prefab`** (`SocketTop`, at
+  the wall's own measured top surface Y=2.6867, read straight off its
+  existing `BoxCollider` rather than a remembered number) and a
+  matching `SocketEave` on the new `TwigRoofPanelPiece.prefab`, sitting
+  at the model's local origin — the Blender build pins the eave edge
+  there through the bake-in rotation, same trick as Wall's own
+  `SocketBottom`. `BuildSocket.IsCompatibleWith` gained `WallTop`
+  self-pairing, mirroring `FoundationEdge`'s.
+- **`PlayerBuilding.ResolveFollowing` gained a `roofOntoWall` branch** —
+  and a real sign bug caught before it shipped. Hand math suggested the
+  panel's baked-in "eave→ridge" run direction needed the wall socket's
+  outward-facing `LookRotation` *negated* to point back inward toward
+  the building. Wrong: the Blender→glTF→Unity export flips the sign of
+  the axis the branches run along, so the *same*-sign `LookRotation`
+  (identical formula to `wallOntoFoundation`) is actually correct.
+  Caught by writing a throwaway batch-mode check that placed a panel
+  both ways and measured which one landed toward the Foundation's
+  center rather than trusting the hand math — the negated version put
+  the whole panel outside the building. A second throwaway check placed
+  two panels on Foundation's opposite North/South edges end-to-end:
+  their ridges land within 0.22m of each other (branch-radius padding)
+  at identical height, a real ridge line, confirming both the math and
+  the sign fix together before calling it done.
+- **New recipe**: Twig Roof Panel, 10 Stick + 5 Rope (same
+  `TwigWallPiece` skill gate), icon baked via the existing `IconBaker`
+  at Wall's own 32/128 resolution. Wired into `TestScene`'s
+  `PlayerBuilding.allPieces`.
+- Not yet done, floated by Ben in the same planning pass but explicitly
+  deferred: a half-width Wall variant, a door-frame Wall variant, and a
+  Door piece with player-aware opening direction + 1-minute auto-close.
+- **Caught live, not by a batch-mode check**: the Build tab didn't show
+  Twig Roof Panel at all after the setup script ran — the new
+  `PlayerBuilding.allPieces` array slot serialized as `{fileID: 0}`
+  (null) instead of the piece's real guid. The setup script wired the
+  scene reference in the same run it created the `BuildPiece` asset,
+  without IconBaker's own established fix for exactly this failure
+  mode (reload an asset fresh right before use, since
+  `AssetDatabase.CreateAsset`/scene-load calls can invalidate an
+  object reference held from before they ran) — same trap, different
+  script. Fixed by writing the correct guid directly into
+  `TestScene.unity`'s YAML and confirming via a fresh batch-mode read
+  of `PlayerBuilding.AllPieces` that all four pieces (including Twig
+  Roof Panel) now resolve.
+- **Caught live again — the baked icon read as a single thin diagonal
+  line**, not a fan of branches. Not a mesh or material bug (the actual
+  in-game piece renders correctly, confirmed by Ben's live screenshot
+  of the finished roof) — `IconBaker`'s fixed 3/4-from-above camera
+  angle happens to run close to parallel with this specific panel's
+  baked-in slope direction, foreshortening the whole fan into a
+  sliver. Every other piece baked so far is closer to axis-aligned, so
+  this never came up before. Fixed by giving `IconBaker.BakeAndWire`/
+  `BakeOne` an optional `cameraDirection` override (default `null`
+  keeps every existing icon's framing untouched) and re-baking just
+  this one icon from a near-frontal angle instead. Confirmed via a
+  throwaway multi-angle render comparison before picking the fix,
+  rather than guessing at a new angle blind.
 
 ### v0.1.182-dev — Foundation raised a bit higher; starting materials for wall-testing
 

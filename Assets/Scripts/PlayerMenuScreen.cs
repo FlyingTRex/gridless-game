@@ -13,6 +13,9 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CraftingScreen))]
 [RequireComponent(typeof(MagicScreen))]
 [RequireComponent(typeof(BuildScreen))]
+[RequireComponent(typeof(PlayerSkills))]
+[RequireComponent(typeof(PlayerGuilds))]
+[RequireComponent(typeof(PlayerEncumbrance))]
 public class PlayerMenuScreen : MonoBehaviour
 {
     private enum Tab { Player, Inventory, Skills, Crafting, Magic, Build }
@@ -20,11 +23,51 @@ public class PlayerMenuScreen : MonoBehaviour
     private const float TabWidth = 140f;
     private const float TabHeight = 32f;
 
+    // Player tab tile grid (2026-08-10, Ben's layout call): stats/Fame/
+    // Faction lay out 3-to-a-row; guild tiles are one per row, each the
+    // same total width as that 3-tile row. Tile width is computed from
+    // Screen.width (not a fixed pixel size) so the grid fills the screen
+    // side to side on any resolution, per Ben's follow-up call the same
+    // day — TileAreaSidePadding is a rough allowance for the tab area's
+    // own margin plus the scroll view's scrollbar.
+    private const float TileHeight = 110f;
+    private const float TileGap = 10f;
+    private const int TilesPerRow = 3;
+    private const float TileAreaSidePadding = 40f;
+
+    private static float TileWidth =>
+        (Screen.width - TileAreaSidePadding - TileGap * (TilesPerRow - 1)) / TilesPerRow;
+    private static float RowWidth => TileWidth * TilesPerRow + TileGap * (TilesPerRow - 1);
+
+    // Growth bar shown on each of the 4 core stat tiles (2026-08-10),
+    // styled like VitalsBarHUD's vital bars (colored fill + dark
+    // background + a centered label) per Ben's call — progress toward the
+    // *next .25 displayed point*, not overall progress to the 0-100 cap
+    // (a nearly-always-empty bar for the first many hours of play
+    // wouldn't read as useful feedback). Since displayed = level/10, a
+    // .25 displayed step is 2.5 raw skill levels — e.g. raw level 20
+    // (Strength 2.00) to 22.5 (Strength 2.25) fills this 0->1. Not shown
+    // on Fame/Faction/Guild tiles — none of those have a
+    // GainExperience-backed growth track.
+    private const float BarHeight = 18f;
+    private const float LevelPerQuarterPoint = 2.5f;
+    private static Texture2D barBackgroundTex;
+    private static Texture2D barFillTex;
+    private static GUIStyle barLabelStyle;
+
+    [SerializeField] private SkillDefinition strengthSkill;
+    [SerializeField] private SkillDefinition dexteritySkill;
+    [SerializeField] private SkillDefinition constitutionSkill;
+    [SerializeField] private SkillDefinition intelligenceSkill;
+
     private InventoryScreen inventoryScreen;
     private SkillsScreen skillsScreen;
     private CraftingScreen craftingScreen;
     private MagicScreen magicScreen;
     private BuildScreen buildScreen;
+    private PlayerSkills skills;
+    private PlayerGuilds guilds;
+    private PlayerEncumbrance encumbrance;
 
     private bool isOpen;
     private Tab currentTab = Tab.Player;
@@ -39,6 +82,9 @@ public class PlayerMenuScreen : MonoBehaviour
         craftingScreen = GetComponent<CraftingScreen>();
         magicScreen = GetComponent<MagicScreen>();
         buildScreen = GetComponent<BuildScreen>();
+        skills = GetComponent<PlayerSkills>();
+        guilds = GetComponent<PlayerGuilds>();
+        encumbrance = GetComponent<PlayerEncumbrance>();
     }
 
     private void Update()
@@ -128,11 +174,157 @@ public class PlayerMenuScreen : MonoBehaviour
         GUILayout.EndHorizontal();
     }
 
-    // Deliberately left blank for now — same call Ben made for
-    // GameMenuScreen's Player tab, reserved for future decisions about
-    // what belongs here rather than guessing and having to undo it later.
+    // Stats + Fame + Faction fill a 3-tile-per-row grid (6 entries = 2 even
+    // rows); guild tiles follow as their own one-per-row section, full
+    // RowWidth each (2026-08-10, Ben's layout call).
     private void DrawPlayerTab()
     {
         GUILayout.Label("Player", DebugGUI.Header);
+        GUILayout.Space(10);
+
+        DrawTileRows(new Action[]
+        {
+            DrawStrengthTile,
+            () => DrawStatTile("Dexterity", dexteritySkill),
+            () => DrawStatTile("Constitution", constitutionSkill),
+            () => DrawStatTile("Intelligence", intelligenceSkill),
+            // Fame/Faction — reputation-style stats, conceptually
+            // different from the skill-via-use core stats above (would be
+            // driven by other NPCs'/factions' standing toward the player,
+            // not personal GainExperience). Placeholder tiles only, no
+            // backing system yet.
+            () => DrawPlaceholderTile("Fame", "0"),
+            () => DrawPlaceholderTile("Faction", "None"),
+        });
+
+        DrawGuildTiles();
+    }
+
+    // Lays tiles out TilesPerRow to a row, TileGap between both columns
+    // and rows — the shared grid the stat/Fame/Faction section is built
+    // from.
+    private void DrawTileRows(Action[] tiles)
+    {
+        for (int i = 0; i < tiles.Length; i += TilesPerRow)
+        {
+            GUILayout.BeginHorizontal();
+            for (int j = i; j < Mathf.Min(i + TilesPerRow, tiles.Length); j++)
+            {
+                if (j > i) GUILayout.Space(TileGap);
+                tiles[j]();
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.Space(TileGap);
+        }
+    }
+
+    // One full-RowWidth tile per row, one per joined guild, appearing/
+    // disappearing live as membership changes — no rows at all while the
+    // player hasn't joined any (Ben's spec: "a tile show up when they
+    // join that guild"). Test guilds joined/left via AdminSpawnScreen's
+    // Admin tab for now — no in-world way to join a guild exists yet.
+    private void DrawGuildTiles()
+    {
+        if (guilds == null || guilds.Joined.Count == 0) return;
+
+        foreach (var guild in guilds.Joined)
+        {
+            if (guild == null) continue;
+            DrawTile(guild.guildName, "Joined", RowWidth);
+            GUILayout.Space(TileGap);
+        }
+    }
+
+    private void DrawStatTile(string label, SkillDefinition skill)
+    {
+        float value = skills != null ? skills.GetAttributeValue(skill) : 0.25f;
+        DrawTile(label, value.ToString("F2"), TileWidth, null, GrowthProgress(skill));
+    }
+
+    // The one stat tile with a derived sub-line — Encumbrance, per Ben's
+    // original spec for this tab ("Strength: 3. under that stat...
+    // Encumbrance: 120/300 lbs"). Formula finalized 2026-08-10 (small
+    // exponential curve, see PlayerEncumbrance) after reviewing a
+    // linear-vs-curved comparison chart.
+    private void DrawStrengthTile()
+    {
+        float value = skills != null ? skills.GetAttributeValue(strengthSkill) : 0.25f;
+        string sub = encumbrance != null
+            ? $"Encumbrance: {encumbrance.CarriedWeight:F0}/{encumbrance.Capacity:F0} lbs"
+            : null;
+        DrawTile("Strength", value.ToString("F2"), TileWidth, sub, GrowthProgress(strengthSkill));
+    }
+
+    private void DrawPlaceholderTile(string label, string value) => DrawTile(label, value, TileWidth);
+
+    // 0-1 progress from the current .25 displayed point toward the next —
+    // see the field comment above for why this isn't just level/100.
+    private float GrowthProgress(SkillDefinition skill)
+    {
+        if (skills == null || skill == null) return 0f;
+
+        float level = skills.GetLevel(skill);
+        if (level >= 100f) return 1f;
+
+        float lower = Mathf.Floor(level / LevelPerQuarterPoint) * LevelPerQuarterPoint;
+        return (level - lower) / LevelPerQuarterPoint;
+    }
+
+    private void DrawTile(string label, string value, float width, string subLine = null, float? growthProgress = null)
+    {
+        GUILayout.BeginVertical(DebugGUI.Slot, GUILayout.Width(width), GUILayout.Height(TileHeight));
+
+        GUILayout.Label($"{label}: {value}", DebugGUI.Header);
+        if (subLine != null)
+        {
+            GUILayout.Space(6);
+            GUILayout.Label(subLine, DebugGUI.Label);
+        }
+
+        if (growthProgress.HasValue)
+        {
+            GUILayout.FlexibleSpace();
+            DrawGrowthBar(growthProgress.Value);
+        }
+
+        GUILayout.EndVertical();
+    }
+
+    // Same anatomy as VitalsBarHUD.DrawBar (background + proportional
+    // fill + a centered label drawn directly on the bar), per Ben's call
+    // to make this "look like the health bar."
+    private void DrawGrowthBar(float progress)
+    {
+        if (barBackgroundTex == null) barBackgroundTex = MakeTex(new Color(0f, 0f, 0f, 0.5f));
+        if (barFillTex == null) barFillTex = MakeTex(new Color(0.78f, 0.63f, 0.36f));
+        if (barLabelStyle == null)
+        {
+            barLabelStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontStyle = FontStyle.Bold,
+            };
+            barLabelStyle.normal.textColor = Color.white;
+        }
+
+        var rect = GUILayoutUtility.GetRect(10f, BarHeight, GUILayout.ExpandWidth(true));
+        GUI.DrawTexture(rect, barBackgroundTex);
+
+        float fraction = Mathf.Clamp01(progress);
+        if (fraction > 0f)
+        {
+            var fillRect = new Rect(rect.x, rect.y, rect.width * fraction, rect.height);
+            GUI.DrawTexture(fillRect, barFillTex);
+        }
+
+        GUI.Label(rect, "Growth", barLabelStyle);
+    }
+
+    private static Texture2D MakeTex(Color color)
+    {
+        var tex = new Texture2D(1, 1);
+        tex.SetPixel(0, 0, color);
+        tex.Apply();
+        return tex;
     }
 }

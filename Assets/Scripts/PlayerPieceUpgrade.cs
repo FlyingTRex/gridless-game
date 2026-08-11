@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -19,12 +20,15 @@ public class PlayerPieceUpgrade : MonoBehaviour
     [SerializeField] private ItemDefinition[] hammerTiers;
     [SerializeField] private float interactRange = 3f;
     [SerializeField] private float destroyDuration = 5f;
+    [SerializeField] private float storageRange = 10f;
     private const float MessageDuration = 3f;
 
     private PlayerInventory inventory;
     private PlayerSkills skills;
     private PlayerEquipment equipment;
     private PlayerInteraction interaction;
+    private PlayerBackpack backpackCarrier;
+    private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
     private PlacedPiece currentTarget;
     private PlacedPiece lastTarget;
@@ -39,6 +43,29 @@ public class PlayerPieceUpgrade : MonoBehaviour
         skills = GetComponent<PlayerSkills>();
         equipment = GetComponent<PlayerEquipment>();
         interaction = GetComponent<PlayerInteraction>();
+        backpackCarrier = GetComponent<PlayerBackpack>();
+    }
+
+    // Same reach as PlayerBuilding.ReachableInventories — main inventory
+    // first, then an equipped Backpack, then any nearby StorageBox. Found
+    // missing live (2026-08-10): Ben had 20 Plank on hand (well over the
+    // 12 an upgrade needed) and still got "Not enough materials" —
+    // HasIngredients/RemoveIngredients were only ever checking
+    // inventory.GetCount() directly, the player's own main-inventory
+    // slots, same class of bug as the original "can't eat a Berry" one
+    // (an item landing in a hand/backpack slot via PlayerLoot.Receive()
+    // is invisible to a check that only looks at the main list).
+    private IEnumerable<Inventory> ReachableInventories()
+    {
+        yield return inventory.Inventory;
+
+        var backpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
+        if (backpack != null)
+            yield return backpack.Inventory;
+
+        StorageBox.FindNearby(transform.position, storageRange, nearbyStorages);
+        foreach (var box in nearbyStorages)
+            yield return box.Inventory;
     }
 
     private bool HammerInHand
@@ -163,9 +190,17 @@ public class PlayerPieceUpgrade : MonoBehaviour
         foreach (var ingredient in piece.ingredients)
         {
             if (ingredient == null || ingredient.item == null) continue;
-            if (inventory.GetCount(ingredient.item) < ingredient.count) return false;
+            if (GetAvailableCount(ingredient.item) < ingredient.count) return false;
         }
         return true;
+    }
+
+    private int GetAvailableCount(ItemDefinition item)
+    {
+        int total = 0;
+        foreach (var inv in ReachableInventories())
+            total += IngredientMatching.GetCount(inv, item);
+        return total;
     }
 
     private void RemoveIngredients(BuildPiece piece)
@@ -174,7 +209,19 @@ public class PlayerPieceUpgrade : MonoBehaviour
         foreach (var ingredient in piece.ingredients)
         {
             if (ingredient == null || ingredient.item == null) continue;
-            inventory.RemoveItem(ingredient.item, ingredient.count);
+
+            int amount = ingredient.count;
+            foreach (var inv in ReachableInventories())
+            {
+                if (amount <= 0) break;
+
+                int have = IngredientMatching.GetCount(inv, ingredient.item);
+                if (have <= 0) continue;
+
+                int take = Mathf.Min(have, amount);
+                IngredientMatching.Remove(inv, ingredient.item, take);
+                amount -= take;
+            }
         }
     }
 

@@ -66,6 +66,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerInventory playerInventory;
     private PlayerDropping dropping;
     private PlayerEating eating;
+    private PlayerMedicine medicine;
     private PlayerBackpack backpackCarrier;
     private PlayerBelt beltCarrier;
     private PlayerCanteen canteenCarrier;
@@ -131,6 +132,7 @@ public class InventoryScreen : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         dropping = GetComponent<PlayerDropping>();
         eating = GetComponent<PlayerEating>();
+        medicine = GetComponent<PlayerMedicine>();
         backpackCarrier = GetComponent<PlayerBackpack>();
         beltCarrier = GetComponent<PlayerBelt>();
         canteenCarrier = GetComponent<PlayerCanteen>();
@@ -397,6 +399,16 @@ public class InventoryScreen : MonoBehaviour
             return true;
         }
 
+        // Same gap, same fix, for Medicine (2026-08-10) — Apply only
+        // showing in the main inventory list would leave a Healing Paste
+        // sitting in a hand/backpack/container with no way to use it.
+        var medicineItem = medicine != null ? medicine.FindMedicine(pendingMoveItem) : null;
+        if (medicineItem != null && GUILayout.Button(medicineItem.verb))
+        {
+            medicine.TryApplyFrom(pendingMoveSource, pendingMoveItem);
+            return true;
+        }
+
         if (GUILayout.Button("Drop"))
         {
             pendingDropItem = pendingMoveItem;
@@ -642,6 +654,7 @@ public class InventoryScreen : MonoBehaviour
         ItemDefinition dropClicked = null;
         ItemDefinition packClicked = null;
         ItemDefinition eatClicked = null;
+        ItemDefinition applyClicked = null;
         ItemDefinition leftHandClicked = null;
         ItemDefinition rightHandClicked = null;
         Backpack equipClicked = null;
@@ -734,6 +747,10 @@ public class InventoryScreen : MonoBehaviour
                 if (edible != null && GUILayout.Button(edible.verb, GUILayout.Width(50)))
                     eatClicked = slot.item;
 
+                var medicineItem = medicine != null ? medicine.FindMedicine(slot.item) : null;
+                if (medicineItem != null && GUILayout.Button(medicineItem.verb, GUILayout.Width(50)))
+                    applyClicked = slot.item;
+
                 if (dropping != null && SafeButton("Drop", GUILayout.Width(50)))
                     dropClicked = slot.item;
 
@@ -768,6 +785,8 @@ public class InventoryScreen : MonoBehaviour
 
         if (eatClicked != null)
             eating.TryEat(eatClicked);
+        if (applyClicked != null)
+            medicine.TryApply(applyClicked);
         if (dropClicked != null)
         {
             pendingDropItem = dropClicked;

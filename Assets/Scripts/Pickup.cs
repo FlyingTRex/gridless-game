@@ -32,6 +32,10 @@ public class Pickup : MonoBehaviour, IInteractable
     // pickups set up directly in the scene/prefab never get one.
     private float despawnAt = -1f;
 
+    // Read by ResourceNode.TryMineForNPC to learn what a node's chunkPrefab
+    // actually represents without needing to instantiate it first.
+    public ItemDefinition Item => item;
+
     public string Prompt => item != null ? $"Pick up {item.itemName}" : "Pick up";
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;

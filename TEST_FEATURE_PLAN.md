@@ -89,6 +89,15 @@ fix the coordinate in this file rather than assuming the step is wrong.
   sprint bonus; <10% = half speed; 0% = 10% speed (very slow limp).
 - [ ] **Stamina regen** only climbs while stopped, Kneeling, Crawling, or Prone —
   confirm it holds flat (doesn't regen) while walking Standing, even without Shift.
+- [ ] **Encumbrance-gated speed (2026-08-10):** carried weight vs. Strength-scaled
+  capacity (`PlayerEncumbrance.LoadRatio`, shown on the Player tab — see §6c) caps
+  speed on top of the stance/stamina multipliers above, using the same 50/80/90/95%
+  breakpoints as Strength's own load-based skill gain (see §6c): ≤50% load = full
+  speed, sprint allowed; 50–80% = 0.85x, sprint still allowed; 80–90% = 0.65x,
+  sprint disabled; 90–95% = 0.45x, sprint disabled; >95% = 0.25x, sprint disabled
+  plus an extra 5/s Stamina drain while moving. Confirm speed in the bottom-left
+  debug panel drops as you load up past each threshold, and that Left Shift does
+  nothing once load exceeds 80%.
 
 ## 2. Vitals & Stamina Decay
 
@@ -722,6 +731,215 @@ fix the coordinate in this file rather than assuming the step is wrong.
   verify exact timing rather than waiting the full 2 minutes every
   pass.)
 
+## 4a. Combat (2026-08-10)
+
+- [ ] **Wolf** (2 placed, `(14, 0, 6)` and `(-14, 0, -8)`): stands idle until
+  you're within ~10m, then chases (5 m/s) and bites in range (~2m, ~8 dmg,
+  1.5s cooldown). Walk away past ~20m mid-chase — confirm it gives up and
+  returns to idle rather than following forever.
+- [ ] **Punch (Left Mouse Button):** short-range, ~9 dmg, ~0.7s cooldown
+  between swings whether or not it connects. Trains the new **Bare-handed**
+  skill (Skills tab → Combat category — the first real entry there, all
+  four other weapon-usage skills named back in the original Crafting
+  planning still don't exist as real `SkillDefinition`s). **Regression:**
+  confirm punching does nothing while a Build piece is armed — Building's
+  own Left Click takes priority.
+- [ ] **Death:** at 0 HP the Wolf flops onto its side (a static rotation —
+  no animation system exists, don't expect a real death animation) and
+  stops attacking/chasing.
+- [ ] **Skinning:** aim at a dead Wolf with a **Knife** in hand, hold E
+  (~2s) — "Hold to skin (requires Knife)". Confirm it correctly refuses
+  without a Knife held. Yields **50% chance** of 1 Wolf Pelt, and
+  **always** 1–2 Raw Meat (randomized — confirm both outcomes happen
+  across a few kills, not just one). Trains Gathering. Corpse respawns
+  ~3 minutes after skinning (not after death — an unskinned corpse should
+  sit there indefinitely).
+- [ ] **Health regen (v0.1.190-dev, slowed from the original §2 rate):**
+  passive Health regen (needs Hunger/Thirst both > 50) is now 0.05/s —
+  roughly 33 minutes for a full heal doing nothing. Confirm a Wolf bite's
+  damage visibly persists rather than healing back within a minute or two
+  — this was fast enough before this fix to make combat feel
+  consequence-free.
+
+## 4b. First Aid (2026-08-10)
+
+- [ ] **Herb Bush** (2 placed alongside the Berry Bushes, same visual
+  model reused): press **F** (not E — Herb Bush has no chop action to
+  reserve E for, but reuses Berry Bush's exact look, so F matches Berry
+  Bush's own search key rather than the "every single-action gatherable
+  uses E" convention, deliberately, per Ben's call after live confusion
+  with a first E-bound pass). "Search for herbs" — rolls 1-3 Herb
+  (leaf-shaped), scattered on the ground. "Herbs (regrowing)" while on its
+  ~3 minute cooldown.
+- [ ] **Healing Paste recipe** (Crafting tab → new **Medicine** discipline
+  tab): 3 Herb + a **Canteen holding ≥20 Water equipped in a hand**.
+  Confirm it's blocked without enough Canteen water, and that crafting it
+  actually drains the Canteen's `Amount` (check via the Inventory tab's
+  Drink/Fill row) — same mechanic as drinking, just feeding the recipe
+  instead of Thirst. Trains Medicine. **Known gap:** the water check only
+  looks in your hands, not a Belt-attached Canteen.
+- [ ] **Bandage recipe** (same Medicine tab): 1 Cloth + 1 Healing Paste →
+  1 Bandage. Trains Medicine.
+- [ ] **Apply button** — shows next to Healing Paste/Bandage anywhere Eat
+  shows for a Berry (main inventory list, and the move popup for a hand/
+  backpack/storage item). Healing Paste heals 10 HP over 10s; Bandage
+  heals 15 HP over 10s — both via the same heal-over-time mechanism
+  Restoration's Heal Self wish uses (`PlayerVitals.StartHealOverTime`),
+  confirm the Health bar visibly climbs gradually, not instantly.
+
+## 4c. NPC Placeholder (2026-08-10)
+
+- [ ] **SD Macross Factory Worker** (1 placed in `TestScene.unity`): idle-wanders
+  within ~6m of its spawn point, walking speed 1.2 m/s, pausing 2-5s between
+  legs. Confirm it visibly faces the direction it's walking (not
+  sideways/crab-walking — this was a real bug, fixed via a
+  `modelForwardOffsetY` correction).
+- [ ] **Menu interaction** (2026-08-10, Chunk 1 of Hireable NPCs): look at
+  the NPC, confirm "[E] Talk to Factory Worker" prompt appears. Press E —
+  confirm a popup menu opens (cursor unlocks) instead of dialogue firing
+  directly.
+  - [ ] **Talk** button: confirm the placeholder dialogue line appears on
+    screen, the NPC stops wandering (holds still even mid-walk) for ~4
+    seconds, then automatically resumes wandering from wherever it
+    stopped, and the menu itself closes (cursor re-locks).
+  - [ ] **Hire** button (not yet hired): shows "Hire cost: 10 Copper" and
+    your current balance. Confirm it's greyed out/unusable if you can't
+    afford it, and that clicking it while affordable deducts 10 Copper
+    from your wallet (check via the Inventory tab or `PlayerCurrency`)
+    and the menu now shows "Hired" + a Fire button instead of Hire.
+  - [ ] **Fire** button (hired): confirm it immediately drops back to
+    showing the Hire option, no confirmation prompt.
+  - [ ] **Escape** while the menu is open: confirm it closes the menu and
+    re-locks the cursor, same as every other screen (Bank/Lockbox/
+    Crafting/etc.).
+
+## 4d. NPC Job Assignment (2026-08-10, Chunk 2 of Hireable NPCs)
+
+- [ ] **Assign Job button**: hire the Factory Worker, open its menu again —
+  confirm it now shows "Hired — no job assigned" and an "Assign Job"
+  button. Click it — confirm `NPCHiringScreen` closes and `NPCJobScreen`
+  opens in its place (no double-modal, cursor stays unlocked throughout).
+- [ ] **Family tabs**: confirm a "Mining" tab shows, with a "Mine Ore" job
+  underneath it.
+- [ ] **Assign an unassigned job**: click "Assign" on Mine Ore — confirm the
+  tile switches to showing 3 tool requirements (Pickaxe, Mining Face
+  Shield, Backpack), each showing "—" and a "Give" button.
+- [ ] **Give a tool you don't have**: confirm the Give button is greyed out
+  and shows "(none in inventory)".
+- [ ] **Give a tool you have** (use the Admin tab to spawn a Crude Pickaxe/
+  Mining Face Shield/Backpack if needed): confirm clicking Give removes
+  one from your inventory and the row updates to show the item name
+  instead of "—".
+- [ ] **Give all 3**: confirm the NPC now shows all requirements filled.
+  Close and reopen the menu from `NPCHiringScreen` — confirm "Hired — job:
+  Mine Ore" shows, and the given tools are still equipped (not reset).
+- [ ] **Reassignment loses tools**: with Mine Ore assigned and tools given,
+  if a second job family/job existed you'd confirm assigning it wipes the
+  Mine Ore tools for good — not testable yet with only one job in the
+  game, but flag if `NPCJob.Assign`'s reassignment-wipe behavior seems
+  needed sooner than expected.
+- [ ] **Fire clears the job**: Fire the NPC, hire it again, open Assign Job
+  — confirm no job is assigned and no tools are equipped (both wiped by
+  Fire, not carried over to the new hiring).
+
+## 4e. NPC Stats & Job Gating (2026-08-10, Chunk 3 of Hireable NPCs)
+
+- [ ] **Stats section**: hire the Factory Worker, open its menu — confirm a
+  "Stats" section shows Strength/Dexterity/Constitution/Intelligence all
+  reading **3.00**, Mining reading **0.0**, and an "Encumbrance: 0/90 lbs"
+  line (90 is Strength 3's capacity — confirm the number, not just that a
+  line shows).
+- [ ] **Mine Ore still available**: open Assign Job — confirm Mine Ore still
+  shows under the Mining tab (its tier-1 requirement is Mining skill 0, so
+  it should never be hidden at a fresh NPC's starting skill).
+- [ ] **Locked-job message** (not concretely testable with only one job in
+  the game yet): if a future higher-tier job is added, confirm it's hidden
+  until Mining skill reaches its threshold, and the panel shows "No jobs
+  unlocked at this NPC's current skill yet." instead of "No jobs in this
+  family yet." while family Mining has jobs that just aren't earned yet.
+
+## 4f. NPC Autonomous Mining (2026-08-10, Chunk 4 of Hireable NPCs)
+
+- [ ] **Starts working once ready**: assign Mine Ore and give all 3 tools
+  (Chunk 2/3's flow) — confirm the NPC stops idle-wandering and instead
+  walks toward a real ore/rock node somewhere in the world (needs one
+  within ~50m of wherever it's standing — walk it closer to the mining
+  area near spawn if it doesn't find one).
+- [ ] **Actually mines**: confirm it stops at the node, pauses briefly
+  (mining), and the node visually disappears/goes on cooldown afterward
+  — same as if you'd broken it yourself.
+- [ ] **Cargo updates**: open the hire menu — confirm a "Carrying" section
+  now shows the mined item and count, Encumbrance's carried number went
+  up to match, and the Mining stat grew above 0.0. Once it's mined
+  several different item types (multiple ore types), confirm the
+  Stats/Carrying area scrolls instead of overflowing the panel, and the
+  Talk/Hire/Assign Job/Fire buttons above it stay put.
+- [ ] **Repeats automatically**: confirm it moves on to another node and
+  keeps mining without any further input, until —
+- [ ] **Stops when full**: confirm it stops moving/working once carrying
+  ~80% of its Encumbrance capacity (not 100%) rather than continuing to
+  try. It should neither wander nor mine at that point (Chunk 5 is what
+  teaches it to walk back and deposit).
+- [ ] **Obstacle avoidance**: if a wall/foundation piece sits between the
+  NPC and its target node, confirm it slides around rather than getting
+  permanently stuck pushing into the obstacle. Not expected to be perfect
+  pathfinding — flag if it gets fully stuck rather than just taking an
+  inefficient route.
+- [ ] **Talk still freezes it mid-mining**: press E and Talk while it's
+  actively walking toward or mining a node — confirm it stops completely
+  (not just paused-wandering) and resumes exactly where it left off once
+  the dialogue ends.
+
+## 4g. NPC Deposit & Return-to-Mining (2026-08-10, Chunk 5 of Hireable NPCs)
+
+- [ ] **Set Deposit Container**: with Mine Ore assigned, open Assign Job
+  and click "Set Deposit Container" — confirm the menu closes and the
+  cursor re-locks (normal aiming). Look around — a prompt should say
+  "Look at a Storage Box to set it as the deposit point" while nothing's
+  in the crosshair, and switch to "[E] Set \<name\> as deposit point"
+  once one is.
+- [ ] **Confirm doesn't also pick up the box**: aim at an *empty* Storage
+  Box (normally pickupable via E) and press E to confirm it as the
+  deposit target — confirm the box stays placed in the world (not picked
+  up into your inventory) and the targeting prompt disappears.
+- [ ] **Escape cancels targeting**: start targeting, press Escape before
+  confirming — confirm it cancels cleanly (prompt disappears, cursor
+  stays locked/normal gameplay, doesn't leave you stuck unable to
+  interact with anything).
+- [ ] **Deposit point shows in the menu**: reopen Assign Job — confirm
+  "Deposit point: \<box name\>" now shows instead of "not set".
+- [ ] **Returns and deposits automatically**: once the NPC can't find any
+  more carriable ore nearby, confirm it walks to the deposit box instead
+  of just stopping, and its cargo empties into the box (check the box's
+  own contents via the Inventory tab, and the NPC's "Carrying" list
+  should shrink/clear).
+- [ ] **Resumes mining after depositing**: confirm it goes right back to
+  searching for ore afterward rather than idling.
+- [ ] **No deposit point set still works** (Chunk 4's original fallback):
+  an NPC assigned Mine Ore with no deposit container set should still
+  mine and just stop once full, not get stuck in a broken state.
+
+## 4h. NPC Work Timer & Payment (2026-08-10, Chunk 6 of Hireable NPCs)
+
+- [ ] **Countdown shows while working**: hire, assign Mine Ore, and give
+  it all 3 tools — confirm the menu shows "Working — payment due in Ns"
+  and the number counts down over real time (this is a genuine 5-minute
+  = 300s real-world wait to see it fully elapse; the countdown updating
+  at all confirms the timer is live without waiting the full 5 minutes).
+- [ ] **Stops when unpaid**: once the timer hits 0, confirm the NPC stops
+  mining/moving (holds in place, doesn't just idle-wander either) and the
+  menu now shows "Waiting for payment" + a Pay button instead of the
+  countdown.
+- [ ] **Timer doesn't run while not working**: an NPC that's hired but
+  has no job assigned (or is missing a tool) shouldn't show a countdown
+  at all, and shouldn't need paying just for existing unassigned.
+- [ ] **Pay resumes it**: click Pay (needs 10 Copper again) — confirm it
+  goes right back to mining/depositing where it left off, and the
+  countdown restarts from a fresh 300s.
+- [ ] **Fire resets it too**: fire an NPC mid-countdown, hire it again —
+  confirm it starts a fresh countdown rather than picking up where the
+  old one left off.
+
 ## 5. Player Menu (Tab) — Crafting Tab
 
 - [ ] **Tile grid, not a list (redesigned v0.1.167-dev).** Clicking the
@@ -1191,9 +1409,12 @@ fix the coordinate in this file rather than assuming the step is wrong.
   shows a visible platform with a real lip above the grass (~0.4m as of
   v0.1.182-dev, see the entry above), not a buried/invisible collider
   with nothing to see.
-- [ ] **Pole, Door do not exist yet** — the Build tab should show Twig
-  Foundation, Storage Box, and Twig Wall (added v0.1.180-dev, see
-  below), nothing else.
+- [ ] **The Build tab should now show Twig Foundation, Storage Box,
+  Twig Wall (added v0.1.180-dev), Twig Roof Panel (added
+  v0.1.183-dev), Twig Half-Wall, Twig Door-Frame Wall, Twig Door (all
+  three added v0.1.184-dev), Twig Gable Panel (added v0.1.186-dev),
+  and Twig Pole (added v0.1.187-dev, see below) — 9 pieces total,
+  nothing else.
 - [ ] **Twig Wall (v0.1.180-dev) — first piece that isn't Foundation.**
   Modeled and textured entirely in Blender this time (no Tripo3D) — 15
   individually irregular vertical branches lashed with 2 horizontal
@@ -1218,6 +1439,200 @@ fix the coordinate in this file rather than assuming the step is wrong.
   testing (v0.1.182-dev):** a fresh game now grants 24 Stick + 12 Rope
   automatically (`AdminSpawnScreen.Awake`, Editor-only) — exactly enough
   for 3 Twig Walls (8 Stick + 4 Rope each) without gathering first.
+- [ ] **Twig Roof Panel (v0.1.183-dev) — first piece that snaps onto
+  another piece's socket instead of Foundation.** Same Blender build as
+  Twig Wall (15 branches + 2 rope lashing bars, real baked wood-grain
+  texture), but built along the slope with a 35° pitch baked directly
+  into the mesh. Costs 10 Stick + 5 Rope, trains Woodworking, no skill
+  requirement (Crude tier). **Requires a Wall already placed** — arm
+  Twig Roof Panel and aim near the *top* of a placed Twig Wall (not the
+  Foundation edge below it); the ghost should snap standing at the
+  wall's own pitch, eave flush with the wall top, ridge end reaching up
+  and inward over the building's interior. Confirm with a single Left
+  Mouse Button press. **Two-panel ridge test:** place Walls on two
+  *opposite* Foundation edges (e.g. North and South), then a Roof Panel
+  on each — the two panels' ridge ends should meet close together at
+  the same height near the building's center line, forming a real
+  ridge peak, not overlapping past each other or leaving a visible gap.
+  **Known gap, not a bug:** no ridge-socket lock between the two
+  panels — they only meet correctly if both walls sit on opposite
+  Foundation edges of the same building; non-opposite or
+  mismatched-size placements won't line up. **Confirmed live,
+  v0.1.183-dev** — Ben built a full four-wall structure with both Roof
+  Panels through the real Build-tab arm/aim/snap flow; the two panels
+  meet cleanly at a real ridge peak with the correct pitch and no gap,
+  matching the throwaway batch-mode measurement taken before this was
+  tested live in-game (see `CHANGELOG.md` v0.1.183-dev).
+- [ ] **Twig Half-Wall (v0.1.184-dev).** Same visual style as Twig Wall,
+  half the width (2.5m vs 5m), same height. Costs 4 Stick + 2 Rope, no
+  skill requirement. Snaps to a Foundation edge exactly like Twig Wall
+  (arm it, aim near an open edge socket, single Left Mouse Button press)
+  — no new placement behavior to test here, it reuses Wall's own snap
+  math untouched. **Known, not a bug:** placing one only covers half a
+  5m edge; there's no side-by-side snapping between two Half-Walls (or
+  a Half-Wall and a Door-Frame Wall) to jointly fill one full edge —
+  each piece only snaps directly to a Foundation edge socket.
+- [ ] **Twig Door-Frame Wall (v0.1.184-dev).** Same 5m×2.69m footprint
+  as Twig Wall, with a 1.5m-wide × 2.4m-tall doorway cut into it —
+  thicker jamb posts on both sides of the opening, a wood header beam
+  across the top. Costs 10 Stick + 4 Rope. Snaps to a Foundation edge
+  exactly like Twig Wall. Confirm the doorway is actually walkable (no
+  invisible collider blocking it) and that a placed Twig Door (see
+  below) visually sits inside the opening, not offset into a jamb post
+  or floating outside the wall. **Real bug found live and fixed
+  (v0.1.184-dev):** the collider was originally one `BoxCollider` sized
+  from the whole mesh's bounds, which can't carve out a hole — the
+  doorway was completely solid, both unwalkable and silently blocking
+  any interaction raycast aimed through it (this is what first looked
+  like "F doesn't open the door," see the Twig Door entry below). Fixed
+  by splitting it into 3 separate boxes (two flanks + the header) that
+  leave the doorway's own space genuinely open. **Second real bug,
+  found right after fixing the first one:** even with the doorway open,
+  Ben still couldn't walk through — "the player is too fat and tall."
+  The doorway was originally sized 1.2m×2.0m, but Foundation's own edge
+  socket sits 0.4m below Foundation's actual walkable top surface (a
+  "mostly buried" offset every wall inherits), so the *effective*
+  clearance above the real floor was only 2.0-0.4=1.6m against the
+  CharacterController's 1.8m height and 1.2m against its ~0.96m
+  effective diameter — both genuinely too tight, not just visually
+  cramped. Resized to 1.5m×2.4m (2.0m effective clearance, 0.2m margin
+  over the CharacterController's height), confirmed via a batch-mode
+  capsule-overlap check sized to the exact CharacterController
+  dimensions (radius 0.4, height 1.8) standing at the doorway's center.
+  **Still broken live, per Ben 2026-08-09 — the resize did NOT actually
+  fix it.** The batch-mode capsule check reported zero overlaps, so
+  whatever's actually blocking movement in the real running game isn't
+  something that check captured — see the open bug entry in
+  `BUGS_AND_ENHANCEMENTS.md` for the investigation notes/next steps.
+  Do not assume this is fixed just because the doorway math checks out.
+- [ ] **Twig Door (v0.1.184-dev) — first piece that snaps onto a
+  Door-Frame Wall's own socket, and the first placed piece with any
+  runtime behavior at all.** Costs 4 Stick + 2 Rope. **Requires a
+  Door-Frame Wall already placed** — arm Twig Door and aim at the
+  doorway opening; the ghost should snap standing in the frame, hinge
+  aligned with one side of the opening. Confirm with a single Left
+  Mouse Button press. **Open/close:** look at a placed Door and press
+  **F** (not E — see below) — it should swing open (away from wherever
+  you're standing, never toward you) over about half a second, and the
+  prompt should change to "Close Door". Press F again to close it
+  manually before the timer, or walk away and wait — it should
+  **auto-close after 60 seconds** if left open. **Swing-away test:**
+  open the door standing on one side, then close it, walk to the
+  *other* side, and open it again — it should swing the opposite
+  direction both times, confirming it always opens away from your
+  current position rather than a single fixed direction. **Bound to F,
+  not E (fixed live, v0.1.184-dev):** Door originally used E like every
+  other interaction, but E is also `PlayerPieceUpgrade`'s own
+  click-to-upgrade/hold-to-destroy key on any placed piece — with a
+  Hammer equipped (the normal state while building), E never reached
+  the door's own open/close at all. Confirm E does nothing to the door
+  now (no accidental destroy), and that a Hammer equipped at the same
+  time doesn't block F from opening/closing it. **Two real bugs found
+  live in sequence, not one** — after the F-key fix, Ben reported F
+  *still* didn't open the door; the actual remaining cause was the
+  Door-Frame Wall's own collider silently blocking the doorway (see its
+  entry above), not the keybind at all. Confirm F now works reliably
+  once you're actually standing where a raycast can reach through the
+  (now genuinely open) doorway. Verified via throwaway batch-mode
+  checks before each was ever re-tested live (placement-gap
+  measurement, open/close swing-direction math via reflection, the
+  F-key interface swap, and a doorway raycast check — see
+  `CHANGELOG.md` v0.1.184-dev) — still needs a real Play-mode
+  arm/aim/snap/open/close/auto-close pass to confirm, same as every
+  other piece got before being marked "Confirmed live."
+- [ ] **Twig Gable Panel (v0.1.186-dev) — fills the triangular gap above
+  a Wall, up to the Roof Panel's ridge, on the two Foundation edges
+  that *don't* carry a Roof Panel.** Costs 6 Stick + 3 Rope. **Requires
+  a Wall already placed** (Twig Wall, Half-Wall, or Door-Frame Wall) —
+  arm it and aim near the top of that wall, same `WallTop` socket Roof
+  Panel uses; the ghost should snap standing flush against the wall's
+  own vertical plane (not tilted/sloped like Roof Panel — this piece
+  stands straight up). Confirm with a single Left Mouse Button press.
+  **Full building test:** Foundation with Walls on all 4 edges, Roof
+  Panels on the North/South pair, Gable Panels on the East/West pair —
+  the gable's sloped edges should sit flush against the roof panels'
+  underside on both sides, with the gable's own apex reaching right up
+  to the ridge line (no visible gap, no interpenetration). **Known
+  gap, not a bug in the piece itself:** the Build tab icon renders
+  tiny and off-center — see the open bug in `BUGS_AND_ENHANCEMENTS.md`.
+  Confirmed via throwaway batch-mode checks before this was tested
+  live (placement-sign check — same-sign and negated gave identical
+  results, since this piece is symmetric unlike Door; apex-height
+  measurement against the computed ridge height) — still needs a real
+  Play-mode arm/aim/snap pass to confirm, same as every other piece
+  got before being marked "Confirmed live."
+- [ ] **Twig Pole (v0.1.187-dev) — Foundation's own footprint as an open
+  stilt frame, 4 corner posts + top/mid beam frames, no floor.** Costs
+  12 Stick, no Rope (plain post-and-beam, not lashed). **Ground
+  tiling:** arm Pole and aim near an existing Foundation's edge socket
+  — should snap beside it exactly like a second Foundation would,
+  standing on the ground. **Stacking (the new part):** with a Pole
+  already placed, arm Twig Foundation and aim at the *top* of the
+  Pole — the ghost should snap sitting on top of the frame, elevated
+  (~2.4m up), not at ground level. Confirm the elevated Foundation
+  reads as "sitting in" the pole's top frame the same slightly-buried
+  way a ground Foundation sits in the dirt, not floating above it or
+  clipped weirdly into it. Confirm the space *underneath* the Pole's
+  frame is actually walkable — no invisible collider filling the
+  hollow middle (this piece deliberately used per-element colliders
+  from the start, not the single-bounding-box mistake Door-Frame Wall
+  made). Verified via throwaway batch-mode checks before this was
+  tested live (zero-gap checks on both the tiling and stacking cases,
+  elevated-height math) — still needs a real Play-mode arm/aim/snap
+  pass on both placement modes to confirm, same as every other piece
+  got before being marked "Confirmed live."
+- [ ] **Plank tier for the whole Building System (v0.1.188-dev) — Wall,
+  Half-Wall, Door-Frame Wall, Door, Roof Panel, Gable Panel, Pole, plus
+  a real visual for Plank Foundation (which never had one before —
+  it was a plain grey cube).** All 8 are directly buildable from the
+  Build tab now (`unlockTier` Rudimentary, skill level 10), not just
+  reachable via the Twig→Plank Hammer upgrade. Confirm each one: shows
+  up in the Build tab once your Woodworking skill is 10+ (and is
+  correctly *hidden*/greyed below that); costs the right amount of
+  Plank (Wall 10, Half-Wall 5, Door-Frame Wall 12, Door 5, Roof Panel
+  12, Gable Panel 7, Pole 10, Foundation 8); snaps exactly like its
+  Twig counterpart (same sockets, same placement math — Roof Panel's
+  pitch, Door's hinge side, Door-Frame Wall's doorway, Pole's tiling
+  and stacking all reuse the exact same code paths, no new placement
+  bugs expected but worth a real look at each one). **Known gap:** all
+  8 icons read pale/washed-out in the Build tab (see
+  `BUGS_AND_ENHANCEMENTS.md`) — a real, understood-but-unfixed lighting
+  issue, not a sign anything is actually broken. **Upgrade path:** with
+  a Twig piece placed, Hammer equipped, tap E — should replace it in
+  place with the matching Plank piece and consume the right Plank
+  amount, exactly like the existing Twig Foundation → Plank Foundation
+  upgrade already does. Ben found a real testing-friction gap doing
+  this: Admin Spawn only grants 1 item per click, so getting enough
+  Plank (69 total for one of everything) meant either dozens of clicks
+  or grinding a tree — fixed by adding an 80-Plank starting grant next
+  to the existing Stick/Rope one in `AdminSpawnScreen.Awake()` (Editor-
+  only testing convenience, same as always; needs a fresh Play session
+  to take effect). **A second, real bug surfaced right after**: even
+  with 20 Plank on hand, upgrading Twig Door-Frame Wall (and Door —
+  "same as the door") failed with "Not enough materials." Root cause:
+  `PlayerPieceUpgrade` only ever checked the player's own main-
+  inventory list, never an equipped Backpack or nearby StorageBox
+  (unlike `PlayerBuilding`, which already reaches all three for fresh
+  builds) — same class of bug as the original "can't eat a Berry" fix.
+  Fixed by porting `PlayerBuilding`'s own reach logic into
+  `PlayerPieceUpgrade`. Confirm broadly: an upgrade should now succeed
+  with materials in *any* reachable location — main inventory,
+  equipped Backpack, or a nearby StorageBox — not just the main list.
+- [ ] **Doorway walkability, actually fixed this time (v0.1.188-dev).**
+  The real cause of the doorway bug logged 2026-08-09 (resize passed
+  every batch-mode check but still failed live) had nothing to do with
+  the doorway itself: Foundation's own exposed lip (0.4m, raised from
+  0.2m the same day) exceeded the Player's `CharacterController.
+  stepOffset` (0.3m), so walking onto *any* Foundation edge from
+  ground level was blocked project-wide — Ben's own diagnostic catch
+  ("walking blocked, jump/run-through clears it") is what actually
+  cracked it. Fixed by raising `stepOffset` to 0.45 rather than
+  lowering the lip back down, keeping Ben's original "needs to be
+  slightly higher" call intact. Confirm broadly, not just at
+  doorways: walking up onto a bare Foundation edge (no Wall) from
+  open ground should now also work smoothly, without needing a jump.
+  Confirmed live by Ben: "the door works much better just walking
+  through it now."
 - [ ] **Upgrade/destroy on a placed piece (v0.1.157-dev).** Equip any
   tier of Hammer in a hand, look at a placed Twig Foundation — a prompt
   should read "Click to upgrade to Plank Foundation — hold 5s to
@@ -1420,6 +1835,53 @@ fix the coordinate in this file rather than assuming the step is wrong.
     Sunglasses) from `InventoryTransfer.Move` stripping the `equipment` reference
     — specifically re-test moving a Canteen and Sunglasses through every move
     path (hand ↔ inventory ↔ backpack ↔ storage), not just one.
+
+## 6c. Player Menu (Tab) — Player Tab (2026-08-10)
+
+- [ ] **Core stat tiles:** Strength, Dexterity, Constitution, Intelligence show as
+  a 3-tile-per-row grid (Fame/Faction fill out the second row), each reading
+  `Name: 2.00` on a fresh character — the **.25–10 display scale**
+  (`PlayerSkills.GetAttributeValue`), not the raw 0–100 skill level every craft
+  skill uses. All four start above the .25 floor (raw level 20, per
+  `PlayerSkills.startingLevels`), not untrained-from-zero.
+- [ ] **Growth bar:** each of the 4 stat tiles has a labeled bar ("Growth") at the
+  bottom, same visual style as `VitalsBarHUD`'s vital bars. Fills 0→1 as the stat
+  progresses toward its *next .25 point* (not the 0–100 cap) — on a fresh
+  character this reads as empty (no gold fill) since no progress has accumulated
+  yet; that's expected, not a bug. Fame/Faction/Guild tiles do **not** get a
+  Growth bar — none of those have a `GainExperience`-backed track.
+- [ ] **Tile grid fills the screen edge-to-edge** (`PlayerMenuScreen.TileWidth` is
+  computed from `Screen.width`, not a fixed pixel size) — confirm at a couple of
+  window sizes that tiles stretch to fill available width rather than leaving a
+  large empty gap on the right.
+- [ ] **Encumbrance (Strength tile only):** a second line, `Encumbrance: X/Y lbs`,
+  where X = `PlayerEncumbrance.CarriedWeight` (main inventory + every
+  `PlayerEquipment` slot, including a worn Backpack's own weight, + that
+  Backpack's contents — **not** nearby Storage Boxes) and Y = `Capacity`
+  (`17.3925 × Strength^1.5`, anchored so Strength 10.00 caps at exactly 550 lbs).
+  At the default starting Strength (2.00), Y should read ~49 lbs.
+  - [ ] **Strength-from-load tiers:** carrying ≤50% of capacity grants no Strength
+    XP; 50–80% grants a marginal rate; 80–90% better; 90–95% the best rate;
+    >95% ("Overloaded") the rate drops back down *and* Health drains at 2/s while
+    sustained. Real-time-calibrated (2026-08-10): at Strength 2.00, the 90–95%
+    tier takes ~2 real days to gain +0.25 — **not observable in a short test
+    session**; don't mistake a motionless Growth bar over a few minutes for a
+    bug, that's the intended pacing. A batch-mode simulation, not live play,
+    is the practical way to re-verify the math if this is ever touched again.
+  - [ ] **Pickup blocked at/over capacity (`PlayerLoot`):** once `LoadRatio >= 1.0`,
+    every pickup (plain items via `Receive`, equippables via `ReceiveEquipment`)
+    fails outright and the item stays on the ground — confirm by loading up to
+    exactly capacity and trying to pick up one more item. No on-screen message
+    for this yet (same as every other pickup-failure case, e.g. full
+    inventory — a pre-existing gap, not new).
+- [ ] **Fame / Faction:** placeholder tiles (`Fame: 0`, `Faction: None`), always
+  visible, no backing system yet.
+- [ ] **Guild tiles:** one full-width tile per joined guild (same total width as
+  the 3-tile stat row above), stacked one per row below Fame/Faction — **no row
+  at all while zero guilds are joined.** Join/leave via the Admin tab (see §15)
+  since there's no in-world way to join yet; confirm a tile appears/disappears
+  live the moment you click Join/Leave, capped at 3 simultaneous guilds
+  (`PlayerGuilds.MaxGuilds`).
 
 ## 8. Water Source Direct Interaction
 
@@ -1624,3 +2086,11 @@ fix the coordinate in this file rather than assuming the step is wrong.
   that the "reach it, aim a Hammer at it" upgrade/destroy check above
   still works the same way, just from a few steps away instead of
   standing on it immediately.
+- [ ] **Admin — Guilds (2026-08-10, same Admin tab).** A third list, below
+  the item and build-piece ones, showing every `GuildDefinition` asset
+  (Masonry, Carpentry, Smithing) with a Join or Leave button matching
+  current membership. Join is disabled once already a member of 3
+  guilds (`PlayerGuilds.MaxGuilds`); clicking Leave frees a slot
+  immediately. Confirm this list drives the Player tab's guild tiles
+  live (see §6c) — join one here, switch to the Player tab, confirm the
+  tile appeared with no re-open of the menu needed.

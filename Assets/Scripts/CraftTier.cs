@@ -35,6 +35,26 @@ public static class CraftTierScale
         _ => 1f,
     };
 
+    // Weight scaling for tiered items whose better-made version should
+    // also be lighter (Backpack shipped first, 2026-08-10) — deliberately
+    // its own table, NOT the inverse of Modifier() above. An early attempt
+    // reused 1/Modifier(tier) directly and produced an absurd 5x spread
+    // (a 25 lb Crude Backpack, a hypothetical 5 lb Crude Knife) — the
+    // capacity/price ratio that table was tuned for doesn't transfer to
+    // weight; "5x more valuable" and "5x heavier" are very different
+    // claims. This curve is deliberately narrow: Crude is only 50%
+    // heavier than Normal, Masterwork only 40% lighter. See CLAUDE.md's
+    // "reusing a tier-scaling table across unrelated quantities" gotcha.
+    public static float WeightModifier(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => 1.5f,
+        CraftTier.Rudimentary => 1.2f,
+        CraftTier.Normal => 1f,
+        CraftTier.Fine => 0.8f,
+        CraftTier.Masterwork => 0.6f,
+        _ => 1f,
+    };
+
     // Minimum level (0-100, see PlayerSkills.MaxLevel) in a recipe's
     // trainedSkill required to craft that tier. Crude is deliberately 0 —
     // not 1 — since skill starts at 0 and today's only way to gain most

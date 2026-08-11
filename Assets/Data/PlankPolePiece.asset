@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17f85ac9db3fc704b91d2ef0a58fed7b, type: 3}
+  m_Name: PlankPolePiece
+  m_EditorClassIdentifier: Assembly-CSharp::BuildPiece
+  pieceName: Plank Pole
+  prefab: {fileID: 743942629454815990, guid: 855aba752e64de84bb843ed3a1ea7ccb, type: 3}
+  ingredients:
+  - item: {fileID: 11400000, guid: e51a1943e164464b8d0533a24ee79519, type: 2}
+    count: 10
+  trainedSkill: {fileID: 11400000, guid: a05cd28340d5c8b41bcf4af8f1892fe0, type: 2}
+  unlockTier: 1
+  skillGain: 1
+  groundReach: 0
+  nextTier: {fileID: 0}
+  icon: {fileID: 21300000, guid: d2a8abc9c829f8a4b8bfc4b7295f39a3, type: 3}
+  previewIcon: {fileID: 21300000, guid: c72cbe61cba74804c820e609ac601c5c, type: 3}
