@@ -5,12 +5,65 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.3-dev` — must always match `GameVersion` in
+**Current version:** `0.3.4-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-11
+
+### v0.3.4-dev — NPC visual replaced with the Human Character Dummy (male/female)
+
+Closes out the "NPC model looks bleh" complaint from earlier this session —
+first real character-model swap, not just a texture/animation tweak.
+
+- **Imported the free "Human Character Dummy" asset** (Kevin Iglesias, Asset
+  Store #178395, landed at `Assets/Kevin Iglesias/`) — both a male and
+  female rig, each a correctly-configured Humanoid `Animator`/`Avatar` (52
+  bones, confirmed valid via batch), accepted as-is (plain mannequin look,
+  no clothing/face detail) per Ben's explicit call rather than waiting on
+  the still-undecided Survivor Models Pack or a Tripo-generated character.
+- **Two new prefabs**, `NPCFactoryWorkerMale.prefab`/
+  `NPCFactoryWorkerFemale.prefab` — every NPC behavior component
+  (`NPCWander`/`NPCHiring`/`NPCJob`/`NPCSkills`/`NPCEncumbrance`/
+  `NPCCargo`/`NPCMining`, plus the `CapsuleCollider`) carried over
+  unchanged from the original `NPCFactoryWorker.prefab`; only the visual
+  child swapped. Scaled to match the existing 1.4-unit collider height
+  (measured each model's actual bounds rather than assuming — `0.71`/
+  `0.74` scale factors) and corrected for the model's pivot not sitting at
+  its feet (same class of gotcha as the v0.2.8-dev buried-object bug,
+  checked this time rather than repeated).
+- **All 6 NPCs in the scene now use it** — 3 of the 5 scattered NPCs on
+  Male, 2 on Female, plus the original hand-placed `NPCFactoryWorker` near
+  spawn (predates the scattering pass, swapped to Male).
+- **Two real bugs found live by Ben screenshotting the result in Play mode,
+  not caught by batch verification alone:**
+  1. The original `NPCFactoryWorker.prefab`'s root GameObject carries its
+     own `MeshFilter`/`MeshRenderer` directly (material `mat13`), separate
+     from its 5 named child mesh objects. The first build pass only
+     destroyed child *GameObjects*, missing that root-level component, so
+     the old mesh rendered underneath/through the new visual — the stray
+     orange geometry and "still looks like the old model" screenshots.
+     Fixed by also stripping the root's `MeshFilter`/`MeshRenderer`, with
+     an explicit stray-renderer check before saving each prefab.
+  2. There's a 6th NPC in the scene — the original hand-placed one — that
+     isn't part of the "Scattered NPCs" group the first swap pass walked,
+     so it was silently skipped entirely. Caught by switching verification
+     from "walk this one parent" to `FindObjectsByType<NPCHiring>` (every
+     instance in the scene, regardless of parent).
+- **Known, expected gap — not a bug:** no `AnimatorController` exists yet,
+  so every NPC currently stands in the model's raw bind pose (arms out,
+  "T-pose") rather than a natural idle. `NPCWander.modelForwardOffsetY`
+  also left at its old tuned value (`90`) — unverified whether the new
+  model needs a different facing offset, can't confirm without watching
+  one walk in Play mode.
+- Verified in fresh batch reloads throughout, not just trusted from each
+  build script's own log — final check: 6/6 NPCs have zero root
+  `MeshRenderer` and exactly one renderer each (the Human Dummy's own
+  `SkinnedMeshRenderer`).
+- **First change carried through the new `WORKING_ON.md`-first workflow
+  end to end** — tracked as one running entry across the initial build and
+  both bug fixes, version bumped once here at actual commit time.
 
 ### v0.3.3-dev — Inventory UI: a worn item's multiple slots share one row
 
