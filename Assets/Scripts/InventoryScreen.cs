@@ -95,6 +95,16 @@ public class InventoryScreen : MonoBehaviour
     // (Drop / a hand / the main inventory).
     private ItemDefinition pendingMoveItem;
     private Inventory pendingMoveSource;
+    // The specific equipment instance behind pendingMoveItem, when the
+    // clicked slot held one (a Canteen, Backpack, etc.) -- null for a plain
+    // stackable item. Needed for actions that operate on the physical
+    // instance rather than the item type/count (Drink/Fill a container-held
+    // Canteen, same idea as TryEatFrom but Drink/Fill mutate the instance
+    // directly instead of consuming a stack). Must be kept in sync with
+    // pendingMoveItem/pendingMoveSource at every assignment site, including
+    // explicitly clearing it to null where the source is a plain item, or a
+    // stale equipment reference could leak into an unrelated popup.
+    private IEquippable pendingMoveEquipment;
 
     // True while the move popup is showing the storage picker (a named
     // list of nearbyStorages) instead of its normal destination list —
@@ -286,6 +296,7 @@ public class InventoryScreen : MonoBehaviour
     {
         pendingMoveItem = null;
         pendingMoveSource = null;
+        pendingMoveEquipment = null;
         choosingStorage = false;
         pendingEquipDestinations = null;
         pendingEquipChoose = null;
@@ -305,13 +316,13 @@ public class InventoryScreen : MonoBehaviour
         if (pendingMoveItem == null || pendingMoveSource == null) return;
 
         const float width = 220f;
-        // Was 300f -- bumped for the Boot's per-slot "To {label}" buttons
-        // (DrawMoveDestinations), up to 2 more (Knife Sheath + Pistol
-        // Holster on a Military Boot) than the fixed button list this was
-        // originally sized for.
+        // Was 300f, then 360f -- bumped again for the Canteen Drink/Fill
+        // buttons (DrawMoveDestinations), up to 2 more on top of the Boot's
+        // per-slot buttons if a Canteen happens to be selected while
+        // Military Boots (2 slots) are worn -- both sets can show at once.
         float height = choosingStorage
             ? 70f + Mathf.Max(nearbyStorages.Count, 1) * 26f
-            : 360f;
+            : 420f;
         var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
 
         DebugGUI.DrawPanel(rect);
@@ -326,6 +337,7 @@ public class InventoryScreen : MonoBehaviour
         {
             pendingMoveItem = null;
             pendingMoveSource = null;
+            pendingMoveEquipment = null;
             choosingStorage = false;
         }
     }
@@ -434,6 +446,29 @@ public class InventoryScreen : MonoBehaviour
         {
             medicine.TryApplyFrom(pendingMoveSource, pendingMoveItem);
             return true;
+        }
+
+        // Same gap, same fix, for a Canteen (2026-08-11) — Drink/Fill only
+        // ever showed for a Canteen sitting directly in an equip slot
+        // (DrawEquipmentSection's canteenHere branch); one sitting in a
+        // backpack/storage box had no way to drink or refill it in place.
+        // Unlike Eat/Apply, this acts on the physical Canteen instance
+        // directly (pendingMoveEquipment) rather than consuming an item
+        // count from pendingMoveSource — Drink/Fill don't remove the
+        // canteen from its slot, they just change what's inside it.
+        if (pendingMoveEquipment is Canteen canteen)
+        {
+            if (!canteen.IsEmpty && GUILayout.Button("Drink"))
+            {
+                canteen.Drink(vitals);
+                return true;
+            }
+
+            if (!canteen.IsFull && GUILayout.Button("Fill"))
+            {
+                canteen.Fill(LiquidType.Water);
+                return true;
+            }
         }
 
         if (GUILayout.Button("Drop"))
@@ -837,6 +872,7 @@ public class InventoryScreen : MonoBehaviour
                 {
                     pendingMoveItem = slot.item;
                     pendingMoveSource = inv;
+                    pendingMoveEquipment = null;
                     choosingStorage = true;
                 }
             }
@@ -1072,6 +1108,7 @@ public class InventoryScreen : MonoBehaviour
                         {
                             pendingMoveItem = entry.item;
                             pendingMoveSource = slotInventory;
+                            pendingMoveEquipment = null;
                         }
                     }
                     else
@@ -1287,6 +1324,7 @@ public class InventoryScreen : MonoBehaviour
                     {
                         pendingMoveItem = entry.item;
                         pendingMoveSource = inventory;
+                        pendingMoveEquipment = entry.equipment;
                     }
 
                     // A Canteen shows its fill status here instead of a QTY

@@ -1282,7 +1282,10 @@ signs off on scope and order.
   `PlayerEating.TryEatFrom` — see the Berry entry above for the full detail.
   **Note: Drink/fill from a container is a separate, still-open gap** — the
   fix only added an Eat button, not Drink/Fill (see below).
-- [ ] **Drink/fill directly from a container.** Same gap for a Canteen sitting in a
-  backpack/container — no direct Drink/Fill buttons there, only the generic move
-  popup (which, as of 2026-08-03, correctly preserves the equipment reference when
-  used, but still requires moving the canteen out before it can be used).
+- [x] **Drink/fill directly from a container — fixed v0.3.6-dev.** Same gap
+  as the Eat/Apply-from-container fixes above, for a Canteen sitting in a
+  backpack/storage box. The generic move popup now shows real Drink/Fill
+  buttons when the selected slot holds a Canteen, via a new
+  `pendingMoveEquipment` field (the physical instance, not just the item
+  type — Drink/Fill mutate the Canteen directly rather than consuming a
+  stack). Full story in `CHANGELOG.md`.

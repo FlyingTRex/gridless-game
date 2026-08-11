@@ -5,12 +5,37 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.5-dev` — must always match `GameVersion` in
+**Current version:** `0.3.6-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-11
+
+### v0.3.6-dev — Drink/fill a Canteen directly from a container
+
+Closes the "Drink/fill directly from a container" bug — same shape as the
+earlier Eat/Apply-from-container fixes, but for a Canteen sitting in a
+backpack or storage box instead of a food/medicine item.
+
+- **`InventoryScreen.DrawMoveDestinations`** now shows real Drink/Fill
+  buttons when the selected slot holds a Canteen, alongside the existing
+  Eat/Apply/Drop/hand/storage options — previously the only option was the
+  generic move popup, forcing the Canteen back to a hand slot before it
+  could be used.
+- **New field, `pendingMoveEquipment`** — the physical equipment instance
+  behind the clicked slot, not just its `ItemDefinition`/`Inventory`.
+  Unlike Eat/Apply (which consume an item count via `TryEatFrom`/
+  `TryApplyFrom`), Drink/Fill mutate the Canteen instance's own water level
+  directly, so the fix needed the real object reference. Kept in sync at
+  all 5 places `pendingMoveItem` gets set — explicitly nulled at the 3
+  plain-item sites so a stale equipment reference can't leak into an
+  unrelated popup later.
+- Move-popup fixed height bumped again (360 → 420) — Drink/Fill can now
+  show alongside the Boot slot buttons if a Canteen happens to be selected
+  while Military Boots are worn.
+- Verified compiling clean via batch mode; not separately playtested live
+  beyond that.
 
 ### v0.3.5-dev — NPC idle pose/facing fixes, Crude Furnace model
 
