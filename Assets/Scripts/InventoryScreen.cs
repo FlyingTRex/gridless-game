@@ -69,6 +69,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerMedicine medicine;
     private PlayerBackpack backpackCarrier;
     private PlayerBelt beltCarrier;
+    private PlayerBoot bootCarrier;
     private PlayerCanteen canteenCarrier;
     private PlayerNavComputer navComputerCarrier;
     private PlayerHealthMonitor healthMonitorCarrier;
@@ -135,6 +136,7 @@ public class InventoryScreen : MonoBehaviour
         medicine = GetComponent<PlayerMedicine>();
         backpackCarrier = GetComponent<PlayerBackpack>();
         beltCarrier = GetComponent<PlayerBelt>();
+        bootCarrier = GetComponent<PlayerBoot>();
         canteenCarrier = GetComponent<PlayerCanteen>();
         navComputerCarrier = GetComponent<PlayerNavComputer>();
         healthMonitorCarrier = GetComponent<PlayerHealthMonitor>();
@@ -191,19 +193,40 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.BeginVertical(DebugGUI.Panel);
             GUILayout.Label("Inventory", DebugGUI.Header);
 
-            for (int i = 0; i < wornContainers.Count; i++)
+            // Rows sharing the same PreviewSlotName (e.g. a Military
+            // Boot's Knife Sheath + Pistol Holster, both "Feet") come from
+            // the same worn item — grouped onto one horizontal line with a
+            // single shared preview icon, rather than each getting its own
+            // full-width row, to save vertical space (Ben's report,
+            // 2026-08-11: two boot slots stacked wasted a lot of screen).
+            // Back/Waist still get one row each same as before, since
+            // nothing else currently shares their slot names.
+            int i = 0;
+            while (i < wornContainers.Count)
             {
-                var (slotName, holder) = wornContainers[i];
+                string groupSlotName = wornContainers[i].PreviewSlotName;
+                int groupEnd = i;
+                while (groupEnd < wornContainers.Count && wornContainers[groupEnd].PreviewSlotName == groupSlotName)
+                    groupEnd++;
 
                 GUILayout.BeginHorizontal();
-                DrawContainerPreview(GetSlotPreviewIcon(slotName));
+                DrawContainerPreview(GetSlotPreviewIcon(groupSlotName));
                 GUILayout.Space(20);
-                GUILayout.BeginVertical();
-                DrawContainerContents(holder.Inventory, $"{holder.DisplayName} contents (click an item for options)");
-                GUILayout.EndVertical();
+
+                for (int j = i; j < groupEnd; j++)
+                {
+                    GUILayout.BeginVertical();
+                    DrawContainerContents(wornContainers[j].Inventory, wornContainers[j].Caption);
+                    GUILayout.EndVertical();
+
+                    if (j < groupEnd - 1)
+                        GUILayout.Space(20);
+                }
+
                 GUILayout.EndHorizontal();
 
-                if (i < wornContainers.Count - 1)
+                i = groupEnd;
+                if (i < wornContainers.Count)
                     GUILayout.Space(10);
             }
 
@@ -282,9 +305,13 @@ public class InventoryScreen : MonoBehaviour
         if (pendingMoveItem == null || pendingMoveSource == null) return;
 
         const float width = 220f;
+        // Was 300f -- bumped for the Boot's per-slot "To {label}" buttons
+        // (DrawMoveDestinations), up to 2 more (Knife Sheath + Pistol
+        // Holster on a Military Boot) than the fixed button list this was
+        // originally sized for.
         float height = choosingStorage
             ? 70f + Mathf.Max(nearbyStorages.Count, 1) * 26f
-            : 300f;
+            : 360f;
         var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
 
         DebugGUI.DrawPanel(rect);
@@ -441,6 +468,30 @@ public class InventoryScreen : MonoBehaviour
         {
             InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, equippedBackpack.Inventory, pendingMoveItem);
             return true;
+        }
+
+        // A Boot's own named slots (Knife Sheath, Pistol Holster) are each
+        // their own restricted Inventory, not one general cargo pool like
+        // Backpack — so this offers one button per configured slot rather
+        // than a single "To Boot". Restriction itself is enforced inside
+        // MoveAsManyAsFit/AddItem (Inventory.restrictedTo), not here —
+        // the button always shows if a slot exists so its presence doesn't
+        // leak which items are allowed; trying to move a disallowed item
+        // just silently moves nothing.
+        var equippedBoot = bootCarrier != null ? bootCarrier.Equipped : null;
+        if (equippedBoot != null)
+        {
+            foreach (var label in equippedBoot.SlotNames)
+            {
+                var bootSlot = equippedBoot.GetSlot(label);
+                if (bootSlot == pendingMoveSource) continue;
+
+                if (GUILayout.Button($"To {label}"))
+                {
+                    InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, bootSlot, pendingMoveItem);
+                    return true;
+                }
+            }
         }
 
         if (playerInventory.Inventory != pendingMoveSource && GUILayout.Button("To Inventory"))
@@ -661,6 +712,8 @@ public class InventoryScreen : MonoBehaviour
         Backpack backpackDropClicked = null;
         Belt beltEquipClicked = null;
         Belt beltDropClicked = null;
+        Boot bootEquipClicked = null;
+        Boot bootDropClicked = null;
         Canteen canteenEquipClicked = null;
         Canteen canteenDropClicked = null;
         NavigationComputer navComputerEquipClicked = null;
@@ -698,6 +751,14 @@ public class InventoryScreen : MonoBehaviour
                     beltEquipClicked = belt;
                 if (SafeButton("Drop", GUILayout.Width(50)))
                     beltDropClicked = belt;
+            }
+            else if (slot.equipment is Boot boot)
+            {
+                GUILayout.Label(content, DebugGUI.Label);
+                if (SafeButton("Equip", GUILayout.Width(55)))
+                    bootEquipClicked = boot;
+                if (SafeButton("Drop", GUILayout.Width(50)))
+                    bootDropClicked = boot;
             }
             else if (slot.equipment is Canteen canteen)
             {
@@ -807,6 +868,10 @@ public class InventoryScreen : MonoBehaviour
             beltCarrier.Equip(beltEquipClicked);
         if (beltDropClicked != null)
             beltCarrier.Drop(beltDropClicked);
+        if (bootEquipClicked != null)
+            bootCarrier.Equip(bootEquipClicked);
+        if (bootDropClicked != null)
+            bootCarrier.Drop(bootDropClicked);
         if (canteenEquipClicked != null)
             TryEquipWithChoice(canteenEquipClicked);
         if (canteenDropClicked != null)
@@ -867,18 +932,29 @@ public class InventoryScreen : MonoBehaviour
         return item.previewIcon != null ? item.previewIcon : item.icon;
     }
 
-    // Non-drawing lookup of every worn container (Back and/or Waist)
-    // currently holding an IInventoryHolder equipment (Backpack, Belt) —
-    // needed before the slot list draws, to know how many contents panels
-    // to lay out beside it. Used to return only the first match found
-    // (Back beat Waist, silently hiding whichever one lost — Ben's report,
-    // 2026-08-08: equipping a Belt while a Backpack was worn made the
-    // Backpack's contents panel disappear even though the Backpack itself
-    // was unaffected). Now returns all of them, in SlotOrder-relative
-    // (Back, then Waist) order.
-    private List<(string SlotName, IInventoryHolder Holder)> GetWornContainers()
+    // One row of the "Inventory" side panel — a preview icon (keyed by
+    // equip slot name, for GetSlotPreviewIcon) plus a caption and the
+    // actual Inventory to render as a contents grid.
+    private struct WornContentsRow
     {
-        var result = new List<(string, IInventoryHolder)>();
+        public string PreviewSlotName;
+        public string Caption;
+        public Inventory Inventory;
+    }
+
+    // Non-drawing lookup of every worn container's contents — needed
+    // before the slot list draws, to know how many contents panels to lay
+    // out beside it. Backpack/Belt (Back/Waist) each contribute at most
+    // one row, keyed off IInventoryHolder.Inventory — unchanged logic from
+    // before Boot existed. Boot (Feet) is different on purpose: unlike
+    // Backpack/Belt's single homogenous cargo pool, a Boot can have
+    // multiple independently-typed named slots (a Knife Sheath AND a
+    // Pistol Holster), so it deliberately doesn't implement
+    // IInventoryHolder — it contributes one row per configured slot
+    // instead, enumerated directly off the equipped Boot.
+    private List<WornContentsRow> GetWornContainers()
+    {
+        var result = new List<WornContentsRow>();
 
         foreach (var slotName in new[] { "Back", "Waist" })
         {
@@ -889,9 +965,28 @@ public class InventoryScreen : MonoBehaviour
             {
                 if (entry.equipment is IInventoryHolder holder)
                 {
-                    result.Add((slotName, holder));
+                    result.Add(new WornContentsRow
+                    {
+                        PreviewSlotName = slotName,
+                        Caption = $"{holder.DisplayName} contents (click an item for options)",
+                        Inventory = holder.Inventory,
+                    });
                     break;
                 }
+            }
+        }
+
+        var boot = bootCarrier != null ? bootCarrier.Equipped : null;
+        if (boot != null)
+        {
+            foreach (var label in boot.SlotNames)
+            {
+                result.Add(new WornContentsRow
+                {
+                    PreviewSlotName = "Feet",
+                    Caption = $"{boot.DisplayName} — {label} (click an item for options)",
+                    Inventory = boot.GetSlot(label),
+                });
             }
         }
 
@@ -909,6 +1004,9 @@ public class InventoryScreen : MonoBehaviour
         Belt beltEquipClicked = null;
         Belt beltUnequipClicked = null;
         Belt beltDropClicked = null;
+        Boot bootEquipClicked = null;
+        Boot bootUnequipClicked = null;
+        Boot bootDropClicked = null;
         Canteen canteenUnequipClicked = null;
         Canteen canteenDropClicked = null;
         NavigationComputer navComputerEquipClicked = null;
@@ -935,6 +1033,7 @@ public class InventoryScreen : MonoBehaviour
             var occupied = slotInventory.Slots;
             Backpack backpackHere = null;
             Belt beltHere = null;
+            Boot bootHere = null;
             Canteen canteenHere = null;
             NavigationComputer navComputerHere = null;
             PersonalHealthMonitor healthMonitorHere = null;
@@ -956,7 +1055,8 @@ public class InventoryScreen : MonoBehaviour
                     // "Equipped" specifically for a worn container — its
                     // own contents render in the side column, see
                     // DrawContent()).
-                    bool isWornContainer = entry.equipment is IInventoryHolder && (slotName == "Back" || slotName == "Waist");
+                    bool isWornContainer = (entry.equipment is IInventoryHolder && (slotName == "Back" || slotName == "Waist"))
+                        || (entry.equipment is Boot && slotName == "Feet");
                     string label = entry.item.icon != null
                         ? ""
                         : (isWornContainer ? "Equipped" : entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : ""));
@@ -981,6 +1081,7 @@ public class InventoryScreen : MonoBehaviour
 
                     if (entry.equipment is Backpack bp) backpackHere = bp;
                     if (entry.equipment is Belt bt) beltHere = bt;
+                    if (entry.equipment is Boot bo) bootHere = bo;
                     if (entry.equipment is Canteen ct) canteenHere = ct;
                     if (entry.equipment is NavigationComputer nc) navComputerHere = nc;
                     if (entry.equipment is PersonalHealthMonitor phm) healthMonitorHere = phm;
@@ -1018,6 +1119,19 @@ public class InventoryScreen : MonoBehaviour
                 }
 
                 if (SafeButton("Drop", GUILayout.Width(50))) beltDropClicked = beltHere;
+            }
+            else if (bootHere != null)
+            {
+                if (slotName == "Feet")
+                {
+                    if (SafeButton("Unequip", GUILayout.Width(70))) bootUnequipClicked = bootHere;
+                }
+                else
+                {
+                    if (SafeButton("Equip", GUILayout.Width(55))) bootEquipClicked = bootHere;
+                }
+
+                if (SafeButton("Drop", GUILayout.Width(50))) bootDropClicked = bootHere;
             }
             else if (canteenHere != null)
             {
@@ -1094,6 +1208,9 @@ public class InventoryScreen : MonoBehaviour
         if (beltEquipClicked != null) beltCarrier.Equip(beltEquipClicked);
         if (beltUnequipClicked != null) beltCarrier.Unequip(beltUnequipClicked);
         if (beltDropClicked != null) beltCarrier.Drop(beltDropClicked);
+        if (bootEquipClicked != null) bootCarrier.Equip(bootEquipClicked);
+        if (bootUnequipClicked != null) bootCarrier.Unequip(bootUnequipClicked);
+        if (bootDropClicked != null) bootCarrier.Drop(bootDropClicked);
         if (canteenUnequipClicked != null) canteenCarrier.Unequip(canteenUnequipClicked);
         if (canteenDropClicked != null) canteenCarrier.Drop(canteenDropClicked);
         if (navComputerEquipClicked != null) TryEquipWithChoice(navComputerEquipClicked);

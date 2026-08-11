@@ -25,12 +25,29 @@ public class Inventory
     [SerializeField] private int capacity = 4;
     private readonly List<Slot> slots = new List<Slot>();
 
+    // Optional — when set, only items in this list can ever be added (via
+    // AddItem or AddEquipmentItem). Null/empty (the default) means
+    // unrestricted, same as every Inventory before this existed. Used for
+    // dedicated single-purpose slots like a boot's knife sheath, distinct
+    // from PlayerEquipment's named body slots (which stay unrestricted —
+    // this is a stricter, opt-in narrowing for specific containers).
+    private readonly ItemDefinition[] restrictedTo;
+
     public int Capacity => capacity;
     public IReadOnlyList<Slot> Slots => slots;
 
-    public Inventory(int capacity)
+    public Inventory(int capacity, ItemDefinition[] restrictedTo = null)
     {
         this.capacity = capacity;
+        this.restrictedTo = (restrictedTo != null && restrictedTo.Length > 0) ? restrictedTo : null;
+    }
+
+    private bool IsAllowed(ItemDefinition item)
+    {
+        if (restrictedTo == null) return true;
+        foreach (var allowed in restrictedTo)
+            if (allowed == item) return true;
+        return false;
     }
 
     private static int EffectiveMaxStack(ItemDefinition item) => Mathf.Min(item.maxStack, MaxStackCap);
@@ -53,6 +70,7 @@ public class Inventory
     public int SpaceFor(ItemDefinition item)
     {
         if (item == null) return int.MaxValue;
+        if (!IsAllowed(item)) return 0;
 
         int maxStack = EffectiveMaxStack(item);
         int total = 0;
@@ -68,6 +86,7 @@ public class Inventory
     public bool HasSpaceFor(ItemDefinition item, int quantity)
     {
         if (item == null || quantity <= 0) return true;
+        if (!IsAllowed(item)) return false;
 
         int maxStack = EffectiveMaxStack(item);
         int remaining = quantity;
@@ -88,6 +107,7 @@ public class Inventory
     public int AddItem(ItemDefinition item, int quantity)
     {
         if (item == null || quantity <= 0) return quantity;
+        if (!IsAllowed(item)) return quantity;
 
         int maxStack = EffectiveMaxStack(item);
 
@@ -118,6 +138,7 @@ public class Inventory
     public bool AddEquipmentItem(ItemDefinition item, IEquippable equipment)
     {
         if (item == null || equipment == null) return false;
+        if (!IsAllowed(item)) return false;
         if (slots.Count >= capacity) return false;
 
         slots.Add(new Slot { item = item, count = 1, equipment = equipment });

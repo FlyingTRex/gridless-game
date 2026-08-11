@@ -2094,3 +2094,103 @@ fix the coordinate in this file rather than assuming the step is wrong.
   immediately. Confirm this list drives the Player tab's guild tiles
   live (see §6c) — join one here, switch to the Player tab, confirm the
   tile appeared with no re-open of the menu needed.
+
+## 16. Scattered World Content (2026-08-11)
+
+The 200x200 hilly Terrain (v0.2.4-dev) now has real content spread across it
+via a one-time seeded batch pass, not just the original hand-placed objects
+near spawn. This is a spot-check, not an exhaustive walk of all ~120 new
+objects.
+
+- [ ] **29 Trees** scattered across the map, each choppable exactly like the
+  original hand-placed Tree — hold E, trains Gathering, drops Logs. Walk to a
+  few far from spawn and confirm none are floating above or sunk into the
+  terrain (each was placed via `GroundHeight` sampling at its own (x,z), so
+  should sit flush with the hillside under it, not a flat assumption).
+- [ ] **71 ore Boulders** scattered across the map, visually identical
+  (`Boulder.prefab`) regardless of what's actually inside — confirm a handful
+  in different areas: most break into plain Rock, but breaking enough should
+  turn up Copper and Iron (visibly tagged as ore before breaking, same as the
+  original Copper/Iron Ore Nodes) and, more rarely, a disguised Silver/Gold/
+  Platinum node that only reveals its true material once cracked open or
+  checked with a Mining Face Shield. Confirm tool-gating still applies
+  per-tier same as the original named Ore Nodes. Also confirm each scattered
+  Boulder still works as an `AnvilSurface` crafting proximity point.
+- [ ] **10 Berry Bush + 10 Herb Bush** scattered across the map, each
+  gatherable exactly like the original hand-placed one.
+- [ ] **Spacing feels natural, not crowded or robotic** — scattered objects
+  keep at least a few meters from each other and from hand-placed important
+  objects (spawn point, Water Puddle, storage boxes, Campfire); flag any spot
+  where two objects visually overlap or crowd a walking path.
+- [ ] **Copper/Iron non-disguised (confirmed 2026-08-11)** — these two
+  always show their true ore color/material immediately, same as before
+  scattering; Silver/Gold/Platinum stay hidden until revealed. Confirmed
+  intentional by Ben, not an open question (see `CHANGELOG.md` v0.2.6-dev).
+- [ ] **Terrain renders real grass, not magenta (fixed v0.2.7-dev).** If the
+  ground ever shows solid magenta again after a Terrain-related change,
+  it's the same class of bug — check `Terrain.materialTemplate` isn't null.
+- [ ] **Trees/Boulders actually visible, not buried (fixed v0.2.8-dev).** If
+  a future batch-scattered prefab type shows up missing/sunk into the
+  ground, check whether it needs the same pivot-offset treatment (compare
+  a hand-placed instance's Y against a fresh `GroundHeight.Sample` at its
+  position — a nonzero diff is that prefab's own pivot-to-base offset).
+- [ ] **5 Wolves scattered (v0.2.9-dev)** — each should behave exactly like
+  the two original hand-placed Wolves (chase/attack the player within
+  range, drop a Wolf Pelt on death). Confirm none spawned suspiciously
+  close to the player's start position — all 5 should be well out
+  (verified 56.9 units minimum at scatter time, but worth an eyeball
+  check that none feel like an unfair ambush right at spawn).
+- [ ] **5 NPCs scattered (v0.2.9-dev)** — each is an independent, unhired
+  `NPCFactoryWorker` findable across the map, same Talk/Hire flow as the
+  original. Confirm hiring more than one and assigning them to Mining works
+  without one NPC's state (job, tools, cargo, skill growth) bleeding into
+  another's — this is the actual point of scattering multiple, not just
+  more content. Try assigning two different NPCs to two different
+  deposit `StorageBox`es (not just the same one) to confirm per-NPC
+  deposit targeting really works as advertised.
+
+## 17. Combat Boots — Civilian/Hiking/Military (v0.3.0-dev)
+
+Spawnable via the Admin tab's item list (Editor Play Mode only) — no
+recipe exists yet. All three use the same `CombatBoot.glb` visual
+(deliberately, per Ben's ask); the difference is purely in equippable
+behavior.
+
+- [ ] **A set of Military Boots sits near spawn as real starting gear
+  (v0.3.2-dev)** — "Military Boots (Starting Gear)", ~1.6 units from the
+  Player, same pickup flow as the Stick/Canteen/Backpack cluster already
+  there. Confirm it's visible and reachable right at game start, sitting
+  flush on the ground (not floating or sunk), and picks up/equips exactly
+  like an Admin-spawned one.
+
+- [ ] **All three equip into the Feet slot** (Tab → Inventory) exactly
+  like any other equippable — drag from inventory onto the Feet row.
+  **Known gap, not a bug:** nothing renders on the player when worn (no
+  visible player body exists yet — see the NPC Model/Animation plan in
+  `BUGS_AND_ENHANCEMENTS.md`), so "equipped" is bookkeeping-only for now,
+  same as every other worn item today.
+- [ ] **Civilian Boots** have no special slots — equip/unequip only.
+- [ ] **Hiking Boots** have one restricted slot, "Knife Sheath" — confirm
+  any tier of Knife (Crude through Masterwork) can go in it, and that a
+  non-Knife item (a Rock, a Stick, anything else) is refused. This is a
+  brand-new mechanism (`Inventory.restrictedTo`) — worth confirming it
+  actually blocks the wrong item type rather than silently accepting it.
+- [ ] **Military Boots** have two slots — "Knife Sheath" (same as Hiking)
+  plus a "Pistol Holster" that should refuse *everything* right now — no
+  Pistol item exists yet, this is intentional, not a bug to report.
+- [ ] **Knife Sheath/Pistol Holster now have real UI (v0.3.1-dev).** Once
+  a Hiking or Military Boot is equipped (Feet slot), its slot(s) appear in
+  the "Inventory" side panel next to Backpack/Belt contents, each with its
+  own contents grid. To fill one: click a Knife anywhere (main inventory,
+  a hand, a container) to open the move popup, then look for a "To Knife
+  Sheath" button — same pattern as "To Backpack". Confirm a non-Knife item
+  (Rock, Stick, anything else) offered the same button either doesn't show
+  it or silently fails to land — should never actually occupy the slot.
+  Confirm the Pistol Holster's button appears too but genuinely can't be
+  filled by anything (no Pistol item exists yet — intentional).
+- [ ] **Unequipping/dropping a worn Boot** should behave exactly like
+  Backpack/Belt — Unequip returns it to a free inventory/hand slot (or
+  drops it if nothing fits), Drop places it in the world. Whatever's still
+  sitting in its Knife Sheath at that point stays with the boot (not
+  spilled into the player's inventory) — confirm that's actually true,
+  not assumed.

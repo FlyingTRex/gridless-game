@@ -16,6 +16,11 @@ solving the same problem in parallel — a version-bump collision or a fileID
 collision self-heals at merge time, but building a whole duplicate system (see the
 Waterskin/Canteen entry in `CHANGELOG.md`, 2026-08-02) wastes real design effort.
 Add a line before starting non-trivial work; remove it once merged to `origin/main`.
+**It's also the running scratch log for that work while it's in progress** — keep
+adding detail to the entry as you go (not just the original one-liner). Don't touch
+`GameVersion`/`CHANGELOG.md` for each individual step along the way — only bump the
+version and write the real changelog entry once actually committing, using the
+accumulated `WORKING_ON.md` detail as the source material, then clear that entry.
 
 **Backlog lives in `BUGS_AND_ENHANCEMENTS.md`.** Known issues and requested
 features not currently being worked — the space between `WORKING_ON.md` (active)

@@ -5,12 +5,371 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.2.3-dev` — must always match `GameVersion` in
+**Current version:** `0.3.3-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-10
+## 2026-08-11
+
+### v0.3.3-dev — Inventory UI: a worn item's multiple slots share one row
+
+Ben's report after actually looking at the Military Boots' two slots in the
+Inventory tab: stacked as separate full-width rows, they wasted a lot of
+vertical space for what's really one worn item.
+
+- **`InventoryScreen`'s "Inventory" panel now groups consecutive rows that
+  share the same equip slot** (`PreviewSlotName` — e.g. Military Boots'
+  Knife Sheath and Pistol Holster, both "Feet") onto a single horizontal
+  line with one shared preview icon, instead of each getting its own
+  preview+row. Backpack (Back) and Belt (Waist) render exactly as before —
+  nothing else currently shares a slot name, so they still get one row
+  each.
+- Also the first real-world confirmation that the Boot slot UI built in
+  v0.3.1-dev actually works end-to-end in a live Play session, not just
+  batch-verified — Ben's screenshot showed Backpack/Belt/Boot contents all
+  rendering correctly side by side.
+- **First change under the new workflow** (see `CLAUDE.md`/`WORKING_ON.md`):
+  tracked as an in-progress `WORKING_ON.md` entry while being built, no
+  version bump until this actual commit — not bumped-and-changelogged
+  per-step the way every earlier change today was.
+
+### v0.3.2-dev — A set of Military Boots placed as starting gear
+
+Ben's ask: spawn Military Boots into the game at start. Matches this
+project's existing convention for starting gear — the Stick/Canteen/
+Backpack/Plank/Mining Face Shield/Crude Fiber Belt cluster near spawn are
+all hand-placed world pickups, not a code-driven "give player starting
+items" system (checked `PlayerInventory.Awake()` — it starts genuinely
+empty). Followed the same pattern rather than inventing a new one.
+
+- **"Military Boots (Starting Gear)"** placed 1.6 units from the Player,
+  clear of the existing item cluster (1.2-unit minimum clearance enforced
+  against every other root object near spawn).
+- **Pivot offset measured, not assumed** — the boot model was authored
+  with its sole's bottom at local Z=0, so a 0 offset was expected, but
+  measured it anyway (0.036, small but real, likely the bevel modifier's
+  rounding pulling the mesh bounds slightly inward) rather than repeating
+  the v0.2.8-dev mistake of trusting an assumption. Corrected before
+  placing.
+- **Verified in a fresh batch process**: `Boot`/`Rigidbody`/`Collider` all
+  present, mesh bottom sits exactly flush with `GroundHeight.Sample` at
+  its position (diff `0`), confirmed distance from Player.
+
+### v0.3.1-dev — Boot slots wired into the Inventory tab, same as Backpack/Belt
+
+Closes the UI gap flagged in v0.3.0-dev — the Knife Sheath/Pistol Holster slots
+existed in code (`Boot.GetSlot`) but nothing in `InventoryScreen` showed or let
+you fill them.
+
+- **`Boot` can't fit `IInventoryHolder`** the way Backpack/Belt do — that
+  interface assumes one homogenous `Inventory`, but a Boot can have multiple
+  independently-restricted named slots (Knife Sheath *and* Pistol Holster) at
+  once. Generalized `GetWornContainers()`'s return type instead of forcing
+  Boot into the wrong shape: a flat `WornContentsRow` (preview slot name,
+  caption, `Inventory`) that Backpack/Belt populate with one row each (same
+  as before) and an equipped Boot populates with one row per configured slot.
+- **Equip/Unequip/Drop wired into both `DrawInventorySection` and
+  `DrawEquipmentSection`**, mirroring Backpack/Belt's existing shape exactly
+  — Boot now shows correctly in the Feet slot list ("Equipped" + icon, not
+  the raw item name) via the same `isWornContainer` check Back/Waist already
+  used, extended to include Feet.
+- **New: per-slot "To {label}" destination buttons** in the item move popup
+  (`DrawMoveDestinations`) — without this, the slots would render but stay
+  permanently empty, since nothing in the existing pattern lets a player
+  click *into* an empty container slot (Backpack/Belt/Storage don't either;
+  filling always happens via a destination button from wherever the item
+  currently sits). Restriction enforcement stays entirely inside
+  `Inventory`/`InventoryTransfer` — the button doesn't pre-check eligibility,
+  so trying to move a disallowed item just silently moves nothing rather
+  than needing UI-side validation logic.
+- **Bumped the move popup's fixed height** (300f → 360f) to leave room for
+  a Military Boot's 2 extra buttons.
+- **Verified functionally in a fresh batch process** (not just compiled):
+  equipped a Hiking Boot onto the Player, moved a Knife into its Knife
+  Sheath via the exact same `InventoryTransfer.MoveAsManyAsFit` call the new
+  UI button uses — landed correctly — then tried a Rock the same way — fully
+  rejected, confirmed absent from the slot afterward.
+
+### v0.3.0-dev — Combat Boot model + 3 boot variants with type-restricted equipment slots
+
+First all-Blender (no Tripo) model in the project, and a new equipment mechanic:
+items that themselves hold restricted-type inventory slots, not just general
+cargo capacity.
+
+- **`Assets/Models/CombatBoot.glb`** — built entirely procedurally in Blender
+  (`bpy`/`bmesh`, no Tripo generation at all), per Ben's explicit "let's use
+  an all-Blender approach" after an honest first-look review flagged real
+  problems (a hard box-to-cylinder seam between the foot and ankle shaft,
+  a barely-tapered toe, only 1 of 4 lace rows actually crossing, a stray
+  white cap on the shaft top). Accepted as-is for now ("let's use it")
+  rather than iterating further — 5,308 faces, 5 materials (leather with a
+  procedural noise-driven bump, rubber sole, metal eyelets, waxed-cord
+  laces), real-world scale (~28cm long, ~30cm tall).
+- **New mechanic: type-restricted equipment slots**, extending `Inventory`
+  with an optional `ItemDefinition[] restrictedTo` (null/empty = unrestricted,
+  the default — every existing `Inventory` everywhere else in the game is
+  unaffected). Enforced in `AddItem`/`SpaceFor`/`HasSpaceFor`/
+  `AddEquipmentItem` alike, so a restricted slot rejects a disallowed item
+  from every code path that can add to an `Inventory`, not just one.
+- **`Boot.cs`/`PlayerBoot.cs`** (new, mirror `Belt.cs`/`PlayerBackpack.cs`'s
+  shape) — worn at the existing `PlayerEquipment` "Feet" slot (previously
+  unused by any real item). Unlike Belt's generic attachment points (any
+  `IEquippable` counts the same regardless of kind), a Boot's slots are
+  named and type-restricted, e.g. a "Knife Sheath" that only accepts a
+  Knife.
+- **Knife's 5 tiers don't chain via `ItemDefinition.baseItem`** (checked
+  directly — `CrudeKnife`/`FineKnife` both have `baseItem: {fileID: 0}`,
+  unlike Trimmed Stick's raw-material chain), so "only a Knife" couldn't
+  reuse `IngredientMatching`'s substitute-matching. Used a plural
+  `allowedItems` list instead (matching the existing `requiredTools`
+  convention already used elsewhere), populated with all 5 Knife tiers
+  explicitly.
+- **Three variants, one shared component, no visual differences** (Ben's
+  explicit scope — same `CombatBoot.glb` for all three):
+  - **Civilian Boots** — no slots, plain equippable.
+  - **Hiking Boots** — one "Knife Sheath" slot (any Knife tier).
+  - **Military Boots** — "Knife Sheath" + a "Pistol Holster" slot
+    **deliberately left with an empty `allowedItems` list** — no Pistol
+    `ItemDefinition` exists yet, flagged as a future item rather than
+    faked with a placeholder reference.
+- **Verified in a fresh batch process**: all three `ItemDefinition`/prefab
+  pairs correct (slot counts 0/1/2, Knife Sheath lists all 5 tiers by name,
+  Pistol Holster genuinely empty), `PlayerBoot` present on the Player,
+  `worldPickupPrefab` wired on each item, prefab colliders sized to the
+  model's real bounds.
+- Spawnable via the existing Admin item-spawn list (auto-lists any
+  `ItemDefinition`) — no recipe built yet, same "import now, wire crafting
+  later" treatment the Anvil got.
+
+### v0.2.9-dev — 5 Wolves and 5 hireable NPCs scattered — scene-prep plan complete
+
+Closes the last two scatter bullets from the scene-prep plan (Trees/ore/bushes
+shipped v0.2.6-dev), and resolved the two open "still not decided" questions
+first:
+
+- **Currency/tools for hiring 5 NPCs turned out not to need any build work.**
+  Checked the code before assuming: `PlayerBank` already starts with 25 Gold
+  and `Exchange` can downgrade Gold→Silver→Copper at a fixed 10:1 ratio per
+  tier — comfortably covers the 50 Copper needed to hire all 5 (10 each,
+  `NPCHiring.hireCoinAmount`) through the existing banking loop, no starting-
+  balance change needed. Pickaxe/Mining Face Shield/Backpack are all real
+  `ItemDefinition`s, craftable normally or Admin-spawnable for quick testing.
+- **Deposit container: confirmed already fully flexible, no code or scene
+  change needed.** `PlayerNPCDeposit` lets the player target any `StorageBox`
+  per NPC individually — Ben's own framing: "I can have multiple NPCs feeding
+  it, or I can have individual ones... presort the mining resources near the
+  Anvil." Left as-is; this is a live gameplay choice, not a build decision.
+- **5 Wolves, 5 NPCs (fixed count, not a random range like Trees/ore — Ben's
+  call, maximizes stress-test coverage for this pass).** Same seeded-batch
+  discipline as v0.2.6-dev (`ScatterWolvesAndNPCs.cs`, deleted after use,
+  seed `20260812`), occupancy list seeded from all 148 existing objects
+  (28 original root objects + the 120 scattered in v0.2.6-dev, correctly
+  recursing into the "Scattered ..." parent containers this time instead of
+  just root objects).
+  - **Wolves get an extra placement rule Trees/ore/bushes didn't need**: a
+    minimum 15-unit distance from the Player's own spawn position, not just
+    from other objects — a fresh spawn shouldn't get immediately jumped.
+    Verified: closest placed Wolf was 56.9 units from spawn, well clear.
+  - **Pivot-offset check applied up front this time** (the lesson from
+    v0.2.8-dev) — read both Wolf's and NPCFactoryWorker's pivot-to-base
+    offset from their existing hand-placed instances before placing anything.
+    Both came back `0` (pivots already at their base), so no correction was
+    needed, but this was verified, not assumed.
+- **Verified in a fresh batch process**: 5/5 Wolves and 5/5 NPCs placed, zero
+  missing components (`HostileCreature`/`NPCWander`), zero out-of-bounds, zero
+  height-sampling error, and a full closest-15-pairs scan confirmed nothing
+  newly placed landed in a tight cluster — the single sub-4m pairwise distance
+  found (`Canteen`↔`Berry Bush`, 0.5m) is a pre-existing hand-placed cluster
+  near spawn, unrelated to this pass.
+- **Scene layout/organization** (the one item explicitly left open in the
+  original scene-prep plan) is deferred to a future enhancement — the scene
+  now has a solid, fully-populated starting point; see
+  `BUGS_AND_ENHANCEMENTS.md`.
+
+### v0.2.8-dev — Fixed scattered Trees/Boulders sitting buried in the terrain
+
+Caught by Ben live-testing right after v0.2.7-dev's material fix made the
+Terrain finally visible — the scattered content (v0.2.6-dev) mostly wasn't
+visible at all, since it was sunk into the hillside.
+
+- **Root cause:** `ScatterSceneContent.cs` set each scattered instance's Y to
+  the raw `GroundHeight.Sample()` result with no further offset. That's
+  correct for objects whose pivot sits at their visual base (confirmed true
+  for `BerryBush`/`HerbBush` — diff of 0 against sampled ground height, no
+  fix needed there), but **wrong for `Tree.prefab` and `Boulder.prefab`**,
+  whose pivots sit well above their visual base — Tree's pivot is ~4m up the
+  trunk, Boulder's is ~0.6m above its resting point. Every scattered Tree was
+  effectively buried trunk-and-all (only canopy tips, if that, breaking the
+  surface); every scattered Boulder (all ore tiers, since they're all
+  `Boulder.prefab` underneath) was buried ~0.6m deep.
+  - **Confirmed by comparing against the correctly-offset hand-placed
+    originals**, not guessed: the hand-placed "Tree" and "Boulder" scene
+    objects (survivors of the v0.2.5-dev re-leveling pass, which correctly
+    preserved their original pivot offsets) show a fixed diff against
+    `GroundHeight.Sample()` at their own position — 3.988921 for Tree, 0.6
+    for Boulder — while every scattered clone showed diff 0. That fixed,
+    position-independent diff is each prefab's own pivot-to-base offset.
+- **Fix:** read those two diffs live off the hand-placed originals (not
+  hardcoded — avoids a stale constant if either prefab's pivot ever changes)
+  and added them to every child under `Scattered Trees` / `Scattered
+  Boulders` respectively. **First attempt at this used `GameObject.Find`**
+  to locate the hand-placed "Tree"/"Boulder" originals, which searches the
+  *entire* hierarchy, not just root objects — since every scattered clone
+  reuses the exact same name, it matched a buried scattered clone instead of
+  the correctly-offset original, computing a bogus 0 offset (silently a
+  no-op, caught before it was treated as done by re-running the verification
+  check, not trusted on the fix script's own log). Fixed by walking
+  `scene.GetRootGameObjects()` explicitly instead.
+- **Verified in a fresh batch process**: every scattered Tree now shows
+  diff `3.988921` against its own ground sample (matching the original
+  exactly), every scattered Boulder shows diff `0.6`.
+- **Lesson for future scattering work**: a prefab's placement Y needs
+  `GroundHeight.Sample(...) + pivotOffset`, not just the raw sample — check
+  each new prefab's own pivot-to-base offset (easiest way: compare a known-
+  good hand-placed instance's Y against a fresh ground sample at its
+  position) before batch-placing it, rather than assuming pivot-at-base.
+
+### v0.2.7-dev — Fixed the Terrain rendering solid magenta in-game
+
+Caught by Ben live-testing right after v0.2.6-dev's scattering pass shipped —
+the ground rendered as Unity's "broken shader" magenta everywhere, while every
+other object (Boulder, Tree, Anvil) rendered fine.
+
+- **Root cause: `Terrain.materialTemplate` was `null`.** The Terrain conversion
+  in v0.2.4-dev correctly built the `TerrainData` and its `TerrainLayer`
+  (`GrassTerrainLayer.asset`, confirmed still correctly wired — 1 layer,
+  `GrassTexture_Healed` diffuse texture, verified via batch diagnostic) but
+  never explicitly assigned a material to the `Terrain` component itself. With
+  no template, Unity falls back to auto-generating one — and in this URP
+  project (`Assets/Data/URP-Asset.asset`), that fallback didn't resolve to a
+  working shader, hence magenta (Unity's standard "shader not found/broken"
+  color) rather than an outright missing-texture look.
+- **Fix:** created `Assets/Data/TerrainMaterial.mat` using the
+  `Universal Render Pipeline/Terrain/Lit` shader (`Shader.Find`, not a manual
+  guid) and assigned it to `Terrain.materialTemplate` directly. The shader
+  reads the `TerrainData`'s layers automatically — no texture reassignment
+  needed on the material itself, since the layer data was already correct.
+- **Verified in a fresh batch process** (not just the fix script's own log):
+  reopened `TestScene.unity` and re-read `materialTemplate` (now
+  `TerrainMaterial`, was `NULL`), confirmed the terrain layer and render
+  pipeline were untouched by the fix.
+- **Lesson for future Terrain/URP work:** always explicitly assign
+  `materialTemplate` when creating a `Terrain` component via script — don't
+  rely on the auto-generated default, at least not in this URP setup.
+
+### v0.2.6-dev — Trees, ore Boulders, and both bushes scattered across the new Terrain
+
+The actual placement pass the scene-prep work in v0.2.1-dev through v0.2.5-dev was
+building toward — one batch script, one seeded run, everything verified by
+re-reading the saved scene fresh in a separate process (not the run's own log).
+
+- **29 Trees** (`Random.Range(20, 76)`, fixed seed `20260811`) scattered with 4m
+  clearance from each other and every pre-existing object (28 root objects seeded
+  into the occupancy list up front, so nothing lands on the Player, Campfire, Water
+  Puddle, etc.).
+- **71 ore Boulders**, unifying ore under the single `Boulder.prefab` per Ben's
+  explicit call rather than 5 separately-modeled node types — Copper 25, Iron 14,
+  Silver 5, Gold 2, Platinum 1, plain Rock 24 (rolled from the proposed scarcity
+  ranges in `BUGS_AND_ENHANCEMENTS.md`). Each instance's `ResourceNode` config
+  (`chunkPrefab`/`trainedSkill`/`skillGain`/`requiredTools`) is read live via
+  `SerializedObject` off the existing 5 named Ore Nodes, not hand-copied.
+  - **Copper/Iron kept non-disguised, Silver/Gold/Platinum kept disguised** — a
+    call made during implementation, not re-confirmed with Ben first, worth a
+    second look. Reasoning: Iron's current revealed material is an
+    in-scene-embedded `Material` (no guid, not a portable asset), so disguising
+    it would need new asset work; kept Copper non-disguised too rather than an
+    asymmetric Copper-only exception. Both still read as identifiable via their
+    required-tool prompt before breaking, same as today.
+- **10 Berry Bush + 10 Herb Bush** (Ben's explicit count, not the smaller
+  "propose your own range" default floated earlier), 2m clearance each.
+- **Placement algorithm**: up to 40 random-reroll attempts per object, checking
+  distance against every already-occupied point (own clearance + the candidate's),
+  sampling `GroundHeight.Sample` for Y only once a valid (x,z) is found, then
+  immediately adding the new point to the occupancy list so later placements
+  respect it too. All requested counts placed with zero rerolls exhausted — no
+  `SCATTER_WARN` in the log.
+- **Verified independently, not just via the run's own log**: reopened
+  `TestScene.unity` in a fresh batch process and checked child counts (29/71/10/10,
+  exact match), zero out-of-bounds placements, zero missing required components,
+  minimum pairwise spacing (5.3m, above every configured clearance), max terrain-
+  height sampling error (~1e-6, i.e. every object actually sits on the terrain
+  surface it was sampled against), and spot-checked one Silver Boulder (both
+  hidden/revealed materials set, correct chunk prefab) and one Copper Boulder
+  (no hidden material, correct chunk prefab and renderer material).
+- Closes the tree/boulder/bush scattering bullets in `BUGS_AND_ENHANCEMENTS.md`.
+  Still open from that plan: Wolves (up to 5, spawn-point-distance rule) and
+  NPCs (3-5, currency/tools readiness), plus overall scene layout/organization.
+
+### v0.2.5-dev — Every existing scene object re-leveled onto the new hilly Terrain
+
+Closes the one real migration cost flagged (not just implied) when the Terrain
+conversion shipped in v0.2.4-dev — every object placed before today still assumed
+flat `y=0` ground.
+
+- **28 root-level scene objects re-leveled** — Player, both Wolves, the NPC, every
+  Ore Node, Rock Node, Boulder, Tree, Water Puddle, both Storage Boxes, Campfire,
+  Anvil, Berry Bush, both Herb Bushes, and every loose world pickup (Stick,
+  Canteen, Backpack, Plank, Mining Face Shield, Crude Fiber Belt, SoccerBall).
+  Only `Ground` itself and `Directional Light` were excluded — nothing else in
+  the scene needed skipping.
+- **Additive, not flattening** — new Y = old Y + sampled ground height at that
+  (x,z), not "snap directly onto the terrain surface." Every object had a
+  deliberate small offset above the old flat ground (Campfire's 0.3 lift, various
+  collider-center offsets), and this preserves those exactly instead of erasing
+  them by pinning everything to the raw terrain height.
+- **Used `GroundHeight` itself** (the same utility Wolf/NPC movement already
+  uses) rather than a separate one-off sampling method — one code path for
+  "what's the ground height here," not two that could quietly drift apart.
+- **Verified by re-reading the saved scene in a fresh process**, not just
+  trusting the script's own log — reopened `TestScene.unity` from disk after
+  saving and re-read five spot-checked objects' positions (Player, the NPC,
+  Copper Ore Node, Water Puddle, Campfire), confirming the file on disk actually
+  matches what the script reported, not just what was true in memory during the
+  same run.
+
+### v0.2.4-dev — Ground is now a real 200×200 Terrain with gentle hills
+
+Continues the scene-expansion prep from last night (grass texture, Tree/Boulder
+prefabs, ground-height tracking) — the actual Terrain/hills conversion those were
+all preparing for.
+
+- **`Ground` converted from a flat Unity Plane to a real `Terrain` +
+  `TerrainCollider`** — the old `MeshFilter`/`MeshRenderer`/`MeshCollider` were
+  removed from the same GameObject (kept the name/identity, not a new object) and
+  replaced in place, so nothing elsewhere needed to change what it looks up by
+  name.
+- **200×200** (the confirmed 4x-area target), positioned at `(-100, -5, -100)` so
+  the playable area stays centered on world origin — Terrain content spans
+  `[position, position+size]`, not centered on its own transform by default, so
+  this needed an explicit offset rather than just dropping it at `(0,0,0)`.
+- **Gentle rolling hills via Perlin noise**, deliberately low-frequency (one
+  noise cycle spans ~80 world units) for broad rolling shapes instead of small
+  bumpy noise, baked once with a fixed coordinate offset (not a random seed) so
+  re-running the generation script reproduces the identical terrain — matches
+  this project's "generate once, bake it in" discipline rather than
+  regenerating every launch. Height range centered so the *average* surface
+  height lands close to world Y=0, matching every existing placed object's
+  flat-ground assumption at the mean (exact per-object re-leveling is still a
+  separate, not-yet-done pass — see `BUGS_AND_ENHANCEMENTS.md`).
+- **New `TerrainLayer`** (`Assets/Data/GrassTerrainLayer.asset`) reusing the same
+  already-healed, already-seamless grass texture from last night rather than a
+  new one — Terrain doesn't take a plain `Material` the way a `MeshRenderer`
+  does, it needs a dedicated `TerrainLayer` asset. Tile size set to 5×5m,
+  matching the flat Plane's old ~5m/tile density as a starting point — flagged
+  as worth revisiting once actually seen at the real 200×200 scale, same as
+  already noted when the texture first shipped.
+- **`Ground`'s dedicated physics layer carried over correctly** (confirmed live,
+  not assumed) — `GroundHeight`'s raycast (built last night specifically to be
+  terrain-representation-agnostic) needed zero changes to work against the new
+  Terrain surface instead of the old flat Plane.
+- **Verified via batch, not just "no errors"**: confirmed the saved size/position/
+  layer/TerrainLayer directly from the scene and asset files, then sampled actual
+  world height at 6 points spanning the terrain (center, mid-radius, near the
+  edges) through `GroundHeight` itself — the same code path Wolf/NPC movement
+  uses — confirming real variation (~1.6m spread across the sampled points,
+  genuinely "gentle") and confirming a point well outside the terrain's real
+  extent correctly falls back instead of returning something wrong.
 
 ### v0.2.3-dev — Ground-height tracking for Wolf/NPC movement, ahead of the Terrain/hills work
 

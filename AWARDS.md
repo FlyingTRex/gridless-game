@@ -169,9 +169,25 @@ should have to get something right.
 | 🐸💥 Squished Frog Sticker | 1 |
 | 🍓💀 Spoiled Strawberry Sticker | 1 |
 | 👓 Coke-Bottle Glasses Sticker | 1 |
+| 🎩 Dunce Cap Sticker | 1 |
 
 ### Demerits Log
 
+- **2026-08-11 — 🎩 Dunce Cap Sticker.** Ben mentioned wanting to try the
+  Tripo API for a better NPC model with animations. Instead of checking
+  the repo first, went straight to a generic web search and explained
+  Tripo's API from scratch — completely missing that `Tools/Tripo3D/`
+  already exists: a working, documented, credentialed generation pipeline
+  (`Generate-Model.ps1`, `Texture-Model.ps1`) with a long history of real
+  models already shipped through it (Backpack, Anvil, Stone Hammer, Rope
+  Coil, and more — see its `README.md`'s "Current status" section). Ben's
+  exact words: "dummy. you've used the tripo api." Root cause: never
+  looked in `Tools/` before researching externally, same class of miss as
+  the IconBaker lesson (`reference_gridless_iconbaker` memory) but this
+  time actually landed. The rig/animation-retarget endpoints themselves
+  genuinely aren't used by the existing scripts yet, so that part of the
+  research wasn't wasted — but it should have opened by reading the
+  existing tool, not reinventing the account-setup/API-shape explanation.
 - **2026-08-09 — 👓 Coke-Bottle Glasses Sticker.** Built a genuine
   truncated-icosahedron Soccer Ball in Blender — real pentagon/hexagon
   geometry, correct black/white pattern — then handed Ben a plain grey

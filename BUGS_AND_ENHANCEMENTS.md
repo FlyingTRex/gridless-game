@@ -16,150 +16,92 @@ Ben's framing: "build a larger test scene, so we can start building some
 organization, and have space to build the next couple MVPs." Physical space
 for digging/water plus whatever Phase 2 work follows.
 
-- [ ] **Target size confirmed: 4x current total area.** `Ground` is
-  currently a 100×100 unit plane (Unity's built-in 10×10 Plane primitive,
-  scaled ×10 in X/Z, confirmed by reading the scene directly). 4x *area*
-  (not 4x each linear dimension, which would've been 16x area/400×400) —
-  Ben's pick — means **200×200**, i.e. doubling both X and Z scale.
-  Existing placed objects this session all sit within roughly ±20 units of
-  center, so there's real headroom even before the resize.
-- [ ] **Still fully open:** layout and how "organization" should actually
-  look (zoned by system? by biome? something else?) — not decided, work it
-  out live at the start of the session rather than guessing here.
-- [ ] **Procedurally generated with gentle hills — Ben's ask, confirmed
-  direction: Unity Terrain, not a bigger flat Plane.** `Ground` today is a
-  flat mesh, can't fake real elevation. Terrain's heightmap supports actual
-  hills via Perlin/Simplex noise sampled at a small amplitude (a few
-  meters of rise/fall across 200×200, "gentle" not mountainous — exact
-  amplitude/steepness left as tune-by-feel next session, not pinned down
-  now), scripted in a batch-mode Editor pass same as everything else this
-  project builds. **Real bonus, not just flavor:** Terrain's `SetHeights()`
-  API supports runtime height modification — adopting Terrain now plausibly
-  sets up real free-form dig-anywhere later (lower the heightmap locally at
-  a dig point) instead of needing a wholly separate system for that down
-  the road.
-  - **Two real migration costs, flagged honestly, not deferred as a
-    surprise:** (1) every object placed this session assumes flat `y=0`
-    ground — re-leveling every existing placement to the new surface
-    height at its (x,z) is real work, not just a resize, **still not
-    done**. (2) [x] **Movement height-tracking — done ahead of schedule,
-    shipped v0.2.3-dev.** New shared `GroundHeight` utility (a Ground-
-    layer-restricted raycast-down helper) wired into
-    `HostileCreature`/`NPCWander`/`NPCMining` at each spot they already
-    compute a new (x,z) — Y now snaps to the real ground surface instead
-    of staying untouched. Built and verified on today's still-flat
-    `Ground` (confirmed a genuine no-op there — same as before, down to
-    float noise) specifically so it's already correct by the time real
-    hills exist, no retrofit needed later. Full story in `CHANGELOG.md`.
+- [x] **Target size + Terrain/hills conversion — DONE, shipped
+  v0.2.4-dev.** `Ground` is now a real 200×200 `Terrain` + `TerrainCollider`
+  (the confirmed 4x-area target — was a 100×100 flat Unity Plane),
+  positioned at `(-100, -5, -100)` so the playable area stays centered on
+  world origin, with gentle rolling hills baked in via low-frequency
+  Perlin noise (fixed offset, not a random seed — reproducible, not
+  regenerated every launch). Full story, including how Terrain's
+  `[position, position+size]` extent (not centered on its own transform)
+  and the height-baseline math work, in `CHANGELOG.md` v0.2.4-dev.
+  Verified live via `GroundHeight` itself (the same code path Wolf/NPC
+  movement uses) — real ~1.6m variation across sampled points, genuinely
+  gentle, and `Ground`'s dedicated physics layer carried over with zero
+  changes needed.
+  - **Punted to a future enhancement (Ben's call, 2026-08-11):** layout and
+    how "organization" should actually look (zoned by system? by biome?
+    something else?). The scene is now a solid, fully-populated starting
+    point (Trees/ore Boulders/bushes/Wolves/NPCs all scattered as of
+    v0.2.9-dev) — good enough to build on without deciding this now. See
+    the Phase 2 backlog section below.
+  - **Real bonus this sets up, not yet used:** Terrain's `SetHeights()`
+    API supports runtime height modification — adopting Terrain now
+    plausibly enables real free-form dig-anywhere later (lower the
+    heightmap locally at a dig point) instead of needing a wholly separate
+    system for that down the road. Not built, just now possible.
+  - [x] **Re-leveling — DONE, shipped v0.2.5-dev.** All 28 root-level
+    scene objects (Player, both Wolves, the NPC, every Ore/Rock Node,
+    Boulder, Tree, Water Puddle, both Storage Boxes, Campfire, Anvil,
+    Berry Bush, both Herb Bushes, every loose world pickup) re-leveled
+    onto the real terrain surface — additively (old Y + sampled ground
+    height), preserving each object's original small offset rather than
+    flattening everything onto the raw terrain. Verified by re-reading
+    the saved scene fresh, not just trusting the script's own log. Full
+    story in `CHANGELOG.md`.
+  - [x] **Movement height-tracking — done ahead of schedule, shipped
+    v0.2.3-dev, confirmed working against the real Terrain in v0.2.4-dev.**
+    Shared `GroundHeight` utility (a Ground-layer-restricted raycast-down
+    helper) wired into `HostileCreature`/`NPCWander`/`NPCMining` — built
+    deliberately terrain-representation-agnostic, and needed zero changes
+    once `Ground` actually became hilly.
   - [x] **Grass texture itself already done, ahead of schedule — shipped
-    v0.2.1-dev.** `Ground.mat` now uses a real Gemini-generated, hand-fixed
-    seamless texture (`Assets/Textures/GrassTexture_Healed.png`) instead
-    of the old blurry 1024×1024 placeholder — full story in
-    `CHANGELOG.md` v0.2.1-dev (two Gemini attempts, an offset-and-heal
-    fix on the better one, verified live at the real 20×20 tiling
-    density, not just an isolated test). One faint residual seam line
-    remains, Ben's call to accept it for now. Whatever tiling
-    scale/repeat frequency the eventual Terrain layer ends up using will
-    need revisiting — this was tuned for the current flat Plane's 20×20,
-    not necessarily what 200×200 Terrain should use.
-- [ ] **Scatter a random number of trees (20-75) across the new scene,
-  placed once — Ben's ask.** Baked into the scene in a one-time batch pass
-  (same discipline as everything else hand-placed this project), not
-  regenerated every launch. [x] **Prerequisite done, ahead of schedule —
-  shipped v0.2.2-dev:** `Assets/Prefabs/Tree.prefab` now exists as a real,
-  reusable asset (extracted from the old one-off scene instance via
-  `PrefabUtility.SaveAsPrefabAssetAndConnect`, also renamed from a stale
-  "comparison only" label — full story in `CHANGELOG.md`). Actual
-  scattering itself is still not built. Placement rules to build
-  in from the start: **respect terrain height** at each tree's (x,z)
-  (same height-snapping concern as the hills work above — trees need it
-  too, not just moving NPCs), and **minimum spacing** both between trees
-  themselves and away from already-placed important objects (the NPC,
-  ore nodes, Water Puddle, spawn point) so a random roll can't drop one
-  on top of something that matters.
-- [ ] **Scatter ore the same way, using Boulders as the shared "ore"
-  object — Ben's explicit call, not 5 separately-modeled Ore Node
-  types.** [x] **Prerequisite done, ahead of schedule — shipped
-  v0.2.2-dev:** `Assets/Prefabs/Boulder.prefab` now exists as a real,
-  reusable asset, same extraction as Tree. **Found along the way:**
-  Boulder already carries an `AnvilSurface` component alongside
-  `ResourceNode` — every future scattered boulder will also work as a
-  crafting proximity point, not just an ore/rock source, for free. Actual
-  scattering/scarcity-config itself is still not built. **Real
-  pivot from how ore works today, not just a reskin:** checked Boulder's
-  actual config — it's currently a *plain* generic rock node (yields
-  Rock, trains `Gathering`, no tool required, `hiddenMaterial`/
-  `revealedMaterial` both unset). The 5 named Ore Nodes (Copper/Iron/
-  Silver/Gold/Platinum) are separate, differently-modeled objects today,
-  and only Silver/Gold/Platinum use the hidden-material disguise system.
-  Ben's ask means unifying these: every scattered rock is visually a
-  Boulder, and each instance's `chunkPrefab`/`trainedSkill`/
-  `requiredTools`/hidden-material config decides what it *actually*
-  yields — mostly plain Rock, with a randomized subset configured as
-  Copper/Iron/Silver/Gold/Platinum per the scarcity curve below, reusing
-  the same disguise mechanic the named Ore Nodes already use for the rare
-  tiers so nothing's knowable without cracking it open (or revealing it
-  with a Shield). **Still open, not decided:** whether Copper/Iron should
-  also go fully disguised under this new scheme (today they're always
-  visibly labeled "ore," not hidden) or keep reading as identifiable via
-  their required-tool prompt text before breaking — worth deciding
-  explicitly next session rather than assuming either way.
-  - **Proposed scarcity curve** (first-pass numbers, tune by feel like
-    everything else in this project — not locked): builds on the
-    existing 5-tier Copper→Iron→Silver→Gold→Platinum ladder (same order
-    as the currency tiers) and the fact Silver+ are already the
-    "hidden" tier. Copper ~15-25 (common), Iron ~10-15 (common), Silver
-    ~5-8 (hidden), Gold ~2-4 (hidden, rarer), Platinum 1-2 (hidden,
-    genuinely scarce — not "always findable" like today's guaranteed
-    single instance). Rest of the scattered boulders (not configured as
-    any ore tier) yield plain Rock, same as today's Boulder.
-  - Same placement rules as trees above (terrain-height respect, minimum
-    spacing from other boulders and important objects) apply here too.
-- [ ] **Scatter Berry Bush and Herb Bush the same way — Ben's ask.** No
-  prerequisite gap here, unlike Tree/Boulder: `BerryBush.prefab` and
-  `HerbBush.prefab` already exist as real, reusable prefabs (`HerbBush`
-  was built earlier this session, `BerryBush` already proper) — this is
-  placement work only. No tier/scarcity curve needed either, unlike ore —
-  each is a single gatherable type, not a 5-tier ladder. **Still open, not
-  decided:** how many of each (proposing a smaller range than trees as a
-  starting point, e.g. ~10-20 each, since understory bushes read as
-  sparser than trees in most games — not confirmed, adjust freely). Same
-  placement rules apply (terrain-height respect, minimum spacing from
-  each other and from important objects).
-- [ ] **Up to 5 Wolves the same way — Ben's ask.** No prerequisite gap:
-  `Wolf.prefab` already exists as a real, reusable prefab (built during
-  this session's Combat work). Random count, capped at 5 rather than an
-  open range like the passive resources — wolves are hostile, more of
-  them changes how dangerous the scene feels to move around in while
-  testing everything else, not just a density choice. **One placement
-  rule that's genuinely different from the passive scattering above:**
-  keep a deliberate minimum distance from the *player's spawn point*
-  specifically, not just from other objects — the two wolves already in
-  the scene were hand-placed at ±14/±8 for exactly that reason (a fresh
-  spawn shouldn't get immediately jumped). Same terrain-height/minimum-
-  spacing rules otherwise apply.
-- [ ] **3-5 NPCs the same way — Ben's ask, to really stress-test the
-  Hireable NPC system.** No prerequisite gap: `NPCFactoryWorker.prefab`
-  already exists as a real, reusable prefab (every Hireable NPC chunk
-  built onto it). **Genuinely valuable beyond just more content:**
-  multiple clones of the same prefab each need their own persistent
-  identity (hired state, job, tools, cargo, skill growth) rather than
-  sharing one — exactly the kind of case that would catch a broken
-  stable-ID design in the save/load work early instead of after the
-  fact. Also gives real resource contention for free once boulders are
-  scattered too — two NPCs' `FindTarget` competing for the same nearby
-  node, one falling back to the next-nearest once the first claims it.
-  **Two real resource considerations to have ready, not blockers:**
-  hiring costs 10 Copper each (5 NPCs = 50 Copper, but the player starts
-  with only 20 — needs Admin-spawned currency or a starting-balance
-  bump to actually test "hire all 5"), and each Mining-assigned NPC needs
-  its own Pickaxe + Mining Face Shield + Backpack (5 NPCs = 15 tools
-  total to fully equip everyone). **Still open:** whether multiple NPCs
-  share one deposit container or each get their own — either is
-  technically fine (`NPCJob.DepositContainer` has no exclusivity today),
-  worth deciding live next session depending on what's more useful to
-  test. Same placement rules as Wolves (spawn-point distance, terrain
-  height, minimum spacing) apply.
+    v0.2.1-dev, now the Terrain's actual `TerrainLayer` as of v0.2.4-dev.**
+    `Assets/Textures/GrassTexture_Healed.png` (real Gemini-generated,
+    hand-fixed seamless texture) — full texture-generation story in
+    `CHANGELOG.md` v0.2.1-dev. Tile size set to 5×5m for the new Terrain,
+    matching the old flat Plane's density as a starting point — still
+    worth a second look now that it's visible at the real 200×200 scale.
+- [x] **Scatter a random number of trees (20-75) across the new scene,
+  placed once — DONE, shipped v0.2.6-dev.** 29 Trees placed (seeded
+  `Random.Range(20, 76)`), 4m clearance from each other and every
+  pre-existing object, terrain-height sampled via `GroundHeight`. Full
+  story, including the independent re-verification pass, in
+  `CHANGELOG.md` v0.2.6-dev. Prerequisite (`Assets/Prefabs/Tree.prefab`)
+  shipped v0.2.2-dev.
+- [x] **Scatter ore the same way, using Boulders as the shared "ore"
+  object — DONE, shipped v0.2.6-dev.** 71 Boulders placed: Copper 25,
+  Iron 14, Silver 5, Gold 2, Platinum 1, plain Rock 24 — rolled from the
+  scarcity ranges proposed below. Each instance's `ResourceNode` config
+  read live off the existing 5 named Ore Nodes via `SerializedObject`,
+  not hand-copied. **Copper/Iron disguise question resolved: kept
+  non-disguised** (Iron's current revealed material is an
+  in-scene-embedded `Material`, not a portable asset, so disguising it
+  would need new asset work; kept Copper non-disguised too rather than an
+  asymmetric exception) — **confirmed by Ben 2026-08-11: "copper and iron
+  can be left alone."** Full story in `CHANGELOG.md` v0.2.6-dev.
+  Prerequisite (`Assets/Prefabs/Boulder.prefab`) shipped v0.2.2-dev.
+  - Scarcity curve actually used (from the proposed range below): Copper
+    25, Iron 14, Silver 5, Gold 2, Platinum 1, plain Rock 24.
+- [x] **Scatter Berry Bush and Herb Bush the same way — DONE, shipped
+  v0.2.6-dev.** 10 of each placed (Ben's explicit count), 2m clearance
+  each, same placement algorithm as Trees/Boulders. Full story in
+  `CHANGELOG.md` v0.2.6-dev.
+- [x] **5 Wolves scattered — DONE, shipped v0.2.9-dev.** Fixed at 5 (Ben's
+  call, not a random range like the passive resources), each kept at least
+  15 units from the Player's spawn position on top of the usual terrain-
+  height/minimum-spacing rules — verified: closest was 56.9 units out.
+  Full story in `CHANGELOG.md` v0.2.9-dev.
+- [x] **5 NPCs scattered — DONE, shipped v0.2.9-dev.** Fixed at 5, to really
+  stress-test the Hireable NPC system (multiple independent persistent
+  identities, real resource contention once boulders are also scattered).
+  Both previously-open resource questions resolved **without needing any
+  build work**: hiring all 5 (50 Copper) is comfortably covered by the
+  existing Bank→Exchange loop (starts with 25 Gold, downgrades 10:1 per
+  tier), and deposit container assignment was already fully flexible per-NPC
+  (`PlayerNPCDeposit` lets the player target any `StorageBox` individually) —
+  Ben's own use case: presort mined resources into a box near the Anvil by
+  assigning specific NPCs to it. Full story in `CHANGELOG.md` v0.2.9-dev.
 
 ### 2. Save/load persistence (v1, deliberately narrow scope)
 
@@ -261,6 +203,102 @@ session:
   each dig site's broken/respawning state are exactly the kind of world
   state save/load v1 needs to prove itself against.
 
+## Next Session: NPC Model, Animation & Equipment Visuals (ideation only, 2026-08-11 — nothing built yet)
+
+Started as Vendor NPC ideation, pivoted hard once Ben actually looked at the
+5 freshly-scattered NPCs: "I'm honestly not happy with the NPC model at all
+— a step forward for functionality and a step backwards for gameplay."
+Specific complaint, narrowed down: **the hiring/job mechanics themselves
+are fine for testing** — this is purely a presentation problem. The model
+"looks bleh," and movement is a raw `transform.position` slide (confirmed —
+neither `NPCWander`/`HostileCreature`/`NPCMining` drive any `Animator`
+today, nothing about NPC or Player movement has ever been animated). The
+Vendor NPC idea itself is effectively blocked behind this — a new Vendor
+would just inherit the same bleh/sliding problem otherwise, so fix the base
+NPC presentation first.
+
+- **Player-visible-body is explicitly deferred, not forgotten.** Ben wants
+  the player visible eventually — "in multiplayer, that becomes necessary"
+  (see [[project_gridless_multiplayer_aspiration]] memory; this is also
+  where that project fact first came up). Confirmed today: Player currently
+  has **zero visible mesh** — invisible `CharacterController` + camera only.
+  Decision: rig whatever character solution we land on as Unity **Humanoid**
+  (not Generic) so animations stay reusable later, but only build visible
+  rendering for NPCs now — the first-person view-model/third-person-camera
+  work stays parked until multiplayer is actually on the table.
+- **Equipment visual attachment — confirmed feasible, not yet built, for
+  either Player or NPC.** Checked both `PlayerEquipment` and
+  `NPCJob.equippedTools`: today, equipping anything (Backpack included) is
+  pure bookkeeping (a dictionary entry), nothing renders. Once a Humanoid
+  rig exists, the mechanism is straightforward: grab the relevant bone via
+  `Animator.GetBoneTransform` (e.g. `Chest`/`Spine` for Back-slot items),
+  instantiate the item's existing model as a child positioned there when
+  equipped. **Genuinely reuses existing work** — the Backpack's actual
+  visual model (`CrudeLeatherBackpack.glb`, already Tripo-generated and
+  in-game since v0.1.74-dev) needs zero new generation, only the attachment
+  logic and a rig to attach it to.
+- **Three model-source candidates being weighed, none chosen yet — Ben is
+  browsing the Asset Store by hand to compare actual visual style before
+  deciding:**
+  1. **Tripo3D custom generation** (extends `Tools/Tripo3D/`, see
+     [[reference_gridless_tripo3d]]) — auto-rig (`/animations/rig`, biped
+     preset) + animation-retarget (`/animations/retarget`) endpoints exist
+     but aren't used by any script yet, and this project has never
+     attempted a full character generation before (every prior Tripo asset
+     has been a prop). Highest control over unique look, highest
+     uncertainty (untested territory). Draft male/female prompts (A-pose,
+     full body, isolated background) already written this session if this
+     path gets picked.
+  2. **Free "Human Character Dummy"** (Kevin Iglesias/"KI", Asset Store
+     #178395) + his **Human Mega Animations Pack** (either **Lite I**
+     #320526, $65, tags: idle/walk/combat/crafting/dance/fighting; or
+     **Full** #162341, $130, tags include spell/farming/villager too —
+     the Full pack's categories map almost one-to-one onto actual Gridless
+     systems: spell→Wishes, farming→the Gardening Phase-2 item,
+     villager→Hireable NPCs, fight→Combat). Dummy is free, male+female,
+     already Humanoid/Mecanim-rigged (no auto-rig step needed), URP-
+     compatible, same publisher as the animation packs (near-certain
+     compatibility). Real risk, unverified: "Dummy" in the name may mean
+     a plain mannequin look that doesn't actually fix the original "looks
+     bleh" complaint even though it'd fully fix the sliding — but the
+     rig/animations stay reusable on a nicer mesh later regardless, so
+     nothing here is wasted either way.
+  3. **Survivor Models Pack** (AisenCorporation, Asset Store #307249,
+     $19.99) — male+female, Humanoid-rigged, all render pipelines
+     supported, but no animations included (would still need pairing with
+     one of KI's packs) and tagged only "high quality" with no explicit
+     low-poly descriptor — real risk it doesn't visually match this
+     game's established low-poly aesthetic (every other asset, Tripo or
+     Poly Pizza, reads as deliberately low-poly/stylized).
+- **EULA/commercial-use checked and cleared for all three Asset Store
+  candidates** — all tagged "Extension Asset," standard EULA, none flagged
+  "Restricted Asset." Commercial use is explicitly fine once embedded in
+  the shipped game; the real catch is **per-seat licensing** (one license
+  per person with the asset installed in the project, not per-project) —
+  relevant since this repo has a collaborator, per
+  [[project_gridless_game]].
+- **Not yet decided/started:** which model-source to use, the Animator
+  Controller itself (Idle/Walk states, driven by a speed parameter fed
+  from `NPCWander`/`HostileCreature`), and the actual equipment-attachment
+  script. Vendor NPC ideation (buy/sell mechanic, wandering-on-a-timer,
+  `baseValue` field for `ItemDefinition`, always-buys core list) is fully
+  captured in conversation history but not yet written down here — revisit
+  once the model/animation question resolves, since building a new Vendor
+  before fixing the base NPC presentation would be building on the same
+  shaky foundation Ben just flagged.
+- **First concrete piece shipped, 2026-08-11 — see `CHANGELOG.md`
+  v0.3.0-dev.** `Assets/Models/CombatBoot.glb`, the project's first
+  all-Blender (no Tripo) model — accepted despite real rough edges (a hard
+  seam at the foot-to-shaft transition, weak toe taper, incomplete laces)
+  per Ben's "let's use it for now." Wired into three real equippable
+  items (Civilian/Hiking/Military Boots) with a genuinely new mechanic —
+  type-restricted equipment slots (`Inventory.restrictedTo`) — but **not
+  yet connected to the equipment-visual-attachment plan above**: Boots
+  equip into the "Feet" slot exactly like any other equippable today
+  (bookkeeping only, `SetCarried` anchors to `transform` since there's no
+  bone to attach to yet), same unsolved gap as Backpack/Belt. Revisit once
+  a rigged model exists.
+
 ## Enhancements — Phase 2 (MVP 2) Backlog
 
 **Draft, not finalized (2026-08-10) — Ben's explicit call: "we won't
@@ -324,6 +362,14 @@ signs off on scope and order.
   part of the same Factions/Guilds/Warbands trio) — the literal combatant
   groups in Settlement Warfare. A Warband's conduct can move its members'
   Faction standing even though the two systems are otherwise separate.
+- [ ] **Scene layout/organization** (punted from the scene-prep work,
+  2026-08-11) — the 200×200 Terrain is now fully populated (Trees, ore
+  Boulders, Berry/Herb Bushes, Wolves, and hireable NPCs all scattered as
+  of `CHANGELOG.md` v0.2.6-dev through v0.2.9-dev) but placed randomly, not
+  organized. Whether "organization" should mean zoning by system, by
+  biome, something else entirely, or nothing at all (random is fine for a
+  survival sandbox) — genuinely undecided, not even a first-pass proposal
+  yet.
 
 ## Bugs
 
@@ -867,7 +913,12 @@ signs off on scope and order.
     Scabbard (holds exactly 1 Knife, any tier, nothing else), Pouch (grants
     1-3 general-item storage slots — sized independently of the Belt's own
     tier, so a Crude Belt can carry a 3-pocket Pouch), Holster (deferred —
-    no ranged/melee weapon exists yet to holster).
+    no ranged/melee weapon exists yet to holster). **The underlying
+    mechanism for "holds exactly 1 Knife, any tier, nothing else" now
+    exists** (`Inventory`'s optional `restrictedTo` list, built 2026-08-11
+    for `Boot`'s Knife Sheath/Pistol Holster slots — see `CHANGELOG.md`
+    v0.3.0-dev) — a Belt-side Knife Scabbard would reuse the exact same
+    mechanism, not need new plumbing.
   - **Explicitly open, not decided:** whether attachments themselves get
     quality tiers that change their function, not just belt-slot
     occupancy — Ben's example: a higher-tier Canteen could hold more
