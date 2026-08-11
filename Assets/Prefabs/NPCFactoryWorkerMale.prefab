@@ -64,6 +64,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7869543608362826461, guid: 9bd72731ebe2248478ba4849c274a43b, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 78f54ca1bde648440b1d49be9ebd86f5, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -74,6 +78,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4311652260893728935, guid: 9bd72731ebe2248478ba4849c274a43b, type: 3}
   m_PrefabInstance: {fileID: 1616094553667988108}
   m_PrefabAsset: {fileID: 0}
+--- !u!137 &8104495797086063911 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 7355915943570368427, guid: 9bd72731ebe2248478ba4849c274a43b, type: 3}
+  m_PrefabInstance: {fileID: 1616094553667988108}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &4983459020196990745
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -82,6 +91,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 18442220453067582, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+      propertyPath: modelForwardOffsetY
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
       propertyPath: m_Name
       value: NPCFactoryWorkerMale
@@ -139,10 +152,33 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7860393447680618419, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3295391981941180971}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 947897229345743293}
   m_SourcePrefab: {fileID: 100100000, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
 --- !u!4 &2899605274916642986 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7860393447680618419, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
   m_PrefabInstance: {fileID: 4983459020196990745}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &4646995035460805641 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+  m_PrefabInstance: {fileID: 4983459020196990745}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &947897229345743293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4646995035460805641}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ea5bc3e1c6553e468650e9fd96886f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCVisualGroundFix
+  visual: {fileID: 3295391981941180971}
+  renderers:
+  - {fileID: 8104495797086063911}

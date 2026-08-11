@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 18442220453067582, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+      propertyPath: modelForwardOffsetY
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
       propertyPath: m_Name
       value: NPCFactoryWorkerFemale
@@ -65,13 +69,36 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 7860393447680618419, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8184307594207236729}
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8723566859089280275}
   m_SourcePrefab: {fileID: 100100000, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
 --- !u!4 &3723363638363862720 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 7860393447680618419, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
   m_PrefabInstance: {fileID: 6825682087002446195}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &6623683994618491491 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+  m_PrefabInstance: {fileID: 6825682087002446195}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8723566859089280275
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6623683994618491491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4ea5bc3e1c6553e468650e9fd96886f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCVisualGroundFix
+  visual: {fileID: 8184307594207236729}
+  renderers:
+  - {fileID: 5808498916953971897}
 --- !u!1001 &8583638018399594631
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -136,11 +163,28 @@ PrefabInstance:
       propertyPath: m_Name
       value: Visual
       objectReference: {fileID: 0}
+    - target: {fileID: 5794894658370936964, guid: 8e1471e805192fd4e902f7cc7eec8378, type: 3}
+      propertyPath: m_Controller
+      value: 
+      objectReference: {fileID: 9100000, guid: 78f54ca1bde648440b1d49be9ebd86f5, type: 2}
+    - target: {fileID: 5938159794127996028, guid: 8e1471e805192fd4e902f7cc7eec8378, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0.009446497
+      objectReference: {fileID: 0}
+    - target: {fileID: 5938159794127996028, guid: 8e1471e805192fd4e902f7cc7eec8378, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0.05264752
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8e1471e805192fd4e902f7cc7eec8378, type: 3}
+--- !u!137 &5808498916953971897 stripped
+SkinnedMeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 2847642421023913022, guid: 8e1471e805192fd4e902f7cc7eec8378, type: 3}
+  m_PrefabInstance: {fileID: 8583638018399594631}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &8184307594207236729 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 471669776683367166, guid: 8e1471e805192fd4e902f7cc7eec8378, type: 3}

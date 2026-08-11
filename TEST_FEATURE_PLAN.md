@@ -2194,3 +2194,16 @@ behavior.
   sitting in its Knife Sheath at that point stays with the boot (not
   spilled into the player's inventory) — confirm that's actually true,
   not assumed.
+
+## 18. NPC Visual (Human Character Dummy, v0.3.4-dev/v0.3.5-dev)
+
+- [ ] **Idle pose and facing — both confirmed working (v0.3.5-dev).** NPCs
+  stand with arms down (not T-pose) and correctly face their direction of
+  travel while wandering.
+- [ ] **Known open bug: NPCs stand partway sunk into the ground.** Started
+  once the idle animation was wired in; `NPCVisualGroundFix.cs` (self-
+  correcting `LateUpdate`) was added to fix it but a live test afterward
+  still showed sinking — not actually resolved. To debug cheaply: pause
+  Play mode, select an NPC, check `NPCVisualGroundFix`'s `corrected` flag
+  and what `Visual`'s local Y ended up as, rather than more screenshot
+  round-trips.

@@ -5,12 +5,51 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.4-dev` — must always match `GameVersion` in
+**Current version:** `0.3.5-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-11
+
+### v0.3.5-dev — NPC idle pose/facing fixes, Crude Furnace model
+
+Wraps up the NPC animation work and adds one new asset — a shorter,
+token-constrained session, so scope stayed intentionally tight.
+
+- **NPC idle pose**: built `Assets/Animations/NPCIdle.anim`/`.controller`
+  (Humanoid muscle curves via `AnimationUtility.SetEditorCurve` — the
+  first attempt used `AnimationClip.SetCurve` directly, which silently
+  didn't bind), assigned to both `NPCFactoryWorkerMale/Female.prefab`.
+  Batch-mode preview rendering couldn't confirm it (Humanoid retargeting
+  doesn't reliably evaluate via `Animator.Update()` outside real Play
+  mode), but **confirmed working live** — arms down, no more T-pose.
+- **NPC facing/sliding fixed**: `NPCWander.modelForwardOffsetY` changed
+  from `90` (tuned for the old model) to `0`. Took two guesses to land —
+  `-90` produced the mirror-image symptom (sliding right instead of
+  left), which pointed at `0` as the actual fix. **Confirmed working
+  live** — NPCs now correctly face their direction of travel.
+  - **Related, not yet confirmed fixed**: NPCs visibly sink partway into
+    the ground once the idle animation is actually driving the Animator
+    (not present before the animation was added) — likely the same
+    Mecanim root-height quirk that made the pose hard to preview.
+    Attempted fix: `NPCVisualGroundFix.cs` (new script, one-time
+    self-correcting `LateUpdate` that measures real animated bounds and
+    nudges the visual to compensate), wired onto both prefabs. **Ben's
+    live test after this fix still showed sinking** — root cause not
+    actually confirmed, only guessed at. Left as the one known open
+    issue; see `TEST_FEATURE_PLAN.md`/next session for how to debug it
+    cheaply (inspect `NPCVisualGroundFix`'s corrected state live in the
+    Inspector rather than more screenshot round-trips).
+- **`Assets/Models/CrudeFurnace.glb`** — generated via the existing Tripo
+  API pipeline (`Tools/Tripo3D/Generate-Model.ps1`), clean on the first
+  attempt, reads clearly as a crude clay/stone smelting furnace with a
+  chimney and visible embers. 42.7MB — likely higher-poly than the
+  "mid-poly" prompt wording asked for, same recurring pattern as other
+  Tripo generations in this project (not yet checked exactly). Imported
+  for review only, same treatment the Anvil got — no
+  `ItemDefinition`/prefab/recipe exists yet, pending an actual Smelting
+  system design.
 
 ### v0.3.4-dev — NPC visual replaced with the Human Character Dummy (male/female)
 
