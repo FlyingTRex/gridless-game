@@ -2200,10 +2200,18 @@ behavior.
 - [ ] **Idle pose and facing — both confirmed working (v0.3.5-dev).** NPCs
   stand with arms down (not T-pose) and correctly face their direction of
   travel while wandering.
-- [ ] **Known open bug: NPCs stand partway sunk into the ground.** Started
-  once the idle animation was wired in; `NPCVisualGroundFix.cs` (self-
-  correcting `LateUpdate`) was added to fix it but a live test afterward
-  still showed sinking — not actually resolved. To debug cheaply: pause
-  Play mode, select an NPC, check `NPCVisualGroundFix`'s `corrected` flag
-  and what `Visual`'s local Y ended up as, rather than more screenshot
-  round-trips.
+- [ ] **NPCs should stand flush with the ground, not partway sunk in.**
+  Started once the idle animation was wired in (v0.3.5-dev). First fix
+  attempt (`NPCVisualGroundFix.cs`'s one-shot `LateUpdate`) didn't hold up
+  under live testing — **Regression (v0.3.5-dev → still broken as of
+  that version):** sinking persisted after the one-shot fix.
+  - **v0.3.7-dev retry, needs a fresh live check:** script now corrects
+    every `LateUpdate` instead of once (working theory: the one-shot
+    version measured bounds before the Animator had evaluated its first
+    real pose, computed ~zero correction, then permanently disabled
+    itself). To verify: watch an NPC in Play mode for a full idle cycle,
+    confirm feet stay flush with the ground continuously, not just at
+    the moment it spawns. If still sinking, pause Play mode, select an
+    NPC, and check what `Visual`'s local Y actually is relative to the
+    measured `feetOffset` (the old `corrected` flag no longer exists in
+    this version) rather than more screenshot round-trips.

@@ -5,12 +5,46 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.6-dev` — must always match `GameVersion` in
+**Current version:** `0.3.7-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-11
+
+### v0.3.7-dev — NPC ground-sinking: continuous correction instead of one-shot
+
+Follow-up to v0.3.5-dev's `NPCVisualGroundFix.cs`, which corrected once on the
+first `LateUpdate` after enable then disabled itself — Ben's live retest still
+showed sinking, root cause unconfirmed at the time.
+
+- **Ruled out two candidate causes before touching the script:** grepped
+  `Assets/Animations/NPCIdle.anim`'s curves directly — it only animates arm
+  DOFs (Left/Right Arm Down-Up/Front-Back, Left/Right Forearm Stretch), no
+  Root/Hip/leg curves at all, so the sinking isn't authored into the clip
+  itself. Also checked `NPCIdle.controller` — exactly one state (Idle,
+  default, no transitions), ruling out transition-blend timing.
+- **Working theory:** the one-shot correction's first `LateUpdate` likely ran
+  *before* the Animator evaluated its first real pose on scene load. Since
+  bind-pose feet already line up correctly (per the v0.3.5-dev entry), an
+  early measurement would compute ~zero correction, apply it, then
+  permanently disable itself — before the true post-animation offset
+  appeared a frame or two later. **Not live-confirmed** — batch mode can't
+  reliably evaluate Humanoid retargeting timing (established in
+  v0.3.4-dev/v0.3.5-dev), so this can only be verified in a real Play-mode
+  session.
+- **The fix:** `NPCVisualGroundFix` now corrects every `LateUpdate` instead
+  of once, so it can't get stuck on a stale early measurement regardless of
+  which frame the Animator actually settles on. X/Z are captured once at
+  first run and held fixed (only Y is corrected every frame) so a bounds
+  asymmetry can't introduce sideways drift. Also makes this robust to any
+  future idle animation with a vertical bob, which the old one-shot design
+  could never have tracked correctly anyway.
+- **Needs a live Play-mode check** to confirm the sinking is actually gone —
+  flagging here rather than marking this fixed outright, same honesty as the
+  v0.3.5-dev entry it follows up on. Cheap at the current NPC count (one
+  renderer each, ~6 NPCs); revisit with an update-interval throttle if NPC
+  count grows much further.
 
 ### v0.3.6-dev — Drink/fill a Canteen directly from a container
 
