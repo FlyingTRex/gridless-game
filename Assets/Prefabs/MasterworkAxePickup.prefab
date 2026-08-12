@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 4274998644308644863}
   - component: {fileID: 3539764818670772016}
   - component: {fileID: 4105448001169539903}
-  - component: {fileID: 6230281870631211003}
+  - component: {fileID: 8257574532133752131}
   m_Layer: 0
   m_Name: MasterworkAxePickup
   m_TagString: Untagged
@@ -83,7 +83,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2473208, y: 0.6, z: 0.03967742}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &6230281870631211003
+--- !u!114 &8257574532133752131
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -92,16 +92,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 6679548372532663342}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f8654f1074c5cf46a102f59b6b914fa, type: 3}
+  m_Script: {fileID: 11500000, guid: a15aa9974862b814f9b8fa2922e76c80, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Pickup
-  item: {fileID: 11400000, guid: ad37f941de4827448a05b96776878bde, type: 2}
-  quantity: 1
-  trainedSkill: {fileID: 0}
-  skillGain: 0.05
-  canRespawn: 0
-  respawnDelay: 180
-  respawnScatter: 0.5
+  m_EditorClassIdentifier: Assembly-CSharp::Tool
+  itemDefinition: {fileID: 11400000, guid: ad37f941de4827448a05b96776878bde, type: 2}
 --- !u!1001 &865645459350394588
 PrefabInstance:
   m_ObjectHideFlags: 0

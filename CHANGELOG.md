@@ -5,12 +5,142 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.10-dev` — must always match `GameVersion` in
+**Current version:** `0.3.12-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
+
+### v0.3.12-dev — Tools are now equippable: real held-in-hand models
+
+Follow-on to v0.3.11-dev's drag-and-drop rework. All 20 tool items (Knife/
+Pickaxe/Hammer/Axe, 5 tiers each) were plain stackable items with no physical
+form while held — moving one into a hand was purely a data operation
+(`Inventory.AddItem`), so nothing showed in the player's hand. Ben's call:
+tools should behave like the 8 existing "equippable" items (Backpack,
+Canteen, etc.) — a real GameObject that's shown/hidden and parented to a hand
+anchor via `IEquippable.SetCarried`/`Stash`.
+
+- **New `Tool.cs`/`PlayerTool.cs` pair**, structured identically to the 8
+  existing equippable/carrier pairs (`Boot.cs`/`PlayerBoot.cs` was the
+  closest template — no named sub-slots, no belt). `Tool.CanEquipToSlot`
+  only allows `"Left Hand"`/`"Right Hand"`. `PlayerTool` uses a single
+  `handAnchor` field rather than Canteen's two — the scene's existing
+  `HandAnchor` object was already the *same* Transform Canteen uses for both
+  hands, so a second field would've been pretending there are two anchor
+  points when there's only one. Built source-aware from day one (no retrofit
+  needed this time, unlike the other 8 during the drag-and-drop rework).
+- **No new art required.** Every tool's `worldPickupPrefab` (e.g.
+  `Assets/Prefabs/RockKnifePickup.prefab` for Crude Knife) already had a
+  real, distinct mesh on a `Rigidbody`+`Collider` root — structurally
+  identical to what `SetCarried` needs. The only prefab change was swapping
+  the root `Pickup` component for `Tool` (batch-converted via a throwaway
+  `Assets/Editor/ToolMigrationSetup.cs`, verified by grepping all 20 saved
+  prefabs' YAML for the correct `Tool` script + `itemDefinition` guid before
+  deleting the script — confirmed clean, no leftover `Pickup`, no null refs).
+- **`PlayerCrafting.AddCraftedOutput` and `PlayerDropping.SpawnPickup` needed
+  zero changes** — both were already written generically against
+  `IEquippable`/`TryGetComponent<Pickup>` (the equivalent Admin Spawn gap had
+  already been fixed previously), so crafting a tool and admin-spawning one
+  both correctly produce a real physical instance now, automatically.
+  `PlayerEquipment.HasInHand` (the tool-gate check used by `ResourceNode`/
+  `ChoppableTree`/`HostileCreature`/`PlayerCrafting`) also needed no change —
+  it reads `Inventory.GetCount`, populated the same way regardless of
+  whether a slot came from `AddItem` or `AddEquipmentItem`.
+- **Real bug caught and fixed while implementing:**
+  `PlayerCrafting.BreakHeldTool` (the "your tool broke" spectacular-failure
+  path) called the generic `hand.RemoveItem(tool, 1)` directly — exactly the
+  `RemoveItem`/`AddItem`-strips-`equipment`-reference gotcha `CLAUDE.md`
+  already documents. Now equipment-aware: finds the matching slot, and if
+  it's equipment-backed, routes through `RemoveEquipmentItem` and destroys
+  the physical instance outright (a broken tool is destroyed, not dropped),
+  instead of orphaning a still-visible-but-untracked GameObject in the
+  player's hand.
+
+Batch-mode compile check passed (0 `CS####` errors). Manual Play-mode
+verification (equip a tool, craft one from scratch, mine with one, break one
+via spectacular failure) still needed — see `TEST_FEATURE_PLAN.md`.
+
+### v0.3.11-dev — Inventory: drag-and-drop replaces the button/popup UI
+
+Grew out of five reported inventory bugs — a Canteen picked up into a
+Backpack had no UI path to equip it (only the main inventory grid ever had
+an Equip button), the same gap existed for Boots, Boots also have no icon,
+Healing Paste/Bandage's skill gate (see v0.3.10-dev above), Healing Paste
+couldn't be applied from a hand/backpack, and the Wolf Pelt couldn't be
+dropped. Root-caused the first two to a shared bug: every equippable's
+carrier script (`PlayerCanteen`, `PlayerBoot`, etc.) hardcoded "remove from
+the main inventory" as the equip source regardless of where the item
+actually was, so equipping something found in a backpack silently corrupted
+state (stale entry left behind, duplicate added at the destination) instead
+of working.
+
+Rather than patch each destination gap as reported, replaced
+`InventoryScreen`'s entire button/popup model with drag-and-drop:
+
+- **Press-and-hold an item and drag it to where it should go.** Every slot
+  box (main inventory, equipment slots, backpack/boot/storage contents) is
+  both a drag source and a drop target. An invalid drop (wrong slot for the
+  item's type, target full, released over nothing) needs no rollback — the
+  underlying `Inventory` data is never touched until a drop actually
+  succeeds, so it "snaps back" for free.
+- **A plain click (no drag) opens a short action menu** — Drop / Eat /
+  Apply / Drink / Fill / Equip / Unequip, whichever apply to that item —
+  replacing the old destination-button list (`DrawMoveDestinations`) and
+  the ~230 lines of duplicated per-type Equip/Unequip/Drop button branches
+  that used to live in `DrawInventorySection` and `DrawEquipmentSection`.
+- **Partial-stack drag**: no modifier drags the whole stack, Shift drags
+  half (rounded down, min 1), Ctrl drags exactly 1. `InventoryTransfer`
+  gained a `quantityCap` overload of `MoveAsManyAsFit` to support this.
+- The destination being exactly where the player dropped the item also
+  eliminates the "which slot did Equip guess?" ambiguity that caused the
+  Canteen bug in the first place — dragging a Canteen onto the worn Belt's
+  own contents grid equips it there directly, no picker needed.
+
+**Foundation work that made this safe:**
+- Every one of the 8 equippable carriers (`PlayerBackpack`, `PlayerBelt`,
+  `PlayerBoot`, `PlayerCanteen`, `PlayerNavComputer`, `PlayerHealthMonitor`,
+  `PlayerSunglasses`, `PlayerMiningFaceShield`) got a source-aware
+  `Equip`/`EquipTo` overload that removes from the `Inventory` the caller
+  explicitly names, instead of guessing via `FindSlot` and falling back to
+  the main inventory. Drag always knows exactly where an item came from, so
+  this is what makes "drag a Canteen out of a Backpack onto the Belt" (or
+  any other type, from any container) actually work.
+- Added `IEquippable.CanEquipToSlot(string slotName)`, implemented by all 8
+  equippable types. Nothing previously stopped a Boot from being data-added
+  to the Head slot — no code path did it only because every existing caller
+  already knew its own hardcoded slot. Dragging introduces the new
+  possibility of dropping any equippable onto any body-slot rect, so this
+  is the explicit gate that replaces "no code path does it" with "no code
+  path is allowed to."
+
+**Explicitly out of scope, not touched:** Boots still have no icon (needs
+actual sprite art, unrelated to this). `BankScreen`/`LockboxScreen` are
+currency-only (no item slots) and Storage Box contents already rendered
+inside `InventoryScreen` itself, so neither needed touching.
+
+**Two fixes found during Ben's first live pass:**
+- A follow-up edit (restoring "Empty" text on equipment slots) introduced a
+  `CS1503` — a ternary mixing `string` and `GUIContent` doesn't resolve to
+  either `GUILayout.Box` overload — that wasn't caught before Ben tested,
+  since the compile check had only been re-run once, before that edit. Unity
+  silently dropped into Safe Mode, which looked exactly like a runtime
+  interaction bug (nothing clickable) until Ben pasted the actual Console
+  error. Fixed by wrapping both branches in an explicit `new GUIContent(...)`.
+- **Left-click alone was too twitchy** — an ordinary click naturally moves
+  the mouse a couple of pixels between press and release, enough to cross
+  the original 6px `DragThreshold` and pick the item up instead of opening
+  the action menu (confirmed live: clicking a Backpack in a hand slot
+  immediately "grabbed" it). Fixed two ways: **right-click now opens the
+  action menu directly**, with no drag/threshold ambiguity at all (right
+  MouseDown never starts a drag, so there's nothing to disambiguate), and
+  `DragThreshold` was loosened 6f → 12f so a plain left click has more
+  headroom too.
+
+Batch-mode compile check passed (0 `CS####` errors, re-verified after both
+fixes above). Manual Play-mode drag verification still in progress with Ben
+— see `TEST_FEATURE_PLAN.md`.
 
 ### v0.3.10-dev — Healing Paste & Bandage: Medical 25 → Medical 0
 

@@ -103,17 +103,30 @@ public class PlayerCanteen : MonoBehaviour
 
     // Moves the canteen onto a specific carry location the player chose
     // (see InventoryScreen's Equip destination popup) rather than picking
-    // one automatically.
-    public bool EquipTo(Canteen canteen, string destination)
+    // one automatically. Removes from the main inventory — only correct
+    // when the canteen is actually sitting there; a canteen picked up into
+    // a Backpack (PlayerLoot.ReceiveEquipment) needs the source-aware
+    // overload below instead.
+    public bool EquipTo(Canteen canteen, string destination) =>
+        EquipTo(canteen, destination, playerInventory.Inventory);
+
+    // Same as above, but removes from whichever inventory the canteen is
+    // actually sitting in (e.g. a Backpack's nested Inventory reached via
+    // InventoryScreen's move popup) instead of assuming it's always the
+    // main inventory. Real bug (2026-08-12): equipping a canteen found
+    // inside a worn Backpack used to always try to remove it from the main
+    // inventory, which silently did nothing there — leaving a stale entry
+    // behind in the Backpack while also adding a second copy to the belt.
+    public bool EquipTo(Canteen canteen, string destination, Inventory source)
     {
-        if (canteen == null || destination == null) return false;
+        if (canteen == null || destination == null || source == null) return false;
 
         if (destination == BeltSlot)
         {
             var belt = beltCarrier != null ? beltCarrier.Equipped : null;
             if (belt == null || !belt.Inventory.AddEquipmentItem(canteenItem, canteen)) return false;
 
-            playerInventory.Inventory.RemoveEquipmentItem(canteenItem);
+            source.RemoveEquipmentItem(canteenItem);
             canteen.SetCarried(true, AnchorFor(BeltSlot));
             return true;
         }
@@ -121,7 +134,7 @@ public class PlayerCanteen : MonoBehaviour
         var slot = equipment.GetSlot(destination);
         if (slot == null || !slot.AddEquipmentItem(canteenItem, canteen)) return false;
 
-        playerInventory.Inventory.RemoveEquipmentItem(canteenItem);
+        source.RemoveEquipmentItem(canteenItem);
         canteen.SetCarried(true, AnchorFor(destination));
         return true;
     }

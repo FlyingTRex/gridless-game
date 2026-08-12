@@ -26,6 +26,8 @@ public class Backpack : MonoBehaviour, IInteractable, IInventoryHolder
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
 
+    public bool CanEquipToSlot(string slotName) => slotName == "Back";
+
     private void Awake()
     {
         inventory = new Inventory(capacity);

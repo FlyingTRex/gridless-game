@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 7843604449285501411}
   - component: {fileID: 3776460896952634555}
   - component: {fileID: 7151765135228080925}
-  - component: {fileID: 4876223834598713700}
+  - component: {fileID: 6305048205365819408}
   m_Layer: 0
   m_Name: FinePickaxePickup
   m_TagString: Untagged
@@ -83,7 +83,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.3903097, y: 0.06540822, z: 0.6000001}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &4876223834598713700
+--- !u!114 &6305048205365819408
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -92,16 +92,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 6864249591511877102}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f8654f1074c5cf46a102f59b6b914fa, type: 3}
+  m_Script: {fileID: 11500000, guid: a15aa9974862b814f9b8fa2922e76c80, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Pickup
-  item: {fileID: 11400000, guid: cbc3a81f301f905488b74329e0b078a6, type: 2}
-  quantity: 1
-  trainedSkill: {fileID: 0}
-  skillGain: 0.05
-  canRespawn: 0
-  respawnDelay: 180
-  respawnScatter: 0.5
+  m_EditorClassIdentifier: Assembly-CSharp::Tool
+  itemDefinition: {fileID: 11400000, guid: cbc3a81f301f905488b74329e0b078a6, type: 2}
 --- !u!1001 &1713344919875280207
 PrefabInstance:
   m_ObjectHideFlags: 0

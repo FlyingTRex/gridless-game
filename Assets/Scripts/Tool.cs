@@ -1,29 +1,35 @@
 using UnityEngine;
 
-// Physical object, structured identically to Sunglasses.cs — a single
-// Face-slot equippable with no inventory of its own. Its effect (revealing
-// hidden ore) lives on ResourceNode/PlayerMiningFaceShield, not here — this
-// class is purely the pickup/carry/worn-object plumbing.
+// Physical object for a tool (Knife/Pickaxe/Hammer/Axe, any tier). Same
+// structure as Sunglasses.cs/Boot.cs — the pickup/carry/worn-object
+// plumbing only. Tool-gated actions (ResourceNode.requiredTools,
+// CraftingRecipe.requiredTools) read PlayerEquipment.HasInHand, which
+// checks the hand Inventory slot's item count directly and needs no
+// awareness of this component at all — that's populated the same way
+// whether the slot came from AddItem or AddEquipmentItem.
 [RequireComponent(typeof(Rigidbody))]
 [RequireComponent(typeof(Collider))]
-public class MiningFaceShield : MonoBehaviour, IInteractable, IEquippable
+public class Tool : MonoBehaviour, IInteractable, IEquippable
 {
     // Excluded from the player's own camera while worn — see Backpack.cs.
     private const int DefaultLayer = 0;
     private const int WornEquipmentLayer = 8;
 
-    [SerializeField] private string shieldName = "Mining Face Shield";
+    [SerializeField] private ItemDefinition itemDefinition;
 
     private Rigidbody body;
     private Collider col;
 
-    public string DisplayName => shieldName;
+    public ItemDefinition ItemDefinition => itemDefinition;
+    public string DisplayName => itemDefinition != null ? itemDefinition.itemName : "Tool";
 
-    public string Prompt => $"Pick up {shieldName}";
+    public string Prompt => $"Pick up {DisplayName}";
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
 
-    public bool CanEquipToSlot(string slotName) => slotName == "Face";
+    // No belt/body slot — a tool only ever makes sense held in a hand.
+    public bool CanEquipToSlot(string slotName) =>
+        slotName == "Left Hand" || slotName == "Right Hand";
 
     private void Awake()
     {
@@ -33,10 +39,12 @@ public class MiningFaceShield : MonoBehaviour, IInteractable, IEquippable
 
     public void Complete(GameObject player)
     {
-        var carrier = player.GetComponent<PlayerMiningFaceShield>();
+        var carrier = player.GetComponent<PlayerTool>();
         carrier?.PickUp(this);
     }
 
+    // Fully hides the object while it's stashed in a regular inventory slot
+    // rather than sitting in the world or held in a hand.
     public void Stash()
     {
         Despawn.CancelOn(gameObject);
@@ -44,6 +52,9 @@ public class MiningFaceShield : MonoBehaviour, IInteractable, IEquippable
         gameObject.SetActive(false);
     }
 
+    // Held (visible, non-collidable, follows anchor) when anchor is set, or
+    // released back into the world as a normal physical object when anchor
+    // is null.
     public void SetCarried(bool value, Transform anchor)
     {
         if (value) Despawn.CancelOn(gameObject);

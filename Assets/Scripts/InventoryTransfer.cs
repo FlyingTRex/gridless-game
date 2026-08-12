@@ -49,11 +49,18 @@ public static class InventoryTransfer
     // into an empty single-capacity hand slot: only one fits, this moves
     // that one instead of moving nothing). Returns the amount actually
     // moved (0 if nothing could move).
-    public static int MoveAsManyAsFit(Inventory from, Inventory to, ItemDefinition item)
+    public static int MoveAsManyAsFit(Inventory from, Inventory to, ItemDefinition item) =>
+        MoveAsManyAsFit(from, to, item, int.MaxValue);
+
+    // Same as above, but additionally capped by quantityCap — used for a
+    // partial-stack drag (2026-08-12), where the player asked to move only
+    // part of a stack (Shift = half, Ctrl = one) rather than everything
+    // that fits.
+    public static int MoveAsManyAsFit(Inventory from, Inventory to, ItemDefinition item, int quantityCap)
     {
         if (from == null || to == null || item == null) return 0;
 
-        int quantity = Mathf.Min(from.GetCount(item), to.SpaceFor(item));
+        int quantity = Mathf.Min(Mathf.Min(from.GetCount(item), to.SpaceFor(item)), quantityCap);
         if (quantity <= 0) return 0;
 
         return Move(from, to, item, quantity) ? quantity : 0;

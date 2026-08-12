@@ -68,9 +68,15 @@ public class PlayerSunglasses : MonoBehaviour
     // Moves the sunglasses onto the Face slot from wherever they currently
     // are (a regular inventory slot, or a hand if PlayerLoot put them
     // there).
-    public bool Equip(Sunglasses sunglasses)
+    // See PlayerBackpack.Equip's source-aware overload comment (2026-08-12)
+    // — FindSlot doesn't know about sunglasses sitting inside a backpack's
+    // nested Inventory, so use the overload below when the caller already
+    // knows exactly where they are.
+    public bool Equip(Sunglasses sunglasses) => Equip(sunglasses, playerInventory.Inventory);
+
+    public bool Equip(Sunglasses sunglasses, Inventory source)
     {
-        if (sunglasses == null) return false;
+        if (sunglasses == null || source == null) return false;
 
         string currentSlot = FindSlot(sunglasses);
         var slot = equipment.GetSlot(FaceSlot);
@@ -79,7 +85,7 @@ public class PlayerSunglasses : MonoBehaviour
         if (currentSlot != null)
             equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(sunglassesItem);
         else
-            playerInventory.Inventory.RemoveEquipmentItem(sunglassesItem);
+            source.RemoveEquipmentItem(sunglassesItem);
 
         sunglasses.SetCarried(true, transform);
         return true;

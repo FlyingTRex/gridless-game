@@ -30,6 +30,8 @@ public class Belt : MonoBehaviour, IInteractable, IInventoryHolder
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
 
+    public bool CanEquipToSlot(string slotName) => slotName == "Waist";
+
     private void Awake()
     {
         pointsInventory = new Inventory(points);

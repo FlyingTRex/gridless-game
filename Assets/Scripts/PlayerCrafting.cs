@@ -453,11 +453,39 @@ public class PlayerCrafting : MonoBehaviour
 
             foreach (var tool in recipe.requiredTools)
             {
-                if (tool != null && hand.GetCount(tool) > 0)
+                if (tool == null || hand.GetCount(tool) <= 0) continue;
+
+                // A tool (Knife/Pickaxe/Hammer/Axe) is equipment-backed
+                // now (2026-08-12, Tool.cs/PlayerTool.cs) — the generic
+                // RemoveItem below would strip its equipment reference and
+                // orphan the physical GameObject (still visibly held, no
+                // longer tracked anywhere — the exact gotcha documented in
+                // CLAUDE.md). Find the matching slot and route through
+                // RemoveEquipmentItem + destroy the physical instance
+                // instead when that's the case. A broken tool is destroyed
+                // outright, not dropped, matching "your X broke."
+                Inventory.Slot equipmentSlot = null;
+                foreach (var slot in hand.Slots)
+                {
+                    if (slot.item == tool && slot.equipment != null)
+                    {
+                        equipmentSlot = slot;
+                        break;
+                    }
+                }
+
+                if (equipmentSlot != null)
+                {
+                    var instance = equipmentSlot.equipment as Component;
+                    hand.RemoveEquipmentItem(tool);
+                    if (instance != null) Object.Destroy(instance.gameObject);
+                }
+                else
                 {
                     hand.RemoveItem(tool, 1);
-                    return $", your {tool.itemName} broke";
                 }
+
+                return $", your {tool.itemName} broke";
             }
         }
 

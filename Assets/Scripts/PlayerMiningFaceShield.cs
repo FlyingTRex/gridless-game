@@ -63,9 +63,15 @@ public class PlayerMiningFaceShield : MonoBehaviour
         return true;
     }
 
-    public bool Equip(MiningFaceShield shield)
+    // See PlayerBackpack.Equip's source-aware overload comment (2026-08-12)
+    // — FindSlot doesn't know about a shield sitting inside a backpack's
+    // nested Inventory, so use the overload below when the caller already
+    // knows exactly where it is.
+    public bool Equip(MiningFaceShield shield) => Equip(shield, playerInventory.Inventory);
+
+    public bool Equip(MiningFaceShield shield, Inventory source)
     {
-        if (shield == null) return false;
+        if (shield == null || source == null) return false;
 
         string currentSlot = FindSlot(shield);
         var slot = equipment.GetSlot(FaceSlot);
@@ -74,7 +80,7 @@ public class PlayerMiningFaceShield : MonoBehaviour
         if (currentSlot != null)
             equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(shieldItem);
         else
-            playerInventory.Inventory.RemoveEquipmentItem(shieldItem);
+            source.RemoveEquipmentItem(shieldItem);
 
         shield.SetCarried(true, transform);
         return true;

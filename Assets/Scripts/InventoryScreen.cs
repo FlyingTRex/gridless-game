@@ -75,50 +75,90 @@ public class InventoryScreen : MonoBehaviour
     private PlayerHealthMonitor healthMonitorCarrier;
     private PlayerSunglasses sunglassesCarrier;
     private PlayerMiningFaceShield miningShieldCarrier;
+    private PlayerTool toolCarrier;
     private PlayerCurrency currency;
     private PlayerCoinDrop coinDropper;
     private PlayerVitals vitals;
     private Vector2 scrollPos;
 
-    // Recomputed once per DrawContent() call (see FindNearbyStorageBoxes) —
-    // every StorageBox within storageRange, nearest first. Read by the
-    // inventory section (for the "To Storage" button), the storage section
-    // itself (shows the nearest one's contents), and the move popup's
-    // storage picker (lets the player choose by name when more than one is
-    // in range).
+    // Recomputed once per DrawContent() call (see StorageBox.FindNearby) —
+    // every StorageBox within storageRange, nearest first. The nearest
+    // one's contents render directly in the scroll view (DrawContent) as
+    // just another draggable grid — with more than one in range, only the
+    // nearest is reachable from this screen; walking closer to a different
+    // box switches which one shows.
     private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
-    // Set when the player clicks any item box in the Equipment section —
-    // whether inside a container's contents grid, or a plain item sitting
-    // directly in an equip slot (e.g. a hand). Rather than acting
-    // immediately, opens a popup asking where it should go
-    // (Drop / a hand / the main inventory).
-    private ItemDefinition pendingMoveItem;
-    private Inventory pendingMoveSource;
-    // The specific equipment instance behind pendingMoveItem, when the
+    // Set when the player clicks (not drags) an occupied slot box anywhere
+    // on this screen — the main grid, an equipment slot, or a container's
+    // contents grid. Opens a small action menu (Drop / Eat / Apply /
+    // Drink / Fill / Equip / Unequip, whichever apply) instead of acting
+    // immediately. Replaces the old "where should this go?" destination
+    // popup (2026-08-12) — moving an item is now done by dragging it,
+    // so this menu is action-only.
+    private ItemDefinition pendingActionItem;
+    private Inventory pendingActionSource;
+    // The specific equipment instance behind pendingActionItem, when the
     // clicked slot held one (a Canteen, Backpack, etc.) -- null for a plain
     // stackable item. Needed for actions that operate on the physical
     // instance rather than the item type/count (Drink/Fill a container-held
-    // Canteen, same idea as TryEatFrom but Drink/Fill mutate the instance
-    // directly instead of consuming a stack). Must be kept in sync with
-    // pendingMoveItem/pendingMoveSource at every assignment site, including
-    // explicitly clearing it to null where the source is a plain item, or a
-    // stale equipment reference could leak into an unrelated popup.
-    private IEquippable pendingMoveEquipment;
+    // Canteen), and to decide whether to offer Equip vs Unequip.
+    private IEquippable pendingActionEquipment;
 
-    // True while the move popup is showing the storage picker (a named
-    // list of nearbyStorages) instead of its normal destination list —
-    // entered by clicking "To Storage".
-    private bool choosingStorage;
+    // --- Drag and drop (2026-08-12) ---
+    // Press-and-hold an occupied slot box and drag it to where it should
+    // go; release over an invalid target (or empty space) and nothing
+    // happens, since the underlying data is never touched until a drop
+    // actually resolves. A plain click (no movement past DragThreshold)
+    // opens the action menu above instead. See the plan this was built
+    // from for the full design (worn-item bugs this fixes, why each
+    // equippable carrier needed a source-aware Equip overload first).
+    // Was 6f — too twitchy in practice (2026-08-12 live feedback): an
+    // ordinary left click naturally moves the mouse a few pixels between
+    // press and release, which was enough to cross 6f and start a drag
+    // instead of opening the action menu. Right-click (see HandleSlotEvents)
+    // is now the reliable way to open the menu regardless of this value;
+    // this just makes a plain left click more forgiving too.
+    private const float DragThreshold = 12f;
+
+    // True from MouseDown on an occupied box until the matching MouseUp,
+    // regardless of whether it turns into an actual drag.
+    private bool dragCandidate;
+    // Promoted from dragCandidate once the mouse has moved past
+    // DragThreshold since MouseDown — only then does releasing attempt a
+    // drop instead of opening the action menu.
+    private bool isDragging;
+    private Vector2 dragStartMousePos;
+    private Inventory dragSource;
+    private ItemDefinition dragItem;
+    private IEquippable dragEquipment;
+    // Whole slot by default; Shift = half (rounded down, min 1), Ctrl = 1 —
+    // decided once at MouseDown (ComputeDragQuantity), not re-evaluated
+    // mid-drag. Always 1 for an equipment instance (never stacks).
+    private int dragQuantity;
+
+    // One entry per slot box drawn this frame (occupied or empty — empty
+    // boxes are valid drop targets too), rebuilt at the top of every
+    // DrawContent() call. EquipSlotName is null for an inert-storage
+    // target (main inventory, a Backpack/Boot/StorageBox's contents) and
+    // the real PlayerEquipment slot name — or the "Belt" sentinel, for the
+    // worn Belt's own attachment points — for a carried target.
+    private struct DropZone
+    {
+        public Rect Rect;
+        public Inventory Inventory;
+        public string EquipSlotName;
+    }
+    private readonly List<DropZone> dropZones = new List<DropZone>();
 
     // Set when the player clicks a coin box in the currency row — opens a
     // popup to pick how many of that type to drop.
     private CoinType? pendingDropCoinType;
     private int pendingDropAmount;
 
-    // Set when the player clicks Drop on a plain stackable item (main
-    // inventory list, or the move popup) — opens a quantity picker instead
-    // of always dropping the entire stack. Real gap found in playtesting
+    // Set when the player clicks Drop in the action menu on a plain
+    // stackable item — opens a quantity picker instead of always dropping
+    // the entire stack. Real gap found in playtesting
     // (2026-08-09): dropping "one" of a non-stacking item (any Hammer
     // tier, maxStack 1) dropped every one you had, since the old one-click
     // Drop always removed the item's full count with no way to choose
@@ -152,6 +192,7 @@ public class InventoryScreen : MonoBehaviour
         healthMonitorCarrier = GetComponent<PlayerHealthMonitor>();
         sunglassesCarrier = GetComponent<PlayerSunglasses>();
         miningShieldCarrier = GetComponent<PlayerMiningFaceShield>();
+        toolCarrier = GetComponent<PlayerTool>();
         currency = GetComponent<PlayerCurrency>();
         coinDropper = GetComponent<PlayerCoinDrop>();
         vitals = GetComponent<PlayerVitals>();
@@ -160,6 +201,11 @@ public class InventoryScreen : MonoBehaviour
     // Called by PlayerMenuScreen while its Inventory tab is active.
     public void DrawContent()
     {
+        // Every drop zone gets re-registered as the screen redraws this
+        // frame — see DropZone above for why a stale list from a previous
+        // frame (e.g. an item that just moved) would misreport hit-tests.
+        dropZones.Clear();
+
         StorageBox.FindNearby(transform.position, storageRange, nearbyStorages);
 
         DrawCurrencySection();
@@ -167,6 +213,20 @@ public class InventoryScreen : MonoBehaviour
 
         float scrollHeight = Mathf.Min(Screen.height - ChromeReserve - CurrencySectionHeight, 640f);
         scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(scrollHeight));
+        var scrollViewRect = GUILayoutUtility.GetLastRect();
+
+        // A valid target (e.g. a hand slot, ~10 rows down the 14-row
+        // Equipment list) can easily be scrolled out of view while an item
+        // being dragged sits above the fold — real gap found live
+        // (2026-08-12): dragging a Knife toward "Left Hand" with no way to
+        // reach it, since there was no way to scroll while a drag was in
+        // progress (grabbing the actual scrollbar thumb mid-drag isn't
+        // practical with the mouse button already committed to the item).
+        // Nudges scrollPos directly while the cursor sits in a margin near
+        // the top/bottom edge of the scroll view — doesn't require the
+        // scrollbar itself to be interactable.
+        if (isDragging)
+            HandleAutoScroll(scrollViewRect);
 
         DrawInventorySection();
 
@@ -226,7 +286,7 @@ public class InventoryScreen : MonoBehaviour
                 for (int j = i; j < groupEnd; j++)
                 {
                     GUILayout.BeginVertical();
-                    DrawContainerContents(wornContainers[j].Inventory, wornContainers[j].Caption);
+                    DrawContainerContents(wornContainers[j].Inventory, wornContainers[j].Caption, wornContainers[j].EquipSlotName);
                     GUILayout.EndVertical();
 
                     if (j < groupEnd - 1)
@@ -250,7 +310,7 @@ public class InventoryScreen : MonoBehaviour
             var nearest = nearbyStorages[0];
             GUILayout.Space(10);
             GUILayout.Label($"{nearest.DisplayName} (nearby)", DebugGUI.Header);
-            DrawContainerContents(nearest.Inventory, "click an item for options");
+            DrawContainerContents(nearest.Inventory, "drag to move, click for actions", null);
         }
 
         GUILayout.EndScrollView();
@@ -262,10 +322,17 @@ public class InventoryScreen : MonoBehaviour
     // top of, not nested inside, the tab content area.
     public void DrawPopups()
     {
-        DrawPendingMovePopup();
+        // Must run before the popups below draw — it's what turns a
+        // release-without-dragging into pendingActionItem (so the action
+        // menu below has something to show this same frame) and what
+        // resolves an actual drag against this frame's drop-zone registry.
+        HandleGlobalDragRelease();
+
+        DrawPendingActionMenu();
         DrawPendingEquipPopup();
         DrawCoinDropPopup();
         DrawItemDropPopup();
+        DrawDragGhost();
         DrawTooltip();
     }
 
@@ -290,56 +357,114 @@ public class InventoryScreen : MonoBehaviour
     }
 
     // Called by PlayerMenuScreen when the whole Tab menu closes, so a
-    // still-open "where should this go?" or coin-drop popup doesn't stay
-    // stuck open the next time the menu is reopened.
+    // still-open action menu, equip-choice popup, coin-drop popup, or an
+    // in-progress drag doesn't stay stuck the next time the menu reopens.
     public void ResetPopups()
     {
-        pendingMoveItem = null;
-        pendingMoveSource = null;
-        pendingMoveEquipment = null;
-        choosingStorage = false;
+        pendingActionItem = null;
+        pendingActionSource = null;
+        pendingActionEquipment = null;
         pendingEquipDestinations = null;
         pendingEquipChoose = null;
         pendingEquipLabel = null;
         pendingDropCoinType = null;
         pendingDropItem = null;
         pendingDropItemSource = null;
+        dragCandidate = false;
+        isDragging = false;
     }
 
-    // Small "where should this go?" dialog shown after clicking an item
-    // inside a container's contents grid. Drawn last so it sits on top.
-    // "To Storage" switches it into a second mode (choosingStorage) listing
-    // each nearby box by name instead of moving immediately, since more
-    // than one can be in range at once.
-    private void DrawPendingMovePopup()
+    // Small action menu shown after clicking (not dragging) an occupied
+    // slot box anywhere on this screen. Drawn last so it sits on top.
+    // Replaces the old "where should this go?" destination popup
+    // (2026-08-12) — moving an item is now done by dragging it (see
+    // HandleGlobalDragRelease/TryDrop), so this is action-only.
+    private void DrawPendingActionMenu()
     {
-        if (pendingMoveItem == null || pendingMoveSource == null) return;
+        if (pendingActionItem == null || pendingActionSource == null) return;
 
         const float width = 220f;
-        // Was 300f, then 360f -- bumped again for the Canteen Drink/Fill
-        // buttons (DrawMoveDestinations), up to 2 more on top of the Boot's
-        // per-slot buttons if a Canteen happens to be selected while
-        // Military Boots (2 slots) are worn -- both sets can show at once.
-        float height = choosingStorage
-            ? 70f + Mathf.Max(nearbyStorages.Count, 1) * 26f
-            : 420f;
+        const float height = 260f;
         var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
 
         DebugGUI.DrawPanel(rect);
         GUILayout.BeginArea(rect);
-        GUILayout.Label(ItemContent(pendingMoveItem, pendingMoveItem.itemName), DebugGUI.Header);
+        GUILayout.Label(ItemContent(pendingActionItem, pendingActionItem.itemName), DebugGUI.Header);
 
-        bool resolved = choosingStorage ? DrawStoragePicker() : DrawMoveDestinations();
+        bool resolved = DrawPendingActions();
 
         GUILayout.EndArea();
 
         if (resolved)
         {
-            pendingMoveItem = null;
-            pendingMoveSource = null;
-            pendingMoveEquipment = null;
-            choosingStorage = false;
+            pendingActionItem = null;
+            pendingActionSource = null;
+            pendingActionEquipment = null;
         }
+    }
+
+    // The action list itself. Returns true once the menu should close.
+    private bool DrawPendingActions()
+    {
+        var edible = eating != null ? eating.FindEdible(pendingActionItem) : null;
+        if (edible != null && GUILayout.Button(edible.verb))
+        {
+            eating.TryEatFrom(pendingActionSource, pendingActionItem);
+            return true;
+        }
+
+        var medicineItem = medicine != null ? medicine.FindMedicine(pendingActionItem) : null;
+        if (medicineItem != null && GUILayout.Button(medicineItem.verb))
+        {
+            medicine.TryApplyFrom(pendingActionSource, pendingActionItem);
+            return true;
+        }
+
+        // Drink/Fill act on the physical Canteen instance directly
+        // (pendingActionEquipment) rather than consuming an item count from
+        // pendingActionSource — they don't remove the canteen from its
+        // slot, they just change what's inside it.
+        if (pendingActionEquipment is Canteen canteen)
+        {
+            if (!canteen.IsEmpty && GUILayout.Button("Drink"))
+            {
+                canteen.Drink(vitals);
+                return true;
+            }
+
+            if (!canteen.IsFull && GUILayout.Button("Fill"))
+            {
+                canteen.Fill(LiquidType.Water);
+                return true;
+            }
+        }
+
+        if (pendingActionEquipment != null)
+        {
+            if (IsCurrentlyWorn(pendingActionEquipment))
+            {
+                if (GUILayout.Button("Unequip"))
+                {
+                    UnequipDispatch(pendingActionEquipment);
+                    return true;
+                }
+            }
+            else if (GUILayout.Button("Equip"))
+            {
+                EquipWithChoice(pendingActionEquipment, pendingActionSource);
+                return true;
+            }
+        }
+
+        if (GUILayout.Button("Drop"))
+        {
+            pendingDropItem = pendingActionItem;
+            pendingDropItemSource = pendingActionSource;
+            pendingDropItemAmount = pendingActionSource.GetCount(pendingActionItem);
+            return true;
+        }
+
+        return GUILayout.Button("Cancel");
     }
 
     // Equip destination picker — only shown when an Equip click found more
@@ -381,191 +506,401 @@ public class InventoryScreen : MonoBehaviour
 
     // Equips immediately if there's 0 or 1 valid destination (nothing to
     // choose); opens the Equip destination popup instead if there are 2+.
-    private void TryEquipWithChoice(Canteen canteen)
+    // source is where the canteen is actually sitting right now (main
+    // inventory grid, or a Backpack's nested Inventory via the move popup)
+    // — EquipTo needs it to remove the canteen from the right place.
+    private void TryEquipWithChoice(Canteen canteen, Inventory source)
     {
         var destinations = canteenCarrier.AvailableDestinations(canteen);
         if (destinations.Count <= 1)
         {
-            if (destinations.Count == 1) canteenCarrier.EquipTo(canteen, destinations[0]);
+            if (destinations.Count == 1) canteenCarrier.EquipTo(canteen, destinations[0], source);
             return;
         }
 
         pendingEquipDestinations = destinations;
         pendingEquipLabel = canteen.DisplayName;
-        pendingEquipChoose = destination => canteenCarrier.EquipTo(canteen, destination);
+        pendingEquipChoose = destination => canteenCarrier.EquipTo(canteen, destination, source);
     }
 
-    private void TryEquipWithChoice(NavigationComputer navComputer)
+    private void TryEquipWithChoice(NavigationComputer navComputer, Inventory source)
     {
         var destinations = navComputerCarrier.AvailableDestinations(navComputer);
         if (destinations.Count <= 1)
         {
-            if (destinations.Count == 1) navComputerCarrier.EquipTo(navComputer, destinations[0]);
+            if (destinations.Count == 1) navComputerCarrier.EquipTo(navComputer, destinations[0], source);
             return;
         }
 
         pendingEquipDestinations = destinations;
         pendingEquipLabel = navComputer.DisplayName;
-        pendingEquipChoose = destination => navComputerCarrier.EquipTo(navComputer, destination);
+        pendingEquipChoose = destination => navComputerCarrier.EquipTo(navComputer, destination, source);
     }
 
-    private void TryEquipWithChoice(PersonalHealthMonitor monitor)
+    private void TryEquipWithChoice(PersonalHealthMonitor monitor, Inventory source)
     {
         var destinations = healthMonitorCarrier.AvailableDestinations(monitor);
         if (destinations.Count <= 1)
         {
-            if (destinations.Count == 1) healthMonitorCarrier.EquipTo(monitor, destinations[0]);
+            if (destinations.Count == 1) healthMonitorCarrier.EquipTo(monitor, destinations[0], source);
             return;
         }
 
         pendingEquipDestinations = destinations;
         pendingEquipLabel = monitor.DisplayName;
-        pendingEquipChoose = destination => healthMonitorCarrier.EquipTo(monitor, destination);
+        pendingEquipChoose = destination => healthMonitorCarrier.EquipTo(monitor, destination, source);
     }
 
-    // Normal destination list. Returns true once the popup should close.
-    private bool DrawMoveDestinations()
+    private void TryEquipWithChoice(Tool tool, Inventory source)
     {
-        // Real gap found in playtesting (2026-08-09): Eat only ever showed
-        // in the main inventory list (DrawInventorySection) — an item
-        // sitting in a hand slot, backpack, or storage box (this popup)
-        // had no way to eat it at all without first moving it back to the
-        // main inventory.
-        var edible = eating != null ? eating.FindEdible(pendingMoveItem) : null;
-        if (edible != null && GUILayout.Button(edible.verb))
+        var destinations = toolCarrier.AvailableDestinations(tool);
+        if (destinations.Count <= 1)
         {
-            eating.TryEatFrom(pendingMoveSource, pendingMoveItem);
-            return true;
+            if (destinations.Count == 1) toolCarrier.EquipTo(tool, destinations[0], source);
+            return;
         }
 
-        // Same gap, same fix, for Medicine (2026-08-10) — Apply only
-        // showing in the main inventory list would leave a Healing Paste
-        // sitting in a hand/backpack/container with no way to use it.
-        var medicineItem = medicine != null ? medicine.FindMedicine(pendingMoveItem) : null;
-        if (medicineItem != null && GUILayout.Button(medicineItem.verb))
-        {
-            medicine.TryApplyFrom(pendingMoveSource, pendingMoveItem);
-            return true;
-        }
-
-        // Same gap, same fix, for a Canteen (2026-08-11) — Drink/Fill only
-        // ever showed for a Canteen sitting directly in an equip slot
-        // (DrawEquipmentSection's canteenHere branch); one sitting in a
-        // backpack/storage box had no way to drink or refill it in place.
-        // Unlike Eat/Apply, this acts on the physical Canteen instance
-        // directly (pendingMoveEquipment) rather than consuming an item
-        // count from pendingMoveSource — Drink/Fill don't remove the
-        // canteen from its slot, they just change what's inside it.
-        if (pendingMoveEquipment is Canteen canteen)
-        {
-            if (!canteen.IsEmpty && GUILayout.Button("Drink"))
-            {
-                canteen.Drink(vitals);
-                return true;
-            }
-
-            if (!canteen.IsFull && GUILayout.Button("Fill"))
-            {
-                canteen.Fill(LiquidType.Water);
-                return true;
-            }
-        }
-
-        if (GUILayout.Button("Drop"))
-        {
-            pendingDropItem = pendingMoveItem;
-            pendingDropItemSource = pendingMoveSource;
-            pendingDropItemAmount = pendingMoveSource.GetCount(pendingMoveItem);
-            return true;
-        }
-
-        // MoveAsManyAsFit, not Move — a destination with less room than
-        // the source's full count (e.g. two non-stacking Hammers, each
-        // their own slot since maxStack is 1, into an empty
-        // single-capacity hand) used to fail outright instead of moving
-        // what actually fits (real bug found in playtesting, 2026-08-09).
-        var leftHand = equipment.GetSlot("Left Hand");
-        if (leftHand != null && leftHand != pendingMoveSource && GUILayout.Button("To Left Hand"))
-        {
-            InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, leftHand, pendingMoveItem);
-            return true;
-        }
-
-        var rightHand = equipment.GetSlot("Right Hand");
-        if (rightHand != null && rightHand != pendingMoveSource && GUILayout.Button("To Right Hand"))
-        {
-            InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, rightHand, pendingMoveItem);
-            return true;
-        }
-
-        var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
-        if (equippedBackpack != null && equippedBackpack.Inventory != pendingMoveSource && GUILayout.Button("To Backpack"))
-        {
-            InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, equippedBackpack.Inventory, pendingMoveItem);
-            return true;
-        }
-
-        // A Boot's own named slots (Knife Sheath, Pistol Holster) are each
-        // their own restricted Inventory, not one general cargo pool like
-        // Backpack — so this offers one button per configured slot rather
-        // than a single "To Boot". Restriction itself is enforced inside
-        // MoveAsManyAsFit/AddItem (Inventory.restrictedTo), not here —
-        // the button always shows if a slot exists so its presence doesn't
-        // leak which items are allowed; trying to move a disallowed item
-        // just silently moves nothing.
-        var equippedBoot = bootCarrier != null ? bootCarrier.Equipped : null;
-        if (equippedBoot != null)
-        {
-            foreach (var label in equippedBoot.SlotNames)
-            {
-                var bootSlot = equippedBoot.GetSlot(label);
-                if (bootSlot == pendingMoveSource) continue;
-
-                if (GUILayout.Button($"To {label}"))
-                {
-                    InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, bootSlot, pendingMoveItem);
-                    return true;
-                }
-            }
-        }
-
-        if (playerInventory.Inventory != pendingMoveSource && GUILayout.Button("To Inventory"))
-        {
-            InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, playerInventory.Inventory, pendingMoveItem);
-            return true;
-        }
-
-        if (nearbyStorages.Exists(box => box.Inventory != pendingMoveSource) && GUILayout.Button("To Storage"))
-        {
-            choosingStorage = true;
-            return false;
-        }
-
-        return GUILayout.Button("Cancel");
+        pendingEquipDestinations = destinations;
+        pendingEquipLabel = tool.DisplayName;
+        pendingEquipChoose = destination => toolCarrier.EquipTo(tool, destination, source);
     }
 
-    // Named list of every StorageBox currently in range. Returns true once
-    // the popup should close (a box was picked, or Cancel).
-    private bool DrawStoragePicker()
+    // Single dispatch point for "equip this instance from this source",
+    // used by both the click-menu's Equip button and drag's carried-target
+    // drop path (EquipToSlotDispatch below). Each of the 8 equippable
+    // types still owns its actual equip mechanics (including anchor
+    // selection) via its own carrier — this just routes to the right one
+    // by runtime type instead of the 8-branch if/else chains this file used
+    // to have three separate copies of (DrawInventorySection,
+    // DrawEquipmentSection, and this dispatch itself, pre-2026-08-12).
+    private void EquipWithChoice(IEquippable equipment, Inventory source)
     {
-        foreach (var box in nearbyStorages)
+        switch (equipment)
         {
-            if (box.Inventory == pendingMoveSource) continue;
+            case Backpack backpack: backpackCarrier.Equip(backpack, source); break;
+            case Belt belt: beltCarrier.Equip(belt, source); break;
+            case Boot boot: bootCarrier.Equip(boot, source); break;
+            case Sunglasses sunglasses: sunglassesCarrier.Equip(sunglasses, source); break;
+            case MiningFaceShield shield: miningShieldCarrier.Equip(shield, source); break;
+            case Canteen canteen: TryEquipWithChoice(canteen, source); break;
+            case NavigationComputer navComputer: TryEquipWithChoice(navComputer, source); break;
+            case PersonalHealthMonitor monitor: TryEquipWithChoice(monitor, source); break;
+            case Tool tool: TryEquipWithChoice(tool, source); break;
+        }
+    }
 
-            if (GUILayout.Button(box.DisplayName))
+    // Same idea as EquipWithChoice, but for a drag drop onto a specific,
+    // already-known slot (no ambiguity to resolve, unlike a click) — the
+    // caller (TryDrop) has already confirmed equipment.CanEquipToSlot(slotName).
+    private bool EquipToSlotDispatch(IEquippable equipment, string slotName, Inventory source)
+    {
+        switch (equipment)
+        {
+            case Backpack backpack: return backpackCarrier.Equip(backpack, source);
+            case Belt belt: return beltCarrier.Equip(belt, source);
+            case Boot boot: return bootCarrier.Equip(boot, source);
+            case Sunglasses sunglasses: return sunglassesCarrier.Equip(sunglasses, source);
+            case MiningFaceShield shield: return miningShieldCarrier.Equip(shield, source);
+            case Canteen canteen: return canteenCarrier.EquipTo(canteen, slotName, source);
+            case NavigationComputer navComputer: return navComputerCarrier.EquipTo(navComputer, slotName, source);
+            case PersonalHealthMonitor monitor: return healthMonitorCarrier.EquipTo(monitor, slotName, source);
+            case Tool tool: return toolCarrier.EquipTo(tool, slotName, source);
+            default: return false;
+        }
+    }
+
+    private void UnequipDispatch(IEquippable equipment)
+    {
+        switch (equipment)
+        {
+            case Backpack backpack: backpackCarrier.Unequip(backpack); break;
+            case Belt belt: beltCarrier.Unequip(belt); break;
+            case Boot boot: bootCarrier.Unequip(boot); break;
+            case Canteen canteen: canteenCarrier.Unequip(canteen); break;
+            case NavigationComputer navComputer: navComputerCarrier.Unequip(navComputer); break;
+            case PersonalHealthMonitor monitor: healthMonitorCarrier.Unequip(monitor); break;
+            case Sunglasses sunglasses: sunglassesCarrier.Unequip(sunglasses); break;
+            case MiningFaceShield shield: miningShieldCarrier.Unequip(shield); break;
+            case Tool tool: toolCarrier.Unequip(tool); break;
+        }
+    }
+
+    // True if this exact instance is the one currently worn/held in its
+    // type's own carried location (each carrier's Equipped already checks
+    // its full set of valid locations — both hands and the belt for a
+    // Canteen, either wrist for NavComputer/HealthMonitor, etc.).
+    private bool IsCurrentlyWorn(IEquippable equipment)
+    {
+        return ReferenceEquals(backpackCarrier.Equipped, equipment)
+            || ReferenceEquals(beltCarrier.Equipped, equipment)
+            || ReferenceEquals(bootCarrier.Equipped, equipment)
+            || ReferenceEquals(canteenCarrier.Equipped, equipment)
+            || ReferenceEquals(navComputerCarrier.Equipped, equipment)
+            || ReferenceEquals(healthMonitorCarrier.Equipped, equipment)
+            || ReferenceEquals(sunglassesCarrier.Equipped, equipment)
+            || ReferenceEquals(miningShieldCarrier.Equipped, equipment)
+            || ReferenceEquals(toolCarrier.Equipped, equipment);
+    }
+
+    // Registers one slot box's screen rect as a drop target for this frame.
+    // Called for every box drawn (occupied or empty) — an empty box is
+    // just as valid a drop target as an occupied one.
+    private void RegisterDropZone(Rect rect, Inventory inventory, string equipSlotName)
+    {
+        dropZones.Add(new DropZone { Rect = rect, Inventory = inventory, EquipSlotName = equipSlotName });
+    }
+
+    // Shift = half the stack (rounded down, min 1), Ctrl = exactly 1,
+    // neither = the whole stack. Equipment instances always drag as 1 —
+    // they don't stack, so there's nothing to split.
+    private static int ComputeDragQuantity(Inventory.Slot slot, Event e)
+    {
+        if (slot.equipment != null || slot.item.maxStack <= 1) return slot.count;
+        if (e.control) return 1;
+        if (e.shift) return Mathf.Max(1, slot.count / 2);
+        return slot.count;
+    }
+
+    // Left MouseDown on an occupied box starts a drag *candidate* —
+    // promoted to an actual drag once the mouse moves past DragThreshold
+    // (HandleGlobalDragRelease checks that every frame, since a MouseUp
+    // release can land on a completely different box's rect than this one,
+    // or on no box at all). Right MouseDown opens the action menu directly
+    // instead — no candidate/threshold involved, since right-click is never
+    // used to drag, there's nothing to disambiguate (real gap found live,
+    // 2026-08-12: a left click that moved even a couple pixels — completely
+    // normal for an ordinary mouse click, not a deliberate drag — was
+    // crossing DragThreshold and picking the item up instead of opening the
+    // menu; right-click sidesteps that ambiguity entirely rather than
+    // trying to tune the threshold around it).
+    private void HandleSlotEvents(Rect rect, Inventory inventory, Inventory.Slot slot)
+    {
+        var e = Event.current;
+        if (e.type != EventType.MouseDown || !rect.Contains(e.mousePosition)) return;
+
+        if (e.button == 1)
+        {
+            pendingActionItem = slot.item;
+            pendingActionSource = inventory;
+            pendingActionEquipment = slot.equipment;
+            e.Use();
+            return;
+        }
+
+        if (e.button != 0) return;
+
+        dragCandidate = true;
+        isDragging = false;
+        dragStartMousePos = e.mousePosition;
+        dragSource = inventory;
+        dragItem = slot.item;
+        dragEquipment = slot.equipment;
+        dragQuantity = ComputeDragQuantity(slot, e);
+        e.Use();
+    }
+
+    // Draws one slot box — occupied (icon or text, drag source + drop
+    // target) or empty (drop target only). Shared by the main inventory
+    // grid, the equipment slot list, and every container's contents grid
+    // (backpack, boot slots, storage boxes) — one rendering path instead of
+    // the three near-duplicate ones this screen had before drag-and-drop
+    // (2026-08-12).
+    private void DrawSlotBox(Inventory inventory, Inventory.Slot slot, string equipSlotName, float width, float height, bool showEmptyLabel = false)
+    {
+        if (slot == null)
+        {
+            // The equipment slot list (Head/Face/.../Feet) keeps its old
+            // "Empty" text — it's the one place on this screen where each
+            // box has a distinct, named meaning (this IS the Head slot,
+            // not just an anonymous cargo space), so a blank box reads as
+            // ambiguous rather than "nothing here." Contents grids
+            // (backpack/boot/storage) stay text-free, same as before
+            // drag-and-drop — Ben's original call there.
+            GUILayout.Box(new GUIContent(showEmptyLabel ? "Empty" : ""), DebugGUI.Slot, GUILayout.Width(width), GUILayout.Height(height));
+            RegisterDropZone(GUILayoutUtility.GetLastRect(), inventory, equipSlotName);
+            GUILayout.Label("", DebugGUI.Label, GUILayout.Width(width));
+            return;
+        }
+
+        // Hide the box's own contents while it's the source of an active
+        // drag — the data hasn't moved yet, but showing the item in both
+        // its source box and following the cursor at once reads as a
+        // duplicate, not a drag.
+        bool isDragSource = isDragging && dragSource == inventory && dragItem == slot.item && dragEquipment == slot.equipment;
+
+        var content = slot.item.icon != null
+            ? new GUIContent(string.Empty, slot.item.itemName)
+            : new GUIContent(isDragSource ? "" : slot.item.itemName + (slot.count > 1 ? $" x{slot.count}" : ""));
+
+        GUILayout.Box(content, DebugGUI.Slot, GUILayout.Width(width), GUILayout.Height(height));
+        var rect = GUILayoutUtility.GetLastRect();
+
+        if (slot.item.icon != null && !isDragSource)
+        {
+            const float iconPadding = 6f;
+            var iconRect = new Rect(rect.x + iconPadding, rect.y + iconPadding, rect.width - iconPadding * 2f, rect.height - iconPadding * 2f);
+            GUI.DrawTexture(iconRect, slot.item.icon.texture, ScaleMode.ScaleToFit);
+        }
+
+        HandleSlotEvents(rect, inventory, slot);
+        RegisterDropZone(rect, inventory, equipSlotName);
+
+        // A Canteen shows its fill status here instead of a QTY count (same
+        // format as its old Equipment-row label) — Ben's request, so a
+        // Canteen clipped to a Belt point reads the same way as one sitting
+        // directly in an equip slot. Otherwise blank for a non-stackable
+        // item (maxStack <= 1) rather than always showing "QTY: 1".
+        string qtyLabel = isDragSource ? "" : slot.equipment is Canteen canteenEntry
+            ? (canteenEntry.IsEmpty ? "Empty" : $"{canteenEntry.Liquid} {canteenEntry.Amount:F0}/{canteenEntry.Capacity:F0}")
+            : slot.item.maxStack > 1 ? $"QTY: {slot.count}" : "";
+        GUILayout.Label(qtyLabel, DebugGUI.Label, GUILayout.Width(width));
+    }
+
+    // Draws inventory's full capacity as a wrapped grid of boxes (occupied
+    // and empty). Shared by the main inventory, a worn container's
+    // contents, and a nearby StorageBox's.
+    private void DrawInventoryGrid(Inventory inventory, string equipSlotName, float boxWidth, float boxHeight)
+    {
+        var contents = inventory.Slots;
+        int capacity = inventory.Capacity;
+
+        int drawn = 0;
+        while (drawn < capacity)
+        {
+            GUILayout.BeginHorizontal();
+            for (int col = 0; col < SubBoxesPerRow && drawn < capacity; col++, drawn++)
             {
-                InventoryTransfer.MoveAsManyAsFit(pendingMoveSource, box.Inventory, pendingMoveItem);
-                return true;
+                GUILayout.BeginVertical(GUILayout.Width(boxWidth));
+                DrawSlotBox(inventory, drawn < contents.Count ? contents[drawn] : null, equipSlotName, boxWidth, boxHeight);
+                GUILayout.EndVertical();
+            }
+            GUILayout.EndHorizontal();
+        }
+    }
+
+    // Runs once per OnGUI dispatch, after DrawContent has rebuilt this
+    // frame's dropZones. Promotes a drag candidate to an actual drag once
+    // it's moved past DragThreshold, and on MouseUp either resolves a drop
+    // (dragging) or opens the action menu (a plain click that never moved).
+    private void HandleGlobalDragRelease()
+    {
+        if (!dragCandidate) return;
+
+        var e = Event.current;
+
+        if (!isDragging && Vector2.Distance(e.mousePosition, dragStartMousePos) > DragThreshold)
+            isDragging = true;
+
+        if (e.type != EventType.MouseUp || e.button != 0) return;
+
+        if (isDragging)
+        {
+            foreach (var zone in dropZones)
+            {
+                if (!zone.Rect.Contains(e.mousePosition)) continue;
+                TryDrop(zone);
+                break;
             }
         }
-
-        if (GUILayout.Button("Back"))
+        else
         {
-            choosingStorage = false;
-            return false;
+            pendingActionItem = dragItem;
+            pendingActionSource = dragSource;
+            pendingActionEquipment = dragEquipment;
         }
 
-        return GUILayout.Button("Cancel");
+        dragCandidate = false;
+        isDragging = false;
+        e.Use();
+    }
+
+    // Resolves an actual drop against the zone the mouse was released
+    // over. Nothing is ever mutated until this succeeds, so an invalid
+    // drop (wrong item type for a restricted slot, wrong body slot for
+    // this equipment type, target full) needs no rollback — the source box
+    // simply renders normally again next frame, i.e. "snaps back" for
+    // free.
+    private void TryDrop(DropZone zone)
+    {
+        if (dragItem == null || dragSource == null || zone.Inventory == null) return;
+        if (zone.Inventory == dragSource) return;
+
+        if (zone.EquipSlotName == null)
+        {
+            bool wasEquipment = dragEquipment != null;
+            int moved = InventoryTransfer.MoveAsManyAsFit(dragSource, zone.Inventory, dragItem, dragQuantity);
+            // InventoryTransfer.Move only ever moves data — it doesn't know
+            // about "carried" visual state, so an equipped item landing in
+            // inert storage (e.g. a worn Boot dragged back into the
+            // backpack) needs its physical object explicitly hidden here.
+            if (moved > 0 && wasEquipment)
+                dragEquipment.Stash();
+            return;
+        }
+
+        if (dragEquipment == null)
+        {
+            // Hands are the one "carried" zone a plain item can land in —
+            // they're just capacity-1 Inventories like any other, unlike
+            // the true worn slots (Head, Face, ...) which only make sense
+            // for an equippable instance.
+            if (zone.EquipSlotName == "Left Hand" || zone.EquipSlotName == "Right Hand")
+                InventoryTransfer.MoveAsManyAsFit(dragSource, zone.Inventory, dragItem, dragQuantity);
+            return;
+        }
+
+        if (!dragEquipment.CanEquipToSlot(zone.EquipSlotName)) return;
+
+        EquipToSlotDispatch(dragEquipment, zone.EquipSlotName, dragSource);
+    }
+
+    private const float AutoScrollMargin = 40f;
+    private const float AutoScrollSpeed = 500f;
+
+    // Scrolls the main scroll view while the cursor sits within
+    // AutoScrollMargin of its top/bottom edge during an active drag. Only
+    // called while isDragging (see DrawContent) — no effect otherwise.
+    private void HandleAutoScroll(Rect scrollViewRect)
+    {
+        if (scrollViewRect.height <= 0f) return;
+
+        float mouseY = Event.current.mousePosition.y;
+        float delta = AutoScrollSpeed * Time.unscaledDeltaTime;
+
+        if (mouseY >= scrollViewRect.y && mouseY < scrollViewRect.y + AutoScrollMargin)
+            scrollPos.y -= delta;
+        else if (mouseY <= scrollViewRect.yMax && mouseY > scrollViewRect.yMax - AutoScrollMargin)
+            scrollPos.y += delta;
+
+        scrollPos.y = Mathf.Max(0f, scrollPos.y);
+    }
+
+    // Floating icon (or text chip, for an item with no icon set) following
+    // the cursor while isDragging is true. Drawn from DrawPopups(), same
+    // reasoning as DrawTooltip() below — absolute screen position, on top
+    // of everything, unclipped by the scroll view.
+    private void DrawDragGhost()
+    {
+        if (!isDragging || dragItem == null) return;
+
+        var mousePos = Event.current.mousePosition;
+
+        if (dragItem.icon != null)
+        {
+            var rect = new Rect(mousePos.x - SubBoxWidth / 2f, mousePos.y - SubBoxHeight / 2f, SubBoxWidth, SubBoxHeight);
+            DebugGUI.DrawPanel(rect);
+            const float padding = 6f;
+            var iconRect = new Rect(rect.x + padding, rect.y + padding, rect.width - padding * 2f, rect.height - padding * 2f);
+            GUI.DrawTexture(iconRect, dragItem.icon.texture, ScaleMode.ScaleToFit);
+        }
+        else
+        {
+            var content = new GUIContent(dragQuantity > 1 ? $"{dragItem.itemName} x{dragQuantity}" : dragItem.itemName);
+            var size = DebugGUI.Label.CalcSize(content);
+            var rect = new Rect(mousePos.x + 10f, mousePos.y + 10f, size.x + 10f, size.y + 6f);
+            DebugGUI.DrawPanel(rect);
+            GUI.Label(rect, content, DebugGUI.Label);
+        }
     }
 
     // Fixed header row (outside the scroll view) — 5 equal-width coin
@@ -734,200 +1069,15 @@ public class InventoryScreen : MonoBehaviour
         }
     }
 
-    // Ported from the old always-on PlayerInventory panel.
+    // Main inventory grid — drag an item out to move it, click it for the
+    // action menu. Used to be a list of rows with an Equip/Drop button pair
+    // duplicated per equipment type (2026-08-12) — that's now handled
+    // uniformly by DrawSlotBox/TryDrop/DrawPendingActions for every grid on
+    // this screen, main inventory included.
     private void DrawInventorySection()
     {
-        ItemDefinition dropClicked = null;
-        ItemDefinition packClicked = null;
-        ItemDefinition eatClicked = null;
-        ItemDefinition applyClicked = null;
-        ItemDefinition leftHandClicked = null;
-        ItemDefinition rightHandClicked = null;
-        Backpack equipClicked = null;
-        Backpack backpackDropClicked = null;
-        Belt beltEquipClicked = null;
-        Belt beltDropClicked = null;
-        Boot bootEquipClicked = null;
-        Boot bootDropClicked = null;
-        Canteen canteenEquipClicked = null;
-        Canteen canteenDropClicked = null;
-        NavigationComputer navComputerEquipClicked = null;
-        NavigationComputer navComputerDropClicked = null;
-        PersonalHealthMonitor healthMonitorEquipClicked = null;
-        PersonalHealthMonitor healthMonitorDropClicked = null;
-        Sunglasses sunglassesEquipClicked = null;
-        Sunglasses sunglassesDropClicked = null;
-        MiningFaceShield miningShieldEquipClicked = null;
-        MiningFaceShield miningShieldDropClicked = null;
-        var equippedBackpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
-
-        var inv = playerInventory.Inventory;
-        var slots = inv.Slots;
-        for (int i = 0; i < slots.Count; i++)
-        {
-            var slot = slots[i];
-            string label = $"{slot.item.itemName} x{slot.count}";
-            var content = ItemContent(slot.item, label);
-
-            GUILayout.BeginHorizontal();
-
-            if (slot.equipment is Backpack backpack)
-            {
-                GUILayout.Label(content, DebugGUI.Label);
-                if (SafeButton("Equip", GUILayout.Width(55)))
-                    equipClicked = backpack;
-                if (SafeButton("Drop", GUILayout.Width(50)))
-                    backpackDropClicked = backpack;
-            }
-            else if (slot.equipment is Belt belt)
-            {
-                GUILayout.Label(content, DebugGUI.Label);
-                if (SafeButton("Equip", GUILayout.Width(55)))
-                    beltEquipClicked = belt;
-                if (SafeButton("Drop", GUILayout.Width(50)))
-                    beltDropClicked = belt;
-            }
-            else if (slot.equipment is Boot boot)
-            {
-                GUILayout.Label(content, DebugGUI.Label);
-                if (SafeButton("Equip", GUILayout.Width(55)))
-                    bootEquipClicked = boot;
-                if (SafeButton("Drop", GUILayout.Width(50)))
-                    bootDropClicked = boot;
-            }
-            else if (slot.equipment is Canteen canteen)
-            {
-                GUILayout.Label(content, DebugGUI.Label);
-                if (SafeButton("Equip", GUILayout.Width(55)))
-                    canteenEquipClicked = canteen;
-                if (SafeButton("Drop", GUILayout.Width(50)))
-                    canteenDropClicked = canteen;
-            }
-            else if (slot.equipment is NavigationComputer navComputer)
-            {
-                GUILayout.Label(content, DebugGUI.Label);
-                if (SafeButton("Equip", GUILayout.Width(55)))
-                    navComputerEquipClicked = navComputer;
-                if (SafeButton("Drop", GUILayout.Width(50)))
-                    navComputerDropClicked = navComputer;
-            }
-            else if (slot.equipment is PersonalHealthMonitor healthMonitor)
-            {
-                GUILayout.Label(content, DebugGUI.Label);
-                if (SafeButton("Equip", GUILayout.Width(55)))
-                    healthMonitorEquipClicked = healthMonitor;
-                if (SafeButton("Drop", GUILayout.Width(50)))
-                    healthMonitorDropClicked = healthMonitor;
-            }
-            else if (slot.equipment is Sunglasses sunglasses)
-            {
-                GUILayout.Label(content, DebugGUI.Label);
-                if (SafeButton("Equip", GUILayout.Width(55)))
-                    sunglassesEquipClicked = sunglasses;
-                if (SafeButton("Drop", GUILayout.Width(50)))
-                    sunglassesDropClicked = sunglasses;
-            }
-            else if (slot.equipment is MiningFaceShield miningShield)
-            {
-                GUILayout.Label(content, DebugGUI.Label);
-                if (SafeButton("Equip", GUILayout.Width(55)))
-                    miningShieldEquipClicked = miningShield;
-                if (SafeButton("Drop", GUILayout.Width(50)))
-                    miningShieldDropClicked = miningShield;
-            }
-            else
-            {
-                GUILayout.Label(content, DebugGUI.Label);
-
-                var edible = eating != null ? eating.FindEdible(slot.item) : null;
-                if (edible != null && GUILayout.Button(edible.verb, GUILayout.Width(50)))
-                    eatClicked = slot.item;
-
-                var medicineItem = medicine != null ? medicine.FindMedicine(slot.item) : null;
-                if (medicineItem != null && GUILayout.Button(medicineItem.verb, GUILayout.Width(50)))
-                    applyClicked = slot.item;
-
-                if (dropping != null && SafeButton("Drop", GUILayout.Width(50)))
-                    dropClicked = slot.item;
-
-                // Real gap found in playtesting (2026-08-09): a plain item
-                // sitting directly in the main inventory (e.g. a freshly
-                // crafted Pickaxe — PlayerCrafting.AddCraftedOutput sends
-                // plain output straight here, not to a backpack) had no way
-                // to reach a hand at all. Backpack/Storage contents already
-                // had this via the click-to-open move popup
-                // (DrawContainerContents); the main list never did.
-                var leftHandSlot = equipment.GetSlot("Left Hand");
-                if (leftHandSlot != null && GUILayout.Button("To L Hand", GUILayout.Width(70)))
-                    leftHandClicked = slot.item;
-
-                var rightHandSlot = equipment.GetSlot("Right Hand");
-                if (rightHandSlot != null && GUILayout.Button("To R Hand", GUILayout.Width(70)))
-                    rightHandClicked = slot.item;
-
-                if (equippedBackpack != null && GUILayout.Button("To Pack", GUILayout.Width(60)))
-                    packClicked = slot.item;
-
-                if (nearbyStorages.Count > 0 && GUILayout.Button("To Storage", GUILayout.Width(70)))
-                {
-                    pendingMoveItem = slot.item;
-                    pendingMoveSource = inv;
-                    pendingMoveEquipment = null;
-                    choosingStorage = true;
-                }
-            }
-
-            GUILayout.EndHorizontal();
-        }
-
-        if (eatClicked != null)
-            eating.TryEat(eatClicked);
-        if (applyClicked != null)
-            medicine.TryApply(applyClicked);
-        if (dropClicked != null)
-        {
-            pendingDropItem = dropClicked;
-            pendingDropItemSource = inv;
-            pendingDropItemAmount = inv.GetCount(dropClicked);
-        }
-        if (leftHandClicked != null)
-            InventoryTransfer.MoveAsManyAsFit(inv, equipment.GetSlot("Left Hand"), leftHandClicked);
-        if (rightHandClicked != null)
-            InventoryTransfer.MoveAsManyAsFit(inv, equipment.GetSlot("Right Hand"), rightHandClicked);
-        if (packClicked != null)
-            InventoryTransfer.MoveAsManyAsFit(inv, equippedBackpack.Inventory, packClicked);
-        if (equipClicked != null)
-            backpackCarrier.Equip(equipClicked);
-        if (backpackDropClicked != null)
-            backpackCarrier.Drop(backpackDropClicked);
-        if (beltEquipClicked != null)
-            beltCarrier.Equip(beltEquipClicked);
-        if (beltDropClicked != null)
-            beltCarrier.Drop(beltDropClicked);
-        if (bootEquipClicked != null)
-            bootCarrier.Equip(bootEquipClicked);
-        if (bootDropClicked != null)
-            bootCarrier.Drop(bootDropClicked);
-        if (canteenEquipClicked != null)
-            TryEquipWithChoice(canteenEquipClicked);
-        if (canteenDropClicked != null)
-            canteenCarrier.Drop(canteenDropClicked);
-        if (navComputerEquipClicked != null)
-            TryEquipWithChoice(navComputerEquipClicked);
-        if (navComputerDropClicked != null)
-            navComputerCarrier.Drop(navComputerDropClicked);
-        if (healthMonitorEquipClicked != null)
-            TryEquipWithChoice(healthMonitorEquipClicked);
-        if (healthMonitorDropClicked != null)
-            healthMonitorCarrier.Drop(healthMonitorDropClicked);
-        if (sunglassesEquipClicked != null)
-            sunglassesCarrier.Equip(sunglassesEquipClicked);
-        if (sunglassesDropClicked != null)
-            sunglassesCarrier.Drop(sunglassesDropClicked);
-        if (miningShieldEquipClicked != null)
-            miningShieldCarrier.Equip(miningShieldEquipClicked);
-        if (miningShieldDropClicked != null)
-            miningShieldCarrier.Drop(miningShieldDropClicked);
+        GUILayout.Label("Inventory (drag to move, click for actions)", DebugGUI.Header);
+        DrawInventoryGrid(playerInventory.Inventory, null, SubBoxWidth, SubBoxHeight);
     }
 
     // Fixed-size framed box showing a bigger icon of whatever's worn in a
@@ -976,6 +1126,11 @@ public class InventoryScreen : MonoBehaviour
         public string PreviewSlotName;
         public string Caption;
         public Inventory Inventory;
+        // Null for inert storage (a Backpack's or Boot slot's contents);
+        // the "Belt" sentinel for the worn Belt's own attachment points,
+        // where dropping an item is actually equipping it, not just
+        // stashing it (2026-08-12) — see DropZone/TryDrop.
+        public string EquipSlotName;
     }
 
     // Non-drawing lookup of every worn container's contents — needed
@@ -1004,8 +1159,9 @@ public class InventoryScreen : MonoBehaviour
                     result.Add(new WornContentsRow
                     {
                         PreviewSlotName = slotName,
-                        Caption = $"{holder.DisplayName} contents (click an item for options)",
+                        Caption = $"{holder.DisplayName} contents (drag to move, click for actions)",
                         Inventory = holder.Inventory,
+                        EquipSlotName = slotName == "Waist" ? "Belt" : null,
                     });
                     break;
                 }
@@ -1020,8 +1176,9 @@ public class InventoryScreen : MonoBehaviour
                 result.Add(new WornContentsRow
                 {
                     PreviewSlotName = "Feet",
-                    Caption = $"{boot.DisplayName} — {label} (click an item for options)",
+                    Caption = $"{boot.DisplayName} — {label} (drag to move, click for actions)",
                     Inventory = boot.GetSlot(label),
+                    EquipSlotName = null,
                 });
             }
         }
@@ -1029,35 +1186,14 @@ public class InventoryScreen : MonoBehaviour
         return result;
     }
 
-    // Draws the equipment slot list (Head/Face/.../Back/...). The worn
-    // container's own contents used to render via this method's return
-    // value — see GetWornContainer() above for why that moved.
+    // Draws the equipment slot list (Head/Face/.../Back/...). Each box is
+    // drag source + drop target (EquipSlotName = the real PlayerEquipment
+    // slot name, e.g. "Head", "Left Hand") like every other grid on this
+    // screen — used to be ~230 lines of duplicated per-type Equip/Unequip/
+    // Drop button branches (2026-08-12); DrawSlotBox/TryDrop/
+    // DrawPendingActions now handle all 8 equipment types uniformly.
     private void DrawEquipmentSection()
     {
-        Backpack backpackEquipClicked = null;
-        Backpack backpackUnequipClicked = null;
-        Backpack backpackDropClicked = null;
-        Belt beltEquipClicked = null;
-        Belt beltUnequipClicked = null;
-        Belt beltDropClicked = null;
-        Boot bootEquipClicked = null;
-        Boot bootUnequipClicked = null;
-        Boot bootDropClicked = null;
-        Canteen canteenUnequipClicked = null;
-        Canteen canteenDropClicked = null;
-        NavigationComputer navComputerEquipClicked = null;
-        NavigationComputer navComputerUnequipClicked = null;
-        NavigationComputer navComputerDropClicked = null;
-        PersonalHealthMonitor healthMonitorEquipClicked = null;
-        PersonalHealthMonitor healthMonitorUnequipClicked = null;
-        PersonalHealthMonitor healthMonitorDropClicked = null;
-        Sunglasses sunglassesEquipClicked = null;
-        Sunglasses sunglassesUnequipClicked = null;
-        Sunglasses sunglassesDropClicked = null;
-        MiningFaceShield miningShieldEquipClicked = null;
-        MiningFaceShield miningShieldUnequipClicked = null;
-        MiningFaceShield miningShieldDropClicked = null;
-
         foreach (var slotName in SlotOrder)
         {
             var slotInventory = equipment.GetSlot(slotName);
@@ -1067,313 +1203,26 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.Label(slotName, DebugGUI.Label, GUILayout.Width(LabelWidth));
 
             var occupied = slotInventory.Slots;
-            Backpack backpackHere = null;
-            Belt beltHere = null;
-            Boot bootHere = null;
-            Canteen canteenHere = null;
-            NavigationComputer navComputerHere = null;
-            PersonalHealthMonitor healthMonitorHere = null;
-            Sunglasses sunglassesHere = null;
-            MiningFaceShield miningShieldHere = null;
-
             for (int i = 0; i < slotInventory.Capacity; i++)
             {
-                if (i < occupied.Count)
-                {
-                    var entry = occupied[i];
-
-                    // A worn container's own contents render in a side
-                    // An item with an icon shows icon-only in this section,
-                    // no text — a hand slot shouldn't say "Backpack" next
-                    // to its own picture, and a worn container on Back/
-                    // Waist shouldn't say "Equipped" either. Items without
-                    // an icon keep the old text (name/count normally,
-                    // "Equipped" specifically for a worn container — its
-                    // own contents render in the side column, see
-                    // DrawContent()).
-                    bool isWornContainer = (entry.equipment is IInventoryHolder && (slotName == "Back" || slotName == "Waist"))
-                        || (entry.equipment is Boot && slotName == "Feet");
-                    string label = entry.item.icon != null
-                        ? ""
-                        : (isWornContainer ? "Equipped" : entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : ""));
-                    var content = ItemContent(entry.item, label);
-
-                    if (entry.equipment == null)
-                    {
-                        // A plain stackable item sitting directly in an
-                        // equip slot (e.g. something picked up into a
-                        // hand) — click it to open the same "where should
-                        // this go?" popup as backpack contents.
-                        if (GUILayout.Button(content, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight)))
-                        {
-                            pendingMoveItem = entry.item;
-                            pendingMoveSource = slotInventory;
-                            pendingMoveEquipment = null;
-                        }
-                    }
-                    else
-                    {
-                        GUILayout.Box(content, GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight));
-                    }
-
-                    if (entry.equipment is Backpack bp) backpackHere = bp;
-                    if (entry.equipment is Belt bt) beltHere = bt;
-                    if (entry.equipment is Boot bo) bootHere = bo;
-                    if (entry.equipment is Canteen ct) canteenHere = ct;
-                    if (entry.equipment is NavigationComputer nc) navComputerHere = nc;
-                    if (entry.equipment is PersonalHealthMonitor phm) healthMonitorHere = phm;
-                    if (entry.equipment is Sunglasses sg) sunglassesHere = sg;
-                    if (entry.equipment is MiningFaceShield mfs) miningShieldHere = mfs;
-                }
-                else
-                {
-                    GUILayout.Box("Empty", GUILayout.Width(BoxWidth), GUILayout.Height(BoxHeight));
-                }
-            }
-
-            if (backpackHere != null)
-            {
-                if (slotName == "Back")
-                {
-                    if (SafeButton("Unequip", GUILayout.Width(70))) backpackUnequipClicked = backpackHere;
-                }
-                else
-                {
-                    if (SafeButton("Equip", GUILayout.Width(55))) backpackEquipClicked = backpackHere;
-                }
-
-                if (SafeButton("Drop", GUILayout.Width(50))) backpackDropClicked = backpackHere;
-            }
-            else if (beltHere != null)
-            {
-                if (slotName == "Waist")
-                {
-                    if (SafeButton("Unequip", GUILayout.Width(70))) beltUnequipClicked = beltHere;
-                }
-                else
-                {
-                    if (SafeButton("Equip", GUILayout.Width(55))) beltEquipClicked = beltHere;
-                }
-
-                if (SafeButton("Drop", GUILayout.Width(50))) beltDropClicked = beltHere;
-            }
-            else if (bootHere != null)
-            {
-                if (slotName == "Feet")
-                {
-                    if (SafeButton("Unequip", GUILayout.Width(70))) bootUnequipClicked = bootHere;
-                }
-                else
-                {
-                    if (SafeButton("Equip", GUILayout.Width(55))) bootEquipClicked = bootHere;
-                }
-
-                if (SafeButton("Drop", GUILayout.Width(50))) bootDropClicked = bootHere;
-            }
-            else if (canteenHere != null)
-            {
-                string liquidLabel = canteenHere.IsEmpty
-                    ? "Empty"
-                    : $"{canteenHere.Liquid} {canteenHere.Amount:F0}/{canteenHere.Capacity:F0}";
-                GUILayout.Label(liquidLabel, DebugGUI.Label, GUILayout.Width(90));
-                if (GUILayout.Button("Drink", GUILayout.Width(50))) canteenHere.Drink(vitals);
-                if (GUILayout.Button("Fill", GUILayout.Width(45))) canteenHere.Fill(LiquidType.Water);
-                if (SafeButton("Unequip", GUILayout.Width(65))) canteenUnequipClicked = canteenHere;
-                if (SafeButton("Drop", GUILayout.Width(50))) canteenDropClicked = canteenHere;
-            }
-            else if (navComputerHere != null)
-            {
-                bool isWorn = slotName == "Left Wrist" || slotName == "Right Wrist";
-                if (isWorn)
-                {
-                    if (SafeButton("Unequip", GUILayout.Width(70))) navComputerUnequipClicked = navComputerHere;
-                }
-                else
-                {
-                    if (SafeButton("Equip", GUILayout.Width(55))) navComputerEquipClicked = navComputerHere;
-                }
-
-                if (SafeButton("Drop", GUILayout.Width(50))) navComputerDropClicked = navComputerHere;
-            }
-            else if (healthMonitorHere != null)
-            {
-                bool isWorn = slotName == "Left Wrist" || slotName == "Right Wrist";
-                if (isWorn)
-                {
-                    if (SafeButton("Unequip", GUILayout.Width(70))) healthMonitorUnequipClicked = healthMonitorHere;
-                }
-                else
-                {
-                    if (SafeButton("Equip", GUILayout.Width(55))) healthMonitorEquipClicked = healthMonitorHere;
-                }
-
-                if (SafeButton("Drop", GUILayout.Width(50))) healthMonitorDropClicked = healthMonitorHere;
-            }
-            else if (sunglassesHere != null)
-            {
-                if (slotName == "Face")
-                {
-                    if (SafeButton("Unequip", GUILayout.Width(70))) sunglassesUnequipClicked = sunglassesHere;
-                }
-                else
-                {
-                    if (SafeButton("Equip", GUILayout.Width(55))) sunglassesEquipClicked = sunglassesHere;
-                }
-
-                if (SafeButton("Drop", GUILayout.Width(50))) sunglassesDropClicked = sunglassesHere;
-            }
-            else if (miningShieldHere != null)
-            {
-                if (slotName == "Face")
-                {
-                    if (SafeButton("Unequip", GUILayout.Width(70))) miningShieldUnequipClicked = miningShieldHere;
-                }
-                else
-                {
-                    if (SafeButton("Equip", GUILayout.Width(55))) miningShieldEquipClicked = miningShieldHere;
-                }
-
-                if (SafeButton("Drop", GUILayout.Width(50))) miningShieldDropClicked = miningShieldHere;
-            }
-
-            GUILayout.EndHorizontal();
-        }
-
-        if (backpackEquipClicked != null) backpackCarrier.Equip(backpackEquipClicked);
-        if (backpackUnequipClicked != null) backpackCarrier.Unequip(backpackUnequipClicked);
-        if (backpackDropClicked != null) backpackCarrier.Drop(backpackDropClicked);
-        if (beltEquipClicked != null) beltCarrier.Equip(beltEquipClicked);
-        if (beltUnequipClicked != null) beltCarrier.Unequip(beltUnequipClicked);
-        if (beltDropClicked != null) beltCarrier.Drop(beltDropClicked);
-        if (bootEquipClicked != null) bootCarrier.Equip(bootEquipClicked);
-        if (bootUnequipClicked != null) bootCarrier.Unequip(bootUnequipClicked);
-        if (bootDropClicked != null) bootCarrier.Drop(bootDropClicked);
-        if (canteenUnequipClicked != null) canteenCarrier.Unequip(canteenUnequipClicked);
-        if (canteenDropClicked != null) canteenCarrier.Drop(canteenDropClicked);
-        if (navComputerEquipClicked != null) TryEquipWithChoice(navComputerEquipClicked);
-        if (navComputerUnequipClicked != null) navComputerCarrier.Unequip(navComputerUnequipClicked);
-        if (navComputerDropClicked != null) navComputerCarrier.Drop(navComputerDropClicked);
-        if (healthMonitorEquipClicked != null) TryEquipWithChoice(healthMonitorEquipClicked);
-        if (healthMonitorUnequipClicked != null) healthMonitorCarrier.Unequip(healthMonitorUnequipClicked);
-        if (healthMonitorDropClicked != null) healthMonitorCarrier.Drop(healthMonitorDropClicked);
-        if (sunglassesEquipClicked != null) sunglassesCarrier.Equip(sunglassesEquipClicked);
-        if (sunglassesUnequipClicked != null) sunglassesCarrier.Unequip(sunglassesUnequipClicked);
-        if (sunglassesDropClicked != null) sunglassesCarrier.Drop(sunglassesDropClicked);
-        if (miningShieldEquipClicked != null) miningShieldCarrier.Equip(miningShieldEquipClicked);
-        if (miningShieldUnequipClicked != null) miningShieldCarrier.Unequip(miningShieldUnequipClicked);
-        if (miningShieldDropClicked != null) miningShieldCarrier.Drop(miningShieldDropClicked);
-    }
-
-    // Draws an inventory's own capacity as a wrapped grid of boxes. Occupied
-    // boxes are buttons — clicking one opens the "where should this go?"
-    // popup (DrawPendingMovePopup) instead of moving it anywhere directly.
-    // Shared by a worn backpack's contents and a nearby StorageBox's.
-    private void DrawContainerContents(Inventory inventory, string caption)
-    {
-        var contents = inventory.Slots;
-        int capacity = inventory.Capacity;
-
-        GUILayout.Label($"    {caption}:", DebugGUI.Label);
-
-        int drawn = 0;
-        while (drawn < capacity)
-        {
-            GUILayout.BeginHorizontal();
-            GUILayout.Space(20);
-            for (int col = 0; col < SubBoxesPerRow && drawn < capacity; col++, drawn++)
-            {
-                GUILayout.BeginVertical(GUILayout.Width(SubBoxWidth));
-
-                if (drawn < contents.Count)
-                {
-                    var entry = contents[drawn];
-                    bool clicked;
-
-                    if (entry.item.icon != null)
-                    {
-                        // GUIContent's icon+text combo (still used below for
-                        // items with no icon) breaks down at this box's
-                        // size — the icon didn't render at all and the text
-                        // just truncated ("ill Rock x9"). Drawing the icon
-                        // as a separate overlay on top of a plain box,
-                        // rather than through GUIContent, sidesteps that
-                        // entirely — same technique the Back preview box
-                        // already uses successfully. DebugGUI.Slot (an
-                        // explicit solid-color background, not
-                        // GUI.skin.box's default runtime look) keeps this
-                        // visibly readable against the panel behind it.
-                        // Tooltip (item name) makes up for this slot no
-                        // longer showing any text of its own now that it's
-                        // icon-only — Ben's request.
-                        var iconContent = new GUIContent(string.Empty, entry.item.itemName);
-                        clicked = GUILayout.Button(iconContent, DebugGUI.Slot, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight));
-                        var slotRect = GUILayoutUtility.GetLastRect();
-                        const float iconPadding = 6f;
-                        var iconRect = new Rect(
-                            slotRect.x + iconPadding, slotRect.y + iconPadding,
-                            slotRect.width - iconPadding * 2f, slotRect.height - iconPadding * 2f);
-                        GUI.DrawTexture(iconRect, entry.item.icon.texture, ScaleMode.ScaleToFit);
-                    }
-                    else
-                    {
-                        string label = entry.item.itemName + (entry.count > 1 ? $" x{entry.count}" : "");
-                        clicked = GUILayout.Button(label, DebugGUI.Slot, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight));
-                    }
-
-                    if (clicked)
-                    {
-                        pendingMoveItem = entry.item;
-                        pendingMoveSource = inventory;
-                        pendingMoveEquipment = entry.equipment;
-                    }
-
-                    // A Canteen shows its fill status here instead of a QTY
-                    // count (same format as its Equipment-row label) — Ben's
-                    // request, so a Canteen clipped to a Belt point reads the
-                    // same way as one sitting directly in an equip slot.
-                    // Otherwise blank for a non-stackable item (maxStack <= 1,
-                    // e.g. a Backpack) rather than always showing "QTY: 1" —
-                    // Ben's call. Still drawn (as an empty label) either way
-                    // so every column reserves the same row height.
-                    string qtyLabel = entry.equipment is Canteen canteenEntry
-                        ? (canteenEntry.IsEmpty ? "Empty" : $"{canteenEntry.Liquid} {canteenEntry.Amount:F0}/{canteenEntry.Capacity:F0}")
-                        : entry.item.maxStack > 1 ? $"QTY: {entry.count}" : "";
-                    GUILayout.Label(qtyLabel, DebugGUI.Label, GUILayout.Width(SubBoxWidth));
-                }
-                else
-                {
-                    // Plain gray box, no "Empty" text — Ben's call,
-                    // scoped to this grid specifically (the equipment
-                    // slot list's own "Empty" labels are unchanged).
-                    // DebugGUI.Slot (an explicit solid-color background)
-                    // instead of GUI.skin.box's default, which turned out
-                    // to have too little contrast to be visible at all
-                    // without any text/content inside it — Ben's report:
-                    // capacity became impossible to see once "Empty" was
-                    // removed and nothing replaced its visibility.
-                    GUILayout.Box(GUIContent.none, DebugGUI.Slot, GUILayout.Width(SubBoxWidth), GUILayout.Height(SubBoxHeight));
-                    GUILayout.Label("", DebugGUI.Label, GUILayout.Width(SubBoxWidth));
-                }
-
+                GUILayout.BeginVertical(GUILayout.Width(BoxWidth));
+                DrawSlotBox(slotInventory, i < occupied.Count ? occupied[i] : null, slotName, BoxWidth, BoxHeight, showEmptyLabel: true);
                 GUILayout.EndVertical();
             }
+
             GUILayout.EndHorizontal();
         }
     }
 
-    // GUILayout.Button responds to any mouse button by default (a Unity
-    // IMGUI quirk) — right-click is also used elsewhere (PlayerRenaming),
-    // and a right-click aimed at a nearby item box that overlaps this
-    // button's rect (see the Back-row/contents-grid layout note above) can
-    // otherwise trigger it by accident. Restricting Equip/Unequip/Drop to
-    // left-click only makes them immune to that regardless of exact pixel
-    // alignment. Confirmed as the fix for two reports (2026-08-03) where a
-    // right-click meant for an item inside a backpack instead
-    // dropped/unequipped the backpack itself.
-    private static bool SafeButton(string label, params GUILayoutOption[] options)
+    // Header caption plus a wrapped grid of boxes (DrawInventoryGrid) for
+    // inventory's own capacity. Shared by a worn container's contents and a
+    // nearby StorageBox's. equipSlotName is null for ordinary inert
+    // storage, or the "Belt" sentinel for the worn Belt's own attachment
+    // points (see WornContentsRow).
+    private void DrawContainerContents(Inventory inventory, string caption, string equipSlotName)
     {
-        bool clicked = GUILayout.Button(label, options);
-        return clicked && Event.current.button == 0;
+        GUILayout.Label($"    {caption}:", DebugGUI.Label);
+        DrawInventoryGrid(inventory, equipSlotName, SubBoxWidth, SubBoxHeight);
     }
 
     // Wraps a label with an item's icon (ItemDefinition.icon) when it has

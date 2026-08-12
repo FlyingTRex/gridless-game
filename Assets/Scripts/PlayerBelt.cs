@@ -49,10 +49,15 @@ public class PlayerBelt : MonoBehaviour
 
     // Moves the belt onto the Waist slot from wherever it currently is (a
     // regular inventory slot, or a hand if PlayerLoot put it there on
-    // pickup).
-    public bool Equip(Belt belt)
+    // pickup). See PlayerBackpack.Equip's source-aware overload comment
+    // (2026-08-12) — FindSlot doesn't know about a belt sitting inside a
+    // backpack's nested Inventory, so use the overload below when the
+    // caller already knows exactly where the belt is.
+    public bool Equip(Belt belt) => Equip(belt, playerInventory.Inventory);
+
+    public bool Equip(Belt belt, Inventory source)
     {
-        if (belt == null) return false;
+        if (belt == null || source == null) return false;
 
         string currentSlot = FindSlot(belt);
         var slot = equipment.GetSlot(WaistSlot);
@@ -61,7 +66,7 @@ public class PlayerBelt : MonoBehaviour
         if (currentSlot != null)
             equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(belt.ItemDefinition);
         else
-            playerInventory.Inventory.RemoveEquipmentItem(belt.ItemDefinition);
+            source.RemoveEquipmentItem(belt.ItemDefinition);
 
         belt.SetCarried(true, carrySlot != null ? carrySlot : transform);
         return true;

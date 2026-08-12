@@ -49,10 +49,20 @@ public class PlayerBackpack : MonoBehaviour
 
     // Moves the backpack onto the Back slot from wherever it currently is
     // (a regular inventory slot, or a hand if PlayerLoot put it there on
-    // pickup).
-    public bool Equip(Backpack backpack)
+    // pickup). FindSlot only ever checks the main inventory / body slots /
+    // hands — it doesn't know about a backpack sitting inside some other
+    // container's nested Inventory (e.g. one worn backpack holding another
+    // in its cargo), so it silently falls back to removing from the main
+    // inventory in that case, the same bug class fixed on PlayerCanteen
+    // (2026-08-12). Use the source-aware overload below when the caller
+    // already knows exactly where the backpack is.
+    public bool Equip(Backpack backpack) => Equip(backpack, playerInventory.Inventory);
+
+    // Same as above, but removes from whichever Inventory the backpack is
+    // actually sitting in, rather than guessing via FindSlot/main inventory.
+    public bool Equip(Backpack backpack, Inventory source)
     {
-        if (backpack == null) return false;
+        if (backpack == null || source == null) return false;
 
         string currentSlot = FindSlot(backpack);
         var slot = equipment.GetSlot(BackSlot);
@@ -61,7 +71,7 @@ public class PlayerBackpack : MonoBehaviour
         if (currentSlot != null)
             equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(backpack.ItemDefinition);
         else
-            playerInventory.Inventory.RemoveEquipmentItem(backpack.ItemDefinition);
+            source.RemoveEquipmentItem(backpack.ItemDefinition);
 
         backpack.SetCarried(true, carrySlot != null ? carrySlot : transform);
         return true;

@@ -78,10 +78,17 @@ public class PlayerHealthMonitor : MonoBehaviour
 
     // Moves the monitor onto a specific wrist the player chose (see
     // InventoryScreen's Equip destination popup) rather than picking one
-    // automatically.
-    public bool EquipTo(PersonalHealthMonitor monitor, string destination)
+    // automatically. FindSlot doesn't know about a monitor sitting inside a
+    // backpack's nested Inventory, so it'd wrongly fall back to removing
+    // from the main inventory in that case — same bug class fixed on
+    // PlayerCanteen (2026-08-12). Use the source-aware overload below when
+    // the caller already knows exactly where the monitor is.
+    public bool EquipTo(PersonalHealthMonitor monitor, string destination) =>
+        EquipTo(monitor, destination, playerInventory.Inventory);
+
+    public bool EquipTo(PersonalHealthMonitor monitor, string destination, Inventory source)
     {
-        if (monitor == null || destination == null) return false;
+        if (monitor == null || destination == null || source == null) return false;
 
         string currentSlot = FindSlot(monitor);
         var slot = equipment.GetSlot(destination);
@@ -90,7 +97,7 @@ public class PlayerHealthMonitor : MonoBehaviour
         if (currentSlot != null)
             equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(monitorItem);
         else
-            playerInventory.Inventory.RemoveEquipmentItem(monitorItem);
+            source.RemoveEquipmentItem(monitorItem);
 
         monitor.SetCarried(true, transform);
         return true;

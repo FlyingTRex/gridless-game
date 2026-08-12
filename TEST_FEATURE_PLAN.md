@@ -132,6 +132,90 @@ fix the coordinate in this file rather than assuming the step is wrong.
   open; nothing should happen).
 - [ ] **Player tab** is intentionally blank right now (just a header) — same
   placeholder treatment as the `` ` `` menu's Player tab, not a bug.
+
+### Drag-and-drop interaction model (v0.3.11-dev — supersedes the button-based
+steps below)
+
+The button-per-item interaction (Equip/Unequip/Drop buttons, the "To X"
+destination popup) was replaced entirely by drag-and-drop. Every slot box on
+this screen — main inventory grid, equipment slots, backpack/boot/storage
+contents — is both a drag source and a drop target. The bullets further down
+in this section that reference specific buttons ("To L Hand", the move
+popup's destination list, per-type Equip/Unequip/Drop) describe the *old*
+interaction and are kept for their regression history, not as current steps —
+re-verify the same underlying behaviors using drag instead.
+
+- [ ] **Basic drag-move.** Press and hold a main-inventory item (e.g. Small
+  Rock), drag it onto a hand slot in the Equipment section, release — it
+  moves there. Drag it back to an empty main-inventory box the same way.
+- [ ] **Snap-back on an invalid drop.** Drag an item onto a slot it can't go
+  (e.g. a Wolf Pelt onto the Head equipment slot) — nothing happens, the
+  item stays exactly where it was, no error.
+- [ ] **Right-click for actions (v0.3.11-dev, added after live testing found
+  left-click too twitchy).** Right-click any occupied slot — the action menu
+  opens immediately and reliably (Drop always; Eat/Apply/Drink/Fill/Equip/
+  Unequip as applicable), with no chance of it being misread as a drag.
+  This is the recommended way to open the menu.
+- [ ] **Click-for-actions (left-click).** A left click (press+release with
+  under ~12px of mouse movement) on an occupied slot should also open the
+  same menu. Confirm Drop still opens the existing quantity popup
+  (`-10`/`-1`/`+1`/`+10`/All steppers). **Regression check:** confirm an
+  ordinary, unhurried click reliably opens the menu rather than picking the
+  item up — if it still frequently misfires into a drag, prefer right-click
+  and flag it in `BUGS_AND_ENHANCEMENTS.md`.
+- [ ] **Canteen equip-from-Backpack (the bug this whole rewrite grew out
+  of).** Pick up a Canteen while wearing a Backpack so it lands in the
+  Backpack's contents (not the main inventory). Drag it directly from the
+  Backpack's contents grid onto a hand slot, and separately onto the worn
+  Belt's own contents grid — confirm both equip correctly and the Backpack
+  doesn't end up with a stale leftover entry.
+- [ ] **Boot equip-from-Backpack.** Same test as above with a Boot dragged
+  from the Backpack onto the Feet slot.
+- [ ] **Partial-stack drag.** With a stack of 10+ of a stackable item (Small
+  Rock, Stick), drag with no modifier (whole stack moves), then Shift held
+  (half moves, rounded down, minimum 1 stays possible), then Ctrl held
+  (exactly 1 moves) — confirm the source slot's remaining count is correct
+  each time.
+- [ ] **Apply from every location.** Click a Healing Paste or Bandage sitting
+  in a hand, and separately inside a Backpack — confirm "Apply" appears and
+  works in both places.
+- [ ] **Drop from every location.** Click and Drop a Wolf Pelt from the main
+  inventory, and separately from inside a Backpack — confirm it spawns as a
+  world pickup both times.
+- [ ] Spot-check the remaining equip types (Belt, NavComputer,
+  HealthMonitor, Sunglasses, MiningFaceShield) drag-equip correctly from
+  both the main inventory and a Backpack.
+
+### Tools are equippable (v0.3.12-dev)
+
+- [ ] Pick up a world-placed tool (or admin-spawn one, e.g. a Crude
+  Pickaxe) and equip it to a hand — confirm a real 3D model appears in the
+  player's hand, not just a text/icon entry in the inventory grid.
+- [ ] Craft a brand-new tool from scratch (e.g. a Crude Hammer at an
+  Anvil) — confirm the crafted instance *also* shows a physical model once
+  moved to a hand. This is the main risk case: crafting goes through a
+  different code path (`PlayerCrafting.AddCraftedOutput`) than picking one
+  up in the world, and the two need to agree.
+  **Regression check:** if the crafted tool sits invisible/text-only while
+  a world-found one of the same type shows a model, the two systems have
+  drifted apart — flag it.
+- [ ] Drag a tool between backpack ↔ hand ↔ main inventory — confirm the
+  model shows/hides correctly at each step (`SetCarried`/`Stash`), same as
+  an existing equippable like Canteen.
+- [ ] Mine a Copper Ore Node (or chop a tree, skin a creature) with the
+  matching tool equipped in a hand — confirm the tool-gated action still
+  works exactly as before. `PlayerEquipment.HasInHand` didn't change, but
+  this is the real end-to-end proof it still reads the hand slot correctly
+  now that the slot's entry is equipment-backed.
+- [ ] Trigger (or force, by temporarily lowering the odds) a
+  spectacular-failure craft while holding a required tool — confirm the
+  tool actually breaks: it should disappear completely (both the inventory
+  entry and the physical hand model), not sit there still visibly held
+  with no inventory entry (an orphaned object — the exact bug
+  `PlayerCrafting.BreakHeldTool`'s equipment-aware fix targets).
+
+### Historical button-based steps (pre-v0.3.11-dev — see note above)
+
 - [ ] Clicking the **Inventory** tab: main inventory list (4 slots) shows carried items with Eat/Drink (if
   edible/drinkable), Craft (if a known recipe), Drop, **To L Hand, To R Hand**,
   To Pack, To Storage buttons as applicable.

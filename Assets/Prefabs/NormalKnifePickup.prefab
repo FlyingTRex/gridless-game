@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8183956957161560626}
   - component: {fileID: 3627010075924342380}
   - component: {fileID: 8054836640550417150}
-  - component: {fileID: 1465728026368447487}
+  - component: {fileID: 8997726459369608072}
   m_Layer: 0
   m_Name: NormalKnifePickup
   m_TagString: Untagged
@@ -83,7 +83,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.27999997, y: 0.027708067, z: 0.064287454}
   m_Center: {x: -0.000000014901161, y: 0, z: 0.00042013824}
---- !u!114 &1465728026368447487
+--- !u!114 &8997726459369608072
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -92,16 +92,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 6877766037698798086}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f8654f1074c5cf46a102f59b6b914fa, type: 3}
+  m_Script: {fileID: 11500000, guid: a15aa9974862b814f9b8fa2922e76c80, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Pickup
-  item: {fileID: 11400000, guid: 9b1ad9cc97308904386310222340b53a, type: 2}
-  quantity: 1
-  trainedSkill: {fileID: 0}
-  skillGain: 0.05
-  canRespawn: 0
-  respawnDelay: 180
-  respawnScatter: 0.5
+  m_EditorClassIdentifier: Assembly-CSharp::Tool
+  itemDefinition: {fileID: 11400000, guid: 9b1ad9cc97308904386310222340b53a, type: 2}
 --- !u!1001 &7362195259368103721
 PrefabInstance:
   m_ObjectHideFlags: 0

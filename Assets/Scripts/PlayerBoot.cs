@@ -40,9 +40,15 @@ public class PlayerBoot : MonoBehaviour
         return true;
     }
 
-    public bool Equip(Boot boot)
+    // See PlayerBackpack.Equip's source-aware overload comment (2026-08-12)
+    // — FindSlot doesn't know about a boot sitting inside a backpack's
+    // nested Inventory, so use the overload below when the caller already
+    // knows exactly where the boot is.
+    public bool Equip(Boot boot) => Equip(boot, playerInventory.Inventory);
+
+    public bool Equip(Boot boot, Inventory source)
     {
-        if (boot == null) return false;
+        if (boot == null || source == null) return false;
 
         string currentSlot = FindSlot(boot);
         var slot = equipment.GetSlot(FeetSlot);
@@ -51,7 +57,7 @@ public class PlayerBoot : MonoBehaviour
         if (currentSlot != null)
             equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(boot.ItemDefinition);
         else
-            playerInventory.Inventory.RemoveEquipmentItem(boot.ItemDefinition);
+            source.RemoveEquipmentItem(boot.ItemDefinition);
 
         boot.SetCarried(true, carrySlot != null ? carrySlot : transform);
         return true;

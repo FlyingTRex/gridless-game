@@ -301,6 +301,15 @@ just this one — procedural objects built in this project don't need this
 from outside (Tripo3D, Poly Pizza, or any future source) should have its
 bounds checked before assuming `y = 0` is correct.
 
+**Recurred despite being documented here** (2026-08-12, `CrudeFurnace.glb`,
+v0.3.8-dev → fixed in v0.3.9-dev): placed with a base-pivot assumption and not
+checked at the time, so it sat at a slightly wrong height until traskmi's
+live look at it (asking to scale it up) prompted a re-inspection. **This is a
+mandatory checklist step for placing any new imported model, not just advice
+to remember if something looks wrong** — run the bounds check above as part
+of every placement script, before the model is considered done, not only
+when the sink is visually obvious.
+
 ## Gotcha: a tier-scaling ratio tuned for one quantity doesn't transfer to another
 
 `CraftTierScale.Modifier(tier)` (Crude 0.2x → Masterwork 5x) was tuned for capacity

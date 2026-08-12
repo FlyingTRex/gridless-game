@@ -38,6 +38,11 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
 
+    // "Belt" is the sentinel PlayerCanteen uses for "the worn Belt's own
+    // attachment points" — not a real PlayerEquipment slot name.
+    public bool CanEquipToSlot(string slotName) =>
+        slotName == "Left Hand" || slotName == "Right Hand" || slotName == "Belt";
+
     private void Awake()
     {
         body = GetComponent<Rigidbody>();

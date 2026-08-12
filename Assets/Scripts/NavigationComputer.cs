@@ -19,6 +19,8 @@ public class NavigationComputer : MonoBehaviour, IInteractable, IEquippable
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
 
+    public bool CanEquipToSlot(string slotName) => slotName == "Left Wrist" || slotName == "Right Wrist";
+
     private void Awake()
     {
         body = GetComponent<Rigidbody>();

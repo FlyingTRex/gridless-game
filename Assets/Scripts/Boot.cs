@@ -45,6 +45,8 @@ public class Boot : MonoBehaviour, IInteractable, IEquippable
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
 
+    public bool CanEquipToSlot(string slotName) => slotName == "Feet";
+
     private void Awake()
     {
         foreach (var slot in slots)

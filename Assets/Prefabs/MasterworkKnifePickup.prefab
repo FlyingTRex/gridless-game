@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2827213600068875372}
   - component: {fileID: 4629798735702986631}
   - component: {fileID: 6513904625032538058}
-  - component: {fileID: 5268996997638344521}
+  - component: {fileID: 6531500414618459748}
   m_Layer: 0
   m_Name: MasterworkKnifePickup
   m_TagString: Untagged
@@ -83,7 +83,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.27999997, y: 0.029983245, z: 0.06397392}
   m_Center: {x: -0.000000014901161, y: 0, z: 0}
---- !u!114 &5268996997638344521
+--- !u!114 &6531500414618459748
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -92,16 +92,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 5276291766771695620}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9f8654f1074c5cf46a102f59b6b914fa, type: 3}
+  m_Script: {fileID: 11500000, guid: a15aa9974862b814f9b8fa2922e76c80, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Pickup
-  item: {fileID: 11400000, guid: 895e12c4910884d418218d6e5edb27f2, type: 2}
-  quantity: 1
-  trainedSkill: {fileID: 0}
-  skillGain: 0.05
-  canRespawn: 0
-  respawnDelay: 180
-  respawnScatter: 0.5
+  m_EditorClassIdentifier: Assembly-CSharp::Tool
+  itemDefinition: {fileID: 11400000, guid: 895e12c4910884d418218d6e5edb27f2, type: 2}
 --- !u!1001 &8038431372893716081
 PrefabInstance:
   m_ObjectHideFlags: 0

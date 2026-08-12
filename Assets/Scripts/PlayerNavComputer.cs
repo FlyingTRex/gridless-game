@@ -77,10 +77,17 @@ public class PlayerNavComputer : MonoBehaviour
 
     // Moves the computer onto a specific wrist the player chose (see
     // InventoryScreen's Equip destination popup) rather than picking one
-    // automatically.
-    public bool EquipTo(NavigationComputer navComputer, string destination)
+    // automatically. FindSlot doesn't know about a computer sitting inside
+    // a backpack's nested Inventory, so it'd wrongly fall back to removing
+    // from the main inventory in that case — same bug class fixed on
+    // PlayerCanteen (2026-08-12). Use the source-aware overload below when
+    // the caller already knows exactly where the computer is.
+    public bool EquipTo(NavigationComputer navComputer, string destination) =>
+        EquipTo(navComputer, destination, playerInventory.Inventory);
+
+    public bool EquipTo(NavigationComputer navComputer, string destination, Inventory source)
     {
-        if (navComputer == null || destination == null) return false;
+        if (navComputer == null || destination == null || source == null) return false;
 
         string currentSlot = FindSlot(navComputer);
         var slot = equipment.GetSlot(destination);
@@ -89,7 +96,7 @@ public class PlayerNavComputer : MonoBehaviour
         if (currentSlot != null)
             equipment.GetSlot(currentSlot)?.RemoveEquipmentItem(navComputerItem);
         else
-            playerInventory.Inventory.RemoveEquipmentItem(navComputerItem);
+            source.RemoveEquipmentItem(navComputerItem);
 
         navComputer.SetCarried(true, transform);
         return true;
