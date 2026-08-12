@@ -505,6 +505,26 @@ signs off on scope and order.
     that every ore node still trains for the player; real pathfinding
     (today's bump-and-turn can still get an NPC boxed in stuck); hiring
     more than one NPC at a time (only one exists in the world today).
+  - [ ] **Worker management interface (2026-08-11) — a single screen to see
+    and manage every hired NPC at once, not just the one currently in
+    front of the player.** Real pain point now that 5 NPCs are scattered
+    in-scene (`CHANGELOG.md` v0.2.9-dev) and each can independently be
+    hired/waiting-for-payment/assigned a job: today the only way to check
+    on any of them is walk up, press E, and open that one NPC's own
+    `NPCHiringScreen`/`NPCJobScreen` — there's no way to see "who's
+    unpaid right now" or "who's idle vs. working" across the whole roster
+    without physically visiting each one. Data already exists to surface
+    per-worker, just needs a consolidated view: `NPCHiring.IsHired`/
+    `IsWaitingForPayment`/`DisplayName`/`WorkTimeRemaining`, `NPCJob.
+    AssignedJob`/`IsReady`, `NPCSkills.Levels`. Likely shape: a new tab or
+    a Player-tab section listing every hired NPC (found the same way
+    `NPCFactoryWorkerMale/Female.prefab` swap verification did —
+    `FindObjectsByType<NPCHiring>`, filtered to `IsHired`), each row
+    showing name/job/status/pay-due at a glance, with a way to jump into
+    that NPC's existing per-NPC screens for the detailed actions
+    (assign job, give tools, pay, fire) rather than duplicating that UI.
+    Not scoped/started — logging so it doesn't get lost, not committed to
+    a specific design yet.
 - [ ] **`CraftingRecipe.requiresCanteenWater` only checks a Canteen held
   in a hand, not one attached to a Belt (2026-08-10).**
   `PlayerCrafting.FindEquippedCanteen` only looks at `PlayerEquipment`'s
