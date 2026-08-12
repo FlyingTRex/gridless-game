@@ -5,12 +5,43 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.8-dev` — must always match `GameVersion` in
+**Current version:** `0.3.9-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
+
+### v0.3.9-dev — Furnace: 2x scale, and a real grounding bug fixed along the way
+
+Follow-up to v0.3.8-dev — traskmi's live look at the placed Furnace called it
+"very small."
+
+- **Scaled 2x**: world bounds went from (0.65, 1.00, 0.44) to
+  (1.30, 2.00, 0.87) — now taller than the 1.8m player and clearly more
+  substantial than the 0.76m-tall Anvil, matching a furnace's real-world
+  role as a bigger structure than a compact worked-metal block.
+- **Found and fixed a real grounding bug while inspecting the size**:
+  `CrudeFurnace.glb`'s pivot sits at its *center* height, not its base —
+  confirmed by noticing the object's measured world-bounds center exactly
+  equalled its transform position. This is the exact "imported model pivot
+  is not reliably at its base" gotcha `CLAUDE.md` already documents for
+  third-party/AI-generated models — the original v0.3.8-dev placement
+  script assumed a base pivot and didn't check, so the Furnace was already
+  sitting at a slightly wrong height before the resize made it more
+  noticeable. Fixed by measuring real renderer bounds and computing the
+  pivot's actual offset from the true base, rather than trusting `y = 0`
+  (or in this case, the originally-sampled ground `Y`) to mean "resting on
+  the ground."
+- **BoxCollider re-fit from fresh post-scale bounds** rather than trusting
+  the scale to carry through the existing local-space size correctly on
+  its own — confirmed by grepping the saved YAML: local `m_Size` came back
+  unchanged (0.65, 1.00, 0.44), which is correct since collider size is
+  local-space and the parent's new 2x scale applies automatically at
+  runtime.
+- Verified directly in the saved scene YAML (`m_LocalScale`, repositioned
+  `m_LocalPosition.y`, refit `BoxCollider.m_Size`), not just the batch
+  script's own log output.
 
 ### v0.3.8-dev — Iron Ingot: new item, new "requires a Furnace" crafting gate
 
