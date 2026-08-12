@@ -15,7 +15,7 @@ MonoBehaviour:
   itemName: Bandage
   maxStack: 20
   weight: 0.1
-  tier: 2
+  tier: 0
   worldPickupPrefab: {fileID: 5856193543961503449, guid: b8ae2882f74c3d24f89d7690bc27f8e0, type: 3}
   icon: {fileID: 21300000, guid: 6806630aa5e40824aa30f8ef33dd14e1, type: 3}
   previewIcon: {fileID: 21300000, guid: 8523597a7aac66d43bac892af4666965, type: 3}

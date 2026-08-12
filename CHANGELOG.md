@@ -5,14 +5,28 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.9-dev` — must always match `GameVersion` in
+**Current version:** `0.3.10-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
 
-### v0.3.9-dev — Furnace: 2x scale, and a real grounding bug fixed along the way
+### v0.3.10-dev — Healing Paste & Bandage: Medical 25 → Medical 0
+
+Both items' skill requirement isn't a standalone field — it's derived from
+their `ItemDefinition.tier` via the shared `CraftTierScale.SkillRequirement`
+table (Crude→0, Rudimentary→10, Normal→25, Fine→50, Masterwork→100). Both
+were `tier: 2` (Normal, hence 25); changed to `tier: 0` (Crude, hence 0).
+
+Confirmed safe before touching anything: both `HealingPasteRecipe.asset` and
+`BandageRecipe.asset` have null `lowerTierItem`/`higherTierItem` — genuinely
+single-tier items (like Rope/Cloth), not one rung of an actual Crude→
+Masterwork ladder, so this doesn't imply missing "Crude Healing Paste"/
+"Fine Bandage" variants. Also confirmed the tier change has no side effect
+on craft duration — `PlayerSkills.GetHoldDuration` derives hold time from
+the *player's own current skill level* (`TierForSkillLevel`), not the
+item's stored tier, so this is purely a gate-requirement change.
 
 Follow-up to v0.3.8-dev — traskmi's live look at the placed Furnace called it
 "very small."

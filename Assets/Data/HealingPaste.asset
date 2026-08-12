@@ -15,7 +15,7 @@ MonoBehaviour:
   itemName: Healing Paste
   maxStack: 20
   weight: 0.3
-  tier: 2
+  tier: 0
   worldPickupPrefab: {fileID: 1451938681935716564, guid: 8b4ac82c918862a4994dfead2b95759b, type: 3}
   icon: {fileID: 21300000, guid: cb36eec5104146848842b9de6f7b0b72, type: 3}
   previewIcon: {fileID: 21300000, guid: a7bcdc31e9efee740a4033e3e64601b9, type: 3}
