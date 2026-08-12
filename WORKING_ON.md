@@ -12,4 +12,9 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-(none right now)
+- 2026-08-11 — Claude (traskmi's session) — Building a real Iron Ingot model
+  (low-poly + metallic material, via headless Blender) to replace the
+  placeholder Rock_Quaternius mesh currently used as Iron's world-pickup
+  visual (`IronChunk.prefab`). Model exported to `Assets/Models/
+  IronIngot.glb`; next step is wiring it into `IronChunk.prefab` and
+  `Iron.asset` — touches shared prefab/asset files, flagging here first.
