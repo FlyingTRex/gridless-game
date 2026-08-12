@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
-  m_Name: HikingBootsItem
+  m_Name: SettlersShirt
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Hiking Boots
+  itemName: Settler's Shirt
   maxStack: 1
-  weight: 1.5
+  weight: 1
   tier: 2
-  worldPickupPrefab: {fileID: 5560595426316726188, guid: b51a14ebcc522194988be13410aae65f, type: 3}
-  icon: {fileID: 21300000, guid: e74cedb3a77ac104db8e6b8cb87c0967, type: 3}
-  previewIcon: {fileID: 21300000, guid: b66b29b07d3ce3e4c915e2d93981ce98, type: 3}
+  worldPickupPrefab: {fileID: 6761061111452742268, guid: 745e3b902fbb5a340920515612879d9f, type: 3}
+  icon: {fileID: 21300000, guid: 2a74a58a4d38c9b4ba2396a228e24e9d, type: 3}
+  previewIcon: {fileID: 21300000, guid: 5f4c1f8ffaf15c542bac1c48a45644a4, type: 3}
   baseItem: {fileID: 0}

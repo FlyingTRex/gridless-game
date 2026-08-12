@@ -5,12 +5,116 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.12-dev` — must always match `GameVersion` in
+**Current version:** `0.3.14-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
+
+### v0.3.14-dev — Combat Boots model regenerated, Boots icons added
+
+Regenerated the shared boots model via `Tools/Tripo3D` (`a pair of black
+leather combat boots, military style, lace-up, thick rubber sole...`) —
+clean, clearly-readable result on the first attempt. Civilian/Hiking/
+Military Boots all share this one model (`Assets/Models/CombatBoot.glb`),
+so overwriting it in place (same file path, same `.meta`/guid) meant all
+three prefabs picked up the new model automatically with zero prefab edits
+needed for the reference itself.
+
+- **Real gotcha hit:** overwriting the `.glb` in place broke each prefab's
+  nested child reference anyway, just not the way expected — the new
+  generation has a different internal glTF node structure than the old
+  placeholder, so the existing child `PrefabInstance`'s modification data
+  (tied to specific old node fileIDs) silently stopped resolving to
+  anything on reimport. `GetComponentsInChildren<Renderer>()` came back
+  empty with no error. Fixed by replacing each prefab's child outright with
+  a fresh `PrefabUtility.InstantiatePrefab` of the reimported model instead
+  of trying to repair the stale reference — same "don't trust a clean
+  batch-log exit code" lesson as the `LoadPrefabContents` gotcha in
+  `CLAUDE.md`, just a new specific failure mode of it (silently-empty
+  hierarchy, not a missing/null object).
+- Re-measured actual bounds and re-fit each prefab's `BoxCollider` +
+  grounded the model at true floor level per the imported-model-pivot
+  gotcha, since the old collider/position were sized for the previous
+  placeholder, not this new model.
+- **Baked icons for all three Boot items** (`CivilianBootsItem`/
+  `HikingBootsItem`/`MilitaryBootsItem`), which never had one before
+  (`icon: {fileID: 0}` since they were added) — closes the
+  "Boots-missing-icon" gap called out as explicitly out of scope back in
+  the drag-and-drop rework (v0.3.11-dev) and the original inventory bug
+  report. Used the existing `IconBaker.cs` tool, one call per item's own
+  prefab.
+
+Batch-mode compile check passed (0 `CS####` errors — no `.cs` changes this
+round, verification only). Manual Play-mode verification (visually confirm
+the new boots in-world/worn, and that all three items show their new icons
+in the inventory grid) still needed — see `TEST_FEATURE_PLAN.md`.
+
+### v0.3.13-dev — Settler's Shirt: new wearable, auto-equipped at spawn
+
+New non-craftable wearable: a black work shirt with "GRIDLESS" across the
+chest, worn on the Chest slot, holding its own 4 general-purpose inventory
+slots — structurally the same `IInventoryHolder` pattern as a Backpack, just
+on `Chest` instead of `Back` with a smaller capacity. The player now starts
+the game already wearing one.
+
+- **Model via `Tools/Tripo3D`** (`a plain black cotton work shirt,
+  button-front, long sleeves, simple settler frontier clothing...`) — clean
+  on the first generation, no unwanted graphics baked in, imported as
+  `Assets/Models/SettlersShirt.glb`.
+- **"GRIDLESS" is a real `TextMesh` child, not baked into the AI texture.**
+  Text-in-mesh generation is a known weak spot (this repo's own prior
+  generations already show instructions getting ignored, e.g. a knife that
+  kept its handle despite "no handle" in every prompt attempt) — a
+  real-time-rendered `TextMesh` sidesteps that risk entirely: guaranteed
+  crisp, correctly-spelled text, free to reposition/resize later without
+  spending more Tripo3D credits.
+- **New `Shirt.cs`/`PlayerShirt.cs` pair**, same shape as
+  `Backpack.cs`/`PlayerBackpack.cs`. Built source-aware from day one (no
+  retrofit needed, same as `Tool`/`PlayerTool` before it).
+  `InventoryScreen.GetWornContainers()` needed `"Chest"` added to the slot
+  names it checks for a worn `IInventoryHolder` — the one real code change
+  beyond copying the Backpack pattern; everything else about rendering a
+  worn container's contents already generalized automatically.
+- **Auto-equip at spawn is a new, `PlayerShirt`-only mechanism** — no
+  generic "starting gear" system existed anywhere in the project before
+  this (checked). `PlayerShirt.Start()` (not `Awake()`, so every other
+  component's `Awake` — including `PlayerEquipment` building its slot
+  dictionary — has already run) instantiates a fresh instance and equips it
+  onto Chest if nothing's worn there yet, guarded so it only ever fires
+  once per session.
+- **Not craftable, no `CraftingRecipe` asset** — Admin Spawn already
+  auto-discovers every `ItemDefinition` via an `AssetDatabase` search
+  (confirmed in `AdminSpawnScreen.cs`), so it's spawnable there with zero
+  extra wiring.
+- **Real gotcha hit and fixed while building the prefab:** the model's
+  front turned out to be local `-X`, not `+Z` as first assumed (confirmed
+  by rendering the model from all four cardinal directions and inspecting
+  each — `+X` was the back, `-X` the front with the collar/buttons/
+  pockets). The `TextMesh`'s own rotation needed a second fix on top of
+  that: `TextMesh` isn't backface-culled, so an initial rotation attempt
+  that pointed the text 180° off didn't hide it, it rendered it mirrored
+  backwards — confirmed via a close-up render showing "GRIDLESS" flipped
+  before landing on the correct `Quaternion.Euler(0, 90, 0)`.
+- Icons baked via the existing `IconBaker.cs` tool, with a per-asset
+  `cameraDirection` override (`(-1, 0.8, -1)`) since the front being `-X`
+  means the tool's default framing angle would've shown the back.
+
+**Fix found during Ben's first live look:** dropped, the shirt read as
+oversized and still stood upright in its worn/fitted torso shape (Tripo3D
+generated it as rigid worn geometry, not flat cloth) instead of looking
+like a discarded garment lying on the ground. `Shirt.SetCarried(false, ...)`
+now applies a 90° rotation on drop specifically to lay the model's thin
+front-to-back axis vertical instead of its tall collar-to-hem axis —
+confirmed via a diagnostic render that this reads as a shirt lying flat
+rather than a floating torso. Also scaled the prefab root down to 0.7x,
+confirmed via the same render.
+
+Batch-mode compile check passed (0 `CS####` errors, re-verified after this
+fix). Manual Play-mode verification (confirm auto-equip at spawn, 4-slot
+contents grid, drop/re-pickup, and now the lie-flat drop pose in the live
+3D view) still needed — see `TEST_FEATURE_PLAN.md`.
 
 ### v0.3.12-dev — Tools are now equippable: real held-in-hand models
 

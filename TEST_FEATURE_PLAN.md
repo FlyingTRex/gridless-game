@@ -214,6 +214,43 @@ re-verify the same underlying behaviors using drag instead.
   with no inventory entry (an orphaned object — the exact bug
   `PlayerCrafting.BreakHeldTool`'s equipment-aware fix targets).
 
+### Settler's Shirt (v0.3.13-dev)
+
+- [ ] Enter Play mode fresh — confirm the player spawns already wearing the
+  Settler's Shirt on Chest (check the Equipment section's Chest row), with
+  no manual pickup/equip action taken.
+- [ ] Right-click (or click) the worn shirt and confirm "Unequip"/"Drop"
+  are the offered actions, matching a worn equippable like a Backpack.
+- [ ] Confirm the shirt's 4-slot contents grid renders in the "Inventory"
+  side panel while worn, same as a worn Backpack's does.
+- [ ] Put an item in one of its 4 slots, unequip, re-equip — confirm
+  contents persist.
+- [ ] Drop the shirt, confirm it becomes a normal world pickup (falls to
+  the ground, collider re-enabled), then pick it back up and re-equip —
+  confirms the auto-equip-at-spawn mechanism doesn't interfere with the
+  ordinary equip/unequip/drop flow afterward.
+- [ ] **Dropped pose (added after Ben's live report that it looked
+  oversized and stayed upright in its worn shape).** Confirm the dropped
+  shirt actually lies flat on the ground — not floating upright still
+  torso-shaped — and reads as a reasonably-sized discarded garment, not
+  oversized relative to the player/environment.
+- [ ] Confirm Admin Spawn's item search also finds "Settler's Shirt" (a
+  second one, independent of the auto-equipped one) with no extra wiring.
+- [ ] Look closely at the worn/dropped shirt in the 3D world — confirm
+  "GRIDLESS" reads correctly (not mirrored, not on the back) across the
+  chest.
+
+### Combat Boots model + Boots icons (v0.3.14-dev)
+
+- [ ] Equip (or admin-spawn and equip) each of Civilian/Hiking/Military
+  Boots — confirm all three now show the new combat boot model on the Feet
+  slot, correctly grounded (not floating/sunk), not the old placeholder.
+- [ ] Drop each of the three — confirm the model still looks correct lying
+  in the world (collider re-fit to the new model's actual bounds).
+- [ ] Open the Inventory tab with one of each Boots type in the main grid —
+  confirm all three now show a real icon instead of text-only (previously
+  `icon: {fileID: 0}` on all three).
+
 ### Historical button-based steps (pre-v0.3.11-dev — see note above)
 
 - [ ] Clicking the **Inventory** tab: main inventory list (4 slots) shows carried items with Eat/Drink (if

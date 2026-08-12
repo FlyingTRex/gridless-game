@@ -76,6 +76,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerSunglasses sunglassesCarrier;
     private PlayerMiningFaceShield miningShieldCarrier;
     private PlayerTool toolCarrier;
+    private PlayerShirt shirtCarrier;
     private PlayerCurrency currency;
     private PlayerCoinDrop coinDropper;
     private PlayerVitals vitals;
@@ -193,6 +194,7 @@ public class InventoryScreen : MonoBehaviour
         sunglassesCarrier = GetComponent<PlayerSunglasses>();
         miningShieldCarrier = GetComponent<PlayerMiningFaceShield>();
         toolCarrier = GetComponent<PlayerTool>();
+        shirtCarrier = GetComponent<PlayerShirt>();
         currency = GetComponent<PlayerCurrency>();
         coinDropper = GetComponent<PlayerCoinDrop>();
         vitals = GetComponent<PlayerVitals>();
@@ -586,6 +588,7 @@ public class InventoryScreen : MonoBehaviour
             case NavigationComputer navComputer: TryEquipWithChoice(navComputer, source); break;
             case PersonalHealthMonitor monitor: TryEquipWithChoice(monitor, source); break;
             case Tool tool: TryEquipWithChoice(tool, source); break;
+            case Shirt shirt: shirtCarrier.Equip(shirt, source); break;
         }
     }
 
@@ -605,6 +608,7 @@ public class InventoryScreen : MonoBehaviour
             case NavigationComputer navComputer: return navComputerCarrier.EquipTo(navComputer, slotName, source);
             case PersonalHealthMonitor monitor: return healthMonitorCarrier.EquipTo(monitor, slotName, source);
             case Tool tool: return toolCarrier.EquipTo(tool, slotName, source);
+            case Shirt shirt: return shirtCarrier.Equip(shirt, source);
             default: return false;
         }
     }
@@ -622,6 +626,7 @@ public class InventoryScreen : MonoBehaviour
             case Sunglasses sunglasses: sunglassesCarrier.Unequip(sunglasses); break;
             case MiningFaceShield shield: miningShieldCarrier.Unequip(shield); break;
             case Tool tool: toolCarrier.Unequip(tool); break;
+            case Shirt shirt: shirtCarrier.Unequip(shirt); break;
         }
     }
 
@@ -639,7 +644,8 @@ public class InventoryScreen : MonoBehaviour
             || ReferenceEquals(healthMonitorCarrier.Equipped, equipment)
             || ReferenceEquals(sunglassesCarrier.Equipped, equipment)
             || ReferenceEquals(miningShieldCarrier.Equipped, equipment)
-            || ReferenceEquals(toolCarrier.Equipped, equipment);
+            || ReferenceEquals(toolCarrier.Equipped, equipment)
+            || ReferenceEquals(shirtCarrier.Equipped, equipment);
     }
 
     // Registers one slot box's screen rect as a drop target for this frame.
@@ -1137,17 +1143,20 @@ public class InventoryScreen : MonoBehaviour
     // before the slot list draws, to know how many contents panels to lay
     // out beside it. Backpack/Belt (Back/Waist) each contribute at most
     // one row, keyed off IInventoryHolder.Inventory — unchanged logic from
-    // before Boot existed. Boot (Feet) is different on purpose: unlike
-    // Backpack/Belt's single homogenous cargo pool, a Boot can have
-    // multiple independently-typed named slots (a Knife Sheath AND a
-    // Pistol Holster), so it deliberately doesn't implement
-    // IInventoryHolder — it contributes one row per configured slot
-    // instead, enumerated directly off the equipped Boot.
+    // before Boot existed. Chest (Shirt, 2026-08-12) is the same shape as
+    // Back/Waist — just add the slot name here, everything else about
+    // rendering a worn IInventoryHolder's contents already generalizes.
+    // Boot (Feet) is different on purpose: unlike Backpack/Belt/Shirt's
+    // single homogenous cargo pool, a Boot can have multiple
+    // independently-typed named slots (a Knife Sheath AND a Pistol
+    // Holster), so it deliberately doesn't implement IInventoryHolder — it
+    // contributes one row per configured slot instead, enumerated directly
+    // off the equipped Boot.
     private List<WornContentsRow> GetWornContainers()
     {
         var result = new List<WornContentsRow>();
 
-        foreach (var slotName in new[] { "Back", "Waist" })
+        foreach (var slotName in new[] { "Back", "Waist", "Chest" })
         {
             var slotInventory = equipment.GetSlot(slotName);
             if (slotInventory == null) continue;

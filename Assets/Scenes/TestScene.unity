@@ -10948,6 +10948,7 @@ GameObject:
   - component: {fileID: 1681626276}
   - component: {fileID: 1681626277}
   - component: {fileID: 1681626278}
+  - component: {fileID: 1681626279}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -11800,6 +11801,23 @@ MonoBehaviour:
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+--- !u!114 &1681626279
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 914e4b38e2eefcf4caaaacefe7a61146, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerShirt
+  carrySlot: {fileID: 0}
+  dropDistance: 1.2
+  dropHeight: 1
+  despawnDelay: 120
+  startingShirtPrefab: {fileID: 6761061111452742268, guid: 745e3b902fbb5a340920515612879d9f, type: 3}
 --- !u!1001 &1696336636
 PrefabInstance:
   m_ObjectHideFlags: 0
