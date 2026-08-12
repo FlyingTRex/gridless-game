@@ -240,16 +240,48 @@ re-verify the same underlying behaviors using drag instead.
   "GRIDLESS" reads correctly (not mirrored, not on the back) across the
   chest.
 
-### Combat Boots model + Boots icons (v0.3.14-dev)
+### Combat Boots model + Boots icons (v0.3.14-dev, model fixed v0.3.15-dev, scaled to player v0.3.16-dev)
 
 - [ ] Equip (or admin-spawn and equip) each of Civilian/Hiking/Military
   Boots — confirm all three now show the new combat boot model on the Feet
   slot, correctly grounded (not floating/sunk), not the old placeholder.
+  **Regression check:** confirm exactly 2 boots are visible, not 3 (the
+  first regeneration came back with an extra boot baked into the mesh).
+  **Regression check:** confirm the boots read as a believable size next to
+  the player — roughly ankle-to-mid-calf height, not the "boot the size of
+  a washing machine" the raw import first produced.
 - [ ] Drop each of the three — confirm the model still looks correct lying
   in the world (collider re-fit to the new model's actual bounds).
 - [ ] Open the Inventory tab with one of each Boots type in the main grid —
   confirm all three now show a real icon instead of text-only (previously
   `icon: {fileID: 0}` on all three).
+
+### Drop-zone hover highlight + coordinate-space fix (v0.3.15-dev, real bug
+fixed v0.3.16-dev)
+
+- [ ] Wear Military (or Hiking) Boots, hold a Knife anywhere reachable
+  (hand/backpack/main inventory), and start dragging it — confirm a yellow
+  outline appears **directly around the actual slot box** the cursor is
+  over (not offset onto a caption label or elsewhere), updating live as the
+  cursor moves. **Regression check:** v0.3.15-dev's first version of this
+  highlight was itself visibly mispositioned (landed on the row's caption
+  text instead of the box) due to a coordinate-space bug in
+  `RegisterDropZone` — confirm that's now fixed.
+- [ ] Drag a Knife onto the worn Boot's Knife Sheath specifically — confirm
+  the highlight clearly marks the Knife Sheath box (not the adjacent Pistol
+  Holster), and that releasing there actually moves the knife into the
+  sheath. **This is the real regression test for the original bug report**
+  (2026-08-12, "wouldn't move") — the root cause turned out to be the same
+  coordinate-space bug affecting the highlight, not target-precision as
+  first suspected, so this specific repro is the one that actually proves
+  the fix.
+- [ ] While scrolled partway down the Inventory tab's scroll view (not at
+  the very top), repeat the drag-and-drop test on any slot box — confirm
+  drops still land correctly. This is the scenario that would have broken
+  hardest under the coordinate bug (unconverted rects were offset by
+  `scrollPos`, so the mismatch grows the further you've scrolled).
+- [ ] Confirm the highlight disappears immediately once the drag ends
+  (drop or release-as-click) and doesn't linger.
 
 ### Historical button-based steps (pre-v0.3.11-dev — see note above)
 

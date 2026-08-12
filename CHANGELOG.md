@@ -5,12 +5,96 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.14-dev` — must always match `GameVersion` in
+**Current version:** `0.3.16-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
+
+### v0.3.16-dev — Boots scaled to player, and the real drag-drop coordinate bug
+
+**Combat Boots were comically oversized** — Ben's live report, with a
+screenshot showing a single boot roughly the size of the player's whole
+upper body. Measured: the "fixed 2-boot" model from v0.3.15-dev came in at
+raw bounds ~0.93 x 1.00 x 0.98, i.e. a boot the size of a washing machine
+relative to the player's actual `CharacterController` (height `1.8`,
+confirmed 1 world unit = 1 meter). Scaled down to a believable 0.32m tall
+(roughly 1/6 of player height, appropriate for a tall lace-up combat boot),
+re-fit colliders/grounding, re-baked icons.
+
+**New permanent rule in `CLAUDE.md`**: every model brought in via
+`Tools/Tripo3D` (or any future source) must have its size checked against
+the player before being considered done — Tripo3D does not generate at
+real-world relative scale (the Furnace needed scaling *up* 2x, Boots needed
+scaling *down* ~3x, from the same pipeline with no scale hint in either
+prompt), so there's no default that's "usually right."
+
+**Bigger find, while chasing why the new drop-zone hover highlight
+(v0.3.15-dev) landed on a caption label instead of the actual slot box in
+Ben's screenshot**: every slot box lives inside `DrawContent()`'s
+`GUILayout.BeginScrollView`, which reports child rects in a coordinate
+space local to the scrolled content (offset by `-scrollPos`, clipped to the
+viewport). But drop resolution (`HandleGlobalDragRelease`) and the hover
+highlight both run later from `DrawPopups()`, entirely outside that
+scroll view/`BeginArea` nesting, in true absolute screen space — comparing
+an unconverted local rect against `Event.current.mousePosition` in that
+outer context is comparing two different coordinate systems. **This is
+almost certainly the actual root cause of the original "drag a Knife onto
+the Boot's Knife Sheath does nothing" report** (2026-08-12, investigated
+earlier this session and attributed — incorrectly, it turns out — to the
+sheath's small hit target rather than a coordinate bug), since
+`HandleGlobalDragRelease`'s hit-test has the exact same mismatch as the
+highlight's mispositioning. Fixed at the source: `RegisterDropZone` now
+converts every captured rect to true screen space via
+`GUIUtility.GUIToScreenRect` at registration time (while still inside all
+the active clip transforms), so both the highlight and the actual drop
+resolution now compare against the same coordinate system.
+
+Batch-mode compile check passed (0 `CS####` errors). Manual Play-mode
+verification (boots read as correctly-sized now, and — the important one —
+retry the original Knife Sheath drag with the coordinate fix in place)
+still needed — see `TEST_FEATURE_PLAN.md`.
+
+### v0.3.15-dev — Combat Boots model fix (3 boots → 2), drag drop-zone highlight
+
+**The v0.3.14-dev Combat Boots regeneration came back with 3 boots instead
+of 2** — Ben's live report. Confirmed via a diagnostic script (dumped every
+`MeshFilter`/`Transform` in the imported model) that it's genuinely one
+fused mesh containing 3 boot shapes, not a scene/prefab duplication bug on
+our end (only 1 `MeshFilter`, 1 `Transform` — Tripo3D's usual single-fused-
+mesh output, just with unwanted extra geometry baked in this time).
+Regenerated with an explicit prompt (`"a matching pair of exactly two...,
+one left boot and one right boot, ..., no extra objects"`) — clean result,
+confirmed visually. Same overwrite-in-place + rebuild-child-fresh fix
+pattern as before (`Assets/Models/CombatBoot.glb`, all 3 prefabs, icons
+re-baked).
+
+**Also investigated a reported bug: dragging a Masterwork Knife from a
+Backpack into a worn Boot's Knife Sheath "wouldn't move."** Traced every
+step of the drop path (`TryDrop` → `InventoryTransfer.MoveAsManyAsFit` →
+`Move` → `Inventory.HasSpaceFor`/`AddEquipmentItem`) against this exact
+scenario — the Knife Sheath's `allowedItems` list correctly references all
+5 Knife tiers by guid, and the logic checks out as correct. Confirmed with
+Ben that the drag ghost did appear and follow the cursor (so drag detection
+itself works) — most likely explanation is the Knife Sheath's small
+(70×44px) box sitting directly next to its Pistol Holster (which accepts
+nothing, `allowedItems: []`) with zero visual feedback about which target a
+drop would land on, making a few-pixel miss indistinguishable from the item
+"just not moving."
+
+**Fixed the underlying UX gap regardless of whether that was the exact
+cause here:** `InventoryScreen` now outlines whichever drop zone is under
+the cursor while dragging (`DrawDropZoneHighlight`, drawn every frame
+`isDragging` is true, using the same frame's `dropZones` registry the drop
+resolution itself reads) — a yellow border around the exact box a release
+would land on, so a near-miss is now visible in real time instead of
+discovered after the fact.
+
+Batch-mode compile check passed (0 `CS####` errors). Manual Play-mode
+verification (new boots model shows exactly 2 boots, boot icons updated,
+retry the Knife Sheath drag with the new highlight visible) still needed —
+see `TEST_FEATURE_PLAN.md`.
 
 ### v0.3.14-dev — Combat Boots model regenerated, Boots icons added
 

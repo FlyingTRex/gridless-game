@@ -334,8 +334,37 @@ public class InventoryScreen : MonoBehaviour
         DrawPendingEquipPopup();
         DrawCoinDropPopup();
         DrawItemDropPopup();
+        DrawDropZoneHighlight();
         DrawDragGhost();
         DrawTooltip();
+    }
+
+    // Outlines whichever drop zone the cursor is currently over while
+    // dragging — real gap found live (2026-08-12): small, closely-packed
+    // targets (a Boot's Knife Sheath sitting right next to its Pistol
+    // Holster, which accepts nothing) gave no feedback at all about which
+    // one a drop would actually land on, so a drop that missed by a few
+    // pixels and landed on the wrong box looked identical to the item
+    // just not moving. Drawn before the drag ghost so the ghost stays on
+    // top of the highlight outline it's hovering over.
+    private void DrawDropZoneHighlight()
+    {
+        if (!isDragging) return;
+
+        var mousePos = Event.current.mousePosition;
+        foreach (var zone in dropZones)
+        {
+            if (!zone.Rect.Contains(mousePos)) continue;
+
+            const float thickness = 3f;
+            var r = zone.Rect;
+            Color highlight = Color.yellow;
+            GUI.DrawTexture(new Rect(r.x, r.y, r.width, thickness), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, highlight, 0, 0);
+            GUI.DrawTexture(new Rect(r.x, r.yMax - thickness, r.width, thickness), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, highlight, 0, 0);
+            GUI.DrawTexture(new Rect(r.x, r.y, thickness, r.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, highlight, 0, 0);
+            GUI.DrawTexture(new Rect(r.xMax - thickness, r.y, thickness, r.height), Texture2D.whiteTexture, ScaleMode.StretchToFill, false, 0, highlight, 0, 0);
+            break;
+        }
     }
 
     // Unity's runtime IMGUI (unlike the Editor's) never draws GUI.tooltip
@@ -650,10 +679,32 @@ public class InventoryScreen : MonoBehaviour
 
     // Registers one slot box's screen rect as a drop target for this frame.
     // Called for every box drawn (occupied or empty) — an empty box is
-    // just as valid a drop target as an occupied one.
+    // just as valid a drop target as an equipped one.
+    //
+    // Real bug found live (2026-08-12, Ben's screenshot of the drop-zone
+    // highlight landing on a caption label instead of the actual box):
+    // every box lives inside DrawContent()'s GUILayout.BeginScrollView,
+    // which shifts child rects into a coordinate space local to the
+    // scrolled content (offset by -scrollPos, clipped to the viewport) —
+    // GUILayoutUtility.GetLastRect() reports rects in THAT local space.
+    // But drop resolution (HandleGlobalDragRelease) and the hover
+    // highlight (DrawDropZoneHighlight) both run later from DrawPopups(),
+    // which sits entirely outside the scroll view/BeginArea nesting, in
+    // true absolute screen space. Comparing an unconverted local rect
+    // against Event.current.mousePosition in that outer context is
+    // comparing two different coordinate systems — this wasn't just a
+    // cosmetic highlight-position bug, it's almost certainly the root
+    // cause of the original "drag onto the Knife Sheath does nothing"
+    // report, since the hit-test in HandleGlobalDragRelease has the exact
+    // same mismatch. GUIUtility.GUIToScreenRect converts through every
+    // active BeginGroup/BeginScrollView/BeginArea clip transform back to
+    // real screen space — must be called here, synchronously while still
+    // inside all of that nesting, not deferred to whenever the zone is
+    // later read.
     private void RegisterDropZone(Rect rect, Inventory inventory, string equipSlotName)
     {
-        dropZones.Add(new DropZone { Rect = rect, Inventory = inventory, EquipSlotName = equipSlotName });
+        var screenRect = GUIUtility.GUIToScreenRect(rect);
+        dropZones.Add(new DropZone { Rect = screenRect, Inventory = inventory, EquipSlotName = equipSlotName });
     }
 
     // Shift = half the stack (rounded down, min 1), Ctrl = exactly 1,

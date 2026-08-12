@@ -310,6 +310,41 @@ to remember if something looks wrong** — run the bounds check above as part
 of every placement script, before the model is considered done, not only
 when the sink is visually obvious.
 
+## Rule: scale every generated model against the player, not against its own raw import size
+
+Tripo3D (and likely any other text-to-3D source) does **not** generate
+models at real-world scale relative to each other — each generation comes
+back normalized to roughly its own unit-cube-ish bounding box regardless of
+whether the prompt describes something pocket-sized or room-sized. Confirmed
+by the actual numbers seen across generations in this project: the Furnace
+needed scaling **up** 2x after import (read as too small next to the
+player/Anvil), while Combat Boots needed scaling **down** — the raw import
+measured roughly 0.93 x 1.00 x 0.98, i.e. **a boot the size of a washing
+machine** (caught live, 2026-08-12, Ben: "way too big"), despite both
+coming out of the same pipeline with no scale hint in either prompt. There
+is no default that's "usually right" — every model needs its size checked
+explicitly.
+
+**The reference is the player, not intuition about the mesh.** This
+project's player `CharacterController` is height `1.8`, radius `0.4`
+(`Assets/Scenes/TestScene.unity`) — 1 world unit = 1 meter, confirmed. Before
+considering a new model's import done, compare its measured bounds (same
+`Renderer.bounds` measurement the pivot-grounding check above already does)
+against a real-world estimate for that object relative to a 1.8m person —
+a combat boot is roughly 0.3-0.35m tall, a backpack roughly 0.4-0.5m tall,
+a hand tool 0.3-0.4m long, etc. — and scale the prefab (root `localScale`,
+uniform) until it lands in a believable range. Sanity-check by imagining
+the object physically next to a 1.8m-tall person, not by whether the number
+"1.0" happens to look reasonable in isolation.
+
+**How to apply:** this is a mandatory step for every new or regenerated
+model brought in via `Tools/Tripo3D` (or any future model source) — not
+just a fix for when a live look happens to catch something oversized.
+Measure, compare to the player, scale, *then* run the pivot-grounding check
+above (order matters — grounding needs the final scale already applied,
+since scale changes the measured bounds the ground offset is computed
+from).
+
 ## Gotcha: a tier-scaling ratio tuned for one quantity doesn't transfer to another
 
 `CraftTierScale.Modifier(tier)` (Crude 0.2x → Masterwork 5x) was tuned for capacity
