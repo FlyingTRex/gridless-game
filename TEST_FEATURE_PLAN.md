@@ -2215,3 +2215,26 @@ behavior.
     NPC, and check what `Visual`'s local Y actually is relative to the
     measured `feetOffset` (the old `corrected` flag no longer exists in
     this version) rather than more screenshot round-trips.
+
+## 19. Iron Ingot & the Furnace crafting gate (v0.3.8-dev)
+
+- [ ] **Furnace is visible and positioned reasonably in `TestScene.unity`**
+  — ~2.5m from the Anvil, sitting on the ground (not floating/sunk).
+  Built from `Assets/Models/CrudeFurnace.glb`, not yet live-viewed in Play
+  mode (only verified via saved-scene YAML this session).
+- [ ] **Iron Ingot recipe appears in the Crafting tab** under the
+  Metalworking discipline (or via Search — "Iron Ingot"), showing "10x
+  Iron" as its ingredient.
+- [ ] **Crafting is blocked far from the Furnace, even with 10+ Iron in
+  inventory** — Craft button disabled, "— requires a Furnace nearby"
+  warning shown (same shape as the existing Anvil warning).
+- [ ] **Crafting succeeds within ~2m of the Furnace** with 10+ Iron on
+  hand — consumes 10 Iron, produces 1 Iron Ingot, trains Metalworking.
+- [ ] **Iron Ingot's icon and world-drop model both look like a metal bar**,
+  not the generic rock placeholder Iron itself still uses — confirm by
+  dropping a crafted Ingot and looking at it directly, not just the
+  inventory icon.
+- [ ] **Admin Spawn Screen search box** — type "iron" and confirm both
+  "Iron" and "Iron Ingot" show up filtered from the full list; confirm
+  Clear restores the full list. Spawning "Iron Ingot" from here should
+  place a real ingot-shaped pickup, not a rock.

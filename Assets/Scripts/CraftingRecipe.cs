@@ -63,4 +63,12 @@ public class CraftingRecipe : ScriptableObject
     // PlayerCrafting.HasCanteenWater/ConsumeCanteenWater.
     public bool requiresCanteenWater;
     public float canteenWaterAmount = 20f;
+
+    // False (default) means no such requirement, same "most recipes don't
+    // need this" convention as requiresAnvilSurface. True means a
+    // FurnaceSurface (a placed Furnace) must be within range — see
+    // PlayerCrafting.HasNearbyFurnace. Added for IronIngotRecipe
+    // (2026-08-11): smelting Iron into an Ingot needs real heat, not just
+    // a hard hammering surface.
+    public bool requiresFurnace;
 }

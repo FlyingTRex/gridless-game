@@ -5,10 +5,56 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.7-dev` — must always match `GameVersion` in
+**Current version:** `0.3.8-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-12
+
+### v0.3.8-dev — Iron Ingot: new item, new "requires a Furnace" crafting gate
+
+First new item added via the headless-Blender pipeline confirmed working this
+session (`Assets/Models/IronIngot.glb`, 54 tris, metallic material, pivot at
+base by construction). Also the first crafting-station requirement beyond
+Anvil — smelting needs real heat, not just a hard hammering surface.
+
+- **New "requires a Furnace" gate, mirrors `requiresAnvilSurface` exactly:**
+  `CraftingRecipe.requiresFurnace` (bool) + `FurnaceSurface` (trivial marker
+  component, same shape as `AnvilSurface`) + `PlayerCrafting.HasNearbyFurnace`
+  (same 2m range, same call shape) + `CraftingScreen` UI updates (warning
+  label, gating, `DrawQuantityAndCraft` signature) — every call site that
+  handles `requiresAnvilSurface` now has a `requiresFurnace` sibling.
+- **A Furnace is now placed in `TestScene.unity`**, ~2.5m from the existing
+  Anvil, built from `Assets/Models/CrudeFurnace.glb` (generated v0.3.5-dev,
+  sat unused until now) with a bounds-fitted `BoxCollider` and
+  `FurnaceSurface` attached.
+- **`Iron Ingot`** (`Assets/Data/IronIngot.asset`, tier matches Iron/Copper) —
+  crafted only, not a world-gathered resource (`canRespawn: false` on its
+  pickup, same as a tool). Recipe: 10x Iron → 1x Iron Ingot, Metalworking
+  skill, requires the new Furnace gate — structurally mirrors
+  `NailRecipe.asset` (the existing `requiresAnvilSurface` template).
+- **Batch-mode asset creation split into two scripts/runs** (data assets,
+  then scene editing), per the documented "don't trust a reference across an
+  `OpenScene` boundary" gotcha — every asset used in the scene-editing pass
+  was re-loaded fresh after `EditorSceneManager.OpenScene`, not carried over
+  from the first script's run.
+- **Verification caught two of my own mistakes, not two real bugs** — worth
+  recording since it's a good example of why "grep the saved YAML" beats
+  trusting a script's own success log: I first checked the wrong guid for
+  the recipe (the item's, not the recipe's) and used a plain
+  `m_Name: Furnace` grep that doesn't match how a `PrefabInstance`'s name
+  override actually serializes (`propertyPath: m_Name` under
+  `m_Modifications`, not a direct field). Both the Furnace placement and the
+  recipe registration were correct on the first try — my initial verification
+  queries were just wrong, not the build.
+- **Admin Spawn Screen gets a search box** (traskmi's separate ask, same
+  session) — the item list was getting long. Same
+  `searchQuery`/`TextField`/Clear-button pattern `CraftingScreen` already
+  uses, filtering by `itemName` substring. New items need zero extra wiring
+  to appear there — confirmed by reading `AdminSpawnScreen.cs` first, it
+  already auto-discovers every `ItemDefinition` via `AssetDatabase.
+  FindAssets("t:ItemDefinition")`.
 
 ## 2026-08-11
 

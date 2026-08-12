@@ -154,6 +154,7 @@ public class CraftingScreen : MonoBehaviour
         bool hasTool = crafting.HasRequiredTool(recipe);
         bool hasSkill = crafting.HasRequiredSkill(recipe);
         bool hasAnvilSurface = crafting.HasNearbyAnvilSurface(recipe);
+        bool hasFurnace = crafting.HasNearbyFurnace(recipe);
         int requiredSkill = CraftTierScale.SkillRequirement(recipe.outputItem.tier);
 
         if (recipe.requiredTools != null && recipe.requiredTools.Length > 0)
@@ -163,13 +164,15 @@ public class CraftingScreen : MonoBehaviour
             GUILayout.Label($"— requires {recipe.trainedSkill.skillName} {requiredSkill}", DebugGUI.Warning);
         if (recipe.requiresAnvilSurface && !hasAnvilSurface)
             GUILayout.Label("— requires a Boulder or Anvil nearby", DebugGUI.Warning);
+        if (recipe.requiresFurnace && !hasFurnace)
+            GUILayout.Label("— requires a Furnace nearby", DebugGUI.Warning);
 
         bool isActiveHere = crafting.IsCrafting && crafting.ActiveRecipe == recipe;
 
         if (isActiveHere)
             DrawProgress();
         else
-            DrawQuantityAndCraft(recipe, hasTool, hasSkill, hasAnvilSurface);
+            DrawQuantityAndCraft(recipe, hasTool, hasSkill, hasAnvilSurface, hasFurnace);
 
         GUILayout.EndVertical();
     }
@@ -194,7 +197,7 @@ public class CraftingScreen : MonoBehaviour
         GUI.DrawTexture(iconRect, sprite.texture, ScaleMode.ScaleToFit);
     }
 
-    private void DrawQuantityAndCraft(CraftingRecipe recipe, bool hasTool, bool hasSkill, bool hasAnvilSurface)
+    private void DrawQuantityAndCraft(CraftingRecipe recipe, bool hasTool, bool hasSkill, bool hasAnvilSurface, bool hasFurnace)
     {
         bool blockedByOtherBatch = crafting.IsCrafting;
         int maxCraftable = crafting.MaxCraftable(recipe);
@@ -212,7 +215,7 @@ public class CraftingScreen : MonoBehaviour
 
         bool hasSpace = playerInventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount * quantity)
             && (recipe.bonusItem == null || playerInventory.Inventory.HasSpaceFor(recipe.bonusItem, recipe.bonusCount * quantity));
-        bool gatesOk = !blockedByOtherBatch && hasTool && hasSkill && hasAnvilSurface;
+        bool gatesOk = !blockedByOtherBatch && hasTool && hasSkill && hasAnvilSurface && hasFurnace;
 
         GUILayout.BeginHorizontal();
         GUI.enabled = gatesOk && hasSpace && maxCraftable >= quantity;

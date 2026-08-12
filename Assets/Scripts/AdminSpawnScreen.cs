@@ -29,6 +29,11 @@ public class AdminSpawnScreen : MonoBehaviour
     private GuildDefinition[] allGuilds = Array.Empty<GuildDefinition>();
     private Vector2 scrollPos;
 
+    // Search box (2026-08-11, traskmi's ask — the item list was getting
+    // long). Same pattern as CraftingScreen.DrawSearchBar/searchQuery —
+    // filters the Item section only, by itemName substring match.
+    private string searchQuery = "";
+
     private void Awake()
     {
         dropping = GetComponent<PlayerDropping>();
@@ -119,12 +124,26 @@ public class AdminSpawnScreen : MonoBehaviour
         }
         GUILayout.Space(6);
 
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Search:", DebugGUI.Label, GUILayout.Width(55));
+        searchQuery = GUILayout.TextField(searchQuery, GUILayout.Width(220));
+        if (!string.IsNullOrEmpty(searchQuery) && GUILayout.Button("Clear", GUILayout.Width(50)))
+            searchQuery = "";
+        GUILayout.EndHorizontal();
+        GUILayout.Space(6);
+
+        bool searching = !string.IsNullOrWhiteSpace(searchQuery);
+        string queryLower = searching ? searchQuery.Trim().ToLowerInvariant() : null;
+
         float scrollHeight = Mathf.Min(Screen.height - 260f, 500f);
         scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(scrollHeight));
 
+        bool anyItemShown = false;
         foreach (var item in allItems)
         {
             if (item == null) continue;
+            if (searching && !item.itemName.ToLowerInvariant().Contains(queryLower)) continue;
+            anyItemShown = true;
 
             GUILayout.BeginHorizontal();
             GUILayout.Label(item.itemName, DebugGUI.Label, GUILayout.Width(240));
@@ -132,6 +151,8 @@ public class AdminSpawnScreen : MonoBehaviour
                 dropping.SpawnPickup(item);
             GUILayout.EndHorizontal();
         }
+        if (!anyItemShown)
+            GUILayout.Label(searching ? $"No items match \"{searchQuery}\"." : "No items found.", DebugGUI.Label);
 
         GUILayout.Space(14);
         GUILayout.Label("Admin — Spawn Build Piece", DebugGUI.Header);

@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
+  m_Name: IronIngot
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  itemName: Iron Ingot
+  maxStack: 20
+  weight: 1
+  tier: 2
+  worldPickupPrefab: {fileID: 8974665924773332983, guid: abdabf20049997e4fbcf56d80bebeffd, type: 3}
+  icon: {fileID: 21300000, guid: 03288f8e6d231dc43bd9f08e63ca1cfd, type: 3}
+  previewIcon: {fileID: 21300000, guid: aec8af160baba29438e3df2250edc9c7, type: 3}
+  baseItem: {fileID: 0}

@@ -22,6 +22,11 @@ public class PlayerCrafting : MonoBehaviour
     // the first recipe that needs this (Nail).
     private const float AnvilSurfaceRange = 2f;
 
+    // How close a FurnaceSurface needs to be for a requiresFurnace recipe —
+    // same range as AnvilSurfaceRange, matches "within 2m" for the first
+    // recipe that needs this (Iron Ingot, 2026-08-11).
+    private const float FurnaceSurfaceRange = 2f;
+
     // How long a chance-of-creation outcome message stays on screen.
     private const float MessageDuration = 3f;
 
@@ -163,6 +168,22 @@ public class PlayerCrafting : MonoBehaviour
         return false;
     }
 
+    // True if the recipe has no requiresFurnace flag set, or a
+    // FurnaceSurface (a placed Furnace) sits within FurnaceSurfaceRange.
+    // Same shape as HasNearbyAnvilSurface above, just for heat.
+    public bool HasNearbyFurnace(CraftingRecipe recipe)
+    {
+        if (recipe == null || !recipe.requiresFurnace) return true;
+
+        foreach (var surface in FindObjectsByType<FurnaceSurface>(FindObjectsSortMode.None))
+        {
+            if (Vector3.Distance(surface.transform.position, transform.position) <= FurnaceSurfaceRange)
+                return true;
+        }
+
+        return false;
+    }
+
     // True if the recipe has no requiresCanteenWater flag set, or an
     // equipped Canteen currently holds at least canteenWaterAmount of
     // Water. Hands only for now (not a Belt-attached Canteen) — matches
@@ -221,6 +242,7 @@ public class PlayerCrafting : MonoBehaviour
         if (!HasRequiredTool(recipe)) return false;
         if (!HasRequiredSkill(recipe)) return false;
         if (!HasNearbyAnvilSurface(recipe)) return false;
+        if (!HasNearbyFurnace(recipe)) return false;
         if (!HasCanteenWater(recipe)) return false;
 
         if (!inventory.Inventory.HasSpaceFor(recipe.outputItem, recipe.outputCount * quantity)) return false;

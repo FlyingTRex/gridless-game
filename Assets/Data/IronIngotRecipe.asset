@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92d301792e8030a012592c540fbc7d6b, type: 3}
+  m_Name: IronIngotRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
+  ingredients:
+  - item: {fileID: 11400000, guid: 6266bd83114b3e9409823c7cc6286e8c, type: 2}
+    count: 10
+  outputItem: {fileID: 11400000, guid: 7a8f6c7adeb496e4fb9ba5fde59b39bd, type: 2}
+  outputCount: 1
+  bonusItem: {fileID: 0}
+  bonusCount: 1
+  lowerTierItem: {fileID: 0}
+  higherTierItem: {fileID: 0}
+  trainedSkill: {fileID: 11400000, guid: 026b005b8956b244d8bd104f47370603, type: 2}
+  skillGain: 1
+  requiredTools: []
+  requiredToolLabel: 
+  requiresAnvilSurface: 0
+  requiresCanteenWater: 0
+  canteenWaterAmount: 20
+  requiresFurnace: 1
