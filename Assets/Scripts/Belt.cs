@@ -18,6 +18,15 @@ public class Belt : MonoBehaviour, IInteractable, IInventoryHolder
     [SerializeField] private ItemDefinition itemDefinition;
     [SerializeField] private int points = 6;
 
+    // Empty (the default) means every point is generic/unrestricted, same
+    // as every belt before this existed. Settler's Belt (2026-08-12) is the
+    // first belt that narrows this — one point, restricted to Canteen only
+    // — so this is opt-in per-instance rather than a behavior change to
+    // existing belts. Same restriction mechanism Boot's named sub-slots
+    // already use (Inventory.restrictedTo), just applied to Belt's generic
+    // points instead of a named slot.
+    [SerializeField] private ItemDefinition[] restrictedTo = new ItemDefinition[0];
+
     private Inventory pointsInventory;
     private Rigidbody body;
     private Collider col;
@@ -34,7 +43,7 @@ public class Belt : MonoBehaviour, IInteractable, IInventoryHolder
 
     private void Awake()
     {
-        pointsInventory = new Inventory(points);
+        pointsInventory = new Inventory(points, restrictedTo.Length > 0 ? restrictedTo : null);
         body = GetComponent<Rigidbody>();
         col = GetComponent<Collider>();
     }

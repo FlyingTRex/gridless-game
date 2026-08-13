@@ -15,7 +15,8 @@ survival-crafting's tactile loop with SimCity/Warcraft-style territory growth.
 ## Core Fantasy
 You're a survivor of a colonist transport ship that suffered catastrophic failure
 during reentry, crash-landing alone in untouched wilderness with minimal gear (a
-durable metal canteen, a survival knife, a small cache of rations). The world looks
+durable metal canteen, a small cache of rations — no starting knife, dropped from
+the requirements 2026-08-12). The world looks
 and feels like Earth, but nothing is quite right — clockwork environmental patterns,
 off-grid infrastructure hinting at hidden advanced tech, and scattered agrarian
 villages populated by descendants of earlier colonists who've regressed to a
@@ -543,6 +544,12 @@ Systems Wishlist below. Deep late-game content, but establishing the shape now
 clarifies what the eight discipline Keystones (Master Forager, Master Physician,
 Master Warlord, Master Financier, Master Smith, Master Engineer, Master Builder,
 Master of the Lineage) are actually building toward.
+
+See `MEDICAL_SYSTEM_PLANNING.md`/`MEDICAL_FAMILIES.md` (2026-08-12) for how
+this ties into the Master Physician Keystone specifically — the proposed
+medical progression's high-tech tiers (nanobots, exoskeletons, etc.) are
+scoped as Ruins-of-the-Old-Engineers endgame content reached via this path,
+not early-game crafting.
 
 - **The Gateway:** reaching *any one* discipline's Keystone reveals the **Ruins of
   the Old Engineers** — the launch complex of whoever actually built this replica.

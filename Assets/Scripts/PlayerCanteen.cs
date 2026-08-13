@@ -22,6 +22,15 @@ public class PlayerCanteen : MonoBehaviour
     // SetCarried(true, ...) are what cancel this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
 
+    // The player starts the game with a Canteen already clipped to the
+    // Settler's Belt specifically — same single-purpose starting-gear
+    // mechanism PlayerShirt/PlayerJeans/PlayerBelt already established
+    // (2026-08-12), just attaching into the belt's own Inventory instead
+    // of a PlayerEquipment body slot. Needs PlayerBelt's Start() (which
+    // equips the belt itself) to have already run — see
+    // PlayerBelt's [DefaultExecutionOrder(-10)].
+    [SerializeField] private GameObject startingCanteenPrefab;
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
@@ -52,6 +61,27 @@ public class PlayerCanteen : MonoBehaviour
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
         beltCarrier = GetComponent<PlayerBelt>();
+    }
+
+    // Start (not Awake) so PlayerBelt's own Start (equipping the Settler's
+    // Belt) has already run. Equipped != null guards against ever
+    // attaching a second starting canteen; belt == null means no belt got
+    // equipped this run (e.g. startingBeltPrefab unset), in which case
+    // there's nothing to clip a canteen to.
+    private void Start()
+    {
+        if (startingCanteenPrefab == null || Equipped != null) return;
+
+        var belt = beltCarrier != null ? beltCarrier.Equipped : null;
+        if (belt == null) return;
+
+        var instance = Instantiate(startingCanteenPrefab);
+        var canteen = instance.GetComponent<Canteen>();
+
+        if (canteen != null && belt.Inventory.AddEquipmentItem(canteenItem, canteen))
+            canteen.SetCarried(true, AnchorFor(BeltSlot));
+        else
+            Destroy(instance);
     }
 
     // Called when the player interacts with a canteen lying in the world.

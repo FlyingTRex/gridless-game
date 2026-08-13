@@ -5,12 +5,174 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.16-dev` — must always match `GameVersion` in
+**Current version:** `0.3.22-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
+
+### v0.3.22-dev — Craft tier colors + Crafting screen tier-sort/filter
+
+Visual/UX pass on `CraftTier` (plan + approved mockup in
+`CRAFT_TIER_COLORS_PLANNING.md`): items now read their quality tier at a
+glance instead of only via the text prefix (`CraftTierNames`). Every tier
+gets a color, including Normal — Crude gray, Rudimentary white, Normal
+green, Fine blue, Masterwork gold. New shared lookup `CraftTierColors` in
+`CraftTier.cs`, mirroring the existing `CraftTierNames`/`CraftTierScale`
+pattern.
+
+Technical approach decided after ruling out wrapping draws in `GUI.color`
+(it would re-tint icon art itself and muddy `DebugGUI.Slot`'s already-dark
+background) — instead, a thin per-tier **border** texture and a per-tier
+**text color** for the item name, both new lazily-cached additions to
+`DebugGUI.cs` (`TierBorder`, `TierName`/`TierNameCentered`,
+`SlotForTier`), applied in `InventoryScreen.DrawSlotBox` and
+`CraftingScreen.DrawIcon`/`DrawTile`. Icon art itself stays untouched.
+
+Crafting screen also gained a **tier filter row** (All + 5 colored chips,
+ANDed with the existing discipline-tab/search filter) and a **sort-
+direction toggle** ("Tier 1 → 5" / "Tier 5 → 1"). Tier-ascending is now
+the *default* browsing order, replacing the old implicit family-grouped
+array order (Ben's call — this scatters families apart, e.g. Crude Knife
+next to Crude Pickaxe rather than next to Rudimentary Knife, but "finding
+recipes would be easier" won out over preserving family grouping as the
+default).
+
+Batch-mode compile check passed (0 `CS####` errors) — caught and fixed one
+real miss along the way: `CraftTier.cs` had no `using UnityEngine;` before
+this change (it only used primitive types), so adding `Color` fields to it
+needed the using added too. Manual Play-mode verification still needed —
+see `TEST_FEATURE_PLAN.md`.
+
+### v0.3.21-dev — Settler's Sneakers: Boots gets its starting-gear auto-equip
+
+Real gap found live (Ben's report): Boots was the one starting-gear slot
+that never got the auto-equip-at-spawn treatment when Sneakers was added
+as a plain, Admin-Spawn-only Boots variant. Fixed with the same split
+Jeans already has — a new "Settler's Sneakers" `ItemDefinition`/prefab
+(reuses the existing `Sneakers.glb` model and scale exactly, not a
+rename of the plain item) that auto-equips, while plain "Sneakers" stays
+as-is. `PlayerBoot.cs` gained the `startingBootPrefab` field + `Start()`
+mechanism — fourth caller of the pattern `PlayerShirt` established, after
+Shirt/Jeans/Belt.
+
+Batch-mode compile check passed (0 `CS####` errors). Manual Play-mode
+verification still needed — see `TEST_FEATURE_PLAN.md`.
+
+### v0.3.20-dev — Starting Canteen clipped to the Settler's Belt, ground Canteen removed
+
+The player now spawns with a Canteen already attached to the Settler's
+Belt's one attachment point, not just the belt itself — closes the loop on
+this session's starting-gear work (Shirt, Jeans, Belt, now Belt's own
+contents). `PlayerCanteen` gained a `startingCanteenPrefab` field and a
+`Start()` that instantiates it and attaches directly into the equipped
+belt's `Inventory` (reusing the existing `AnchorFor(BeltSlot)`), rather
+than going through the normal `EquipTo` path — that path assumes the
+canteen already has a source `Inventory` to remove it from, which doesn't
+apply to a freshly instantiated starting item.
+
+**Real cross-component ordering issue, fixed properly rather than worked
+around:** this only works if `PlayerBelt.Start()` (which equips the
+Settler's Belt itself) has already run by the time `PlayerCanteen.Start()`
+fires — Unity doesn't guarantee any particular `Start()` order between
+sibling components on the same GameObject by default. Fixed with
+`[DefaultExecutionOrder(-10)]` on `PlayerBelt`, not a fragile assumption
+about component-add order or a manual `ProjectSettings` edit.
+
+Removed the pre-spawned ground Canteen from `TestScene.unity` (same
+reasoning as the Boots/Grass Belt/Backpack cleanup last entry) — starting
+gear now covers it.
+
+Batch-mode compile check passed (0 `CS####` errors). Manual Play-mode
+verification still needed — see `TEST_FEATURE_PLAN.md`.
+
+### v0.3.19-dev — Settler's Belt (auto-equipped, Canteen-only slot), and starting-gear ground items removed
+
+New "Settler's Belt" — auto-equips at spawn (`PlayerBelt.Start()`, third
+caller of the starting-gear mechanism after Shirt and Jeans), no
+`CraftingRecipe`. Unlike every other belt, it has exactly one attachment
+point restricted to Canteen only, not generic. `Belt.cs` gained a new
+`restrictedTo` field (`ItemDefinition[]`, empty/unrestricted by default —
+every existing belt's behavior is unchanged) that feeds `Inventory`'s
+existing `restrictedTo` mechanism, the same one Boot's named sub-slots
+already use — Settler's Belt is just the first belt to actually set it.
+
+Model generated via `Tools/Tripo3D` (`a plain brown leather belt with a
+simple metal buckle, coiled...`) — clean result on the first attempt.
+Scaled to match the *existing* Grass Belt's real in-scene footprint
+(measured directly, not guessed) for visual consistency between belts,
+rather than an independent player-relative estimate — a small variant on
+the "scale against the player" rule for an item type where "consistent
+with its siblings" is the more relevant reference. Grounded, collider fit,
+icon baked, verified via a diagnostic dropped-pose render before
+completion.
+
+**Also (Ben's mid-session call): removed the pre-spawned Military Boots,
+Grass Belt, and Backpack world pickups from `TestScene.unity`.** Now that
+starting gear (Shirt, Jeans, Belt) covers a new player's basic equipment
+via auto-equip, these ground-placed instances were redundant leftovers
+from before that existed — confirmed via a batch script matching by source
+prefab rather than hand-editing the scene YAML.
+
+Batch-mode compile check passed (0 `CS####` errors). Manual Play-mode
+verification still needed — see `TEST_FEATURE_PLAN.md`.
+
+### v0.3.18-dev — Sneakers: new Boots item, no new code
+
+Fourth entry in the Boots family alongside Civilian/Hiking/Military —
+reuses `Boot.cs` directly (`slots: []`, slot-less like Civilian Boots,
+Ben's call) rather than adding any new script. Model generated via
+`Tools/Tripo3D` (`a pair of casual white and grey athletic sneakers...`) —
+clean result, exactly two shoes on the first attempt (no repeat of the
+Combat Boots "3 boots in one mesh" incident). Measured, scaled against the
+player (0.22m tall, shorter than Combat Boots' 0.32m since these are
+low-top), grounded, collider fit, and verified via a diagnostic dropped-
+pose render before completion, per the same checklist Jeans just
+established. Icon baked via `IconBaker.cs`. No `CraftingRecipe`, matching
+the other three Boots items (none of them have one either).
+
+Pure data/prefab work — no `.cs` files touched, batch-mode compile check
+run anyway for consistency and passed clean. Manual Play-mode verification
+still needed — see `TEST_FEATURE_PLAN.md`.
+
+### v0.3.17-dev — Jeans: new Leg-slot wearable, two variants
+
+New `Jeans.cs`/`PlayerJeans.cs` pair, structurally identical to the
+Settler's Shirt work (`Shirt.cs`/`PlayerShirt.cs`) — `IEquippable` +
+`IInventoryHolder`, 4 general-purpose pocket slots, worn on `Leg` instead
+of `Chest`. `InventoryScreen.GetWornContainers()`'s worn-container slot
+list now checks `"Leg"` too (`{"Back", "Waist", "Chest", "Leg"}`), and the
+usual four dispatch switches (`EquipWithChoice`/`EquipToSlotDispatch`/
+`UnequipDispatch`/`IsCurrentlyWorn`) got a `Jeans` case each — same
+mechanical pattern every equippable added this session has followed.
+
+**Two ItemDefinitions sharing one model**, same idea as the three Boots
+tiers sharing `CombatBoot.glb`: `Settler's Jeans` (auto-equips at spawn —
+`PlayerJeans.Start()`, same single-purpose starting-gear mechanism
+`PlayerShirt` established) and plain `Jeans` (obtainable via Admin Spawn
+only for now). Neither has a `CraftingRecipe` yet — deliberate, a recipe
+for the plain variant is planned for later.
+
+Model generated via `Tools/Tripo3D` (`a pair of blue denim jeans, casual
+work pants with visible pockets...`) — clean result with visible cargo
+pockets on the first attempt. Followed the full checklist this session's
+Boots incident established: measured raw bounds, scaled against the
+player (0.95m worn height, roughly half the 1.8m player, before any
+grounding math), then grounded the pivot and re-fit the collider — not
+just eyeballed. Also pre-empted the Shirt's rigid-worn-pose drop problem
+from the start (`Jeans.SetCarried(false, ...)` lays the model flat via the
+same `Euler(0, 0, 90)` rotation, applied and verified before this shipped
+rather than found live afterward). **Verified via a diagnostic render of
+the actual dropped pose before considering this done** (Ben's explicit
+requirement this round) — reads correctly as a pair of jeans lying flat,
+not oversized.
+
+Icons baked for both items via the existing `IconBaker.cs` tool.
+
+Batch-mode compile check passed (0 `CS####` errors). Manual Play-mode
+verification (auto-equip at spawn, 4-pocket contents grid, drop/re-pickup,
+plain Jeans via Admin Spawn) still needed — see `TEST_FEATURE_PLAN.md`.
 
 ### v0.3.16-dev — Boots scaled to player, and the real drag-drop coordinate bug
 

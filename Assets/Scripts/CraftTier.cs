@@ -1,3 +1,5 @@
+using UnityEngine;
+
 // Five crafting-quality tiers, decided per docs/design-brief.md. Normal is
 // the baseline — deliberately no adjective prefix (see CraftTierNames), so
 // a plain item name always reads as "the standard version."
@@ -23,6 +25,24 @@ public static class CraftTierNames
 // (a 2500-coin-per-type Lockbox costing 10 Gold) — chosen so every
 // resulting capacity and price comes out a clean whole number off those
 // two baselines, not because of any deeper simulation.
+// Per-tier color ramp, decided in CRAFT_TIER_COLORS_PLANNING.md — used for a
+// slot/tile border and the item-name text color wherever an item renders
+// (InventoryScreen, CraftingScreen), so quality reads at a glance. Every
+// tier gets a color, including Normal (Ben's call — consistency over
+// preserving CraftTierNames' no-prefix "unremarkable baseline" asymmetry).
+public static class CraftTierColors
+{
+    public static Color Get(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => new Color(0.604f, 0.604f, 0.620f),       // #9a9a9e gray
+        CraftTier.Rudimentary => new Color(0.957f, 0.961f, 0.969f), // #f4f5f7 white
+        CraftTier.Normal => new Color(0.435f, 0.749f, 0.416f),      // #6fbf6a green
+        CraftTier.Fine => new Color(0.357f, 0.624f, 0.878f),        // #5b9fe0 blue
+        CraftTier.Masterwork => new Color(0.890f, 0.647f, 0.243f),  // #e3a53e gold
+        _ => Color.white,
+    };
+}
+
 public static class CraftTierScale
 {
     public static float Modifier(CraftTier tier) => tier switch

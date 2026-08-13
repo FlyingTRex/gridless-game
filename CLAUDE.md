@@ -34,6 +34,31 @@ existing entry when behavior changes; add a **Regression** line under an entry
 when a bug slips through it, so the next full pass specifically re-checks that
 failure mode.
 
+**MVP 2 scope lives in `MVP2_PLANNING.md`.** A curated subset of
+`BUGS_AND_ENHANCEMENTS.md`'s broader Phase 2 backlog — that file still holds
+the full long-term list, but `MVP2_PLANNING.md` is the actual next-up scope
+Ben picked (2026-08-12) and the live surface for fleshing it out and deciding
+build order.
+
+**Medical system evaluation lives in `MEDICAL_SYSTEM_PLANNING.md` +
+`MEDICAL_FAMILIES.md`.** Evaluation of a proposed 50-item medical
+progression against what's actually built (2026-08-12). The list's 5 tiers
+map directly onto the existing `CraftTier` enum (Crude→Masterwork), and its
+sci-fi-tier items are scoped as Master Physician/"Ruins of the Old
+Engineers" endgame content (see `docs/design-brief.md`'s "Endgame: Leaving
+the Planet") rather than a setting mismatch — both resolved after the first
+evaluation pass. `MEDICAL_FAMILIES.md` holds the per-item breakdown of which
+items collapse into one `CraftTier`-ladder family vs. stay standalone.
+Planning only, not yet scoped into a version.
+
+**Craft tier color-coding + Crafting screen sort/filter lives in
+`CRAFT_TIER_COLORS_PLANNING.md`.** Decided 2026-08-12, includes a link to
+the approved mockup artifact: a 5-color palette (Crude=Gray through
+Masterwork=Gold, including Normal), applied as a slot/tile border + tier-
+colored item name text (not a full `GUI.color` tint, which would also
+recolor icon art). Also specs the Crafting screen's new tier-ascending
+default sort plus a tier filter row.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:

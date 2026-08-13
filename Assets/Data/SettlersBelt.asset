@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
-  m_Name: RawMeat
+  m_Name: SettlersBelt
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Raw Meat
-  maxStack: 20
-  weight: 1
+  itemName: Settler's Belt
+  maxStack: 1
+  weight: 0.5
   tier: 2
-  worldPickupPrefab: {fileID: 7432814253486982932, guid: 6eb534bf600a0804d8bd8de0c9557376, type: 3}
-  icon: {fileID: 21300000, guid: 32482b9f291d3f647b1892e7abc9e077, type: 3}
-  previewIcon: {fileID: 21300000, guid: c123b4888bff37b46a656730256d7e95, type: 3}
+  worldPickupPrefab: {fileID: 7114214064217805237, guid: 31d466fdf621a5d40881c4cc0b97b049, type: 3}
+  icon: {fileID: 21300000, guid: c4f91118a2b9e494d9d72b5f928bcec3, type: 3}
+  previewIcon: {fileID: 21300000, guid: 1fc40785becf6de4f8e973ee2df20ad1, type: 3}
   baseItem: {fileID: 0}

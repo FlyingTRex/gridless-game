@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
-  m_Name: RawMeat
+  m_Name: SneakersItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Raw Meat
-  maxStack: 20
+  itemName: Sneakers
+  maxStack: 1
   weight: 1
   tier: 2
-  worldPickupPrefab: {fileID: 7432814253486982932, guid: 6eb534bf600a0804d8bd8de0c9557376, type: 3}
-  icon: {fileID: 21300000, guid: 32482b9f291d3f647b1892e7abc9e077, type: 3}
-  previewIcon: {fileID: 21300000, guid: c123b4888bff37b46a656730256d7e95, type: 3}
+  worldPickupPrefab: {fileID: 7739148282211788969, guid: b0379ba5b0590a449b699a0b467aca05, type: 3}
+  icon: {fileID: 21300000, guid: dbb7aa9d41dfbf64ca16d1d527dfba2a, type: 3}
+  previewIcon: {fileID: 21300000, guid: 0952f2051668e8240aa9e5ac19838932, type: 3}
   baseItem: {fileID: 0}

@@ -1,5 +1,12 @@
 using UnityEngine;
 
+// Runs before default-order (0) scripts on the same GameObject -- Unity
+// doesn't otherwise guarantee any particular Start() order between sibling
+// components. PlayerCanteen's starting-canteen attachment (2026-08-12)
+// needs the Settler's Belt to already be worn (Equipped != null) by the
+// time its own Start() runs, since it attaches into the belt's own
+// Inventory rather than a PlayerEquipment body slot.
+[DefaultExecutionOrder(-10)]
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerEquipment))]
 public class PlayerBelt : MonoBehaviour
@@ -17,6 +24,12 @@ public class PlayerBelt : MonoBehaviour
     // SetCarried(true, ...) are what cancel this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
 
+    // The player starts the game already wearing the Settler's Belt
+    // variant specifically — same single-purpose starting-gear mechanism
+    // PlayerShirt/PlayerJeans already established (2026-08-12), third
+    // caller now, still not worth generalizing into a shared system.
+    [SerializeField] private GameObject startingBeltPrefab;
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
@@ -28,6 +41,23 @@ public class PlayerBelt : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+    }
+
+    // Start (not Awake) so every other component's Awake — including
+    // PlayerEquipment building its slot dictionary — has already run.
+    // Equipped != null guards against ever equipping a second belt.
+    private void Start()
+    {
+        if (startingBeltPrefab == null || Equipped != null) return;
+
+        var instance = Instantiate(startingBeltPrefab);
+        var belt = instance.GetComponent<Belt>();
+        var slot = equipment.GetSlot(WaistSlot);
+
+        if (belt != null && slot != null && slot.AddEquipmentItem(belt.ItemDefinition, belt))
+            belt.SetCarried(true, carrySlot != null ? carrySlot : transform);
+        else
+            Destroy(instance);
     }
 
     // Called when the player interacts with a belt lying in the world.

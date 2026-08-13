@@ -77,6 +77,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerMiningFaceShield miningShieldCarrier;
     private PlayerTool toolCarrier;
     private PlayerShirt shirtCarrier;
+    private PlayerJeans jeansCarrier;
     private PlayerCurrency currency;
     private PlayerCoinDrop coinDropper;
     private PlayerVitals vitals;
@@ -195,6 +196,7 @@ public class InventoryScreen : MonoBehaviour
         miningShieldCarrier = GetComponent<PlayerMiningFaceShield>();
         toolCarrier = GetComponent<PlayerTool>();
         shirtCarrier = GetComponent<PlayerShirt>();
+        jeansCarrier = GetComponent<PlayerJeans>();
         currency = GetComponent<PlayerCurrency>();
         coinDropper = GetComponent<PlayerCoinDrop>();
         vitals = GetComponent<PlayerVitals>();
@@ -618,6 +620,7 @@ public class InventoryScreen : MonoBehaviour
             case PersonalHealthMonitor monitor: TryEquipWithChoice(monitor, source); break;
             case Tool tool: TryEquipWithChoice(tool, source); break;
             case Shirt shirt: shirtCarrier.Equip(shirt, source); break;
+            case Jeans jeans: jeansCarrier.Equip(jeans, source); break;
         }
     }
 
@@ -638,6 +641,7 @@ public class InventoryScreen : MonoBehaviour
             case PersonalHealthMonitor monitor: return healthMonitorCarrier.EquipTo(monitor, slotName, source);
             case Tool tool: return toolCarrier.EquipTo(tool, slotName, source);
             case Shirt shirt: return shirtCarrier.Equip(shirt, source);
+            case Jeans jeans: return jeansCarrier.Equip(jeans, source);
             default: return false;
         }
     }
@@ -656,6 +660,7 @@ public class InventoryScreen : MonoBehaviour
             case MiningFaceShield shield: miningShieldCarrier.Unequip(shield); break;
             case Tool tool: toolCarrier.Unequip(tool); break;
             case Shirt shirt: shirtCarrier.Unequip(shirt); break;
+            case Jeans jeans: jeansCarrier.Unequip(jeans); break;
         }
     }
 
@@ -674,7 +679,8 @@ public class InventoryScreen : MonoBehaviour
             || ReferenceEquals(sunglassesCarrier.Equipped, equipment)
             || ReferenceEquals(miningShieldCarrier.Equipped, equipment)
             || ReferenceEquals(toolCarrier.Equipped, equipment)
-            || ReferenceEquals(shirtCarrier.Equipped, equipment);
+            || ReferenceEquals(shirtCarrier.Equipped, equipment)
+            || ReferenceEquals(jeansCarrier.Equipped, equipment);
     }
 
     // Registers one slot box's screen rect as a drop target for this frame.
@@ -789,7 +795,11 @@ public class InventoryScreen : MonoBehaviour
             ? new GUIContent(string.Empty, slot.item.itemName)
             : new GUIContent(isDragSource ? "" : slot.item.itemName + (slot.count > 1 ? $" x{slot.count}" : ""));
 
-        GUILayout.Box(content, DebugGUI.Slot, GUILayout.Width(width), GUILayout.Height(height));
+        // Tier-colored text on the box itself (no icon case) — icon case
+        // keeps its name in the tooltip only, colored via the border below
+        // instead since GUI.tooltip is plain text and can't carry a style.
+        var boxStyle = slot.item.icon != null ? DebugGUI.Slot : DebugGUI.SlotForTier(slot.item.tier);
+        GUILayout.Box(content, boxStyle, GUILayout.Width(width), GUILayout.Height(height));
         var rect = GUILayoutUtility.GetLastRect();
 
         if (slot.item.icon != null && !isDragSource)
@@ -798,6 +808,9 @@ public class InventoryScreen : MonoBehaviour
             var iconRect = new Rect(rect.x + iconPadding, rect.y + iconPadding, rect.width - iconPadding * 2f, rect.height - iconPadding * 2f);
             GUI.DrawTexture(iconRect, slot.item.icon.texture, ScaleMode.ScaleToFit);
         }
+
+        if (!isDragSource)
+            GUI.DrawTexture(rect, DebugGUI.TierBorder(slot.item.tier));
 
         HandleSlotEvents(rect, inventory, slot);
         RegisterDropZone(rect, inventory, equipSlotName);
@@ -1207,7 +1220,7 @@ public class InventoryScreen : MonoBehaviour
     {
         var result = new List<WornContentsRow>();
 
-        foreach (var slotName in new[] { "Back", "Waist", "Chest" })
+        foreach (var slotName in new[] { "Back", "Waist", "Chest", "Leg" })
         {
             var slotInventory = equipment.GetSlot(slotName);
             if (slotInventory == null) continue;

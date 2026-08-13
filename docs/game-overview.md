@@ -3,7 +3,7 @@
 ## 1. Introduction & Setting
 Gridless is an immersive survival, world-building, and economic management game set on an artificially constructed, nearly identical replica of Earth created by a mysterious advanced civilization. The player begins as a survivor from a colonist transport ship that suffered catastrophic mechanical failure during reentry.
 
-Upon crash-landing, the player escapes into an untouched wilderness equipped with minimal starting gear: a durable metal canteen, a military-grade survival knife, and a small cache of survival rations.
+Upon crash-landing, the player escapes into an untouched wilderness equipped with minimal starting gear: a durable metal canteen and a small cache of survival rations. (No starting knife — dropped from the requirements 2026-08-12, Ben's call; starting gear leans on found/crafted tools instead.)
 
 ## 2. Core Pillars of Gameplay
 

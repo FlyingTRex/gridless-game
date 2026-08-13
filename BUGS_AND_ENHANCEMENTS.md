@@ -342,7 +342,10 @@ signs off on scope and order.
   toward surgery. Includes equippable infirmaries within a player's
   compound, staffable with hired NPC medics — direct extension of the
   Hireable NPCs work that just shipped (a new job family/type, same
-  `NPCJob`/`NPCJobDefinition` shape Mining already uses).
+  `NPCJob`/`NPCJobDefinition` shape Mining already uses). **See
+  `MEDICAL_SYSTEM_PLANNING.md` + `MEDICAL_FAMILIES.md` (2026-08-12)** for a
+  full proposed 50-item medical progression evaluated against the current
+  system, including which items map to Master Physician endgame content.
 - [ ] **Reverse engineering & manuals** — disassemble items to learn their
   schematics, then write instructional manuals/grimoires to mentor other
   players or NPCs. Ties into the skill-books item above as the inverse

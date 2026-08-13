@@ -14,6 +14,16 @@ public class PlayerBoot : MonoBehaviour
     // (Stash()) is what cancels this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
 
+    // The player starts the game already wearing Settler's Sneakers
+    // specifically — same single-purpose starting-gear mechanism
+    // PlayerShirt/PlayerJeans/PlayerBelt already established (2026-08-12).
+    // Real gap found live: Boots was the one starting-gear slot that never
+    // got this when Sneakers was added as a plain (non-auto-equipping)
+    // Boots variant — fixed by giving it a dedicated "Settler's Sneakers"
+    // item/prefab, same split Jeans already has (auto-equip variant +
+    // separate plain variant, not a rename of the existing item).
+    [SerializeField] private GameObject startingBootPrefab;
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
@@ -25,6 +35,23 @@ public class PlayerBoot : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+    }
+
+    // Start (not Awake) so every other component's Awake — including
+    // PlayerEquipment building its slot dictionary — has already run.
+    // Equipped != null guards against ever equipping a second pair.
+    private void Start()
+    {
+        if (startingBootPrefab == null || Equipped != null) return;
+
+        var instance = Instantiate(startingBootPrefab);
+        var boot = instance.GetComponent<Boot>();
+        var slot = equipment.GetSlot(FeetSlot);
+
+        if (boot != null && slot != null && slot.AddEquipmentItem(boot.ItemDefinition, boot))
+            boot.SetCarried(true, carrySlot != null ? carrySlot : transform);
+        else
+            Destroy(instance);
     }
 
     public bool PickUp(Boot boot)

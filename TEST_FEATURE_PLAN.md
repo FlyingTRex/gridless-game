@@ -240,6 +240,73 @@ re-verify the same underlying behaviors using drag instead.
   "GRIDLESS" reads correctly (not mirrored, not on the back) across the
   chest.
 
+### Settler's Belt + starting Canteen (v0.3.19-dev, Canteen v0.3.20-dev)
+
+- [ ] Enter Play mode fresh — confirm the player spawns already wearing
+  Settler's Belt on Waist, with no manual pickup/equip action taken.
+- [ ] **Confirm a Canteen is already clipped into the belt's one
+  attachment point at spawn** — not just the belt itself worn empty. Check
+  the "Inventory" side panel shows the Canteen occupying that slot
+  immediately, no manual equip needed.
+- [ ] Confirm Drink/Fill work on the starting Canteen right away (proves
+  it's a real, functional `Canteen` instance, not just a placeholder).
+- [ ] Confirm the belt shows exactly one attachment point in the
+  "Inventory" side panel (not the usual 6 generic points other belts have).
+- [ ] Unequip/drop the starting Canteen, then drag a different Canteen onto
+  that same point — confirm it's still accepted afterward (the starting
+  attachment doesn't leave the slot stuck).
+- [ ] Try dragging something else (e.g. a plain item, or a different
+  equippable) onto that same point — confirm it's rejected (the drop
+  should silently fail/snap back, same as any other restricted-slot
+  mismatch).
+- [ ] Drop the belt, confirm it becomes a normal world pickup lying
+  correctly on the ground, then pick back up and re-equip.
+- [ ] Confirm Admin Spawn's item search finds "Settler's Belt" (a second
+  one, independent of the auto-equipped one).
+- [ ] **Scene cleanup regression check:** confirm the Military Boots, Grass
+  Belt, Backpack, and (as of v0.3.20-dev) the standalone ground Canteen
+  that used to be pre-placed in `TestScene.unity` are all gone — starting
+  gear should now be the only source of a new player's initial equipment.
+
+### Sneakers + Settler's Sneakers (v0.3.18-dev, auto-equip v0.3.21-dev)
+
+- [ ] Enter Play mode fresh — confirm the player spawns already wearing
+  Settler's Sneakers on Feet, with no manual pickup/equip action taken —
+  fourth starting-gear item after Shirt/Jeans/Belt.
+- [ ] Admin-spawn plain "Sneakers" (separate item from Settler's Sneakers)
+  and equip to Feet — confirm the model shows, correctly grounded (not
+  floating/sunk), reads as a believable size next to the player.
+- [ ] Confirm no named sub-slots appear for either (no Knife Sheath/Pistol
+  Holster row) — both are slot-less like Civilian Boots, on purpose.
+- [ ] Drop each — confirm they land and look correct lying in the world
+  (collider fit to actual bounds).
+- [ ] Open the Inventory tab with both Sneakers and Settler's Sneakers in
+  the main grid — confirm both show a real icon, not text-only, and read
+  as visually identical (same underlying model).
+
+### Jeans — Settler's Jeans + plain Jeans (v0.3.17-dev)
+
+- [ ] Enter Play mode fresh — confirm the player spawns already wearing
+  Settler's Jeans on Leg (check the Equipment section's Leg row), with no
+  manual pickup/equip action taken — same auto-equip mechanism as the
+  Settler's Shirt, second caller of it.
+- [ ] Right-click (or click) the worn jeans and confirm "Unequip"/"Drop"
+  are offered, matching a worn equippable like a Backpack/Shirt.
+- [ ] Confirm the jeans' 4-pocket contents grid renders in the "Inventory"
+  side panel while worn, same as a worn Backpack's/Shirt's does.
+- [ ] Put an item in one of the 4 pockets, unequip, re-equip — confirm
+  contents persist.
+- [ ] Drop the jeans, confirm they become a normal world pickup (fall to
+  the ground, collider re-enabled, lying flat rather than standing upright
+  in the worn pose), then pick back up and re-equip.
+- [ ] Confirm the dropped jeans read as a believable size next to the
+  player/environment (not oversized) — this was checked via a diagnostic
+  render before shipping, but worth confirming in the live 3D view too.
+- [ ] Confirm Admin Spawn's item search finds **both** "Settler's Jeans"
+  and plain "Jeans" (two separate entries, only the Settler's variant
+  auto-equips) — neither has a `CraftingRecipe` yet, both should still be
+  obtainable via Admin Spawn.
+
 ### Combat Boots model + Boots icons (v0.3.14-dev, model fixed v0.3.15-dev, scaled to player v0.3.16-dev)
 
 - [ ] Equip (or admin-spawn and equip) each of Civilian/Hiking/Military
@@ -1323,6 +1390,29 @@ fixed v0.3.16-dev)
   receded behind it. Same visual language should now also appear on the
   top-level Player Menu tabs, the ` Game Menu tabs, and the Skills tab's
   category tabs below — check all four for consistency, not just this one.
+
+- [x] **Craft tier colors + tier sort/filter (v0.3.22-dev).** Every
+  Crafting tile's icon has a thin colored border matching its output
+  item's `CraftTier` (Crude gray, Rudimentary white, Normal green, Fine
+  blue, Masterwork gold), and its item name is drawn in that same color
+  instead of plain white — confirm all 5 colors are visually distinct
+  against the dark panel background, and that the existing red "have N"
+  ingredient-shortage warnings still read clearly as a separate, distinct
+  color from any tier (don't get visually confused with the palette).
+  Below the search bar, a **"Tier:" filter row** (All + one colored chip
+  per tier) narrows the grid to a single tier, ANDed with whatever the
+  current discipline tab/search already shows (not replacing it) —
+  confirm selecting a tier chip while a discipline tab is active shows
+  only that tab's recipes at that tier, and typing a search query while
+  a tier chip is selected further narrows within it. A **sort-direction
+  button** ("Tier 1 → 5" / "Tier 5 → 1") toggles the grid's order — confirm
+  the default (on first opening the tab) is ascending (Crude first), and
+  that toggling actually re-orders the grid (families now scatter apart,
+  e.g. Crude Knife sits next to Crude Pickaxe, not next to Rudimentary
+  Knife — this is the intended tradeoff, not a bug). Also confirm the same
+  tier border + colored name appears on inventory slot boxes
+  (`InventoryScreen` — main grid, equipment slots, worn-container
+  contents) for any item with a `tier` set.
 
 ## 6. Player Menu (Tab) — Skills Tab
 

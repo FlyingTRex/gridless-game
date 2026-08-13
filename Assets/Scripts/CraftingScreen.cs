@@ -52,6 +52,15 @@ public class CraftingScreen : MonoBehaviour
     // which tab something lives in.
     private string searchQuery = "";
 
+    // Tier filter/sort — session-local UI state, not saved (CRAFT_TIER_COLORS_PLANNING.md
+    // Decision 3). null filter = show every tier. Sort is now the default
+    // browsing order (replacing the old implicit family-grouped order),
+    // ascending (Crude first) unless toggled.
+    private CraftTier? tierFilter;
+    private bool sortAscending = true;
+
+    private static readonly CraftTier[] AllTiers = (CraftTier[])System.Enum.GetValues(typeof(CraftTier));
+
     private Texture2D barBackgroundTex;
     private Texture2D barFillTex;
 
@@ -68,6 +77,8 @@ public class CraftingScreen : MonoBehaviour
         DrawDisciplineTabs();
         GUILayout.Space(6);
         DrawSearchBar();
+        GUILayout.Space(6);
+        DrawTierFilterRow();
         GUILayout.Space(10);
 
         bool searching = !string.IsNullOrWhiteSpace(searchQuery);
@@ -78,8 +89,7 @@ public class CraftingScreen : MonoBehaviour
         string queryLower = searching ? searchQuery.Trim().ToLowerInvariant() : null;
 
         var recipes = crafting.Recipes;
-        bool any = false;
-        int column = 0;
+        var visible = new List<CraftingRecipe>();
 
         if (recipes != null)
         {
@@ -97,30 +107,73 @@ public class CraftingScreen : MonoBehaviour
                     continue;
                 }
 
-                if (column == 0) GUILayout.BeginHorizontal();
-                any = true;
+                if (tierFilter.HasValue && recipe.outputItem.tier != tierFilter.Value) continue;
 
-                DrawTile(recipe);
+                visible.Add(recipe);
+            }
+        }
 
-                column++;
-                if (column >= TilesPerRow)
-                {
-                    GUILayout.EndHorizontal();
-                    GUILayout.Space(TileSpacing);
-                    column = 0;
-                }
-                else
-                {
-                    GUILayout.Space(TileSpacing);
-                }
+        // Tier-ascending is the default browsing order (Ben's call —
+        // "finding recipes would be easier" than the old implicit
+        // family-grouped array order). Sign flips for the descending toggle.
+        int direction = sortAscending ? 1 : -1;
+        visible.Sort((a, b) => direction * a.outputItem.tier.CompareTo(b.outputItem.tier));
+
+        int column = 0;
+        foreach (var recipe in visible)
+        {
+            if (column == 0) GUILayout.BeginHorizontal();
+
+            DrawTile(recipe);
+
+            column++;
+            if (column >= TilesPerRow)
+            {
+                GUILayout.EndHorizontal();
+                GUILayout.Space(TileSpacing);
+                column = 0;
+            }
+            else
+            {
+                GUILayout.Space(TileSpacing);
             }
         }
 
         if (column > 0)
             GUILayout.EndHorizontal();
 
-        if (!any)
+        if (visible.Count == 0)
             GUILayout.Label(searching ? $"No recipes match \"{searchQuery}\"." : "No recipes yet.", DebugGUI.Label);
+    }
+
+    // Tier filter chips (All + one per tier, colored per CraftTierColors)
+    // ANDed with the discipline-tab/search filter above, plus a sort-
+    // direction toggle. ANDed, not exclusive with search/tabs — narrows
+    // whatever's already showing rather than replacing it.
+    private void DrawTierFilterRow()
+    {
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Tier:", DebugGUI.Label, GUILayout.Width(55));
+
+        var allStyle = !tierFilter.HasValue ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
+        if (GUILayout.Button("All", allStyle, GUILayout.Width(50), GUILayout.Height(TabHeight)))
+            tierFilter = null;
+
+        foreach (var tier in AllTiers)
+        {
+            bool selected = tierFilter.HasValue && tierFilter.Value == tier;
+            var style = selected ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
+            GUI.contentColor = selected ? Color.white : CraftTierColors.Get(tier);
+            if (GUILayout.Button(tier.ToString(), style, GUILayout.Width(95), GUILayout.Height(TabHeight)))
+                tierFilter = tier;
+            GUI.contentColor = Color.white;
+        }
+
+        GUILayout.FlexibleSpace();
+        if (GUILayout.Button(sortAscending ? "Tier 1 -> 5" : "Tier 5 -> 1", GUILayout.Width(100), GUILayout.Height(TabHeight)))
+            sortAscending = !sortAscending;
+
+        GUILayout.EndHorizontal();
     }
 
     private void DrawSearchBar()
@@ -139,7 +192,7 @@ public class CraftingScreen : MonoBehaviour
 
         DrawIcon(recipe.outputItem);
 
-        GUILayout.Label(recipe.outputItem.itemName, DebugGUI.Header);
+        GUILayout.Label(recipe.outputItem.itemName, DebugGUI.TierNameCentered(recipe.outputItem.tier));
         if (recipe.bonusItem != null)
             GUILayout.Label($"+ {recipe.bonusCount}x {recipe.bonusItem.itemName}", DebugGUI.Label);
 
@@ -188,9 +241,10 @@ public class CraftingScreen : MonoBehaviour
         var sprite = item.previewIcon != null ? item.previewIcon : item.icon;
 
         GUILayout.Box(GUIContent.none, GUILayout.Width(IconSize), GUILayout.Height(IconSize));
+        var rect = GUILayoutUtility.GetLastRect();
+        GUI.DrawTexture(rect, DebugGUI.TierBorder(item.tier));
         if (sprite == null) return;
 
-        var rect = GUILayoutUtility.GetLastRect();
         var iconRect = new Rect(
             rect.x + IconPadding, rect.y + IconPadding,
             rect.width - IconPadding * 2f, rect.height - IconPadding * 2f);

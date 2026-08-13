@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public static class DebugGUI
@@ -95,6 +96,86 @@ public static class DebugGUI
     {
         var tex = new Texture2D(1, 1);
         tex.SetPixel(0, 0, color);
+        tex.Apply();
+        return tex;
+    }
+
+    // Per-tier border texture + name text style, keyed lazily like every
+    // other style in this file — just 5 cached variants instead of 1, per
+    // CraftTierColors. Border textures have a transparent center so they
+    // overlay directly on top of DebugGUI.Slot's existing fill (drawn
+    // second, via GUI.DrawTexture) rather than replacing it.
+    private static readonly Dictionary<CraftTier, Texture2D> tierBorderTextures = new Dictionary<CraftTier, Texture2D>();
+    private static readonly Dictionary<CraftTier, GUIStyle> tierNameStyles = new Dictionary<CraftTier, GUIStyle>();
+
+    public static Texture2D TierBorder(CraftTier tier)
+    {
+        if (!tierBorderTextures.TryGetValue(tier, out var tex) || tex == null)
+        {
+            tex = BorderTexture(CraftTierColors.Get(tier));
+            tierBorderTextures[tier] = tex;
+        }
+        return tex;
+    }
+
+    public static GUIStyle TierName(CraftTier tier)
+    {
+        if (!tierNameStyles.TryGetValue(tier, out var style) || style == null)
+        {
+            style = new GUIStyle(GUI.skin.label);
+            style.normal.textColor = CraftTierColors.Get(tier);
+            style.fontStyle = FontStyle.Bold;
+            tierNameStyles[tier] = style;
+        }
+        return style;
+    }
+
+    // Same as TierName but centered — CraftingScreen's tile headers, where
+    // DebugGUI.Header's centered look is the baseline being replaced.
+    private static readonly Dictionary<CraftTier, GUIStyle> tierNameCenteredStyles = new Dictionary<CraftTier, GUIStyle>();
+
+    public static GUIStyle TierNameCentered(CraftTier tier)
+    {
+        if (!tierNameCenteredStyles.TryGetValue(tier, out var style) || style == null)
+        {
+            style = new GUIStyle(TierName(tier));
+            style.alignment = TextAnchor.MiddleCenter;
+            tierNameCenteredStyles[tier] = style;
+        }
+        return style;
+    }
+
+    // Same box (background + layout) as Slot, but with the item's tier
+    // color applied to its own text — used instead of Slot for an occupied
+    // slot box whose GUIContent shows a text label directly (no icon).
+    private static readonly Dictionary<CraftTier, GUIStyle> tierSlotStyles = new Dictionary<CraftTier, GUIStyle>();
+
+    public static GUIStyle SlotForTier(CraftTier tier)
+    {
+        if (!tierSlotStyles.TryGetValue(tier, out var style) || style == null)
+        {
+            style = new GUIStyle(Slot);
+            style.normal.textColor = CraftTierColors.Get(tier);
+            style.hover.textColor = CraftTierColors.Get(tier);
+            style.active.textColor = CraftTierColors.Get(tier);
+            tierSlotStyles[tier] = style;
+        }
+        return style;
+    }
+
+    private static Texture2D BorderTexture(Color color)
+    {
+        const int size = 8;
+        var clear = new Color(0f, 0f, 0f, 0f);
+        var tex = new Texture2D(size, size);
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                bool edge = x == 0 || y == 0 || x == size - 1 || y == size - 1;
+                tex.SetPixel(x, y, edge ? color : clear);
+            }
+        }
         tex.Apply();
         return tex;
     }
