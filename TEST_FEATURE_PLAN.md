@@ -2553,12 +2553,16 @@ behavior.
   to test in-game for this part until that's built — confirms this is
   understood as a data-layer-only step, not a missed feature.
 
-## 21. Campfire rebuilt — craftable, fuel, cooking, warmth, model, popup (v0.3.26-dev — v0.3.28-dev)
+## 21. Campfire rebuilt — craftable, fuel, cooking, warmth, model, popup (v0.3.26-dev — v0.3.30-dev)
 
-Rewritten 2026-08-13 for the new E-key popup UI (v0.3.28-dev) and the
-Blender model rebuild (v0.3.27-dev) — the old "Campfire (nearby)"
-Inventory-tab steps below are gone, since that mechanism was removed
-entirely in favor of `CampfireScreen`.
+Rewritten 2026-08-13 (twice — v0.3.28-dev's E-key popup, then
+v0.3.30-dev's drag-and-drop/recipe rework) and for the Blender model
+rebuild (v0.3.27-dev). The old "Campfire (nearby)" Inventory-tab steps
+are long gone (removed entirely in favor of `CampfireScreen`), and so is
+v0.3.28-dev's simple Add-1/Take button flow — cooking is now drag-and-
+drop with utensils, multi-slot ingredients/output, and a manual Recipe
+button. **Not yet walked through even once — this pass matters more
+than usual given how much changed.**
 
 - [ ] **Open the Build tab and find "Campfire"** in the piece list —
   confirm it shows an icon (not blank), and its cost reads 4 Rock + 3
@@ -2572,25 +2576,29 @@ entirely in favor of `CampfireScreen`.
   sticks), not the old scaled-cylinder placeholder.
 - [ ] **Look at the unlit placed Campfire** — confirm the prompt reads
   "Open Campfire" (E).
-- [ ] **Press E** — confirm a small centered popup opens (same visual
-  family as the Lockbox popup), cursor unlocks, showing "Unlit", a Fuel
-  section, a Cooking section, and a Light button (greyed out/disabled
-  since there's no fuel yet).
-- [ ] **Add fuel**: with a Stick in your main inventory, confirm it shows
-  as a row in the popup's Fuel section reading "Stick (have N)" with an
-  "Add 1" button — click it, confirm the Stick count in your inventory
-  drops by 1 and the Fuel section now shows "Stick x1" with a Take button
-  instead.
+- [ ] **Press E** — confirm a popup opens (larger now — scrollable
+  content area), cursor unlocks, showing "Unlit", a Fuel box, a Cooking
+  Utensils row (4 boxes: Grill/Cooking Pot/Kettle/Frying Pan), an
+  Ingredients row (4 boxes), a Cooked Items row (4 boxes), a Recipe
+  section, a Transfer section (Backpack + hands), and a Light button
+  (disabled since there's no fuel yet).
+- [ ] **Drag fuel in**: with a Stick in your Backpack or a hand, drag it
+  from the Transfer section onto the Fuel box — confirm it lands there
+  and leaves the source. Try dragging a non-wood/non-fuel item onto the
+  Fuel box — confirm it's rejected (snaps back, nothing moves).
+- [ ] **Drag-and-drop basics**: press-and-hold an occupied box, confirm a
+  ghost icon/label follows the cursor once you've moved far enough
+  (small clicks shouldn't start a drag), confirm the box under the
+  cursor highlights yellow while dragging, and releasing over an invalid
+  target (or empty space outside any box) leaves the item exactly where
+  it started.
 - [ ] **Light it**: click the Light button — confirm it's now enabled,
   clicking it lights the fire (visual/light turns on, wood renderer swaps
   to the ember-glow lit material — rocks should NOT change), and the
   popup's status line updates to "Lit — Ns of fuel left" counting down.
-- [ ] **Take fuel back out**: with an item in the Fuel or Cooking slot,
-  click Take — confirm it returns to your main inventory and the slot
-  empties.
 - [ ] **Close via the Close button**, and separately via Escape — confirm
-  both re-lock the cursor and return to normal gameplay (same as every
-  other screen).
+  both re-lock the cursor and return to normal gameplay, and confirm a
+  drag in progress doesn't get stuck if you close mid-drag.
 - [ ] **Let fuel run out** (or load just 1 Stick and wait ~5 min) —
   confirm the Campfire extinguishes on its own (wood renderer reverts to
   the unlit charred material, rocks unaffected), fire light turns off,
@@ -2601,33 +2609,50 @@ entirely in favor of `CampfireScreen`.
   design) for a few seconds. Confirm it lights as an alternate path.
   Confirm Spark offers nothing (R does nothing) on a Campfire with no
   fuel loaded.
-- [ ] **Cooking:** open the popup on a **lit** Campfire, Add 1 Raw Meat
-  into the Cooking section, close the popup, and stand within a few
-  meters — confirm it converts to Cooked Meat after ~30 seconds (reopen
-  the popup to check/Take it). Walk away mid-cook, confirm progress
-  pauses (doesn't restart from 0). Let the fire go out mid-cook — confirm
-  cooking pauses too, then resumes once relit while the Raw Meat is still
-  in the slot.
+- [ ] **Cooking Utensils**: drag a Grill (Admin Spawn it — no recipe
+  exists yet) into the Grill box — confirm it only accepts a Grill,
+  rejecting anything else. Confirm all 4 utensil boxes work
+  independently and can all hold an item simultaneously.
+- [ ] **Ingredients + Recipe list**: with the Campfire lit, drag 1 Raw
+  Meat into an Ingredients box — confirm the Recipe section now shows a
+  "Cook Cooked Meat x1" button (Raw Meat → Cooked Meat needs no
+  accessory). Confirm the Recipe section reads "No recipes available..."
+  when the ingredients/utensils don't satisfy anything.
+- [ ] **Start cooking**: click the Recipe button — confirm the Raw Meat
+  is immediately consumed from the Ingredients box, the Recipe section
+  now shows "Cooking Cooked Meat — N%" counting up, and after ~30
+  seconds the finished Cooked Meat appears in a Cooked Items box. Walk
+  away mid-cook, confirm progress pauses (doesn't restart from 0). Let
+  the fire go out mid-cook — confirm cooking pauses too, then resumes
+  once relit.
+- [ ] **Take cooked items out**: drag a Cooked Meat from a Cooked Items
+  box to your Backpack or a hand — confirm it moves normally. Confirm
+  you can NOT drag anything INTO a Cooked Items box (system-populated
+  only).
 - [ ] **Eat the Cooked Meat** — confirm a right-click Eat option appears
   and restores Hunger (Meal tier, ~40) with no Health effect. Confirm Raw
   Meat itself has **no** Eat option at all (still not directly edible —
   cooking is required).
 - [ ] **Cooked Meat's icon/model** — expected to look identical to Raw
   Meat (a known placeholder simplification, not a bug) — confirm it's at
-  least not blank/missing.
+  least not blank/missing. Same for the 4 utensil items (Grill/Cooking
+  Pot/Kettle/Frying Pan) — expect a blank/generic box, not broken.
+  Confirm all 4 are findable via Admin Spawn's item search.
+  Also try dragging a Left/Right Hand-held item into the Transfer
+  section's boxes and back — confirm nothing gets orphaned (the
+  equipment-reference gotcha this project has hit before).
 - [ ] **Warmth:** check the debug vitals panel or the new HUD bar (bottom
   of screen, 4th row under Will) for Body Temperature. Stand within ~4m of
   a lit Campfire — confirm the value climbs toward ~80 over a few seconds.
   Walk away — confirm it drifts back down toward the neutral baseline
   (50) over time, same passive drift as before this feature existed.
-- [ ] **Accessory slots don't exist as a usable UI yet** — no Grill/Soup
-  Pot/Kettle/Frying Pan items exist to test; nothing to check here until
-  those are built (see `CAMPFIRE_PLANNING.md`).
 - [ ] **Multiple Campfires**: place a second Campfire, confirm pressing E
-  on each opens *that specific* one's popup (fuel/cooking/lit-state are
-  genuinely per-instance, not shared).
+  on each opens *that specific* one's popup (fuel/utensils/ingredients/
+  output/lit-state are genuinely per-instance, not shared).
 - [ ] **Regression:** confirm ordinary crafting/other Build pieces still
   work normally, and confirm StorageBox's own nearby-Inventory mechanism
   (still using the old pattern, untouched by this change) still works —
-  this change touched shared code (`InventoryScreen.cs`,
-  `FirstPersonController.cs`) alongside Campfire-specific additions.
+  this change touched shared code (`FirstPersonController.cs`) alongside
+  Campfire-specific additions. Confirm `InventoryScreen`'s own drag-and-
+  drop still works exactly as before (CampfireScreen's is a separate,
+  self-contained implementation, but worth confirming nothing regressed).

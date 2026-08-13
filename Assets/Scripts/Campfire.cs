@@ -29,6 +29,18 @@ using UnityEngine;
 // covers all of them — same reasoning PlayerEating.edibles uses, just
 // per-prefab instead of per-player since fuel lives on the structure, not
 // the player).
+//
+// Cooking rework (2026-08-13): was a single auto-cooking slot; now a real
+// recipe system mirroring CraftingRecipe's shape — 4 accessory slots
+// (Grill/Cooking Pot/Kettle/Frying Pan, each capacity-1 restricted to its
+// own item), a 4-slot ingredient input pool, and a 4-slot output bank.
+// Cooking is a manual action now (Ben's call): the player loads
+// utensils/ingredients, CampfireScreen shows only the CookableItem
+// recipes currently satisfiable (accessory present + all ingredients
+// present), and clicking one commits — ingredients consumed immediately
+// (same "consumed upfront" convention as PlayerCrafting), one recipe
+// cooking at a time, real-time timer pausing (not resetting) while unlit
+// or the player's away, landing in the output bank on completion.
 public class Campfire : MonoBehaviour, IInteractable, IWishTarget
 {
     [SerializeField] private WishRecipe sparkWish;
@@ -42,15 +54,16 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     [SerializeField] private Light fireLight;
     [SerializeField] private FuelItem[] fuelItems;
 
-    // Cooking (2026-08-12, Chunk 3): 1 slot, auto-cooks over time while
-    // lit and the player stands within cookRange — same "runs on its own
-    // once conditions are met" mental model as the fuel timer above.
-    // Progress pauses (not resets) if the fire goes out or the player
-    // steps away, and only resets if the slot's contents actually change
-    // (the raw item gets pulled back out) — cookableItems wired once on
-    // the prefab, same reasoning as fuelItems.
     [SerializeField] private CookableItem[] cookableItems;
     [SerializeField] private float cookRange = 3f;
+
+    // Accessory items (2026-08-13) — each gates a capacity-1 Inventory
+    // restricted to exactly that item, wired once on the prefab like
+    // fuelItems/cookableItems.
+    [SerializeField] private ItemDefinition grillItem;
+    [SerializeField] private ItemDefinition cookingPotItem;
+    [SerializeField] private ItemDefinition kettleItem;
+    [SerializeField] private ItemDefinition fryingPanItem;
 
     // Warmth (2026-08-12, Chunk 4) — Body Temperature's first real
     // gameplay use. warmthTarget (80) sits comfortably above
@@ -61,20 +74,32 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     [SerializeField] private float warmthRatePerSecond = 5f;
 
     private Inventory fuelInventory;
-    private Inventory cookingInventory;
+    private Inventory grillSlot;
+    private Inventory cookingPotSlot;
+    private Inventory kettleSlot;
+    private Inventory fryingPanSlot;
+    private Inventory inputInventory;
+    private Inventory outputInventory;
     private Transform player;
     private PlayerVitals playerVitals;
     private bool isLit;
     private float fuelSecondsRemaining;
+    private CookableItem activeRecipe;
     private float cookSecondsElapsed;
 
     public string DisplayName => "Campfire";
     public Inventory FuelInventory => fuelInventory;
-    public Inventory CookingInventory => cookingInventory;
+    public Inventory GrillSlot => grillSlot;
+    public Inventory CookingPotSlot => cookingPotSlot;
+    public Inventory KettleSlot => kettleSlot;
+    public Inventory FryingPanSlot => fryingPanSlot;
+    public Inventory InputInventory => inputInventory;
+    public Inventory OutputInventory => outputInventory;
     public FuelItem[] FuelItems => fuelItems;
-    public CookableItem[] CookableItems => cookableItems;
     public bool IsLit => isLit;
     public float FuelSecondsRemaining => fuelSecondsRemaining;
+    public CookableItem ActiveRecipe => activeRecipe;
+    public float CookSecondsElapsed => cookSecondsElapsed;
 
     // 2026-08-13: E now always opens CampfireScreen instead of attempting
     // to light directly — lighting moved to a button inside that popup
@@ -110,22 +135,26 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
             allowedFuel[i] = fuelItems[i] != null ? fuelItems[i].item : null;
         fuelInventory = new Inventory(1, allowedFuel);
 
-        // The cooking slot accepts both the raw and cooked form of every
-        // registered recipe — it holds whichever state is currently in
-        // progress, and the player retrieves the finished item from the
-        // same slot they loaded the raw one into (same nearby-Campfire UI
-        // as fuel, no auto-delivery into the player's own inventory).
-        var allowedCooking = new List<ItemDefinition>();
+        grillSlot = new Inventory(1, grillItem != null ? new[] { grillItem } : null);
+        cookingPotSlot = new Inventory(1, cookingPotItem != null ? new[] { cookingPotItem } : null);
+        kettleSlot = new Inventory(1, kettleItem != null ? new[] { kettleItem } : null);
+        fryingPanSlot = new Inventory(1, fryingPanItem != null ? new[] { fryingPanItem } : null);
+
+        var allowedIngredients = new List<ItemDefinition>();
+        var allowedOutputs = new List<ItemDefinition>();
         if (cookableItems != null)
         {
             foreach (var recipe in cookableItems)
             {
                 if (recipe == null) continue;
-                if (recipe.rawItem != null) allowedCooking.Add(recipe.rawItem);
-                if (recipe.cookedItem != null) allowedCooking.Add(recipe.cookedItem);
+                if (recipe.ingredients != null)
+                    foreach (var ingredient in recipe.ingredients)
+                        if (ingredient != null && ingredient.item != null) allowedIngredients.Add(ingredient.item);
+                if (recipe.outputItem != null) allowedOutputs.Add(recipe.outputItem);
             }
         }
-        cookingInventory = new Inventory(1, allowedCooking.ToArray());
+        inputInventory = new Inventory(4, allowedIngredients.ToArray());
+        outputInventory = new Inventory(4, allowedOutputs.ToArray());
 
         SetLit(false);
     }
@@ -158,51 +187,85 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
             playerVitals.WarmNear(warmthTarget, warmthRatePerSecond);
     }
 
+    // Real-time timer for whichever recipe StartCooking() committed to —
+    // paused (not reset) while unlit or the player's out of range, same
+    // "runs on its own, pauses on interruption" mental model as before.
+    // Ingredients were already consumed at StartCooking time, so nothing
+    // here can fail except the output actually landing (guarded upfront
+    // by StartCooking's own HasSpaceFor check).
     private void TickCooking()
     {
-        if (cookingInventory.Slots.Count == 0)
-        {
-            cookSecondsElapsed = 0f;
-            return;
-        }
+        if (activeRecipe == null) return;
 
-        var slot = cookingInventory.Slots[0];
-        var recipe = FindCookable(slot.item);
-        if (recipe == null)
-        {
-            // Either empty, or the slot already holds the cooked result —
-            // nothing left to do either way.
-            cookSecondsElapsed = 0f;
-            return;
-        }
-
-        // No accessory slots exist yet (2026-08-12 — deliberately not
-        // built until real accessory items do; see CAMPFIRE_PLANNING.md),
-        // so any recipe that requires one can never actually complete —
-        // only the null-requiredAccessory (open-flame) recipes work today.
-        bool accessorySatisfied = recipe.requiredAccessory == null;
         bool playerNearby = player != null
             && (player.position - transform.position).sqrMagnitude <= cookRange * cookRange;
-
-        // Paused, not reset, when conditions aren't met right now — the
-        // player can walk away and come back, or let the fire go out and
-        // relight it, without losing progress already made.
-        if (!isLit || !playerNearby || !accessorySatisfied) return;
+        if (!isLit || !playerNearby) return;
 
         cookSecondsElapsed += Time.deltaTime;
-        if (cookSecondsElapsed < recipe.cookDurationSeconds) return;
+        if (cookSecondsElapsed < activeRecipe.cookDurationSeconds) return;
 
-        cookingInventory.RemoveItem(recipe.rawItem, 1);
-        cookingInventory.AddItem(recipe.cookedItem, 1);
+        outputInventory.AddItem(activeRecipe.outputItem, activeRecipe.outputCount);
+        activeRecipe = null;
         cookSecondsElapsed = 0f;
     }
 
-    private CookableItem FindCookable(ItemDefinition item)
+    // Every registered recipe whose accessory (if any) is currently seated
+    // in one of the 4 utensil slots and whose full ingredient list is
+    // currently present in the input pool — what CampfireScreen's Recipe
+    // list actually offers the player.
+    public List<CookableItem> GetAvailableRecipes()
     {
-        if (item == null || cookableItems == null) return null;
+        var result = new List<CookableItem>();
+        if (cookableItems == null) return result;
+
         foreach (var recipe in cookableItems)
-            if (recipe != null && recipe.rawItem == item) return recipe;
-        return null;
+        {
+            if (recipe == null) continue;
+            if (!AccessoryPresent(recipe.requiredAccessory)) continue;
+            if (!HasAllIngredients(recipe)) continue;
+            result.Add(recipe);
+        }
+        return result;
+    }
+
+    private bool AccessoryPresent(ItemDefinition accessory)
+    {
+        if (accessory == null) return true;
+        return grillSlot.GetCount(accessory) > 0 || cookingPotSlot.GetCount(accessory) > 0
+            || kettleSlot.GetCount(accessory) > 0 || fryingPanSlot.GetCount(accessory) > 0;
+    }
+
+    private bool HasAllIngredients(CookableItem recipe)
+    {
+        if (recipe.ingredients == null) return true;
+        foreach (var ingredient in recipe.ingredients)
+        {
+            if (ingredient == null || ingredient.item == null) continue;
+            if (inputInventory.GetCount(ingredient.item) < ingredient.count) return false;
+        }
+        return true;
+    }
+
+    // Commits to cooking recipe: consumes its ingredients from the input
+    // pool immediately (same upfront-consume convention as
+    // PlayerCrafting), starts the real-time timer. Only one recipe cooks
+    // at a time — refuses if something's already cooking, the recipe
+    // isn't currently satisfiable, or the output bank has no room for the
+    // result.
+    public bool StartCooking(CookableItem recipe)
+    {
+        if (recipe == null || activeRecipe != null) return false;
+        if (!AccessoryPresent(recipe.requiredAccessory) || !HasAllIngredients(recipe)) return false;
+        if (!outputInventory.HasSpaceFor(recipe.outputItem, recipe.outputCount)) return false;
+
+        if (recipe.ingredients != null)
+            foreach (var ingredient in recipe.ingredients)
+                if (ingredient != null && ingredient.item != null)
+                    inputInventory.RemoveItem(ingredient.item, ingredient.count);
+
+        activeRecipe = recipe;
+        cookSecondsElapsed = 0f;
+        return true;
     }
 
     public void OnWishComplete(GameObject player, bool succeeded)

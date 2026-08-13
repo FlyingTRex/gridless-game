@@ -274,6 +274,10 @@ MonoBehaviour:
   cookableItems:
   - {fileID: 11400000, guid: 9ba59c7b38ff6e640bee16d4f83e8875, type: 2}
   cookRange: 3
+  grillItem: {fileID: 11400000, guid: 535cccdcb25013e4ba1ec01a7e6d9575, type: 2}
+  cookingPotItem: {fileID: 11400000, guid: 7c208505d745bce49b264179f04f6fa8, type: 2}
+  kettleItem: {fileID: 11400000, guid: c26b68c73d7eb2a46a34e8acffdf502a, type: 2}
+  fryingPanItem: {fileID: 11400000, guid: e45f00df1efa95b41b8631e538a442ee, type: 2}
   warmthRange: 4
   warmthTarget: 80
   warmthRatePerSecond: 5

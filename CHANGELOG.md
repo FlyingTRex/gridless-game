@@ -5,10 +5,86 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.29-dev` — must always match `GameVersion` in
+**Current version:** `0.3.30-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (4)
+
+### v0.3.30-dev — Campfire cooking rework: utensils, multi-ingredient recipes, drag-and-drop popup
+
+Real-time iteration on the new `CampfireScreen` popup, driven by Ben
+looking at the built UI live and requesting changes in sequence. Cooking
+went from a single auto-cooking slot to a full recipe system:
+
+- **`CookableItem` restructured** to mirror `CraftingRecipe`'s own shape
+  — `ingredients[]` (item+count array, was a single `rawItem`) and
+  `outputItem`/`outputCount` (was a single `cookedItem`). Existing
+  `RawMeatToCookedMeatCookable.asset` migrated in place (1 Raw Meat →
+  1 Cooked Meat, unchanged behavior, new shape).
+- **4 new Cooking Utensil items**: Grill, Cooking Pot, Kettle, Frying Pan
+  (`Assets/Data/*.asset`) — plain, non-equippable, maxStack 1, no
+  model/icon yet (same known-placeholder gap `CAMPFIRE_PLANNING.md`
+  already flagged; admin-spawnable in the meantime, same auto-discovery
+  every `ItemDefinition` gets).
+- **`Campfire.cs`**: 4 new capacity-1 accessory slots (one per utensil,
+  each restricted to exactly that item), a 4-slot ingredient input pool,
+  and a 4-slot output bank (all plain `Inventory` instances, same
+  restriction mechanism as the existing fuel slot). `GetAvailableRecipes()`
+  filters the registered `cookableItems` down to ones whose accessory (if
+  any) is seated and whose full ingredient list is present. `StartCooking()`
+  is a new manual commit action — consumes ingredients immediately (same
+  upfront-consume convention `PlayerCrafting` already uses), starts a
+  real-time timer, one recipe at a time. **This replaces the old always-
+  auto-cook-when-conditions-are-met behavior — a deliberate philosophy
+  change, Ben's explicit call**, not an oversight.
+- **`CampfireScreen.cs` rewritten** from simple Add-1/Take buttons to a
+  real drag-and-drop UI: Fuel (wood-only), 4 Utensil boxes, 4 Ingredient
+  boxes, 4 Output boxes (drag-source only — the cook mechanic is the only
+  thing allowed to populate them), a Recipe section listing only
+  currently-satisfiable recipes as buttons, and a Transfer section
+  scoped to exactly Backpack contents + Left/Right Hand (Ben's explicit
+  scope — not the full Inventory tab). The drag-and-drop mechanics are a
+  **self-contained implementation inside `CampfireScreen.cs`**, not a
+  literal extraction from `InventoryScreen.cs` — deliberately mirrors
+  that screen's proven interaction model (press-hold-release with a
+  distance threshold, cursor-following ghost, highlighted drop zone) to
+  avoid regression risk to a heavily-tested, bug-history-laden file for
+  a feature that doesn't need any of its 11-equippable-type dispatch
+  logic (every box here is a plain, unequippable `Inventory`).
+- **One real infra hiccup mid-build**: a batch-mode Unity compile check
+  hung indefinitely after an earlier invocation collided with a leftover
+  `bee_backend` process from an interrupted run (an "Editor is open"
+  attempt caught and retried per the established protocol). Diagnosed via
+  process inspection (confirmed the blocking PID no longer existed, so
+  the batch process was genuinely deadlocked, not just slow), confirmed
+  with Ben before killing the stuck process, then a fresh invocation
+  compiled clean immediately.
+- **Three live-feedback fixes**, from Ben looking at the actual popup
+  (not something batch-mode verification could have caught):
+  1. The Ingredients/Cooked Items grid had zero `GUILayout.Space` between
+     boxes — 4 adjacent empty slots visually merged into one solid
+     rectangle instead of reading as 4 separate boxes. Fixed with a
+     consistent `BoxGap` (8px) applied between every box in the grid, the
+     Utensils row, and the Hands row.
+  2. The popup's fixed 520x640 panel didn't fit Ben's screen, and his
+     touchpad has no working scroll gesture in this window — the Close
+     button was genuinely unreachable, not just inconvenient. Panel
+     width/height are now responsive (`Mathf.Min(max, Screen.dimension *
+     0.92f)`, same pattern `PlayerMenuScreen.DrawScrollable` already
+     uses) instead of relying on scrolling to cover the gap.
+  3. Section order reshuffled per Ben's request: Cooking Utensils →
+     Cooked Items → Recipe → Transfer (Backpack/Hands) → Ingredients →
+     Fuel, with Fuel now the last section (bottom of the popup, right
+     above Light/Close) and Ingredients directly above it.
+
+Not yet done: models/icons for the 4 utensils (structurally usable via
+Admin Spawn today, visually a blank placeholder), and a live Play-mode
+pass — this entire rework has been verified via compile checks + YAML
+grep only, the same way v0.3.27-dev/v0.3.28-dev were, but the surface
+area here is much larger (a real UI redesign built through live back-
+and-forth, not a single pre-planned chunk).
 
 ## 2026-08-13 (3)
 

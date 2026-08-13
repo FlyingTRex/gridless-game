@@ -4,30 +4,39 @@ Planning doc for turning Campfire from a single magic-only scene prop into
 a real craftable, fuel-burning, cooking structure (2026-08-12). Decisions
 below are locked in; open items are flagged as such.
 
-**Status: built (v0.3.26-dev through v0.3.28-dev).** Placement, fuel,
-cooking, warmth, the Blender model rebuild, and the dedicated E-key popup
-UI have all shipped — see `CHANGELOG.md` for the full writeup and
+**Status: built (v0.3.26-dev through v0.3.30-dev).** Placement, fuel,
+warmth, the Blender model rebuild, and the dedicated E-key popup UI have
+all shipped — see `CHANGELOG.md` for the full writeup and
 `TEST_FEATURE_PLAN.md` section 21 for the manual verification checklist
-(not yet walked through). Still open/deferred: the 4 accessory items +
-their slots, Wood Stove, and the water-safety mechanic.
+(not yet walked through, and the cooking-rework steps below need writing
+into it). **Cooking rebuilt again (v0.3.30-dev)** — the 4 accessory
+slots are now built (see section 4 below, updated in place); still
+open/deferred: models/icons for the 4 utensil items, Wood Stove, and the
+water-safety mechanic.
 
-**UI redesign — built (v0.3.28-dev, 2026-08-13).** Loading fuel/food used
-to only work via a "Campfire (nearby)" section auto-appended to the
-bottom of the main Inventory tab's scroll view (same pattern as nearby
-StorageBox) — a real UX problem found live: on an already-busy screen, a
-small unlabeled row at the very bottom wasn't discoverable (Ben's live
-report read verbatim as "there's no mechanism to transfer fuel," even
-though the mechanism was technically present and functional). **Built as
-decided:** pressing E on the Campfire now opens `CampfireScreen`, a small
-focused popup (same visual family as `LockboxScreen`) showing fuel/
-cooking slots directly (button-based Add-1/Take, no drag-and-drop),
-closable like every other screen. This **replaced** the old E-key light/
-needs-fuel prompt-and-tap flow — lighting is now a button inside the
-popup. The old embedded-in-Inventory mechanism was removed entirely
-(along with the now-unused `Campfire.Active`/`FindNearby`), not left as
-dead code. **Open question, still not decided:** whether this same popup
-pattern should also replace StorageBox's identical nearby-section
-approach — raised as a natural follow-on, not committed either way.
+**UI redesign — built (v0.3.28-dev, then substantially reworked
+v0.3.30-dev, both 2026-08-13).** Loading fuel/food used to only work via
+a "Campfire (nearby)" section auto-appended to the bottom of the main
+Inventory tab's scroll view (same pattern as nearby StorageBox) — a real
+UX problem found live: on an already-busy screen, a small unlabeled row
+at the very bottom wasn't discoverable (Ben's live report read verbatim
+as "there's no mechanism to transfer fuel," even though the mechanism
+was technically present and functional). **v0.3.28-dev** replaced it
+with `CampfireScreen`, a focused popup (same visual family as
+`LockboxScreen`) with simple Add-1/Take buttons. **v0.3.30-dev**
+upgraded that same popup to real drag-and-drop once the cooking system
+grew utensil/ingredient/output slots — Fuel, 4 Utensil boxes, 4
+Ingredient boxes, 4 Output boxes, a Recipe picker, and a Transfer
+section scoped to exactly Backpack contents + Left/Right Hand (Ben's
+explicit scope, live feedback while looking at the built popup). The
+drag-and-drop mechanics are a self-contained implementation inside
+`CampfireScreen.cs`, not a literal extraction from `InventoryScreen.cs`
+— mirrors that screen's proven interaction model without touching its
+heavily-tested equip-dispatch code, which this screen has no need for
+(every box here is a plain, unequippable `Inventory`). **Open question,
+still not decided:** whether this same popup pattern should also replace
+StorageBox's identical nearby-section approach — raised as a natural
+follow-on, not committed either way.
 
 ## 1. Current state (audit, 2026-08-12)
 
@@ -76,28 +85,29 @@ Confirmed directly against the codebase before designing anything new:
   (Stick, Trimmed Stick tiers, Plank) works, tier controls burn duration.
   No new fuel logic needed. **1 fuel slot** — simpler/smaller-scale than
   the Furnace's planned 2, fitting a primitive campfire.
-- **Cooking: 1 cooking slot.** Raw Meat → Cooked Meat while the player
-  stands nearby and the Campfire is lit — **auto-cooks over time, not a
-  manual action**, same "runs on its own once lit, independent of active
-  player input" mental model already decided for the Furnace's smelting.
-  **Works with no accessory equipped at all** — open-flame roasting is the
-  baseline, not something accessories unlock from zero.
-- **Accessory slots (2026-08-12 addition): 4 slots, one per accessory
-  type** — Grill, Soup Pot, Kettle, Frying Pan can all be equipped
-  simultaneously, not swapped one-at-a-time. **Accessories gate which
-  recipes are possible, not just speed/quality** — e.g. Soup requires the
-  Soup Pot equipped, boiled water requires the Kettle, mirroring how
-  `CraftingRecipe.requiredTools` already gates ordinary crafting
-  elsewhere. Raw Meat → Cooked Meat needs no accessory (open-flame
-  default); accessories add recipes on top of that baseline rather than
-  being required to cook at all. Each accessory is itself a real
-  equippable item (its own `ItemDefinition`, eventually its own
-  recipe/model) — none of the four are designed yet beyond their names
-  and their gating role. **Concrete gap to close before any of the four
-  are usable: each needs its own model + icon** (Grill, Soup Pot, Kettle,
-  Frying Pan) — Ben's note, 2026-08-12. Not yet built; the accessory slot
-  structure can ship without them (slots just stay empty/unused until
-  these exist).
+- **Cooking — rebuilt v0.3.30-dev, superseding the original decision
+  below.** Was: 1 cooking slot, auto-cooks over time, no manual action
+  (matching the Furnace's smelting model). **Now:** a real recipe system
+  — a 4-slot ingredient input pool, a 4-slot output bank, and a manual
+  Recipe button (Ben's live call while looking at the built popup: "once
+  the raw ingredients are loaded, a 'recipe' button should show only
+  items that can be cooked with the utensils and ingredients loaded").
+  `CookableItem` now mirrors `CraftingRecipe`'s own `ingredients[]`/
+  `outputItem` shape instead of a single raw/cooked pair, supporting
+  multi-ingredient recipes. Still works with no accessory for the
+  baseline (Raw Meat → Cooked Meat needs none). See section 4.
+- **Accessory slots — built v0.3.30-dev, 4 slots, one per accessory
+  type.** Grill, Cooking Pot (renamed from the original "Soup Pot"
+  during the build — Ben's actual wording when specced), Kettle, Frying
+  Pan — all usable simultaneously, each a capacity-1 `Inventory`
+  restricted to exactly that item. **Accessories gate which recipes are
+  possible** — `CookableItem.requiredAccessory`, checked via
+  `Campfire.GetAvailableRecipes()`, same `CraftingRecipe.requiredTools`-
+  style gating shape as planned. Each accessory is a real, plain (non-
+  equippable) `ItemDefinition` — no crafting recipe yet, admin-spawnable
+  only. **Still the one open gap: each needs its own model + icon** —
+  the slot/recipe-gating structure is fully built and functional, just
+  visually a blank placeholder until those exist.
 - **Water is explicitly out of scope for now.** There's no dirty/unsafe-
   water mechanic anywhere in the game today — `Canteen`/`WaterSource`
   don't distinguish water quality at all, and the only water-related
@@ -142,36 +152,39 @@ teepee pile of 6 charred sticks, replacing the pre-Blender placeholder.
   `CHANGELOG.md`'s v0.3.27-dev entry for the full verification trail and
   the two prefab-editing bugs hit and fixed along the way.
 
-## 4. Data shape (implementation sketch, not yet built)
+## 4. Data shape — built (v0.3.26-dev through v0.3.30-dev)
 
-- `Campfire` gains real state: `isLit`, a `FuelTier`-driven burn timer
-  (same shape as the Furnace's planned fuel inventory, just 1 slot
-  instead of 2), a 1-slot cooking inventory, and **4 accessory slots**
-  (Grill/Soup Pot/Kettle/Frying Pan — an `Inventory`-like structure with
-  named/typed slots, similar in spirit to `PlayerEquipment`'s named body
-  slots rather than a generic stack grid).
-- **New `CookableItem` ScriptableObject**, mirroring
-  `EdibleItem`/`MedicineItem`/`FuelItem`'s exact established pattern:
-  `rawItem`, `cookedItem`, `cookDurationSeconds`, plus a new
-  **`requiredAccessory` field (`ItemDefinition`, nullable)** — null means
-  cookable over the open flame with no accessory (Raw Meat → Cooked
-  Meat's case); set means that specific accessory must be equipped in one
-  of the 4 slots (Soup, boiled water, etc.), the same gating shape
-  `CraftingRecipe.requiredTools` already uses elsewhere, just checking an
-  accessory slot instead of a held tool.
-- **`CookedMeat` needs its own `ItemDefinition` + `EdibleItem`
-  registration** — Raw Meat itself deliberately stays un-eatable (no
-  `EdibleItem`), so cooking is required, not optional. Exact `FoodTier`
-  for Cooked Meat not decided here (Meal tier, matching MRE Ration's
-  substantiality, is a reasonable starting point to evaluate at build
-  time). This is the one `CookableItem` recipe actually specced —
-  anything accessory-gated (Soup, boiled water, etc.) is unscoped beyond
-  "the accessory exists and gates it," per section 2.
-- **Warmth:** a proximity check (Campfire-side or `PlayerVitals`-side)
-  nudging `bodyTemperature` upward while the player is within range of a
-  lit Campfire. Exact range and rate not decided here.
-- **`VitalsBarHUD` gains a real Body Temperature bar/readout**, the same
-  treatment the other 5 vitals already get.
+- `Campfire` holds: `isLit` + a `FuelTier`-driven burn timer (1 fuel
+  slot), **4 accessory slots** (`grillSlot`/`cookingPotSlot`/`kettleSlot`/
+  `fryingPanSlot`, each a capacity-1 `Inventory` restricted to its own
+  `ItemDefinition`), a 4-slot ingredient input pool (`inputInventory`),
+  and a 4-slot output bank (`outputInventory`) — all plain `Inventory`
+  instances using the existing `restrictedTo` mechanism, not a bespoke
+  named-slot structure.
+- **`CookableItem` ScriptableObject**, restructured v0.3.30-dev to
+  mirror `CraftingRecipe`'s own shape instead of
+  `EdibleItem`/`MedicineItem`/`FuelItem`'s single-field pattern:
+  `ingredients[]` (item+count array), `outputItem`, `outputCount`,
+  `cookDurationSeconds`, and `requiredAccessory` (`ItemDefinition`,
+  nullable — null means open-flame, no accessory needed; set means that
+  exact item must be seated in one of the 4 accessory slots).
+  `Campfire.GetAvailableRecipes()` filters the registered set down to
+  what's currently satisfiable; `StartCooking()` commits to one (consumes
+  ingredients immediately, one recipe cooking at a time, real-time timer
+  pausing while unlit/player away, landing in the output bank on
+  completion — manual trigger via CampfireScreen's Recipe button, not
+  the originally-planned auto-cook).
+- **`CookedMeat`'s own `ItemDefinition` + `EdibleItem` registration** —
+  Raw Meat itself deliberately stays un-eatable (no `EdibleItem`), so
+  cooking is required, not optional. Meal-tier `FoodTier` (40 hunger).
+  `RawMeatToCookedMeatCookable.asset` is still the only recipe that
+  actually exists — anything accessory-gated (Soup, boiled water, etc.)
+  remains unscoped beyond "the accessory exists and gates it."
+- **Warmth:** a proximity check nudging `bodyTemperature` upward while
+  the player is within `warmthRange` of a lit Campfire, toward
+  `warmthTarget` (80) at `warmthRatePerSecond` (5/s).
+- **`VitalsBarHUD` has a real Body Temperature bar**, same treatment as
+  the other 5 vitals.
 
 ## 5. Deferred ideas (not decided, logged for later)
 

@@ -68,27 +68,49 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   against a real API call** — response field names inside the `results[]`
   array are a best-effort guess from the docs, script dumps raw JSON for
   diagnosis on first real use.
-- 2026-08-13 — Ben — Imported the "Stylized Nature - Megapack" (Rystek
-  Software, Unity Asset Store) into `Assets/LJPackages/` — turns out to be
-  a bundle of 6 separate biome packs (AutumnForest, CommonForest,
-  DesertEnvironment, SpringEnvironment, Wetlands, WinterEnvironment),
-  190 prefabs total, URP Shader Graph wind/water shaders, 28 terrain
-  layers. Confirmed compiles clean with zero conflicts against the
-  project's own scripts. Used 4 of the 6 packs (Common/Autumn/Desert/
-  Winter) to scatter `TestScene.unity`'s terrain into 4 biome quadrants
-  as a first-look world-dressing test — trees/rocks/groundcover/bushes
-  placed with per-instance bounds-measured grounding (never assumed a
-  pivot-at-base convention), plus a matching terrain splat-paint pass
-  (sand under Desert, snow under Winter, etc.) with a smooth bilinear
-  blend at the quadrant cross and a soft blend back to the original grass
-  near the existing Anvil/Furnace/Campfire base (kept as a 20-unit
-  keep-out radius, untouched). Verified via rendered preview screenshots.
-  **Found and not yet resolved:** a couple of specific CommonForest tree/
-  bush prefabs render solid black in preview renders — isolated to a
-  couple of assets, not a pack-wide shader problem (most trees/bushes
-  across all 4 quadrants render correctly), but the exact cause wasn't
-  pinned down from outside the Editor (no shader compile errors in the
-  batch-mode log). Worth a direct look in the Editor's Scene/Game view
-  (real baked lighting + Console) before trusting it either way — my
-  preview renders use a deliberately minimal unbaked lighting setup that
-  may itself be part of the problem, not necessarily the asset.
+- 2026-08-13 — Ben — Campfire cooking system reworked again (v0.3.30-dev,
+  **not yet committed/pushed** — pending a live Play-mode look). Grew out
+  of Ben looking at the just-shipped v0.3.28-dev popup live and asking
+  for more, in sequence: 4 Cooking Utensil boxes (Grill/Cooking Pot/
+  Kettle/Frying Pan, one item each), a wood-only Fuel box, a Transfer
+  section scoped to exactly Backpack + Hands, then — once he saw the
+  utensil boxes — a bigger ask: 4 output boxes for cooked items, a
+  multi-slot ingredient input area, and a Recipe button that only shows
+  what's currently cookable given the loaded utensils/ingredients.
+  Confirmed via `AskUserQuestion` before building: 4 input slots, single
+  cook at a time (4 output boxes are just banked storage, not parallel
+  cooking), and Recipe is a manual trigger (real philosophy change from
+  the old always-auto-cook design). `CookableItem` restructured to
+  mirror `CraftingRecipe`'s `ingredients[]`/`outputItem` shape;
+  `RawMeatToCookedMeatCookable.asset` migrated in place. 4 new plain
+  `ItemDefinition`s created (Grill/Cooking Pot/Kettle/Frying Pan — no
+  model/icon yet, admin-spawnable, same known-placeholder gap
+  `CAMPFIRE_PLANNING.md` already flagged). `CampfireScreen.cs` rewritten
+  from button-based to real drag-and-drop — a self-contained
+  implementation mirroring `InventoryScreen.cs`'s interaction pattern,
+  not a literal shared-code extraction (avoided touching that heavily-
+  tested file for a screen that needs none of its 11-equippable-type
+  dispatch logic). One infra hiccup: a batch-mode Unity process hung
+  after colliding with a leftover `bee_backend` process from an earlier
+  interrupted run; confirmed with Ben before killing the stuck PID, then
+  a fresh invocation compiled clean. Verified via compile checks + YAML
+  grep only so far — **no live Play-mode test yet**, and this is a much
+  bigger surface area than the earlier single-chunk changes, so that
+  pass matters more than usual before calling it done. Full writeup in
+  `CHANGELOG.md`'s v0.3.30-dev entry; `TEST_FEATURE_PLAN.md` section 21
+  still needs a rewrite for this flow (currently written against
+  v0.3.28-dev's simpler button UI).
+  **Two live-feedback fixes, same day, before any test pass completed:**
+  (1) the Ingredients/Cooked Items grid had zero `GUILayout.Space`
+  between boxes, so 4 adjacent empty slots visually merged into one
+  solid rectangle instead of reading as 4 separate boxes — fixed with a
+  consistent `BoxGap` (8px) applied between every box in the grid, the
+  Utensils row, and the Hands row. (2) The popup's fixed 520x640 panel
+  didn't fit Ben's screen, and his touchpad has no working scroll
+  gesture in this window, so the overflow content (and the Close button)
+  was genuinely unreachable, not just inconvenient — panel width/height
+  are now responsive (`Mathf.Min(max, Screen.dimension * 0.92f)`, same
+  pattern `PlayerMenuScreen.DrawScrollable` already uses), so it shrinks
+  to fit rather than relying on scrolling to cover the gap. Neither fix
+  has been visually confirmed yet (I can't screenshot a live IMGUI popup
+  the way I could the 3D Blender model — this needs Ben's own eyes).

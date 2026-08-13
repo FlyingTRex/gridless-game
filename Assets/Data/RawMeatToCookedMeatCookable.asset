@@ -12,7 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4bdc403a080f57a419bba4819cfdbd80, type: 3}
   m_Name: RawMeatToCookedMeatCookable
   m_EditorClassIdentifier: Assembly-CSharp::CookableItem
-  rawItem: {fileID: 11400000, guid: c677bb554b43f7046af1083f259ff234, type: 2}
-  cookedItem: {fileID: 11400000, guid: 79a95a77d2b6bf4469789956965ad00a, type: 2}
+  ingredients:
+  - item: {fileID: 11400000, guid: c677bb554b43f7046af1083f259ff234, type: 2}
+    count: 1
+  outputItem: {fileID: 11400000, guid: 79a95a77d2b6bf4469789956965ad00a, type: 2}
+  outputCount: 1
   cookDurationSeconds: 30
   requiredAccessory: {fileID: 0}
