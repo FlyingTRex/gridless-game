@@ -93,3 +93,19 @@ venv/
 # Assets/. The .env holding the API key is already covered by the bare
 # .env rule above.
 /Tools/Tripo3D/Output/
+
+# Same reasoning for Blender-generated output — the reviewed/imported
+# result lives in Assets/Models/, this is just the raw export + preview
+# render used to check it before import.
+/Tools/Blender/Output/
+
+# Publisher demo/showcase scenes bundled with the Stylized Nature Megapack
+# (Assets/LJPackages/) — not used by Gridless (TestScene.unity is the
+# project's only registered scene, see CLAUDE.md), and several of these
+# individual .unity files exceed GitHub's 100MB blob limit (they bake in
+# lightmap/probe data directly). Only the reusable content (Prefabs/
+# Models/Materials/Textures/Terrain layers/Shaders) is meant to be
+# committed — keep any future re-import's demo scenes out from the start.
+Assets/LJPackages/**/Scenes/
+Assets/LJPackages/**/scenes/
+Assets/LJPackages/**/DEMO/

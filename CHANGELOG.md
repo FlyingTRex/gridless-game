@@ -5,10 +5,170 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.26-dev` — must always match `GameVersion` in
+**Current version:** `0.3.29-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (3)
+
+### v0.3.29-dev — Stylized Nature Megapack world-dressing test
+
+Imported "Stylized Nature - Megapack" (Rystek Software, Unity Asset
+Store, $27) into `Assets/LJPackages/` and used it to turn `TestScene.unity`
+into a 4-biome test bed, at Ben's request ("divide into quarters... throw
+some of these in"). The pack turned out to be a bundle of 6 separate
+biome sub-packs (AutumnForest, CommonForest, DesertEnvironment,
+SpringEnvironment, Wetlands, WinterEnvironment) — 190 prefabs total, URP
+Shader Graph wind/water shaders, 28 terrain layers, all `.fbx`/`.png`/
+`.exr` already covered by the project's existing Git LFS rules. Confirmed
+zero compile conflicts with the project's own scripts (the pack ships no
+C# at all).
+
+- **4 quadrants, 4 of the 6 sub-packs**: NE=CommonForest,
+  NW=AutumnForest, SW=DesertEnvironment, SE=WinterEnvironment (Wetlands
+  and SpringEnvironment held back for a future pass). Terrain spans
+  (-100,-100) to (100,100); a 20-unit keep-out radius around the origin
+  protects the existing Anvil/Furnace/Campfire base area, left untouched.
+- **Props scattered per-category** (groundcover/bushes/rocks/trees/misc,
+  classified by simple name-keyword heuristics off each biome's actual
+  prefab set) with **every single instance individually grounded by
+  measuring its own renderer bounds after scale/rotation** — never
+  assumed a pivot-at-base convention across ~500 placed objects from an
+  unfamiliar third-party pack, per CLAUDE.md's imported-model rule.
+- **Terrain itself re-painted to match**, not just props scattered on
+  top of the old uniform grass — added the pack's own terrain layers
+  (forestGround/Ground/Sand/Snow) via a new alphamap pass, with a smooth
+  bilinear blend at the quadrant cross and a soft blend back to the
+  original grass near the base, using the CLAUDE.md-documented
+  `SmoothThreshold` helper (not `Mathf.SmoothStep`) for both blends.
+- All work done via throwaway batch-mode Editor scripts (scatter,
+  terrain paint, preview renders), verified via YAML grep + rendered
+  preview screenshots each step, deleted after use.
+- **False alarm caught and resolved**: preview renders (crude unbaked-
+  lighting test camera) showed a couple of CommonForest tree/bush
+  prefabs as solid black silhouettes — flagged to Ben rather than
+  guessed at, and confirmed via real in-Editor screenshots to be purely
+  a preview-lighting artifact, not a real asset/shader problem. Good
+  example of the "verify, don't assume" discipline paying off in both
+  directions — catching a real question and also not chasing a phantom
+  bug once better evidence arrived.
+
+Not yet done: Wetlands/SpringEnvironment quadrants, any manual terrain
+sculpting (height variation between biomes), and a `TEST_FEATURE_PLAN.md`
+entry (this is world-dressing, not a player-facing system, so it isn't
+covered by that checklist the way gameplay features are).
+
+## 2026-08-13 (2)
+
+### v0.3.28-dev — Campfire dedicated popup UI (E-key)
+
+Replaces the buried "Campfire (nearby)" section that used to sit at the
+bottom of the Inventory tab's scroll view with a proper focused popup —
+closes out the discoverability finding from the v0.3.27-dev session
+(Ben's live report: "there's no mechanism to transfer fuel," even though
+the mechanism was technically present, just an unlabeled row on an
+already-busy screen). Design was already fully decided in
+`CAMPFIRE_PLANNING.md`; this is the build.
+
+- New `CampfireScreen.cs`, same shape/family as the existing
+  `LockboxScreen.cs` — a small centered popup (420x420), opened by
+  `Campfire.Complete()` (E) instead of the old direct-light attempt.
+  Shows lit/unlit status + fuel countdown, the fuel slot (current
+  contents + Take, or Add-1 buttons per eligible fuel type currently in
+  the player's main inventory), the cooking slot (same shape), and a
+  Light button (enabled only when unlit and fuel is loaded) — lighting
+  moved from a direct E-tap into this button, per the decided design.
+  Deliberately simple/button-based, no drag-and-drop, and deliberately
+  scoped to the player's main `PlayerInventory` only (not backpack/worn-
+  container contents) — mirrors `LockboxScreen`/`BankScreen`'s equally
+  narrow wallet-only scope.
+- `Campfire.Prompt` simplified to `"Open Campfire"` (matches Lockbox's
+  `"Open {DisplayName}"` convention) — lit/fuel status moved into the
+  popup itself instead of the world-space prompt text.
+- `Campfire.cs` gained public accessors (`FuelItems`, `CookableItems`,
+  `IsLit`, `FuelSecondsRemaining`, `HasFuel`) and a public
+  `TryLightFromScreen()` wrapper around the existing private `TryLight()`
+  so the popup's Light button can trigger the same path E used to.
+- Old "Campfire (nearby)" section removed from `InventoryScreen.cs`
+  entirely (fully superseded, not left as dead code) — along with
+  `Campfire.Active`/`Campfire.FindNearby`, which had no other caller left
+  once that section was gone.
+- `CampfireScreen` wired onto the Player GameObject in
+  `TestScene.unity` and into `FirstPersonController`'s Escape-closes-every-
+  open-screen list, same pattern every other screen (`LockboxScreen`,
+  `BankScreen`, etc.) already follows.
+- While investigating a related live bug report (Spark/R not lighting a
+  fueled Campfire), confirmed via code read that nothing about this
+  session's Blender rebuild regressed it — Spark still requires the wish
+  to be actively selected in the Magic tab AND held for a real duration
+  (no on-screen feedback by design), a likely explanation not yet
+  confirmed against a completed hold.
+
+Still open per `CAMPFIRE_PLANNING.md`: the 4 accessory items (Grill/Soup
+Pot/Kettle/Frying Pan), Wood Stove, the water-safety mechanic, and
+`TEST_FEATURE_PLAN.md`'s open question of whether StorageBox's identical
+nearby-section pattern should also move to a popup for consistency.
+
+## 2026-08-13
+
+### v0.3.27-dev — Campfire Blender model rebuild
+
+Replaced the pre-Blender placeholder (5 scaled cylinders) with a real
+from-scratch Blender model per `CAMPFIRE_PLANNING.md` section 3: a ring
+of 8 irregular low-poly rocks around a shallow-teepee pile of 6 charred
+sticks. Built with a persisted, reusable script this time —
+`Tools/Blender/GenerateCampfireModel.py`, run headless
+(`blender --background --python ...`) — rather than the throwaway/lost
+approach used for the earlier Trimmed Stick tiers, since nothing survived
+from that precedent to reuse. Exports two separate meshes/renderers
+(`Rocks`, `Wood`) on purpose, matching the earlier "logs swap material
+when lit, rocks stay static" decision.
+
+- **Rocks** use the project's existing `RockChunk.mat` directly — no new
+  rock material needed.
+- **Wood** gets two new materials generated procedurally in Unity
+  (`CampfireWoodUnlit.mat`, `CampfireWoodLit.mat`), both built from a
+  256x256 charred-wood albedo texture and a matching ember-glow emission
+  texture. Both use the CLAUDE.md-documented `SmoothThreshold(x, edge0,
+  edge1)` hand-rolled helper for the char-blotch/ember-band thresholding
+  — not `Mathf.SmoothStep`, which is the wrong function for this (see the
+  CLAUDE.md gotcha; this is the first real re-application of that lesson
+  since it was written).
+- `Campfire.cs` reworked: the old `Renderer[] renderers` (every renderer,
+  swapped uniformly) is replaced with a single `[SerializeField] Renderer
+  woodRenderer` — `SetLit()` now only swaps material on the wood, the
+  rocks renderer keeps `RockChunk.mat` permanently.
+- Model scaled against measured bounds (not assumed) to a 0.95m footprint
+  — CLAUDE.md's "scale against the player, not the raw import" rule,
+  confirmed by rendering the actual result and eyeballing it next to the
+  known player scale rather than trusting the number in isolation.
+  Grounding likewise verified by measuring actual renderer bounds after
+  scaling, per the pivot-grounding gotcha (came back already correctly
+  grounded — offset 0 — but was verified, not assumed).
+- Verified via direct YAML grep of the saved prefab (material guids on
+  both renderers, the `Campfire` script's new `woodRenderer`/
+  `unlitMaterial`/`litMaterial` fields, the resized `CapsuleCollider`)
+  plus two rendered preview screenshots (lit and unlit) reusing
+  `IconBaker`'s render-to-PNG technique, not just trusting a "no errors"
+  log.
+- One real bug hit and fixed mid-build: the first prefab-edit attempt
+  destroyed the `Rocks`/`Wood` children along with their temporary
+  wrapper object, because `PrefabUtility.InstantiatePrefab` creates a
+  *nested* prefab-instance link — reparenting children out of it and then
+  destroying the wrapper destroys them too. Fixed by using a plain
+  `Object.Instantiate` (disconnected copy) instead, since the geometry is
+  being permanently absorbed into `Campfire.prefab`, not kept as a live
+  nested link. A second, smaller bug (mutating a `Transform`'s children
+  while `foreach`-ing over them, which corrupts the enumerator) was also
+  hit and fixed the same run.
+- Both throwaway Editor scripts used to build this (`BuildCampfireModel.cs`,
+  `RenderCampfirePreview.cs`) deleted after use, per convention.
+
+Still open per `CAMPFIRE_PLANNING.md`: the 4 accessory items (Grill/Soup
+Pot/Kettle/Frying Pan — need their own models/icons), Wood Stove, the
+water-safety mechanic, and the decided-but-not-built E-key popup UI for
+loading fuel/food.
 
 ## 2026-08-12
 

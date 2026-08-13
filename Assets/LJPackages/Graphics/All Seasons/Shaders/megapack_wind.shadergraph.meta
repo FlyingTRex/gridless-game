@@ -1,0 +1,17 @@
+fileFormatVersion: 2
+guid: f0babaf85acc031499971c9ce3552516
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 625f186215c104763be7675aa2d941aa, type: 3}
+AssetOrigin:
+  serializedVersion: 1
+  productId: 348118
+  packageName: Stylized Nature - All Seasons MEGAPACK
+  packageVersion: 1.0
+  assetPath: Assets/LJPackages/Graphics/All Seasons/Shaders/megapack_wind.shadergraph
+  uploadId: 893932

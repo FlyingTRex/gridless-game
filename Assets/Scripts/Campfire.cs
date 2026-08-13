@@ -4,13 +4,21 @@ using UnityEngine;
 // Craftable/placeable structure (2026-08-12 rework, see
 // CAMPFIRE_PLANNING.md — placed via the Build tab as a CampfirePiece
 // BuildPiece, same zero-BuildSocket free-placement path StorageBox
-// already uses). Two independent ways to light it: E (IInteractable,
-// tool-free, instant) or R (the original Spark wish, IWishTarget) — Spark
-// is now an alternate, not the only way, per Ben's call. Both interfaces
-// declare an identical `string Prompt` signature, so one property
-// satisfies both — safe to share since PlayerInteraction deliberately
-// shows no UI at all for wishes (only IInteractable's copy of Prompt
-// actually renders anywhere).
+// already uses). Two independent ways to light it: a Light button inside
+// CampfireScreen (opened by E, IInteractable) or R (the original Spark
+// wish, IWishTarget, still a direct one-step cast) — Spark is an
+// alternate, not the only way, per Ben's call. Both interfaces declare an
+// identical `string Prompt` signature, so one property satisfies both —
+// safe to share since PlayerInteraction deliberately shows no UI at all
+// for wishes (only IInteractable's copy of Prompt actually renders
+// anywhere).
+//
+// UI redesign (2026-08-13): E used to attempt lighting directly; it now
+// always opens CampfireScreen, a focused popup (same family as
+// LockboxScreen) showing fuel/cooking slots and a Light button — replaces
+// the old "Campfire (nearby)" section that used to sit at the bottom of
+// the Inventory tab (removed from InventoryScreen.cs as part of this
+// change, now fully superseded).
 //
 // Fuel (2026-08-12, Chunk 2): reuses FuelTier/FuelItem exactly as built
 // for the Furnace — 1 fuel slot, real burn timer ticking in real time
@@ -23,14 +31,14 @@ using UnityEngine;
 // the player).
 public class Campfire : MonoBehaviour, IInteractable, IWishTarget
 {
-    // Every enabled Campfire registers here so InventoryScreen can find
-    // nearby ones with a simple distance check — same pattern as
-    // StorageBox.Active/FindNearby.
-    public static readonly List<Campfire> Active = new List<Campfire>();
-
     [SerializeField] private WishRecipe sparkWish;
     [SerializeField] private Material unlitMaterial;
     [SerializeField] private Material litMaterial;
+    // Only the Wood renderer swaps material on light/extinguish — the
+    // Rocks renderer stays on its own static material always (2026-08-13
+    // Blender rebuild decision: rocks don't visually change, only the
+    // wood embers do).
+    [SerializeField] private Renderer woodRenderer;
     [SerializeField] private Light fireLight;
     [SerializeField] private FuelItem[] fuelItems;
 
@@ -52,7 +60,6 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     [SerializeField] private float warmthTarget = 80f;
     [SerializeField] private float warmthRatePerSecond = 5f;
 
-    private Renderer[] renderers;
     private Inventory fuelInventory;
     private Inventory cookingInventory;
     private Transform player;
@@ -64,17 +71,29 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     public string DisplayName => "Campfire";
     public Inventory FuelInventory => fuelInventory;
     public Inventory CookingInventory => cookingInventory;
+    public FuelItem[] FuelItems => fuelItems;
+    public CookableItem[] CookableItems => cookableItems;
+    public bool IsLit => isLit;
+    public float FuelSecondsRemaining => fuelSecondsRemaining;
 
-    public string Prompt => isLit
-        ? $"Campfire (lit, {Mathf.CeilToInt(fuelSecondsRemaining)}s fuel left)"
-        : (HasFuel ? "Light Campfire" : "Campfire (needs fuel)");
+    // 2026-08-13: E now always opens CampfireScreen instead of attempting
+    // to light directly — lighting moved to a button inside that popup
+    // (see CAMPFIRE_PLANNING.md's UI redesign). Simple constant prompt,
+    // matching Lockbox's "Open {DisplayName}" convention — lit/fuel status
+    // is shown inside the popup itself now, not in the world prompt.
+    public string Prompt => $"Open {DisplayName}";
 
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
 
-    private bool HasFuel => fuelInventory != null && fuelInventory.Slots.Count > 0;
+    public bool HasFuel => fuelInventory != null && fuelInventory.Slots.Count > 0;
 
-    public void Complete(GameObject player) => TryLight();
+    public void Complete(GameObject player) => player.GetComponent<CampfireScreen>()?.Open(this);
+
+    // Public wrapper so CampfireScreen's Light button can trigger the same
+    // path E used to trigger directly. Spark (OnWishComplete below) still
+    // calls the private TryLight() internally, unchanged.
+    public bool TryLightFromScreen() => TryLight();
 
     // Null (no wish available) once already lit, out of fuel, or if the
     // looking player doesn't know Spark's lineage — PlayerInteraction
@@ -86,8 +105,6 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
 
     private void Awake()
     {
-        renderers = GetComponentsInChildren<Renderer>();
-
         var allowedFuel = new ItemDefinition[fuelItems != null ? fuelItems.Length : 0];
         for (int i = 0; i < allowedFuel.Length; i++)
             allowedFuel[i] = fuelItems[i] != null ? fuelItems[i].item : null;
@@ -118,9 +135,6 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         playerVitals = FindFirstObjectByType<PlayerVitals>();
         player = playerVitals != null ? playerVitals.transform : null;
     }
-
-    private void OnEnable() => Active.Add(this);
-    private void OnDisable() => Active.Remove(this);
 
     private void Update()
     {
@@ -227,32 +241,10 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         isLit = lit;
 
         var mat = lit ? litMaterial : unlitMaterial;
-        if (mat != null)
-            foreach (var r in renderers)
-                r.sharedMaterial = mat;
+        if (mat != null && woodRenderer != null)
+            woodRenderer.sharedMaterial = mat;
 
         if (fireLight != null)
             fireLight.enabled = lit;
-    }
-
-    // Every active Campfire within range of position, nearest first —
-    // exact mirror of StorageBox.FindNearby, used by InventoryScreen's
-    // "nearby Campfire" section to let the player load fuel.
-    public static void FindNearby(Vector3 position, float range, List<Campfire> result)
-    {
-        result.Clear();
-        float rangeSq = range * range;
-
-        foreach (var fire in Active)
-        {
-            if (fire == null) continue;
-            float distSq = (fire.transform.position - position).sqrMagnitude;
-            if (distSq <= rangeSq)
-                result.Add(fire);
-        }
-
-        result.Sort((a, b) =>
-            (a.transform.position - position).sqrMagnitude
-                .CompareTo((b.transform.position - position).sqrMagnitude));
     }
 }

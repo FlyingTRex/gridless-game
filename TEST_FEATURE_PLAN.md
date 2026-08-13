@@ -2553,7 +2553,12 @@ behavior.
   to test in-game for this part until that's built — confirms this is
   understood as a data-layer-only step, not a missed feature.
 
-## 21. Campfire rebuilt — craftable, fuel, cooking, warmth (v0.3.26-dev)
+## 21. Campfire rebuilt — craftable, fuel, cooking, warmth, model, popup (v0.3.26-dev — v0.3.28-dev)
+
+Rewritten 2026-08-13 for the new E-key popup UI (v0.3.28-dev) and the
+Blender model rebuild (v0.3.27-dev) — the old "Campfire (nearby)"
+Inventory-tab steps below are gone, since that mechanism was removed
+entirely in favor of `CampfireScreen`.
 
 - [ ] **Open the Build tab and find "Campfire"** in the piece list —
   confirm it shows an icon (not blank), and its cost reads 4 Rock + 3
@@ -2562,32 +2567,47 @@ behavior.
   socket snapping expected — it should behave exactly like placing a
   Storage Box: ghost follows the raycast, scroll rotates, click locks,
   click again confirms) — confirm materials are actually consumed and a
-  real Campfire appears in the world, unlit.
+  real Campfire appears in the world, unlit. **Confirm the model itself**
+  is the new Blender build (a ring of rocks around a pile of charred
+  sticks), not the old scaled-cylinder placeholder.
 - [ ] **Look at the unlit placed Campfire** — confirm the prompt reads
-  "Campfire (needs fuel)" (E) with no way to light it yet.
-- [ ] **Open Inventory near the new Campfire** — confirm a "Campfire
-  (nearby)" section appears with two rows, "fuel" and "cooking", each a
-  single empty slot.
-- [ ] **Drag a Stick into the fuel slot**, then look at the Campfire again
-  — prompt should now read "Light Campfire". Press E — confirm it lights
-  (fire visual/light turns on) and the fuel slot empties.
-- [ ] **Prompt while lit** should show remaining fuel time counting down
-  (e.g. "Campfire (lit, 298s fuel left)" right after lighting a Stick,
-  which is Tier 1 = 5 min = 300s).
+  "Open Campfire" (E).
+- [ ] **Press E** — confirm a small centered popup opens (same visual
+  family as the Lockbox popup), cursor unlocks, showing "Unlit", a Fuel
+  section, a Cooking section, and a Light button (greyed out/disabled
+  since there's no fuel yet).
+- [ ] **Add fuel**: with a Stick in your main inventory, confirm it shows
+  as a row in the popup's Fuel section reading "Stick (have N)" with an
+  "Add 1" button — click it, confirm the Stick count in your inventory
+  drops by 1 and the Fuel section now shows "Stick x1" with a Take button
+  instead.
+- [ ] **Light it**: click the Light button — confirm it's now enabled,
+  clicking it lights the fire (visual/light turns on, wood renderer swaps
+  to the ember-glow lit material — rocks should NOT change), and the
+  popup's status line updates to "Lit — Ns of fuel left" counting down.
+- [ ] **Take fuel back out**: with an item in the Fuel or Cooking slot,
+  click Take — confirm it returns to your main inventory and the slot
+  empties.
+- [ ] **Close via the Close button**, and separately via Escape — confirm
+  both re-lock the cursor and return to normal gameplay (same as every
+  other screen).
 - [ ] **Let fuel run out** (or load just 1 Stick and wait ~5 min) —
-  confirm the Campfire extinguishes on its own, fire visual/light turns
-  off, with no player action needed.
-- [ ] **Re-light via Spark** instead of E — with an Elemental-lineage
-  character, load fuel, hold R on the Campfire — confirm it still works
-  as an alternate lighting method. Confirm Spark refuses (no wish offered)
-  on a Campfire with no fuel loaded, same as E's "needs fuel" state.
-- [ ] **Cooking:** drag a Raw Meat into the "cooking" slot of a **lit**
-  Campfire and stand within a few meters — confirm it converts to Cooked
-  Meat after ~30 seconds. Walk away mid-cook, confirm progress pauses
-  (doesn't restart from 0 when you come back and it finishes at roughly
-  the same additional wait as when you left, not doubled).
-  Let the fire go out mid-cook (no more fuel) — confirm cooking pauses
-  too, then resumes once relit while the Raw Meat is still in the slot.
+  confirm the Campfire extinguishes on its own (wood renderer reverts to
+  the unlit charred material, rocks unaffected), fire light turns off,
+  with no player action needed.
+- [ ] **Re-light via Spark** instead of the popup's Light button — with an
+  Elemental-lineage character, load fuel via the popup, close it, then
+  aim at the Campfire and **hold R** (not tap — no on-screen feedback by
+  design) for a few seconds. Confirm it lights as an alternate path.
+  Confirm Spark offers nothing (R does nothing) on a Campfire with no
+  fuel loaded.
+- [ ] **Cooking:** open the popup on a **lit** Campfire, Add 1 Raw Meat
+  into the Cooking section, close the popup, and stand within a few
+  meters — confirm it converts to Cooked Meat after ~30 seconds (reopen
+  the popup to check/Take it). Walk away mid-cook, confirm progress
+  pauses (doesn't restart from 0). Let the fire go out mid-cook — confirm
+  cooking pauses too, then resumes once relit while the Raw Meat is still
+  in the slot.
 - [ ] **Eat the Cooked Meat** — confirm a right-click Eat option appears
   and restores Hunger (Meal tier, ~40) with no Health effect. Confirm Raw
   Meat itself has **no** Eat option at all (still not directly edible —
@@ -2603,7 +2623,11 @@ behavior.
 - [ ] **Accessory slots don't exist as a usable UI yet** — no Grill/Soup
   Pot/Kettle/Frying Pan items exist to test; nothing to check here until
   those are built (see `CAMPFIRE_PLANNING.md`).
+- [ ] **Multiple Campfires**: place a second Campfire, confirm pressing E
+  on each opens *that specific* one's popup (fuel/cooking/lit-state are
+  genuinely per-instance, not shared).
 - [ ] **Regression:** confirm ordinary crafting/other Build pieces still
-  work normally — this change touched shared code
-  (`InventoryScreen.cs`, `PlayerVitals.cs`, `VitalsBarHUD.cs`) alongside
-  Campfire-specific additions.
+  work normally, and confirm StorageBox's own nearby-Inventory mechanism
+  (still using the old pattern, untouched by this change) still works —
+  this change touched shared code (`InventoryScreen.cs`,
+  `FirstPersonController.cs`) alongside Campfire-specific additions.

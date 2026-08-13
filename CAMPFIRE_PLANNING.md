@@ -4,34 +4,30 @@ Planning doc for turning Campfire from a single magic-only scene prop into
 a real craftable, fuel-burning, cooking structure (2026-08-12). Decisions
 below are locked in; open items are flagged as such.
 
-**Status: built (v0.3.26-dev, 2026-08-12).** Placement, fuel, cooking, and
-warmth all shipped in 4 approved chunks — see `CHANGELOG.md` for the full
-writeup and `TEST_FEATURE_PLAN.md` section 21 for the manual verification
-checklist (not yet walked through). Still open/deferred, unchanged from
-this doc's original scope: the Blender model rebuild (still the pre-Blender
-placeholder, not started), the 4 accessory items + their slots, Wood
-Stove, and the water-safety mechanic.
+**Status: built (v0.3.26-dev through v0.3.28-dev).** Placement, fuel,
+cooking, warmth, the Blender model rebuild, and the dedicated E-key popup
+UI have all shipped — see `CHANGELOG.md` for the full writeup and
+`TEST_FEATURE_PLAN.md` section 21 for the manual verification checklist
+(not yet walked through). Still open/deferred: the 4 accessory items +
+their slots, Wood Stove, and the water-safety mechanic.
 
-**UI redesign decided, not yet built (2026-08-12, same day, from live
-testing feedback).** Loading fuel/food currently only works via a
-"Campfire (nearby)" section auto-appended to the bottom of the main
-Inventory tab's scroll view (same pattern as nearby StorageBox) — found
-live to be a real UX problem: on an already-busy screen, a small unlabeled
-row at the very bottom isn't discoverable (Ben's live report reads
-verbatim as "there's no mechanism to transfer fuel," even though the
-mechanism is technically present and functional). **Decided
-replacement:** pressing E on the Campfire opens a small, focused popup
-(same visual family as the existing action-menu popups —
-`InventoryScreen.DrawPendingActionMenu` — not a full Tab-style screen)
-showing its fuel/cooking slots directly, closable the same way those
-popups already are. This **replaces** the current E-key light/needs-fuel
-prompt-and-tap flow, not adds to it — lighting becomes a button inside the
-new popup instead of the world-crosshair tap. Not yet built; the current
-embedded-in-Inventory mechanism is left in place as a working (if clunky)
-stopgap until the popup exists, not removed. No decision yet on whether
-this same popup pattern should also replace StorageBox's identical nearby-
-section approach — raised as a natural follow-on question, not committed
-either way.
+**UI redesign — built (v0.3.28-dev, 2026-08-13).** Loading fuel/food used
+to only work via a "Campfire (nearby)" section auto-appended to the
+bottom of the main Inventory tab's scroll view (same pattern as nearby
+StorageBox) — a real UX problem found live: on an already-busy screen, a
+small unlabeled row at the very bottom wasn't discoverable (Ben's live
+report read verbatim as "there's no mechanism to transfer fuel," even
+though the mechanism was technically present and functional). **Built as
+decided:** pressing E on the Campfire now opens `CampfireScreen`, a small
+focused popup (same visual family as `LockboxScreen`) showing fuel/
+cooking slots directly (button-based Add-1/Take, no drag-and-drop),
+closable like every other screen. This **replaced** the old E-key light/
+needs-fuel prompt-and-tap flow — lighting is now a button inside the
+popup. The old embedded-in-Inventory mechanism was removed entirely
+(along with the now-unused `Campfire.Active`/`FindNearby`), not left as
+dead code. **Open question, still not decided:** whether this same popup
+pattern should also replace StorageBox's identical nearby-section
+approach — raised as a natural follow-on, not committed either way.
 
 ## 1. Current state (audit, 2026-08-12)
 
@@ -115,24 +111,36 @@ Confirmed directly against the codebase before designing anything new:
   until now. **Body Temperature also gets added to the real HUD**
   (`VitalsBarHUD`), not left debug-overlay-only.
 
-## 3. New model (Blender, not yet built)
+## 3. New model (Blender) — built v0.3.27-dev, 2026-08-13
 
-Design: a ring of rocks around a pile of charred wood/sticks, replacing
-the current pre-Blender placeholder.
+Built as designed: a ring of 8 irregular low-poly rocks around a shallow-
+teepee pile of 6 charred sticks, replacing the pre-Blender placeholder.
 
-- **Rocks:** reuse an existing rock material (`Assets/Data/RockChunk.mat`
-  or `RockKnifePickup.mat`) rather than authoring a new one, for visual
-  consistency with the rest of the game's rock-textured props.
-- **Wood:** reuse an existing wood material (`Assets/Data/TreeBark.mat`
-  or `PlankFoundation.mat`) as the stick/log texture base.
-- **Char effect:** a red/dark noise pass over the wood texture to read as
-  charred/burnt. **Directly apply CLAUDE.md's documented
-  `Mathf.SmoothStep` gotcha here** — the ore-texture fleck lesson applies
-  verbatim: use the hand-rolled `SmoothThreshold(x, edge0, edge1)` helper
-  for a sparse, thresholded charred-fleck look, not `Mathf.SmoothStep`,
-  which would produce a uniform wash instead of scattered char marks.
-- Exact reused-vs-new-texture choice and precise geometry are
-  implementation details for build time, not locked here.
+- **Rocks:** reuse `Assets/Data/RockChunk.mat` directly, as planned — no
+  new rock material authored.
+- **Wood:** rather than reusing `TreeBark.mat`/`PlankFoundation.mat`
+  as-is, two new materials were generated (`CampfireWoodUnlit.mat`,
+  `CampfireWoodLit.mat`) from a procedurally-built 256x256 charred-wood
+  albedo texture + matching ember-glow emission texture — needed a
+  charred look distinct from plain unburned wood, and a lit variant with
+  real emission for the ember glow.
+- **Char effect:** built exactly as specced — `SmoothThreshold(x, edge0,
+  edge1)`, not `Mathf.SmoothStep`. On the cone-shaped stick UVs this
+  reads as dark streaks running along the grain (not the blotchier look
+  the flat 2D texture swatch shows in isolation) — inspected directly via
+  a rendered close-up before accepting it, per the project's "check
+  actual pixel output" convention; reads well as charred wood either way.
+- **Two separate meshes/renderers on purpose** (`Rocks`, `Wood`) — lets
+  `Campfire.SetLit()` swap material on the wood only, rocks always stay
+  on `RockChunk.mat`.
+- Script: `Tools/Blender/GenerateCampfireModel.py`, kept in the repo
+  (unlike the lost Trimmed Stick script) so it can be re-run/tweaked
+  later — rock count, stick count, ring radius, lean angle are all
+  parameters near the top.
+- Scaled to a 0.95m footprint against measured bounds (not assumed),
+  grounded and verified per CLAUDE.md's imported-model rules — see
+  `CHANGELOG.md`'s v0.3.27-dev entry for the full verification trail and
+  the two prefab-editing bugs hit and fixed along the way.
 
 ## 4. Data shape (implementation sketch, not yet built)
 
