@@ -5,10 +5,30 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.46-dev` — must always match `GameVersion` in
+**Current version:** `0.3.47-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (21)
+
+### v0.3.47-dev — Revert: Boot rotation trial made it worse
+
+Live feedback confirmed two things this round: the Backpack yaw-only
+revert (v0.3.46-dev) looks correct now — matches a reference photo Ben
+supplied of normal backpack-wearing posture. And the Boot `180°` yaw
+trial from v0.3.43-dev made the shoes look jumbled/overlapping instead
+of clean, on a placement that was already confirmed correct before that
+trial. Same mistake pattern as the Backpack: a speculative rotation
+change added on request rather than because anything was actually
+broken, never reverted once it turned out not to help. `PlayerBoot.
+wornEulerOffset` reverted to identity, the last confirmed-good state.
+
+**Where this leaves the equipment-visual work**: Backpack and Boots are
+both confirmed correct now. Belt/Canteen drop cascade (v0.3.46-dev) not
+yet re-verified live. The other 7 types (Sunglasses, Mining Face Shield,
+Personal Health Monitor, Navigation Computer, Shirt, Jeans, Canteen
+worn-position) still haven't had any live confirmation at all.
 
 ## 2026-08-13 (20)
 

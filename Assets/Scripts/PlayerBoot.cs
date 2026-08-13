@@ -30,8 +30,16 @@ public class PlayerBoot : MonoBehaviour
     // at the feet), but asked to try rotating too — the model may be
     // front-to-back reversed relative to the character's own facing.
     // Trying a 180 deg yaw flip as the first attempt.
+    //
+    // Reverted (2026-08-13, live feedback screenshot): the 180 yaw flip
+    // made it look worse — jumbled/overlapping instead of clean — on
+    // something that was already confirmed correct before this trial.
+    // Same mistake pattern as the Backpack's round-3 pitch: a speculative
+    // rotation added to already-working placement, on request rather than
+    // because it was actually broken. Reverted to identity, the last
+    // confirmed-good state.
     [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.85f, 0f);
-    [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, 180f, 0f);
+    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
 
     // The player starts the game already wearing Settler's Sneakers
     // specifically — same single-purpose starting-gear mechanism

@@ -51,17 +51,25 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   Belt didn't drop its clipped Canteen) — but that fix landed in the
   wrong place (`PlayerBelt.Drop`, not the actual path the UI's Drop
   button uses).
-  **Live-feedback round 6 (v0.3.46-dev, implementation complete, not yet
-  committed/pushed):** found the real Belt/Canteen drop path
-  (`PlayerDropping.DropFrom`, called directly by `InventoryScreen.
-  DrawItemDropPopup`) and moved the cascade fix there, generalized to any
-  `IInventoryHolder` equippable. Also reverted a real mistake: the
-  round-3 Backpack `-90°` X pitch was based on a wrong diagnosis (the
-  floating shape was Jeans, not part of the Backpack) and was never
-  undone once that was discovered — it broke an already-correct Backpack
-  rotation. Reverted to yaw-only, confirmed via Ben's reference photo of
-  correct backpack-wearing posture. **Still no live Play-mode
-  confirmation of any of this**, see `TEST_FEATURE_PLAN.md` section 29.
+  **Live-feedback round 6 (v0.3.46-dev, committed and pushed):** found
+  the real Belt/Canteen drop path (`PlayerDropping.DropFrom`, called
+  directly by `InventoryScreen.DrawItemDropPopup`) and moved the cascade
+  fix there, generalized to any `IInventoryHolder` equippable. Also
+  reverted a real mistake: the round-3 Backpack `-90°` X pitch was based
+  on a wrong diagnosis (the floating shape was Jeans, not part of the
+  Backpack) and was never undone once that was discovered — it broke an
+  already-correct Backpack rotation. Reverted to yaw-only.
+  **Live-feedback round 7 (v0.3.47-dev, implementation complete, not yet
+  committed/pushed):** Backpack revert confirmed correct (matches a
+  reference photo Ben supplied). Boots' `180°` yaw trial from round 3
+  made the shoes look jumbled/overlapping — same mistake pattern
+  (speculative rotation added on request to already-working placement,
+  never reverted once it didn't help) — reverted to identity.
+  **Confirmed correct as of this round: Backpack, Boots.** Belt/Canteen
+  drop cascade not yet re-verified live. The other 7 types (Sunglasses,
+  Mining Face Shield, Personal Health Monitor, Navigation Computer,
+  Shirt, Jeans, Canteen worn-position) still have zero live confirmation.
+  See `TEST_FEATURE_PLAN.md` section 29.
 - 2026-08-13 — Ben — Player equipment now bone-attaches too (same
   RightHand/Chest system NPCs just got, applied to the player's real
   `Tool`/`Backpack` carry objects instead of a decorative copy). v0.3.40-dev,
