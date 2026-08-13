@@ -5,12 +5,46 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.23-dev` — must always match `GameVersion` in
+**Current version:** `0.3.24-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
+
+### v0.3.24-dev — 5-tier Hunger restoration system + MRE model lying-flat fix
+
+Two follow-ups from live testing of the MRE Ration (v0.3.23-dev): the model
+stood upright instead of lying flat when dropped/spawned in the world
+(Ben's screenshot report — Tripo3D's own preview renders it "standing up"
+like a display product shot, so the raw import inherited that pose), and
+the MRE didn't restore Hunger at all despite being food.
+
+**New `FoodTier` system** (`Assets/Scripts/FoodTier.cs`), mirroring
+`CraftTier.cs`'s enum + static-scale pattern but for a genuinely different
+axis — food substantiality, not crafting quality (CLAUDE.md already warns
+against reusing one tier scale for an unrelated quantity, so this is a
+dedicated one, not a repurposed `CraftTier`): Snack(15) / Light Meal(25) /
+Meal(40) / Hearty Meal(60) / Feast(90) Hunger restored. `EdibleItem` gained
+a `foodTier` field, applied unconditionally in `PlayerEating.TryEatFrom` —
+every food item now restores Hunger on this shared scale, while the
+existing `vital`/`restoreAmount` pair is reserved for a secondary effect
+(Health, for MRE). Berry retuned to Snack (was a flat 20 Hunger via
+`vital`, now 15 via the tier, `restoreAmount` zeroed since it has no
+secondary effect); MRE Ration set to Meal (40 Hunger), on top of its
+existing 25 instant + 15/60s Health.
+
+**MRE model orientation fix:** rotated 90° about Z (same technique
+`Shirt.cs` uses for its own dropped-pose fix) so the pouch's tall axis
+becomes horizontal and its thin axis becomes vertical, then re-grounded
+and resized the collider against the rotated bounds — verified via YAML
+grep the collider now sits flush at y=0 (previously would have landed
+~0.1m *below* ground on the first attempt at this fix; caught and
+corrected before saving by reviewing the math, not by a second live
+report).
+
+Batch-mode compile check passed (0 `CS####` errors). Manual Play-mode
+verification still needed — see `TEST_FEATURE_PLAN.md`.
 
 ### v0.3.23-dev — MRE Ration: starting food closes out basic starting gear (MVP2 item 3)
 

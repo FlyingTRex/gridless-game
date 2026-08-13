@@ -14,6 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EdibleItem
   item: {fileID: 11400000, guid: 25f03da240aaf2d4dbb762c3fb9804e8, type: 2}
   consumeCount: 1
+  foodTier: 0
   vital: 1
-  restoreAmount: 20
+  restoreAmount: 0
+  verb: Eat
+  healOverTimeAmount: 0
+  healOverTimeDuration: 0
   returnItem: {fileID: 0}

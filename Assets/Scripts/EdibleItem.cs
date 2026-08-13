@@ -5,8 +5,18 @@ public class EdibleItem : ScriptableObject
 {
     public ItemDefinition item;
     public int consumeCount = 1;
+
+    // Every EdibleItem restores Hunger unconditionally, via this tier
+    // (see FoodTier.cs) rather than through vital/restoreAmount below —
+    // keeps every food item's baseline nutrition on one shared, tunable
+    // scale instead of a hand-picked number per item.
+    public FoodTier foodTier = FoodTier.Snack;
+
+    // A secondary effect beyond the Hunger restore above — e.g. MRE
+    // Ration's Health boost. Zero restoreAmount (Berry's case) means no
+    // secondary effect, just the FoodTier Hunger restore.
     public VitalType vital;
-    public float restoreAmount = 20f;
+    public float restoreAmount = 0f;
     public string verb = "Eat";
 
     // Optional — a Health heal-over-time component layered on top of the

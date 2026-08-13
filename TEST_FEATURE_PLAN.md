@@ -284,7 +284,7 @@ re-verify the same underlying behaviors using drag instead.
   the main grid — confirm both show a real icon, not text-only, and read
   as visually identical (same underlying model).
 
-### MRE Ration — starting food (v0.3.23-dev)
+### MRE Ration — starting food + 5-tier Hunger restoration (v0.3.23-dev, Hunger + lying-flat fix v0.3.24-dev)
 
 - [ ] Enter Play mode fresh — confirm the player spawns wearing the
   Settler's Shirt with 2 MRE Rations already sitting in its pocket
@@ -293,13 +293,17 @@ re-verify the same underlying behaviors using drag instead.
 - [ ] Right-click an MRE Ration in the shirt's contents (or the main
   grid, after moving one there) — confirm an **Eat** option appears in
   the action menu, same as Berry.
-- [ ] Eat one — confirm it's consumed (count drops from 2 to 1, or the
-  slot empties if it was the last one), Health jumps up by 25
-  immediately, and continues ticking upward over the next ~60 seconds
-  for the remaining 15 (check the debug vitals panel or just watch the
-  bar) — confirm it stops climbing once the full 40 total is applied,
-  not before or past it. Test from partial health, not already-full, so
-  the climb is actually visible.
+- [ ] Eat one from partial Hunger and partial Health (not already full,
+  so both climbs are actually visible) — confirm: Hunger jumps up by 40
+  immediately (Meal tier); Health jumps up by 25 immediately, then
+  continues ticking upward over the next ~60 seconds for the remaining
+  15 (check the debug vitals panel or just watch the bar), stopping once
+  the full +40 Health total is applied, not before or past it. Confirm
+  the item is consumed (count drops from 2 to 1, or the slot empties if
+  it was the last one).
+- [ ] Eat a Berry — confirm it now restores 15 Hunger (Snack tier, down
+  from the old flat 20) and has no Health effect at all (no instant
+  jump, no heal-over-time tick).
 - [ ] Confirm eating an MRE while a Medicine/Heal Self heal-over-time is
   already in progress doesn't stack — the MRE's own heal-over-time
   should simply take over (same known behavior as Medicine/Heal Self
@@ -307,10 +311,13 @@ re-verify the same underlying behaviors using drag instead.
 - [ ] Admin-spawn an extra MRE Ration directly — confirm the icon shows
   (not text-only), reads as a small tan ration pouch, and its tier
   border reads Normal-green (craft tier colors, v0.3.22-dev) since it
-  has no tier ladder.
-- [ ] Drop an MRE Ration — confirm it lands and looks correct lying in
-  the world, roughly hand/pouch-sized next to the player, not floating
-  or sunk into the ground.
+  has no `CraftTier` ladder (unrelated to its new `FoodTier`).
+- [ ] Drop an MRE Ration (or look at one sitting in the world/its Admin
+  Spawn preview) — confirm it now lies **flat** on the ground, thin
+  side up, not standing on edge like a little box (regression check —
+  the first shipped version of this model stood upright, fixed
+  v0.3.24-dev by rotating the model 90° and re-grounding it). Confirm
+  it's not floating or sunk into the ground either.
 
 ### Jeans — Settler's Jeans + plain Jeans (v0.3.17-dev)
 
