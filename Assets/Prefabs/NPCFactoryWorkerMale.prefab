@@ -164,6 +164,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1258544070457268151}
+    - targetCorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2991018001476996582}
   m_SourcePrefab: {fileID: 100100000, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
 --- !u!4 &2899605274916642986 stripped
 Transform:
@@ -202,4 +205,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 207068bd2e1e0404485dfa05c66bf56a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCAnimatorDriver
+  animator: {fileID: 8888902080278532177}
+--- !u!114 &2991018001476996582
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4646995035460805641}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ba9f411b7fc45e04ebc4039c0c9c1edb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCEquipmentVisual
   animator: {fileID: 8888902080278532177}

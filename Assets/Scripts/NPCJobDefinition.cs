@@ -11,6 +11,18 @@ public class ToolRequirement
 {
     public string label;
     public ItemDefinition[] acceptableItems;
+
+    // Where NPCEquipmentVisual attaches this requirement's given item's
+    // worldPickupPrefab on the NPC's Humanoid rig (2026-08-13, direct
+    // follow-up to the animation build — Ben's ask: "have the npc equip
+    // to body, the equipment we give him"). Per-requirement rather than
+    // per-item since the attach point is about the tool's *role*
+    // (something held vs. something worn on the head vs. the back), not
+    // about any specific tier — every tier of the same tool attaches the
+    // same way.
+    public HumanBodyBones attachBone = HumanBodyBones.RightHand;
+    public Vector3 attachPositionOffset;
+    public Vector3 attachEulerOffset;
 }
 
 // One assignable NPC job (2026-08-10, Chunk 2 of the Hireable NPCs build

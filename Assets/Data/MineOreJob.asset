@@ -23,9 +23,15 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 2c3cfe88abc4c444490b1329df5049b4, type: 2}
     - {fileID: 11400000, guid: cbc3a81f301f905488b74329e0b078a6, type: 2}
     - {fileID: 11400000, guid: 134bf70c65a2c484b9e2489486e138c7, type: 2}
+    attachBone: 18
+    attachPositionOffset: {x: 0, y: 0, z: 0}
+    attachEulerOffset: {x: 0, y: 0, z: 0}
   - label: Mining Face Shield
     acceptableItems:
     - {fileID: 11400000, guid: bd145eb22399f79429ccf56bd3920fd7, type: 2}
+    attachBone: 10
+    attachPositionOffset: {x: 0, y: 0.02, z: 0.05}
+    attachEulerOffset: {x: 0, y: 0, z: 0}
   - label: Backpack
     acceptableItems:
     - {fileID: 11400000, guid: a6c92fd6e5ce4d959025097ca6c2c5c8, type: 2}
@@ -33,4 +39,8 @@ MonoBehaviour:
     - {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
     - {fileID: 11400000, guid: eea31ec6d54844c19e9c541ae9472293, type: 2}
     - {fileID: 11400000, guid: 1057569e62d24c378b9411ac3f1ab1fc, type: 2}
+    attachBone: 8
+    attachPositionOffset: {x: 0, y: 0, z: -0.15}
+    attachEulerOffset: {x: 0, y: 180, z: 0}
   workAnimation: 1
+  collectLoosePickups: 0

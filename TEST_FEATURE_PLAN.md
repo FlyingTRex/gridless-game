@@ -2889,3 +2889,42 @@ New — not yet walked through in Play mode at all. Depends on section 25
   (section 25's last-but-one item) still works after a gender switch, and
   that switching gender repeatedly back and forth doesn't leak a second
   active instance or leave both/neither model visible.
+
+## 27. NPC equipment visual attachment (v0.3.38-dev)
+
+New — not yet walked through in Play mode at all. First real look at
+whether the attach-point numbers (section on `ToolRequirement.attachBone`/
+offsets) actually look right — expect these need tuning.
+
+- [ ] **Hire an NPC, assign Mine Ore, give it a Pickaxe** — confirm a
+  Pickaxe model appears in its right hand (previously nothing appeared no
+  matter what was given). Don't expect a perfect grip — this is the first
+  unverified pass; note how far off it looks for a follow-up tuning pass.
+- [ ] **Give it a Mining Face Shield** — confirm a shield model appears
+  near its head/face, roughly forward-facing.
+- [ ] **Give it a Backpack (any tier)** — confirm a backpack model appears
+  on its back, not floating in front of the chest or sideways (the 180°
+  turn is meant to flip a front-facing dropped-pickup model to face
+  backward — confirm that actually worked instead of pointing it the
+  wrong way).
+- [ ] **Assign Chop Wood, give it an Axe** — confirm an Axe model appears
+  in the right hand, same slot the Pickaxe used (fire/reassign first,
+  since a single NPC only holds one job).
+- [ ] **Fire the NPC** — confirm all attached equipment models disappear
+  along with the job/tools being cleared (no leftover Pickaxe/Backpack
+  still visible on an unassigned NPC).
+- [ ] **Re-hire and re-assign** — confirm equipment models reappear
+  correctly once tools are re-given, not stuck permanently empty after a
+  Fire.
+- [ ] **Both genders**: confirm equipment attaches correctly on both
+  `NPCFactoryWorkerMale` and `NPCFactoryWorkerFemale` instances (separate
+  Animator per prefab — confirm neither one silently has a null
+  `animator` reference doing nothing).
+- [ ] **Regression — Backpack/Pickaxe fixes (v0.3.36-dev)**: confirm a
+  Fine (or any other tier) Backpack and any Pickaxe tier can now actually
+  be given via the Assign Job screen's Give button — this was the live
+  bug that started this whole chain.
+- [ ] **Regression — Mining doesn't chase Sticks (v0.3.37-dev)**: confirm
+  a Mining NPC with a full requirement set actually walks to and mines ore
+  nodes, plays its Mining work animation, and doesn't detour for unrelated
+  loose items.

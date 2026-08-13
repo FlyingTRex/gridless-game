@@ -36,6 +36,11 @@ public class NPCJob : MonoBehaviour
     public ItemDefinition GetEquipped(string label) =>
         equippedTools.TryGetValue(label, out var item) ? item : null;
 
+    // Read by NPCEquipmentVisual (2026-08-13) to enumerate every currently
+    // -equipped label/item pair and keep visual attachments in sync,
+    // without needing to know each job's specific label set in advance.
+    public IReadOnlyDictionary<string, ItemDefinition> EquippedTools => equippedTools;
+
     public bool HasAllTools(NPCJobDefinition job)
     {
         if (job?.toolRequirements == null) return true;

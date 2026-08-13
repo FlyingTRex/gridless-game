@@ -12,13 +12,28 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-13 — Ben — NPC equipment visual attachment: Pickaxe/Axe/Mining
+  Face Shield/Backpack now render on the NPC model instead of being pure
+  bookkeeping. v0.3.38-dev, **committed and pushed.** New
+  `NPCEquipmentVisual.cs` (bone-attaches each given tool's own
+  `worldPickupPrefab`, RightHand/Head/Chest per a new `ToolRequirement.
+  attachBone` field), added to both `NPCFactoryWorkerMale/Female.prefab`.
+  Also fixed two live bug reports from the same session: (1) `MineOreJob`/
+  `ChopWoodJob`/`ForageJob`'s Backpack (and Mining's Pickaxe) tool
+  requirements only listed one `CraftTier` variant instead of all 5 — a
+  Fine Backpack silently couldn't be given, which also explains why the
+  NPC never actually mined or animated (its job could never reach
+  Ready) — v0.3.36-dev; (2) a Mining NPC got "stuck gathering sticks"
+  because the loose-`Pickup` collection pool (meant only for Forage) was
+  scanned unconditionally for every job — new
+  `NPCJobDefinition.collectLoosePickups` gates it to Forage only —
+  v0.3.37-dev. Verified via compile + YAML grep only so far — **no live
+  Play-mode test yet**, see `TEST_FEATURE_PLAN.md` section 27. Attach
+  offsets are first-pass guesses, explicitly flagged as needing a live
+  look. Full detail across all three versions in `CHANGELOG.md`.
 - 2026-08-13 — Ben — Player body Male/Female toggle in the ` menu's
   Player tab (MVP2 item 4, direct follow-up to the player-visible-body
-  entry below). v0.3.35-dev, **implementation complete, not yet
-  committed/pushed.** Deliberately held off starting this until the
-  player-visible-body entry below was actually committed/pushed, since
-  both would otherwise batch-mode-save the same `TestScene.unity` —
-  exactly the collision this file exists to catch. New `PlayerBodyModel.cs`
+  entry below). v0.3.35-dev, **committed and pushed.** New `PlayerBodyModel.cs`
   (both gendered `Visual` instances pre-instantiated, `SetActive`-toggled,
   not created/destroyed at toggle time), small setter additions to
   `PlayerAnimatorDriver`/`NPCVisualGroundFix`, two tab-style buttons in

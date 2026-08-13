@@ -5,10 +5,56 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.37-dev` — must always match `GameVersion` in
+**Current version:** `0.3.38-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (12)
+
+### v0.3.38-dev — NPC equipment visual attachment (Pickaxe/Axe/Face Shield/Backpack)
+
+Ben's ask, direct follow-up to the animation work: "have the npc equip to
+body, the equipment we give him." Previously an NPC's given tools were
+pure bookkeeping (`NPCJob.equippedTools`, a label→item dictionary) — the
+Pickaxe/Axe a player handed over never appeared on the model.
+
+- **New `NPCEquipmentVisual.cs`** — each frame, diffs `NPCJob.EquippedTools`
+  (new public accessor) against what's currently attached and
+  instantiates/destroys accordingly. Reuses each `ItemDefinition`'s own
+  `worldPickupPrefab` (the same mesh a dropped item uses) as the held
+  model — no dedicated held-model asset exists for any tool, and this
+  project's convention has always been "ship the obvious v1 from what
+  already exists, tune live" rather than blocking on new art. Strips the
+  instantiated copy's `Rigidbody`/`Collider`/`Pickup`/`ResourceNode`
+  components — a bone-parented decoration shouldn't also be an
+  independently-interactable world object.
+- **`ToolRequirement` gained `attachBone`/`attachPositionOffset`/
+  `attachEulerOffset`** (`NPCJobDefinition.cs`) — attach point is data on
+  the requirement itself, not hardcoded per label in script, so retuning a
+  position later is a data edit. Wired: Pickaxe/Axe → `RightHand` (default,
+  identity offset), Mining Face Shield → `Head` (small forward offset),
+  Backpack → `Chest` with a rearward offset + 180° turn (a front-facing
+  dropped-pickup model needs flipping to read as worn on the back).
+- Added to both `NPCFactoryWorkerMale.prefab`/`NPCFactoryWorkerFemale.prefab`,
+  wired to each one's own `Animator` (`Animator.GetBoneTransform` needs a
+  real Humanoid rig — confirmed both `HumanCharacterDummy_M/F.fbx` import
+  as Humanoid, not Generic).
+- **All three offset numbers are first-pass guesses, not yet visually
+  confirmed** — same honest framing as every other new-model placement
+  this session (per `CLAUDE.md`'s pivot-grounding/scale-vs-player rules,
+  visual placement always needs a live look before calling it done, and
+  this hasn't had one yet). Expect the Pickaxe/Axe grip and Backpack
+  position to need real tuning once actually seen on an NPC.
+- Player-side equipment visual attachment (third-person) remains
+  explicitly out of scope — Ben's ask was scoped to NPCs; the player's own
+  `PlayerCameraMode.cs` third-person view still only reveals worn
+  equipment via the `cullingMask` flip, not correctly bone-positioned
+  (documented gap since v0.3.34-dev).
+- Verified via batch-mode compile (0 CS errors) + YAML grep (all 4
+  `ToolRequirement`s' new fields, both prefabs' `NPCEquipmentVisual`
+  component with a non-null `animator` reference). **Not yet
+  live-tested** — see `TEST_FEATURE_PLAN.md`.
 
 ## 2026-08-13 (11)
 
