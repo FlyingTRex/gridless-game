@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Rudimentary Trimmed Stick
   maxStack: 20
+  weight: 0.5
   tier: 1
   worldPickupPrefab: {fileID: 5512597901684086415, guid: 2ffc125bc284e664a8da7ffa8e2dfc72, type: 3}
   icon: {fileID: 21300000, guid: e15d867b93421b54ab0241bb3ebbdd7a, type: 3}

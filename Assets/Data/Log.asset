@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
-  m_Name: Plank
+  m_Name: Log
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Plank
-  maxStack: 20
-  weight: 3
-  tier: 0
-  worldPickupPrefab: {fileID: 1488879547467099213, guid: 92dc936b5d3b423e94eefaae1ee750bc, type: 3}
-  icon: {fileID: 21300000, guid: bb5fa680e17a21145bbb925a20e8c1d1, type: 3}
-  previewIcon: {fileID: 21300000, guid: c1ba8d0163f984248beabf60fa20af8c, type: 3}
+  itemName: Log
+  maxStack: 5
+  weight: 15
+  tier: 2
+  worldPickupPrefab: {fileID: 178854448834888153, guid: 198a6de28b7f52e4da1264db800e466e, type: 3}
+  icon: {fileID: 21300000, guid: 90e8b4a686915d44992d600aa689b0a4, type: 3}
+  previewIcon: {fileID: 21300000, guid: cfe4962999f7fc24cb974ef2c213c7f5, type: 3}
   baseItem: {fileID: 0}

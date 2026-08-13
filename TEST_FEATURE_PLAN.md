@@ -2516,3 +2516,39 @@ behavior.
   "Iron" and "Iron Ingot" show up filtered from the full list; confirm
   Clear restores the full list. Spawning "Iron Ingot" from here should
   place a real ingot-shaped pickup, not a rock.
+
+## 20. Pickupable Log + wood-item weights + FuelItem data layer (v0.3.25-dev)
+
+- [ ] **Chop a Tree** with an Axe — confirm it still drops 3 fallen Log
+  nodes exactly as before (regression check — Tree/chop behavior is
+  unchanged by this work).
+- [ ] **Approach a fallen Log node and look at the interaction prompt** —
+  confirm it now shows both the primary "[E] Hold to break (requires
+  Axe)" prompt **and** a secondary "[F] Pick up Log" prompt at the same
+  time.
+- [ ] **Press F on a Log node** (no Axe needed) — confirm a Log item
+  (weight 15 lbs) lands in your inventory and the node disappears from
+  the world with no respawn. Confirm this works with an empty hand (no
+  tool requirement).
+- [ ] **With your inventory full, press F on a Log node** — confirm the
+  Log item is *not* added, and the node stays in the world (not silently
+  destroyed/lost).
+- [ ] **Chop a Log node with an Axe (E, hold) instead of picking it up**
+  — confirm this still yields 2x Plank + the existing 30% chance of a
+  bonus Stick, unchanged from before (regression check — the two
+  interactions are independent alternatives, not a replacement of one by
+  the other).
+- [ ] **Open Inventory and check weights**: Stick and each of the 5
+  Trimmed Stick craft-tiers should show 0.5 lbs; Plank should show 3 lbs;
+  Log should show 15 lbs (check via `PlayerEncumbrance`'s total or by
+  comparing capacity used before/after picking one up).
+- [ ] **Drop a picked-up Log** — confirm it lands in the world looking
+  identical to a naturally fallen Log node (same cylinder mesh/material),
+  and can be picked back up again via the same F-key interaction.
+- [ ] **Admin-spawn a Log directly** — confirm it appears in the search
+  results and spawns a real Log pickup, not a placeholder cube.
+- [ ] **No player-facing UI exists yet for fuel** — the `FuelItem` assets
+  (Stick/Trimmed Stick tiers = Tier 1, Plank = Tier 2) are data only; the
+  Furnace has no fuel slots, lit/unlit state, or burn timer yet. Nothing
+  to test in-game for this part until that's built — confirms this is
+  understood as a data-layer-only step, not a missed feature.

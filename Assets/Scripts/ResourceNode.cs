@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class ResourceNode : MonoBehaviour, IInteractable
+public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
 {
     [SerializeField] private GameObject chunkPrefab;
     [SerializeField] private int chunkCount = 3;
@@ -52,6 +52,18 @@ public class ResourceNode : MonoBehaviour, IInteractable
     // the ore goes undetected, so this should be a plain Small Rock chunk
     // prefab, not the real ore. Ignored entirely when hiddenMaterial is null.
     [SerializeField] private GameObject hiddenChunkPrefab;
+
+    // Optional — lets this node also be picked up whole via the secondary
+    // (F) interaction, as an alternative to breaking it via the primary
+    // hold action. Null (default) means no secondary option — every
+    // existing node (Boulders, ore, Tree) keeps its current single-action
+    // behavior unchanged. Built for Log (2026-08-12): picking up the whole
+    // log costs no tool, grants no skill XP (no skill/tool was actually
+    // applied, unlike chopping), and removes the node outright — same
+    // "no sensible respawn spot" reasoning as a one-off Log dropped by a
+    // chopped Tree.
+    [SerializeField] private ItemDefinition pickupItem;
+    [SerializeField] private int pickupCount = 1;
 
     private Vector3 spawnPosition;
     private Collider col;
@@ -234,6 +246,41 @@ public class ResourceNode : MonoBehaviour, IInteractable
             Vector3 dir = (Random.insideUnitSphere + Vector3.up).normalized;
             rb.AddForce(dir * scatterForce, ForceMode.Impulse);
         }
+    }
+
+    public string GetSecondaryPrompt(GameObject player) =>
+        pickupItem != null ? $"Pick up {pickupItem.itemName}" : null;
+
+    // Mirrors Pickup.Complete's leftover-handling exactly (PlayerLoot first,
+    // PlayerInventory fallback, leave the node in place if there's nowhere
+    // to put it) so a full inventory behaves identically whether the wood
+    // came from a loose Pickup or this secondary action.
+    public void CompleteSecondary(GameObject player)
+    {
+        if (pickupItem == null) return;
+
+        var loot = player.GetComponent<PlayerLoot>();
+        int leftover;
+        if (loot != null)
+        {
+            leftover = loot.Receive(pickupItem, pickupCount);
+        }
+        else
+        {
+            var inventory = player.GetComponent<PlayerInventory>();
+            leftover = inventory != null ? inventory.AddItem(pickupItem, pickupCount) : pickupCount;
+        }
+
+        if (leftover > 0) return;
+
+        if (respawnDelay <= 0f)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        SetVisible(false);
+        respawnAt = Time.time + respawnDelay;
     }
 
     private bool HasAnyRequiredToolInHand(PlayerEquipment equipment)

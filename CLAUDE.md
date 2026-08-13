@@ -59,6 +59,18 @@ colored item name text (not a full `GUI.color` tint, which would also
 recolor icon art). Also specs the Crafting screen's new tier-ascending
 default sort plus a tier filter row.
 
+**Wood & Fuel system planning lives in `WOOD_AND_FUEL_PLANNING.md`.**
+Audits the current wood item chain (Tree→Log→Plank/Stick; Log is a
+stationary chop node, never a pickupable item) and designs a `FuelTier`
+system for the Furnace (2026-08-12): tier is burn-duration efficiency
+only, never a recipe gate — Stick and all 5 Trimmed Stick craft-tiers are
+Tier 1 (5 min), Plank is Tier 2 (10 min), Coal/Gas/Electricity reserved as
+future Tiers 3-5. Also specs Furnace state that doesn't exist yet
+(lit/unlit, a fuel inventory, a real-time burn timer — burns continuously
+once lit, independent of active crafting) and a longer-term autonomous
+production-chain vision (NPC-fed storage → Furnace auto-smelts) flagged as
+its own future scope, not part of the near-term build.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:

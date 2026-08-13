@@ -1184,12 +1184,16 @@ interaction primitive.
       open, known gaps, not oversights in this doc.
   - Furnace is a new placeable *structure*, not a held tool — outlined only
     (transfer ore + fuel in, get metal out), not designed in detail.
-    **Still entirely unbuilt** — no `Furnace`/`Ingot`/`Forging`/`Minting`-refine
-    script exists anywhere. Ore chunks can be mined and picked up, but nothing
-    in the game currently turns Ore into an Ingot, let alone a Forged Component
-    or a Coin — the Coin/currency system that exists today (`Coin.cs`,
-    `PlayerCurrency.cs`, `BankBox`/`Lockbox`) is a standalone economy layer, not
-    fed by this ore pipeline yet.
+    **Update (2026-08-12): partially built** — `Furnace`/`FurnaceSurface`
+    exist and `IronIngotRecipe.asset` turns Ore into an Ingot via a nearby
+    Furnace, but fuel itself is still entirely unbuilt (`FurnaceSurface`
+    has zero fields — no lit/unlit state, no fuel inventory, no burn
+    timer; today "near a Furnace" is the *entire* gate on smelting). Fuel
+    system design now lives in `WOOD_AND_FUEL_PLANNING.md` — no
+    `Forging`/`Minting`-refine script exists yet either, and the Coin/
+    currency system that exists today (`Coin.cs`, `PlayerCurrency.cs`,
+    `BankBox`/`Lockbox`) is still a standalone economy layer, not fed by
+    this ore pipeline.
 - **Hunting weapons** (final assembly recipes, not new systemic mechanics —
   Woodworking-discipline now that `Crafting` retired, see the 2026-08-05
   discipline-sort update above): Stick + Rope → Bow; Stick + Rock → Arrows;
@@ -1219,7 +1223,12 @@ interaction primitive.
 - Whether final Crafting (assembly) becomes a timed click-and-locked action or
   stays the current instant menu-based "Craft" button.
 - Furnace/smelting mechanics beyond "transfer ore + fuel, get metal" — capacity,
-  smelt time, fuel consumption rate, etc.
+  smelt time, etc. **Fuel consumption rate specifically is now designed, not
+  open — see `WOOD_AND_FUEL_PLANNING.md` (2026-08-12): a `FuelTier` system
+  (Stick/Trimmed Stick = Tier 1/5min, Plank = Tier 2/10min, Coal/Gas/
+  Electricity reserved as future Tiers 3-5), tier as efficiency only (never
+  a recipe gate), and a Furnace that burns continuously once lit regardless
+  of active crafting. Not yet built.**
 - Exact ore/Small-Rock byproduct ratio per mining action (fixed split vs. random),
   and the exact per-metal base-yield curve (Copper→Platinum).
 - Concrete degradation-rate/performance numbers per `CraftTier` (this was already

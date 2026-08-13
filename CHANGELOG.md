@@ -5,12 +5,51 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.24-dev` — must always match `GameVersion` in
+**Current version:** `0.3.25-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
+
+### v0.3.25-dev — Pickupable Log item, real wood-item weights, Furnace FuelTier data layer
+
+First implementation chunk from `WOOD_AND_FUEL_PLANNING.md`: Log becomes a
+real inventory item, Stick/Plank's untuned weights get fixed, and the
+Furnace fuel-tier data layer exists (though the Furnace itself still has
+no fuel-burning logic — that's a later chunk).
+
+**Log is now pickupable.** `ResourceNode` gained an optional secondary (F
+key) "Pick up Log" action alongside its existing primary "Hold to break"
+chop — a new `pickupItem`/`pickupCount` field pair, defaulting to null/off
+so every other node (Boulders, ore, Tree) is unaffected. Picking up costs
+no tool and grants no skill XP (unlike chopping, which still requires an
+Axe and trains Woodworking), and removes the node outright with no
+respawn, same as chopping does today. New `Log` `ItemDefinition` (15 lbs,
+maxStack 5, no `CraftingRecipe`) reuses the existing Log ResourceNode's
+own placeholder cylinder mesh/material directly for its world-pickup
+prefab (`LogPickup.prefab`) — no Tripo3D generation needed since the
+source visual was already a primitive, not an imported model.
+
+**Wood-item weights fixed.** Stick and all 5 Trimmed Stick craft-tiers
+had no `weight` set at all (silently defaulting to `ItemDefinition`'s
+bare `1f`) — now `0.5` lbs. Plank was the same gap, now `3` lbs. Log
+enters at `15` lbs, meaningfully heavier than either, matching its size
+as a full section of a tree trunk rather than a hand-sized branch or a
+single board.
+
+**`FuelTier`/`FuelItem` data layer** (`Assets/Scripts/FuelTier.cs`/
+`FuelItem.cs`, mirrors `EdibleItem`/`MedicineItem`'s pattern): a
+deliberately separate tier axis from `CraftTier`/`FoodTier` — fuel
+efficiency (burn duration), never a smelting-recipe gate. Stick + all 5
+Trimmed Stick tiers register as Tier 1 (5 min/item, craft quality doesn't
+affect burn efficiency), Plank as Tier 2 (10 min/item) — 7 new `FuelItem`
+assets. Log is **not** wired as fuel yet (its tier/duration wasn't
+decided in planning). Tiers 3-5 are placeholder numbers reserved for
+Coal/Gas/Electricity, not yet designed.
+
+Batch-mode compile check passed (0 `CS####` errors) at every stage.
+Manual Play-mode verification still needed — see `TEST_FEATURE_PLAN.md`.
 
 ### v0.3.24-dev — 5-tier Hunger restoration system + MRE model lying-flat fix
 
