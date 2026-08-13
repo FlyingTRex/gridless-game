@@ -19,10 +19,18 @@ MonoBehaviour:
   - label: Pickaxe
     acceptableItems:
     - {fileID: 11400000, guid: 8c8bffd4f2b0e6c4f8379a9e0885f999, type: 2}
+    - {fileID: 11400000, guid: ed897480adfbf404981a30c0c3e003e1, type: 2}
+    - {fileID: 11400000, guid: 2c3cfe88abc4c444490b1329df5049b4, type: 2}
+    - {fileID: 11400000, guid: cbc3a81f301f905488b74329e0b078a6, type: 2}
+    - {fileID: 11400000, guid: 134bf70c65a2c484b9e2489486e138c7, type: 2}
   - label: Mining Face Shield
     acceptableItems:
     - {fileID: 11400000, guid: bd145eb22399f79429ccf56bd3920fd7, type: 2}
   - label: Backpack
     acceptableItems:
+    - {fileID: 11400000, guid: a6c92fd6e5ce4d959025097ca6c2c5c8, type: 2}
+    - {fileID: 11400000, guid: 6515c0f350ea4119a80d2535c70ca024, type: 2}
     - {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
+    - {fileID: 11400000, guid: eea31ec6d54844c19e9c541ae9472293, type: 2}
+    - {fileID: 11400000, guid: 1057569e62d24c378b9411ac3f1ab1fc, type: 2}
   workAnimation: 1

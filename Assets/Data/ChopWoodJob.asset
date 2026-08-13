@@ -25,5 +25,9 @@ MonoBehaviour:
     - {fileID: 11400000, guid: ad37f941de4827448a05b96776878bde, type: 2}
   - label: Backpack
     acceptableItems:
+    - {fileID: 11400000, guid: a6c92fd6e5ce4d959025097ca6c2c5c8, type: 2}
+    - {fileID: 11400000, guid: 6515c0f350ea4119a80d2535c70ca024, type: 2}
     - {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
+    - {fileID: 11400000, guid: eea31ec6d54844c19e9c541ae9472293, type: 2}
+    - {fileID: 11400000, guid: 1057569e62d24c378b9411ac3f1ab1fc, type: 2}
   workAnimation: 2

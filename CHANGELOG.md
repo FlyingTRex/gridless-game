@@ -5,10 +5,40 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.35-dev` — must always match `GameVersion` in
+**Current version:** `0.3.36-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (10)
+
+### v0.3.36-dev — Fix: NPC job tool requirements only accepted one CraftTier
+
+Bug report (Ben, live): a Fine Backpack in inventory couldn't be given to
+an NPC — the Assign Job screen kept showing "(none in inventory)" and a
+disabled Give button for the Backpack requirement.
+
+Root cause: `NPCJobDefinition.ToolRequirement.acceptableItems` is meant to
+follow the same "any tier satisfies it" convention every other tool gate
+in this project uses (`ResourceNode.requiredTools`, `CraftingRecipe.
+requiredTools` — an array of all 5 `CraftTier` variants, not just one).
+`MineOreJob.asset`'s Backpack requirement only listed the Normal-tier
+`BackpackItem` guid, and its Pickaxe requirement only listed the
+Crude-tier `CrudePickaxe` guid — a Fine Backpack or any non-matching
+Pickaxe tier silently didn't count. `ChopWoodJob.asset`/`ForageJob.asset`
+(built this same session, v0.3.32-dev) inherited the identical narrow
+pattern for their own Backpack requirement, copied from `MineOreJob`
+without checking whether the source was itself correct.
+
+Fixed directly in the data — all three job assets' Backpack requirements
+now list all 5 `CrudeBackpackItem`/`RudimentaryBackpackItem`/
+`BackpackItem`/`FineBackpackItem`/`MasterworkBackpackItem` guids;
+`MineOreJob`'s Pickaxe requirement now lists all 5 Pickaxe tiers too.
+Mining Face Shield untouched — confirmed it has no tier ladder (a single
+item), so 1 guid was already correct there. No code changes — this was
+purely a data-authoring gap, not a bug in `NPCJob.TryGiveTool`/
+`NPCJobScreen.HasAny`'s matching logic itself. Verified via batch-mode
+load (0 import errors) + YAML grep of all three edited assets.
 
 ## 2026-08-13 (9)
 
