@@ -5,10 +5,30 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.43-dev` — must always match `GameVersion` in
+**Current version:** `0.3.44-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (18)
+
+### v0.3.44-dev — Fix: floating blue shape was Jeans, not the Backpack (live-feedback round 4)
+
+Live feedback (Ben: "that's not any better") revealed a misdiagnosis, not
+just a wrong number: the persistent blue/black rolled shape above the
+head survived unchanged across two rounds of Backpack-only tuning (a Y
+position fix, then an X pitch fix) — meaning it was never the Backpack in
+the first place. Re-diagnosed by elimination: color matches denim, and
+`PlayerJeans` was the one worn-clothing carrier that still had zero
+rotation correction (`wornEulerOffset` at identity) while every other
+type had at least attempted one. Same theory as the Backpack fix applies:
+`worldPickupPrefab` is authored lying flat on the ground (the convention
+every dropped pickup in this game uses) — with no rotation correction,
+Jeans' legs point in whatever direction was "up" while lying flat, which
+parented to an upright Hips bone reads as legs pointing straight up past
+the head instead of down. Added the same `-90°` X pitch correction
+already tried on the Backpack. Same coin-flip-on-sign caveat as before —
+not yet re-verified live.
 
 ## 2026-08-13 (17)
 

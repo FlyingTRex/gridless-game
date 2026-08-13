@@ -20,10 +20,23 @@ public class PlayerJeans : MonoBehaviour
     [SerializeField] private float despawnDelay = 120f;
 
     // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
-    // Tool/Backpack) — a body-conforming garment, no offset needed as a
-    // first guess.
+    // Tool/Backpack).
+    //
+    // Live-feedback round 4 (Ben, screenshots): a blue/black rolled shape
+    // kept appearing above the head across two rounds of Backpack-only
+    // tuning (Y position, then X pitch) with zero visible change — meaning
+    // it was never the Backpack. Re-diagnosed: the color matches denim,
+    // and Jeans was the one type that never got a rotation correction at
+    // all (still identity). Same theory as the Backpack fix: Jeans'
+    // worldPickupPrefab is authored lying flat on the ground like every
+    // other dropped pickup, so with zero rotation correction its legs
+    // point in whatever direction was "up" while lying flat — which,
+    // parented to an upright Hips bone with no correction, is consistent
+    // with legs pointing straight up past the head instead of down.
+    // Trying the same -90 X pitch correction used for the Backpack, same
+    // coin-flip-on-sign caveat.
     [SerializeField] private Vector3 wornPositionOffset = Vector3.zero;
-    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(-90f, 0f, 0f);
 
     // The player starts the game already wearing the Settler's Jeans
     // variant specifically — same single-purpose starting-gear mechanism

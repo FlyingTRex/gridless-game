@@ -35,17 +35,19 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   keep player/NPC placement consistent. Belt also looked off in the
   screenshot but left untouched — plausibly just rear-angle camera
   occlusion, not a confirmed bug.
-  **Live-feedback round 3 (v0.3.43-dev, implementation complete, not yet
-  committed/pushed):** the Backpack's bag body now sits correctly (the
-  Y fix worked), but the same rigid model has a bedroll-style top
-  extension jutting up past the head — theory: `worldPickupPrefab` is
-  authored for lying flat on the ground, and the yaw-only correction
-  never addressed the pitch needed to stand it upright against a back.
-  Trying a `-90°` X (pitch) addition, genuinely a coin flip on sign.
-  Boots also got a 180° yaw trial (position was already confirmed
-  correct, Ben asked to try rotation too — may be front-to-back
-  reversed). **Still no live Play-mode confirmation of any of this**,
-  see `TEST_FEATURE_PLAN.md` section 29.
+  **Live-feedback round 3 (v0.3.43-dev, committed and pushed):** the
+  Backpack's bag body now sits correctly (the Y fix worked), but a
+  blue/black shape kept jutting up past the head — theory at the time:
+  the same rigid Backpack model has a bedroll-style top extension, fixed
+  with a `-90°` X (pitch) addition. Boots also got a 180° yaw trial.
+  **Live-feedback round 4 (v0.3.44-dev, implementation complete, not yet
+  committed/pushed):** the round-3 Backpack pitch fix had zero visible
+  effect on the floating shape — meaning it was misdiagnosed, never the
+  Backpack. Re-diagnosed as Jeans (color matches denim; it was the one
+  worn-clothing type with no rotation correction at all) — same
+  ground-lying-prefab theory, same `-90°` X pitch fix applied there
+  instead. **Still no live Play-mode confirmation of any of this**, see
+  `TEST_FEATURE_PLAN.md` section 29.
 - 2026-08-13 — Ben — Player equipment now bone-attaches too (same
   RightHand/Chest system NPCs just got, applied to the player's real
   `Tool`/`Backpack` carry objects instead of a decorative copy). v0.3.40-dev,
