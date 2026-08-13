@@ -3125,6 +3125,8 @@ MonoBehaviour:
   hiddenMaterial: {fileID: 0}
   revealedMaterial: {fileID: 0}
   hiddenChunkPrefab: {fileID: 0}
+  pickupItem: {fileID: 0}
+  pickupCount: 1
 --- !u!135 &496731629
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -4555,6 +4557,8 @@ MonoBehaviour:
   hiddenMaterial: {fileID: 1224781380963471092, guid: ba0e98bc67625744a95be704651657a2, type: 3}
   revealedMaterial: {fileID: 2100000, guid: 5b03e74f97c553c4a9c5938371d451cd, type: 2}
   hiddenChunkPrefab: {fileID: 1931988532258926014, guid: cbb3c62f40084df4b92bca399068f400, type: 3}
+  pickupItem: {fileID: 0}
+  pickupCount: 1
 --- !u!135 &753444135
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -6469,6 +6473,8 @@ MonoBehaviour:
   hiddenMaterial: {fileID: 1224781380963471092, guid: ba0e98bc67625744a95be704651657a2, type: 3}
   revealedMaterial: {fileID: 2100000, guid: cb26a51e201cc404baf6b38afb0c22b5, type: 2}
   hiddenChunkPrefab: {fileID: 1931988532258926014, guid: cbb3c62f40084df4b92bca399068f400, type: 3}
+  pickupItem: {fileID: 0}
+  pickupCount: 1
 --- !u!135 &1134091749
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -8519,6 +8525,8 @@ MonoBehaviour:
   hiddenMaterial: {fileID: 1224781380963471092, guid: ba0e98bc67625744a95be704651657a2, type: 3}
   revealedMaterial: {fileID: 2100000, guid: b1d82875f5934c24a9e3935141e52e9b, type: 2}
   hiddenChunkPrefab: {fileID: 1931988532258926014, guid: cbb3c62f40084df4b92bca399068f400, type: 3}
+  pickupItem: {fileID: 0}
+  pickupCount: 1
 --- !u!135 &1420300049
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -9573,6 +9581,8 @@ MonoBehaviour:
   hiddenMaterial: {fileID: 0}
   revealedMaterial: {fileID: 0}
   hiddenChunkPrefab: {fileID: 0}
+  pickupItem: {fileID: 0}
+  pickupCount: 1
 --- !u!135 &1585725783
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -9840,6 +9850,8 @@ MonoBehaviour:
   hiddenMaterial: {fileID: 0}
   revealedMaterial: {fileID: 0}
   hiddenChunkPrefab: {fileID: 0}
+  pickupItem: {fileID: 0}
+  pickupCount: 1
 --- !u!135 &1609834783
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -11022,6 +11034,7 @@ MonoBehaviour:
   edibles:
   - {fileID: 11400000, guid: 1938fbd59aa1802478d8cd44c666f768, type: 2}
   - {fileID: 11400000, guid: e0fcd4f012ebe6c40abcc1ea9f839a33, type: 2}
+  - {fileID: 11400000, guid: 879f56073c40ab24e815244ba0d4edf2, type: 2}
 --- !u!114 &1681626244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11420,6 +11433,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 3a76832f9900f0c41b9eef61d5875313, type: 2}
   - {fileID: 11400000, guid: a038c535398155946945a3639c189f3a, type: 2}
   - {fileID: 11400000, guid: e01316cb731b22545b237604e1b7b749, type: 2}
+  - {fileID: 11400000, guid: eb0dab5ed56fcb048a284bf5858e29bd, type: 2}
   interactRange: 10
   snapRadius: 1.5
   panelHalfSize: 2.5

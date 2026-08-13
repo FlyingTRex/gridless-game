@@ -2,8 +2,36 @@
 
 Planning doc for turning Campfire from a single magic-only scene prop into
 a real craftable, fuel-burning, cooking structure (2026-08-12). Decisions
-below are locked in; open items are flagged as such. See `WORKING_ON.md`/
-`CHANGELOG.md` for build status once this moves from planning into code.
+below are locked in; open items are flagged as such.
+
+**Status: built (v0.3.26-dev, 2026-08-12).** Placement, fuel, cooking, and
+warmth all shipped in 4 approved chunks — see `CHANGELOG.md` for the full
+writeup and `TEST_FEATURE_PLAN.md` section 21 for the manual verification
+checklist (not yet walked through). Still open/deferred, unchanged from
+this doc's original scope: the Blender model rebuild (still the pre-Blender
+placeholder, not started), the 4 accessory items + their slots, Wood
+Stove, and the water-safety mechanic.
+
+**UI redesign decided, not yet built (2026-08-12, same day, from live
+testing feedback).** Loading fuel/food currently only works via a
+"Campfire (nearby)" section auto-appended to the bottom of the main
+Inventory tab's scroll view (same pattern as nearby StorageBox) — found
+live to be a real UX problem: on an already-busy screen, a small unlabeled
+row at the very bottom isn't discoverable (Ben's live report reads
+verbatim as "there's no mechanism to transfer fuel," even though the
+mechanism is technically present and functional). **Decided
+replacement:** pressing E on the Campfire opens a small, focused popup
+(same visual family as the existing action-menu popups —
+`InventoryScreen.DrawPendingActionMenu` — not a full Tab-style screen)
+showing its fuel/cooking slots directly, closable the same way those
+popups already are. This **replaces** the current E-key light/needs-fuel
+prompt-and-tap flow, not adds to it — lighting becomes a button inside the
+new popup instead of the world-crosshair tap. Not yet built; the current
+embedded-in-Inventory mechanism is left in place as a working (if clunky)
+stopgap until the popup exists, not removed. No decision yet on whether
+this same popup pattern should also replace StorageBox's identical nearby-
+section approach — raised as a natural follow-on question, not committed
+either way.
 
 ## 1. Current state (audit, 2026-08-12)
 
@@ -69,7 +97,11 @@ Confirmed directly against the codebase before designing anything new:
   being required to cook at all. Each accessory is itself a real
   equippable item (its own `ItemDefinition`, eventually its own
   recipe/model) — none of the four are designed yet beyond their names
-  and their gating role.
+  and their gating role. **Concrete gap to close before any of the four
+  are usable: each needs its own model + icon** (Grill, Soup Pot, Kettle,
+  Frying Pan) — Ben's note, 2026-08-12. Not yet built; the accessory slot
+  structure can ship without them (slots just stay empty/unused until
+  these exist).
 - **Water is explicitly out of scope for now.** There's no dirty/unsafe-
   water mechanic anywhere in the game today — `Canteen`/`WaterSource`
   don't distinguish water quality at all, and the only water-related

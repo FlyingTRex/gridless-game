@@ -338,6 +338,29 @@ and shipped work.
   section 5 — scoped as its own future chunk, not part of the near-term
   fuel-tier build.
 
+## Campfire dedicated popup UI (decided design, not built — 2026-08-12)
+
+Real live-testing finding: loading fuel/food into a Campfire currently
+only works via a "Campfire (nearby)" section appended to the very bottom
+of the main Inventory tab's scroll view (mirrors how nearby StorageBox
+already works). Found in practice to be a real discoverability failure —
+Ben's live report was "there's no mechanism to transfer fuel," even though
+the mechanism is technically present and functional; it's just an
+unlabeled row at the bottom of an already-busy screen.
+
+- [ ] **Replace with a focused popup opened by E.** Pressing E on the
+  Campfire should open a small popup (same visual family as
+  `InventoryScreen.DrawPendingActionMenu`'s existing action-menu popups,
+  not a full Tab-style screen) showing its fuel and cooking slots
+  directly. This **replaces** the current E-key light/needs-fuel
+  prompt-and-tap flow — lighting moves to a button inside the new popup.
+  Full design context in `CAMPFIRE_PLANNING.md`. Current embedded-in-
+  Inventory mechanism stays as a working stopgap until this ships, not
+  removed first.
+- [ ] **Open question, not decided:** should the same popup pattern
+  replace StorageBox's identical nearby-section approach too, for
+  consistency? Raised as a natural follow-on, not committed either way.
+
 ## Enhancements — Phase 2 (MVP 2) Backlog
 
 **Draft, not finalized (2026-08-10) — Ben's explicit call: "we won't

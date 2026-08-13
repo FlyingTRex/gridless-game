@@ -2552,3 +2552,58 @@ behavior.
   Furnace has no fuel slots, lit/unlit state, or burn timer yet. Nothing
   to test in-game for this part until that's built — confirms this is
   understood as a data-layer-only step, not a missed feature.
+
+## 21. Campfire rebuilt — craftable, fuel, cooking, warmth (v0.3.26-dev)
+
+- [ ] **Open the Build tab and find "Campfire"** in the piece list —
+  confirm it shows an icon (not blank), and its cost reads 4 Rock + 3
+  Stick.
+- [ ] **Place a Campfire** via the normal Build flow (free placement, no
+  socket snapping expected — it should behave exactly like placing a
+  Storage Box: ghost follows the raycast, scroll rotates, click locks,
+  click again confirms) — confirm materials are actually consumed and a
+  real Campfire appears in the world, unlit.
+- [ ] **Look at the unlit placed Campfire** — confirm the prompt reads
+  "Campfire (needs fuel)" (E) with no way to light it yet.
+- [ ] **Open Inventory near the new Campfire** — confirm a "Campfire
+  (nearby)" section appears with two rows, "fuel" and "cooking", each a
+  single empty slot.
+- [ ] **Drag a Stick into the fuel slot**, then look at the Campfire again
+  — prompt should now read "Light Campfire". Press E — confirm it lights
+  (fire visual/light turns on) and the fuel slot empties.
+- [ ] **Prompt while lit** should show remaining fuel time counting down
+  (e.g. "Campfire (lit, 298s fuel left)" right after lighting a Stick,
+  which is Tier 1 = 5 min = 300s).
+- [ ] **Let fuel run out** (or load just 1 Stick and wait ~5 min) —
+  confirm the Campfire extinguishes on its own, fire visual/light turns
+  off, with no player action needed.
+- [ ] **Re-light via Spark** instead of E — with an Elemental-lineage
+  character, load fuel, hold R on the Campfire — confirm it still works
+  as an alternate lighting method. Confirm Spark refuses (no wish offered)
+  on a Campfire with no fuel loaded, same as E's "needs fuel" state.
+- [ ] **Cooking:** drag a Raw Meat into the "cooking" slot of a **lit**
+  Campfire and stand within a few meters — confirm it converts to Cooked
+  Meat after ~30 seconds. Walk away mid-cook, confirm progress pauses
+  (doesn't restart from 0 when you come back and it finishes at roughly
+  the same additional wait as when you left, not doubled).
+  Let the fire go out mid-cook (no more fuel) — confirm cooking pauses
+  too, then resumes once relit while the Raw Meat is still in the slot.
+- [ ] **Eat the Cooked Meat** — confirm a right-click Eat option appears
+  and restores Hunger (Meal tier, ~40) with no Health effect. Confirm Raw
+  Meat itself has **no** Eat option at all (still not directly edible —
+  cooking is required).
+- [ ] **Cooked Meat's icon/model** — expected to look identical to Raw
+  Meat (a known placeholder simplification, not a bug) — confirm it's at
+  least not blank/missing.
+- [ ] **Warmth:** check the debug vitals panel or the new HUD bar (bottom
+  of screen, 4th row under Will) for Body Temperature. Stand within ~4m of
+  a lit Campfire — confirm the value climbs toward ~80 over a few seconds.
+  Walk away — confirm it drifts back down toward the neutral baseline
+  (50) over time, same passive drift as before this feature existed.
+- [ ] **Accessory slots don't exist as a usable UI yet** — no Grill/Soup
+  Pot/Kettle/Frying Pan items exist to test; nothing to check here until
+  those are built (see `CAMPFIRE_PLANNING.md`).
+- [ ] **Regression:** confirm ordinary crafting/other Build pieces still
+  work normally — this change touched shared code
+  (`InventoryScreen.cs`, `PlayerVitals.cs`, `VitalsBarHUD.cs`) alongside
+  Campfire-specific additions.

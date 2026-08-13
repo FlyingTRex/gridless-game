@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17f85ac9db3fc704b91d2ef0a58fed7b, type: 3}
+  m_Name: CampfirePiece
+  m_EditorClassIdentifier: Assembly-CSharp::BuildPiece
+  pieceName: Campfire
+  prefab: {fileID: 5822138250101356064, guid: 18b81c594072d3d409fc143dc04e748d, type: 3}
+  ingredients:
+  - item: {fileID: 11400000, guid: 3d8f7ca61e2666c468f0401b63e2a7cc, type: 2}
+    count: 4
+  - item: {fileID: 11400000, guid: d492f069a86086445a701543be636fce, type: 2}
+    count: 3
+  trainedSkill: {fileID: 11400000, guid: a05cd28340d5c8b41bcf4af8f1892fe0, type: 2}
+  unlockTier: 0
+  skillGain: 1
+  groundReach: 0
+  nextTier: {fileID: 0}
+  icon: {fileID: 21300000, guid: e6bcc8afb74065f42af0c877980d8ef0, type: 3}
+  previewIcon: {fileID: 21300000, guid: 2affe06275a5d4d4a8c94bdb870e9057, type: 3}

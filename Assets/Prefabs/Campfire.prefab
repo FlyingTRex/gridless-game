@@ -625,3 +625,14 @@ MonoBehaviour:
   unlitMaterial: {fileID: 2100000, guid: d545776441ab8c34789cffeea5790b10, type: 2}
   litMaterial: {fileID: 2100000, guid: ef347414d923f734198cc1ec57b4123c, type: 2}
   fireLight: {fileID: 3059714001097534653}
+  fuelItems:
+  - {fileID: 11400000, guid: 8a47f03509dfa244e8cfada66e79ca80, type: 2}
+  - {fileID: 11400000, guid: 2807e03b7292b0b41883a55fd922dc01, type: 2}
+  - {fileID: 11400000, guid: fa43693d232debb4cb2d7e15a0004fc1, type: 2}
+  - {fileID: 11400000, guid: ad34db36472242f458708e51d8d84d5d, type: 2}
+  - {fileID: 11400000, guid: 688cb5a3100f7b347b7a61b6be5c3ac4, type: 2}
+  - {fileID: 11400000, guid: 581556919b0ebdf40bad3eab7c5cbc86, type: 2}
+  - {fileID: 11400000, guid: 1994d867602a01349aa68cc5b175dd22, type: 2}
+  cookableItems:
+  - {fileID: 11400000, guid: 9ba59c7b38ff6e640bee16d4f83e8875, type: 2}
+  cookRange: 3

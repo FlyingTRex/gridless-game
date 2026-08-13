@@ -91,6 +91,11 @@ public class InventoryScreen : MonoBehaviour
     // box switches which one shows.
     private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
+    // Same idea as nearbyStorages above, but for a Campfire's fuel slot —
+    // shares storageRange rather than a second serialized field, since
+    // there's no reason the two would ever want different reach.
+    private readonly List<Campfire> nearbyCampfires = new List<Campfire>();
+
     // Set when the player clicks (not drags) an occupied slot box anywhere
     // on this screen — the main grid, an equipment slot, or a container's
     // contents grid. Opens a small action menu (Drop / Eat / Apply /
@@ -211,6 +216,7 @@ public class InventoryScreen : MonoBehaviour
         dropZones.Clear();
 
         StorageBox.FindNearby(transform.position, storageRange, nearbyStorages);
+        Campfire.FindNearby(transform.position, storageRange, nearbyCampfires);
 
         DrawCurrencySection();
         GUILayout.Space(10);
@@ -315,6 +321,15 @@ public class InventoryScreen : MonoBehaviour
             GUILayout.Space(10);
             GUILayout.Label($"{nearest.DisplayName} (nearby)", DebugGUI.Header);
             DrawContainerContents(nearest.Inventory, "drag to move, click for actions", null);
+        }
+
+        if (nearbyCampfires.Count > 0)
+        {
+            var nearest = nearbyCampfires[0];
+            GUILayout.Space(10);
+            GUILayout.Label($"{nearest.DisplayName} (nearby)", DebugGUI.Header);
+            DrawContainerContents(nearest.FuelInventory, "fuel", null);
+            DrawContainerContents(nearest.CookingInventory, "cooking", null);
         }
 
         GUILayout.EndScrollView();

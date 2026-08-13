@@ -29,6 +29,7 @@ public class VitalsBarHUD : MonoBehaviour
     private Texture2D hungerTex;
     private Texture2D thirstTex;
     private Texture2D willTex;
+    private Texture2D bodyTemperatureTex;
     private GUIStyle labelStyle;
 
     private void Awake()
@@ -54,6 +55,7 @@ public class VitalsBarHUD : MonoBehaviour
         hungerTex = MakeTex(new Color(0.85f, 0.5f, 0.15f));
         thirstTex = MakeTex(new Color(0.2f, 0.5f, 0.85f));
         willTex = MakeTex(new Color(0.6f, 0.3f, 0.85f));
+        bodyTemperatureTex = MakeTex(new Color(0.9f, 0.55f, 0.2f));
 
         labelStyle = new GUIStyle(GUI.skin.label)
         {
@@ -68,11 +70,11 @@ public class VitalsBarHUD : MonoBehaviour
         EnsureStyles();
 
         float gridWidth = BarWidth * 2f + ColumnGap;
-        // Third row for Will (added 2026-08-08, Magic System) — a single
-        // full-width bar, not a third column, so Body Temperature (still
-        // not shown anywhere, a pre-existing gap unrelated to this) isn't
-        // implied to have a matching slot it doesn't actually have.
-        float gridHeight = BarHeight * 3f + RowGap * 2f;
+        // Third row for Will (added 2026-08-08, Magic System), fourth for
+        // Body Temperature (added 2026-08-12, Campfire warmth — its first
+        // real gameplay effect) — both single full-width bars, not a
+        // second column, since neither pairs naturally with anything else.
+        float gridHeight = BarHeight * 4f + RowGap * 3f;
         float originX = (Screen.width - gridWidth) / 2f;
         float originY = Screen.height - BottomMargin - gridHeight;
 
@@ -88,6 +90,10 @@ public class VitalsBarHUD : MonoBehaviour
         //150" would read as permanently-nearly-full once maxWill climbs
         // past that fixed number.
         DrawBar(new Rect(originX, originY + (BarHeight + RowGap) * 2f, gridWidth, BarHeight), "Will", vitals.Will, vitals.MaxWill, willTex);
+        // Plain 0-100 scale, not the 150%-headroom ScaleMax the top four
+        // use — Body Temperature isn't expected to overshoot 100 the way
+        // a buffed Health/Hunger/etc. might.
+        DrawBar(new Rect(originX, originY + (BarHeight + RowGap) * 3f, gridWidth, BarHeight), "Body Temp", vitals.BodyTemperature, 100f, bodyTemperatureTex);
     }
 
     private void DrawBar(Rect rect, string label, float value, float scaleMax, Texture2D fillTex)

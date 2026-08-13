@@ -172,6 +172,18 @@ public class PlayerVitals : MonoBehaviour
         healOverTimeSecondsLeft = duration;
     }
 
+    // Called every frame by a nearby lit heat source (Campfire, 2026-08-12
+    // — its first real gameplay effect, previously 100% decorative) —
+    // nudges bodyTemperature toward target at ratePerSecond, competing
+    // each frame against the passive drift-to-neutral in Update() above.
+    // Multiple heat sources in range each call this independently; no
+    // special stacking/aggregation, whichever pulls hardest dominates over
+    // time the same way any two competing MoveTowards calls would.
+    public void WarmNear(float target, float ratePerSecond)
+    {
+        bodyTemperature = Mathf.MoveTowards(bodyTemperature, target, ratePerSecond * Time.deltaTime);
+    }
+
     // Direct health loss (e.g. a spectacular crafting failure) — distinct
     // from the passive starvation/overdrink damage in Update(), which
     // that own logic applies via a lower-bound clamp; this uses the same

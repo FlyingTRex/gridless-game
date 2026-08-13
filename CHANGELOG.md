@@ -5,12 +5,59 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.25-dev` — must always match `GameVersion` in
+**Current version:** `0.3.26-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
+
+### v0.3.26-dev — Campfire rebuilt: craftable, fuel-burning, cooking, warmth
+
+Full rework of `Campfire.cs` per `CAMPFIRE_PLANNING.md`, built in 4
+approved chunks — was a single hardcoded scene prop only lightable via
+the Elemental Spark wish, with zero connection to fuel, cooking, or
+warmth. Now:
+
+- **Craftable/placeable.** New `CampfirePiece` `BuildPiece` (4 Rock + 3
+  Stick, Woodworking skill, `unlockTier: Crude` — the earliest unlock),
+  placed via the Build tab through the exact same zero-`BuildSocket`
+  free-placement path `StorageBox` already uses — no changes needed to
+  `PlayerBuilding.cs` itself.
+- **Two ways to light it.** A new tool-free, instant `IInteractable` "E"
+  action alongside the original Spark wish — `Campfire` now implements
+  both interfaces off one shared `Prompt` (they declare an identical
+  signature, and `PlayerInteraction` never actually renders `IWishTarget`'s
+  copy, so this is safe).
+- **Real fuel.** Reuses `FuelTier`/`FuelItem` exactly as built for the
+  Furnace — 1 fuel slot, a real burn timer ticking in real time while lit
+  independent of anything else, auto-extinguishing at zero. Lighting
+  (either method) now requires fuel and consumes 1 unit.
+  `InventoryScreen` gained a "Campfire (nearby)" section (mirrors the
+  nearby-`StorageBox` pattern) so fuel can actually be loaded.
+- **Real cooking.** New `CookableItem` type (mirrors `EdibleItem`/
+  `FuelItem`'s pattern) with an optional `requiredAccessory` gate for a
+  future 4-accessory-slot system (Grill/Soup Pot/Kettle/Frying Pan —
+  named but not built; each still needs its own model/icon before it's
+  usable). 1 cooking slot, auto-cooks over time while lit and the player
+  stands within range — progress pauses, not resets, if the fire goes out
+  or the player steps away. New "Cooked Meat" item (Meal-tier `FoodTier`,
+  reuses Raw Meat's model as a placeholder — no visual distinction from
+  raw yet) — Raw Meat itself still has no `EdibleItem`, so cooking is the
+  only way to eat it.
+- **Real warmth.** `PlayerVitals.WarmNear` — Body Temperature's first
+  actual gameplay effect after being 100% decorative since it was added.
+  A lit Campfire nudges it toward 80 while the player's within range.
+  `VitalsBarHUD` gained a 4th row for it, previously debug-overlay-only.
+
+One real bug caught mid-build, not shipped: the first pass at the Raw
+Meat → Cooked Meat `CookableItem` asset had a null `rawItem` — a stale
+`ItemDefinition` reference carried across a `PrefabUtility.LoadPrefabContents`
+cycle, the exact gotcha documented in `CLAUDE.md`. Caught via direct YAML
+verification before it shipped, fixed with a targeted re-fetch.
+
+Batch-mode compile check passed (0 `CS####` errors) after every chunk.
+Manual Play-mode verification still needed — see `TEST_FEATURE_PLAN.md`.
 
 ### v0.3.25-dev — Pickupable Log item, real wood-item weights, Furnace FuelTier data layer
 
