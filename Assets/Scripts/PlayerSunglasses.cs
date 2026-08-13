@@ -11,15 +11,27 @@ public class PlayerSunglasses : MonoBehaviour
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
     [SerializeField] private ItemDefinition sunglassesItem;
+    // Fallback only, used when PlayerBodyModel/the Head bone isn't
+    // available for some reason. No pre-existing scene anchor for this
+    // one (it previously had none at all — SetCarried(true, transform)),
+    // so this stays null/unset unless a future scene edit adds one.
+    [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
     // Matches Pickup.DespawnDelay — see Despawn.cs for why Sunglasses.
     // Stash()/SetCarried(true, ...) cancel this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
 
+    // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
+    // Tool/Backpack) — small forward push so it sits in front of the face
+    // rather than centered inside the head.
+    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, 0.05f, 0.08f);
+    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
+    private PlayerBodyModel bodyModel;
 
     private static Texture2D silverOverlay;
 
@@ -46,6 +58,15 @@ public class PlayerSunglasses : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+        bodyModel = GetComponent<PlayerBodyModel>();
+    }
+
+    // Re-anchors the worn sunglasses onto the current Head bone — called
+    // by PlayerBodyModel after a gender switch.
+    public void RefreshAnchor()
+    {
+        if (Equipped == null) return;
+        EquipmentAttach.Carry(Equipped, Equipped.transform, bodyModel, HumanBodyBones.Head, carrySlot, transform, wornPositionOffset, wornEulerOffset);
     }
 
     // Called when the player interacts with sunglasses lying in the world.
@@ -87,7 +108,7 @@ public class PlayerSunglasses : MonoBehaviour
         else
             source.RemoveEquipmentItem(sunglassesItem);
 
-        sunglasses.SetCarried(true, transform);
+        EquipmentAttach.Carry(sunglasses, sunglasses.transform, bodyModel, HumanBodyBones.Head, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 

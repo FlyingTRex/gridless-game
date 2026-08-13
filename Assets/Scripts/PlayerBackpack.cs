@@ -42,13 +42,6 @@ public class PlayerBackpack : MonoBehaviour
         bodyModel = GetComponent<PlayerBodyModel>();
     }
 
-    private Transform ResolveCarrySlot()
-    {
-        var bone = bodyModel != null ? bodyModel.GetBone(HumanBodyBones.Chest) : null;
-        if (bone != null) return bone;
-        return carrySlot != null ? carrySlot : transform;
-    }
-
     // Re-anchors the worn backpack onto the current Chest bone — called by
     // PlayerBodyModel after a gender switch (it was parented under the
     // *previous* gender's now-inactive model).
@@ -56,9 +49,7 @@ public class PlayerBackpack : MonoBehaviour
     {
         if (Equipped == null) return;
 
-        var anchor = ResolveCarrySlot();
-        Equipped.SetCarried(true, anchor);
-        EquipmentAttach.Place(Equipped.transform, anchor, transform, wornPositionOffset, wornEulerOffset);
+        EquipmentAttach.Carry(Equipped, Equipped.transform, bodyModel, HumanBodyBones.Chest, carrySlot, transform, wornPositionOffset, wornEulerOffset);
     }
 
     // Called when the player interacts with a backpack lying in the world.
@@ -104,9 +95,7 @@ public class PlayerBackpack : MonoBehaviour
         else
             source.RemoveEquipmentItem(backpack.ItemDefinition);
 
-        var anchor = ResolveCarrySlot();
-        backpack.SetCarried(true, anchor);
-        EquipmentAttach.Place(backpack.transform, anchor, transform, wornPositionOffset, wornEulerOffset);
+        EquipmentAttach.Carry(backpack, backpack.transform, bodyModel, HumanBodyBones.Chest, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 

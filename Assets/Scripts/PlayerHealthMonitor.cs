@@ -13,6 +13,9 @@ public class PlayerHealthMonitor : MonoBehaviour
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
     [SerializeField] private ItemDefinition monitorItem;
+    // Fallback only, used when PlayerBodyModel/the wrist bone isn't
+    // available for some reason.
+    [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
     // Matches Pickup.DespawnDelay — see Despawn.cs for why
@@ -20,10 +23,16 @@ public class PlayerHealthMonitor : MonoBehaviour
     // pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
 
+    // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
+    // Tool/Backpack) — shared by both wrists.
+    [SerializeField] private Vector3 wornPositionOffset = Vector3.zero;
+    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerVitals vitals;
     private PlayerLoot loot;
+    private PlayerBodyModel bodyModel;
 
     public PersonalHealthMonitor Equipped =>
         (equipment.GetEquipped("Left Wrist") as PersonalHealthMonitor)
@@ -35,6 +44,23 @@ public class PlayerHealthMonitor : MonoBehaviour
         equipment = GetComponent<PlayerEquipment>();
         vitals = GetComponent<PlayerVitals>();
         loot = GetComponent<PlayerLoot>();
+        bodyModel = GetComponent<PlayerBodyModel>();
+    }
+
+    private static HumanBodyBones WristBone(string slotName) =>
+        slotName == "Left Wrist" ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm;
+
+    // Re-anchors the worn monitor onto the current wrist bone — called by
+    // PlayerBodyModel after a gender switch.
+    public void RefreshAnchor()
+    {
+        var current = Equipped;
+        if (current == null) return;
+
+        string slotName = FindSlot(current);
+        if (slotName == null) return;
+
+        EquipmentAttach.Carry(current, current.transform, bodyModel, WristBone(slotName), carrySlot, transform, wornPositionOffset, wornEulerOffset);
     }
 
     // Called when the player interacts with a monitor lying in the world.
@@ -99,7 +125,7 @@ public class PlayerHealthMonitor : MonoBehaviour
         else
             source.RemoveEquipmentItem(monitorItem);
 
-        monitor.SetCarried(true, transform);
+        EquipmentAttach.Carry(monitor, monitor.transform, bodyModel, WristBone(destination), carrySlot, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 

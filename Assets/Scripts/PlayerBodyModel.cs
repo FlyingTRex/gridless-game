@@ -30,6 +30,15 @@ public class PlayerBodyModel : MonoBehaviour
 
     private PlayerTool tool;
     private PlayerBackpack backpack;
+    private PlayerBoot boot;
+    private PlayerBelt belt;
+    private PlayerCanteen canteen;
+    private PlayerSunglasses sunglasses;
+    private PlayerMiningFaceShield faceShield;
+    private PlayerHealthMonitor healthMonitor;
+    private PlayerNavComputer navComputer;
+    private PlayerShirt shirt;
+    private PlayerJeans jeans;
 
     public bool IsMale => isMale;
 
@@ -37,6 +46,15 @@ public class PlayerBodyModel : MonoBehaviour
     {
         tool = GetComponent<PlayerTool>();
         backpack = GetComponent<PlayerBackpack>();
+        boot = GetComponent<PlayerBoot>();
+        belt = GetComponent<PlayerBelt>();
+        canteen = GetComponent<PlayerCanteen>();
+        sunglasses = GetComponent<PlayerSunglasses>();
+        faceShield = GetComponent<PlayerMiningFaceShield>();
+        healthMonitor = GetComponent<PlayerHealthMonitor>();
+        navComputer = GetComponent<PlayerNavComputer>();
+        shirt = GetComponent<PlayerShirt>();
+        jeans = GetComponent<PlayerJeans>();
         ApplyGender(isMale);
     }
 
@@ -71,10 +89,19 @@ public class PlayerBodyModel : MonoBehaviour
         groundFix?.SetVisual(active.transform, active.GetComponentsInChildren<Renderer>());
 
         // Whatever's currently held/worn was bone-parented under the
-        // *previous* gender's hand/chest bone — re-anchor it onto the
-        // newly active model's own bones, or it stays attached to a
-        // now-inactive (invisible) body.
+        // *previous* gender's bones — re-anchor every equipped carrier
+        // onto the newly active model's own bones, or each stays attached
+        // to a now-inactive (invisible) body.
         tool?.RefreshAnchor();
         backpack?.RefreshAnchor();
+        boot?.RefreshAnchor();
+        belt?.RefreshAnchor();
+        canteen?.RefreshAnchor();
+        sunglasses?.RefreshAnchor();
+        faceShield?.RefreshAnchor();
+        healthMonitor?.RefreshAnchor();
+        navComputer?.RefreshAnchor();
+        shirt?.RefreshAnchor();
+        jeans?.RefreshAnchor();
     }
 }

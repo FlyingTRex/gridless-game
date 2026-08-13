@@ -2961,3 +2961,47 @@ test directly (third person, V key) rather than only watching an NPC.
   NPC's ends up looking like once that's checked too (section 27) — if
   one looks right and the other doesn't, that's a real discrepancy worth
   tracking down, not just "needs more tuning."
+
+## 29. Full equipment-visual sweep (v0.3.41-dev)
+
+New — not yet walked through in Play mode at all. Covers the real bug fix
+plus all 9 newly bone-attached types.
+
+- [ ] **Pickaxe bug fix, the actual repro that started this chain**: walk
+  up to a Pickaxe lying in the world and pick it up normally (E) with a
+  free hand — **not** via the Inventory screen's Equip button — confirm
+  it now appears correctly in the hand in third person. This is the exact
+  case that was broken (`PlayerLoot.ReceiveEquipment`'s hand-fill path).
+- [ ] **Canteen, same bug class**: pick a Canteen up off the ground into a
+  free hand — confirm it's correctly hand-positioned, not floating at the
+  player's root.
+- [ ] **Boots**: equip Boots/Sneakers — confirm they sit roughly at the
+  feet, not floating elsewhere. Walk around — a single Hips-anchor won't
+  perfectly track each foot during the walk cycle (documented limitation,
+  not a bug) — note how bad it actually looks live; if it reads as
+  clearly wrong rather than "a little loose," that's worth a follow-up
+  per-foot-mesh redesign, not just an offset tweak.
+- [ ] **Belt**: equip a Belt — confirm it sits at the waist/hips.
+- [ ] **Canteen clipped to Belt**: with a Belt worn, clip a Canteen to it
+  (not held in a hand) — confirm it sits to the side of the belt, not
+  overlapping/inside it.
+- [ ] **Sunglasses / Mining Face Shield**: equip either — confirm it sits
+  on the face, forward of the head, not centered inside the skull.
+- [ ] **Personal Health Monitor / Navigation Computer, both wrists**:
+  equip one on Left Wrist and (a second, or switch) one on Right Wrist —
+  confirm each actually lands on the *correct* wrist (not both collapsing
+  onto the same arm the way Tool's hand attachment deliberately does).
+- [ ] **Shirt / Jeans**: confirm both still look reasonable worn (body-
+  conforming items with a zero offset — should look closest to "already
+  correct" of everything in this pass, since they're not floating props).
+- [ ] **Gender switch with everything equipped at once**: equip as many
+  of the 11 types simultaneously as possible (both hands, backpack, belt,
+  canteen clipped to belt, both wrists, face slot, shirt, jeans, boots),
+  then toggle Male ↔ Female in the ` menu — confirm every single item
+  re-anchors onto the new model instead of some subset staying attached
+  to the now-invisible previous body.
+- [ ] **Regression — inventory-screen equip still works for everything**:
+  confirm equipping each type via the Inventory screen's Equip button
+  (not just world pickup) still results in correct placement — this
+  path already worked for Tool/Backpack pre-sweep; shouldn't have
+  regressed for anything.

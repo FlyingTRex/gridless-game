@@ -52,13 +52,6 @@ public class PlayerTool : MonoBehaviour
         bodyModel = GetComponent<PlayerBodyModel>();
     }
 
-    private Transform ResolveHandAnchor()
-    {
-        var bone = bodyModel != null ? bodyModel.GetBone(HumanBodyBones.RightHand) : null;
-        if (bone != null) return bone;
-        return handAnchor != null ? handAnchor : transform;
-    }
-
     // Re-anchors whatever's currently held onto the current hand bone —
     // called by PlayerBodyModel after a gender switch (the tool was
     // parented under the *previous* gender's now-inactive model).
@@ -67,9 +60,7 @@ public class PlayerTool : MonoBehaviour
         var current = Equipped;
         if (current == null) return;
 
-        var anchor = ResolveHandAnchor();
-        current.SetCarried(true, anchor);
-        EquipmentAttach.Place(current.transform, anchor, transform, holdPositionOffset, holdEulerOffset);
+        EquipmentAttach.Carry(current, current.transform, bodyModel, HumanBodyBones.RightHand, handAnchor, transform, holdPositionOffset, holdEulerOffset);
     }
 
     // Called when the player interacts with a tool lying in the world.
@@ -132,11 +123,17 @@ public class PlayerTool : MonoBehaviour
         if (slot == null || !slot.AddEquipmentItem(tool.ItemDefinition, tool)) return false;
 
         source.RemoveEquipmentItem(tool.ItemDefinition);
-        var anchor = ResolveHandAnchor();
-        tool.SetCarried(true, anchor);
-        EquipmentAttach.Place(tool.transform, anchor, transform, holdPositionOffset, holdEulerOffset);
+        EquipmentAttach.Carry(tool, tool.transform, bodyModel, HumanBodyBones.RightHand, handAnchor, transform, holdPositionOffset, holdEulerOffset);
         return true;
     }
+
+    // Called by PlayerLoot.ReceiveEquipment (2026-08-13) so a tool picked
+    // up directly off the ground into a free hand gets bone-attached the
+    // same way an inventory-screen equip already does, instead of landing
+    // at the player root. Assumes the caller already placed the item in a
+    // hand PlayerEquipment slot.
+    public void CarryPickedUp(Tool tool) =>
+        EquipmentAttach.Carry(tool, tool.transform, bodyModel, HumanBodyBones.RightHand, handAnchor, transform, holdPositionOffset, holdEulerOffset);
 
     // Moves the tool from a hand back into a regular inventory slot. Fails
     // (leaving it equipped) if the inventory is full.

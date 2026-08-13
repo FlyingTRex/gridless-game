@@ -12,18 +12,31 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-13 — Ben — Full equipment-visual sweep: every `IEquippable` now
+  bone-attaches (Boot/Belt/Canteen/Sunglasses/Face Shield/Health Monitor/
+  Nav Computer/Shirt/Jeans, plus a real bug fix in `PlayerLoot` that
+  explains why the Pickaxe was invisible — see `CHANGELOG.md`'s
+  v0.3.41-dev entry for full detail). v0.3.41-dev, **implementation
+  complete, not yet committed/pushed.** Triggered by Ben's live report
+  ("backpack and sneakers are not aligned properly, pickaxe isn't wired to
+  the hand") + an explicit ask to fully audit before implementing further
+  — ran an `Explore` agent across every `IEquippable` carrier first, found
+  the real bug (`PlayerLoot.ReceiveEquipment`'s hand-fill branch bypassed
+  bone-attachment entirely) plus 9 more types never touched by the
+  earlier bone-attach work, then confirmed scope ("all 9 remaining types
+  now") before building. New `EquipmentAttach.Carry()` shared helper
+  dedupes the resolve-bone/SetCarried/Place pattern across all 11
+  carriers. Compiled clean on the first full-batch attempt (0 CS errors).
+  **No live test yet**, see `TEST_FEATURE_PLAN.md` section 29 — all
+  offset numbers are first-pass guesses.
 - 2026-08-13 — Ben — Player equipment now bone-attaches too (same
   RightHand/Chest system NPCs just got, applied to the player's real
   `Tool`/`Backpack` carry objects instead of a decorative copy). v0.3.40-dev,
-  **implementation complete, not yet committed/pushed.** New
-  `EquipmentAttach.cs` (shared placement math, `NPCEquipmentVisual`
-  refactored to use it too), `PlayerBodyModel.GetBone`, `PlayerTool`/
-  `PlayerBackpack` resolve anchors through it with gender-switch
-  re-anchoring. Ben's stated reason for this one: he can test the
-  placement directly himself in third person, unlike the NPC-only pass.
-  Verified via compile only so far — **no live test yet**, see
-  `TEST_FEATURE_PLAN.md` section 28. Full detail in `CHANGELOG.md`'s
-  v0.3.40-dev entry.
+  **committed and pushed.** New `EquipmentAttach.cs` (shared placement
+  math, `NPCEquipmentVisual` refactored to use it too), `PlayerBodyModel.
+  GetBone`, `PlayerTool`/`PlayerBackpack` resolve anchors through it with
+  gender-switch re-anchoring. Superseded/expanded by the full sweep above
+  the same day. Full detail in `CHANGELOG.md`'s v0.3.40-dev entry.
 - 2026-08-13 — Ben — NPC equipment visual attachment: Pickaxe/Axe/Mining
   Face Shield/Backpack now render on the NPC model instead of being pure
   bookkeeping. v0.3.38-dev then v0.3.39-dev (live-feedback fix round, same

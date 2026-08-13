@@ -13,16 +13,25 @@ public class PlayerNavComputer : MonoBehaviour
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
     [SerializeField] private ItemDefinition navComputerItem;
+    // Fallback only, used when PlayerBodyModel/the wrist bone isn't
+    // available for some reason.
+    [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
     // Matches Pickup.DespawnDelay — see Despawn.cs for why NavigationComputer.
     // Stash()/SetCarried(true, ...) cancel this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
 
+    // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
+    // Tool/Backpack) — shared by both wrists.
+    [SerializeField] private Vector3 wornPositionOffset = Vector3.zero;
+    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
     private CharacterController controller;
+    private PlayerBodyModel bodyModel;
 
     public NavigationComputer Equipped =>
         (equipment.GetEquipped("Left Wrist") as NavigationComputer)
@@ -34,6 +43,23 @@ public class PlayerNavComputer : MonoBehaviour
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
         controller = GetComponent<CharacterController>();
+        bodyModel = GetComponent<PlayerBodyModel>();
+    }
+
+    private static HumanBodyBones WristBone(string slotName) =>
+        slotName == "Left Wrist" ? HumanBodyBones.LeftLowerArm : HumanBodyBones.RightLowerArm;
+
+    // Re-anchors the worn computer onto the current wrist bone — called by
+    // PlayerBodyModel after a gender switch.
+    public void RefreshAnchor()
+    {
+        var current = Equipped;
+        if (current == null) return;
+
+        string slotName = FindSlot(current);
+        if (slotName == null) return;
+
+        EquipmentAttach.Carry(current, current.transform, bodyModel, WristBone(slotName), carrySlot, transform, wornPositionOffset, wornEulerOffset);
     }
 
     // Called when the player interacts with a computer lying in the world.
@@ -98,7 +124,7 @@ public class PlayerNavComputer : MonoBehaviour
         else
             source.RemoveEquipmentItem(navComputerItem);
 
-        navComputer.SetCarried(true, transform);
+        EquipmentAttach.Carry(navComputer, navComputer.transform, bodyModel, WristBone(destination), carrySlot, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 

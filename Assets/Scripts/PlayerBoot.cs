@@ -7,12 +7,27 @@ public class PlayerBoot : MonoBehaviour
     private const string FeetSlot = "Feet";
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
+    // Fallback only, used when PlayerBodyModel/the Hips bone isn't
+    // available for some reason — the scene's pre-existing fixed anchor
+    // (not bone-parented, doesn't follow animation).
     [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
     // Matches Pickup.DespawnDelay — see Despawn.cs for why the Boot itself
     // (Stash()) is what cancels this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
+
+    // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
+    // Tool/Backpack). No per-foot bone — Boot is a single combined-pair
+    // mesh, not two separate meshes, so it attaches to Hips (roughly
+    // central, doesn't swing as wildly as a single foot bone during a
+    // walk cycle) with a downward push toward ankle height. First-pass
+    // guess, same as everything else in this pass — a static single
+    // anchor can't perfectly track two independently animating feet
+    // either way; splitting into two per-foot meshes would be a bigger,
+    // separate change if this doesn't look acceptable live.
+    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.85f, 0f);
+    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
 
     // The player starts the game already wearing Settler's Sneakers
     // specifically — same single-purpose starting-gear mechanism
@@ -27,6 +42,7 @@ public class PlayerBoot : MonoBehaviour
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
+    private PlayerBodyModel bodyModel;
 
     public Boot Equipped => equipment.GetEquipped(FeetSlot) as Boot;
 
@@ -35,6 +51,15 @@ public class PlayerBoot : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+        bodyModel = GetComponent<PlayerBodyModel>();
+    }
+
+    // Re-anchors the worn boots onto the current Hips bone — called by
+    // PlayerBodyModel after a gender switch.
+    public void RefreshAnchor()
+    {
+        if (Equipped == null) return;
+        EquipmentAttach.Carry(Equipped, Equipped.transform, bodyModel, HumanBodyBones.Hips, carrySlot, transform, wornPositionOffset, wornEulerOffset);
     }
 
     // Start (not Awake) so every other component's Awake — including
@@ -49,7 +74,7 @@ public class PlayerBoot : MonoBehaviour
         var slot = equipment.GetSlot(FeetSlot);
 
         if (boot != null && slot != null && slot.AddEquipmentItem(boot.ItemDefinition, boot))
-            boot.SetCarried(true, carrySlot != null ? carrySlot : transform);
+            EquipmentAttach.Carry(boot, boot.transform, bodyModel, HumanBodyBones.Hips, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         else
             Destroy(instance);
     }
@@ -86,7 +111,7 @@ public class PlayerBoot : MonoBehaviour
         else
             source.RemoveEquipmentItem(boot.ItemDefinition);
 
-        boot.SetCarried(true, carrySlot != null ? carrySlot : transform);
+        EquipmentAttach.Carry(boot, boot.transform, bodyModel, HumanBodyBones.Hips, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 

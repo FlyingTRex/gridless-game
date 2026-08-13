@@ -13,6 +13,9 @@ public class PlayerMiningFaceShield : MonoBehaviour
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
     [SerializeField] private ItemDefinition shieldItem;
+    // Fallback only, used when PlayerBodyModel/the Head bone isn't
+    // available for some reason.
+    [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
     // Matches Pickup.DespawnDelay — see Despawn.cs for why
@@ -20,9 +23,16 @@ public class PlayerMiningFaceShield : MonoBehaviour
     // pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
 
+    // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
+    // Tool/Backpack), same starting numbers as Sunglasses (also a Face
+    // item, same slot).
+    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, 0.05f, 0.08f);
+    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
+    private PlayerBodyModel bodyModel;
 
     // Face has capacity 2 — search the slot's own entries for this specific
     // instance rather than trusting PlayerEquipment.GetEquipped's "first
@@ -48,6 +58,15 @@ public class PlayerMiningFaceShield : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+        bodyModel = GetComponent<PlayerBodyModel>();
+    }
+
+    // Re-anchors the worn shield onto the current Head bone — called by
+    // PlayerBodyModel after a gender switch.
+    public void RefreshAnchor()
+    {
+        if (Equipped == null) return;
+        EquipmentAttach.Carry(Equipped, Equipped.transform, bodyModel, HumanBodyBones.Head, carrySlot, transform, wornPositionOffset, wornEulerOffset);
     }
 
     public bool PickUp(MiningFaceShield shield)
@@ -82,7 +101,7 @@ public class PlayerMiningFaceShield : MonoBehaviour
         else
             source.RemoveEquipmentItem(shieldItem);
 
-        shield.SetCarried(true, transform);
+        EquipmentAttach.Carry(shield, shield.transform, bodyModel, HumanBodyBones.Head, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 

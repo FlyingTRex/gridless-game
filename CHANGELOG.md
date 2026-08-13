@@ -5,10 +5,61 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.40-dev` — must always match `GameVersion` in
+**Current version:** `0.3.41-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (15)
+
+### v0.3.41-dev — Full equipment-visual sweep: every IEquippable now bone-attaches
+
+Ben's ask, after seeing v0.3.40-dev live: "let's determine all the
+equipment placement change before implementing" — a Backpack/Sneakers
+misalignment report plus "pickaxe isn't wired to the hand" turned into a
+full audit (`Explore` agent) before touching anything. Findings and fixes:
+
+- **Real bug, not misalignment (explains the Pickaxe): a second, older
+  equip path bypassed bone-attachment entirely.** `PlayerLoot.
+  ReceiveEquipment`'s hand-fill branch (world pickup into a free hand —
+  the common case) called `equippable.SetCarried(true, transform)`
+  directly, parented to the **player root**, never touching `PlayerTool`'s
+  bone-attach logic — a Pickaxe picked up normally off the ground landed
+  at the player's root origin, effectively invisible, despite being
+  correctly registered as equipped. Only the inventory-screen equip path
+  (`PlayerTool.EquipTo`) went through bone-attachment; a Pickaxe equipped
+  that way would have worked. `Canteen` had the identical exposure (also
+  accepts hand slots). Fixed: `PlayerLoot` now dispatches to `PlayerTool.
+  CarryPickedUp`/`PlayerCanteen.CarryPickedUp` for those two types instead
+  of the blanket root-anchor fallback.
+- **New `EquipmentAttach.Carry()`** — the repeated "resolve bone (with
+  fixed-Transform-then-root fallback), SetCarried, Place" pattern
+  extracted into one shared call, used by every carrier now including
+  `PlayerTool`/`PlayerBackpack` (retrofitted, no behavior change there).
+- **All 9 remaining `IEquippable` types now bone-attach**, previously all
+  on the old fixed-Transform-or-player-root pattern with zero animation
+  tracking:
+  - `Boot` → `Hips` (a single combined-pair mesh, not two separate
+    per-foot meshes — a static hip anchor is the pragmatic first pass;
+    splitting into per-foot meshes attached to `LeftFoot`/`RightFoot`
+    would be a bigger, separate change if this doesn't read well live).
+  - `Belt` → `Hips`, `Shirt` → `Chest`, `Jeans` → `Hips` (body-conforming
+    garments/accessories, identity offset as a first guess).
+  - `Canteen` → `LeftHand`/`RightHand` (per which hand, preserving its
+    existing two-anchor distinction) or `Hips` for the belt-clip case.
+  - `Sunglasses`/`MiningFaceShield` → `Head`, small forward offset.
+  - `PersonalHealthMonitor`/`NavigationComputer` → `LeftLowerArm`/
+    `RightLowerArm` (per which wrist was actually chosen, not collapsed
+    to one side the way Tool's hand attachment is).
+- **`PlayerBodyModel.ApplyGender` now re-anchors all 11 carriers**, not
+  just Tool/Backpack — every equipped item was bone-parented under the
+  *previous* gender's bones, so a gender switch needs every carrier's
+  `RefreshAnchor()` called or items stay attached to a now-inactive body.
+- All offset numbers are first-pass guesses (same honest framing as
+  every placement change this session) — expect a live-tuning pass once
+  Ben looks at all of these worn simultaneously. Verified via batch-mode
+  compile (0 CS errors, clean on the first full-batch attempt) only —
+  **not yet live-tested**.
 
 ## 2026-08-13 (14)
 

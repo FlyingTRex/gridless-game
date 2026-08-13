@@ -13,6 +13,9 @@ public class PlayerCanteen : MonoBehaviour
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
     [SerializeField] private ItemDefinition canteenItem;
+    // Fallback only, used when PlayerBodyModel/the relevant bone isn't
+    // available for some reason — the scene's pre-existing fixed anchors
+    // (not bone-parented, don't follow animation).
     [SerializeField] private Transform leftHandSlotAnchor;
     [SerializeField] private Transform rightHandSlotAnchor;
     [SerializeField] private Transform beltSlotAnchor;
@@ -21,6 +24,15 @@ public class PlayerCanteen : MonoBehaviour
     // Matches Pickup.DespawnDelay — see Despawn.cs for why Canteen.Stash()/
     // SetCarried(true, ...) are what cancel this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
+
+    // Root-relative offsets (2026-08-13, same EquipmentAttach math as
+    // Tool/Backpack) — hand offset shared by both hands (mirrors Tool's
+    // "one grip offset regardless of which hand" convention), belt offset
+    // pushed to the hip's side so it doesn't overlap a worn Belt itself.
+    [SerializeField] private Vector3 handPositionOffset = Vector3.zero;
+    [SerializeField] private Vector3 handEulerOffset = Vector3.zero;
+    [SerializeField] private Vector3 beltPositionOffset = new Vector3(0.15f, 0f, 0.05f);
+    [SerializeField] private Vector3 beltEulerOffset = Vector3.zero;
 
     // The player starts the game with a Canteen already clipped to the
     // Settler's Belt specifically — same single-purpose starting-gear
@@ -35,6 +47,7 @@ public class PlayerCanteen : MonoBehaviour
     private PlayerEquipment equipment;
     private PlayerLoot loot;
     private PlayerBelt beltCarrier;
+    private PlayerBodyModel bodyModel;
 
     // Unlike Sunglasses/PersonalHealthMonitor, a canteen has no dedicated
     // "worn" slot — holding it in a hand or clipped to a worn Belt's
@@ -61,6 +74,42 @@ public class PlayerCanteen : MonoBehaviour
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
         beltCarrier = GetComponent<PlayerBelt>();
+        bodyModel = GetComponent<PlayerBodyModel>();
+    }
+
+    // Bone + fallback + offset for a given carry destination — the single
+    // place that knows how each of the three spots maps onto the rig.
+    private void Carry(Canteen canteen, string slotName)
+    {
+        switch (slotName)
+        {
+            case "Left Hand":
+                EquipmentAttach.Carry(canteen, canteen.transform, bodyModel, HumanBodyBones.LeftHand, leftHandSlotAnchor, transform, handPositionOffset, handEulerOffset);
+                break;
+            case "Right Hand":
+                EquipmentAttach.Carry(canteen, canteen.transform, bodyModel, HumanBodyBones.RightHand, rightHandSlotAnchor, transform, handPositionOffset, handEulerOffset);
+                break;
+            case BeltSlot:
+                EquipmentAttach.Carry(canteen, canteen.transform, bodyModel, HumanBodyBones.Hips, beltSlotAnchor, transform, beltPositionOffset, beltEulerOffset);
+                break;
+        }
+    }
+
+    // Called by PlayerLoot.ReceiveEquipment (2026-08-13) so a canteen
+    // picked up directly off the ground into a free hand gets bone-attached
+    // the same way an inventory-screen equip already does. Assumes the
+    // caller already placed it in the given hand's PlayerEquipment slot.
+    public void CarryPickedUp(Canteen canteen, string handSlotName) => Carry(canteen, handSlotName);
+
+    // Re-anchors wherever the canteen currently is onto the current
+    // gender's bones — called by PlayerBodyModel after a gender switch.
+    public void RefreshAnchor()
+    {
+        var current = Equipped;
+        if (current == null) return;
+
+        string slotName = FindSlot(current);
+        if (slotName != null) Carry(current, slotName);
     }
 
     // Start (not Awake) so PlayerBelt's own Start (equipping the Settler's
@@ -79,7 +128,7 @@ public class PlayerCanteen : MonoBehaviour
         var canteen = instance.GetComponent<Canteen>();
 
         if (canteen != null && belt.Inventory.AddEquipmentItem(canteenItem, canteen))
-            canteen.SetCarried(true, AnchorFor(BeltSlot));
+            Carry(canteen, BeltSlot);
         else
             Destroy(instance);
     }
@@ -157,7 +206,7 @@ public class PlayerCanteen : MonoBehaviour
             if (belt == null || !belt.Inventory.AddEquipmentItem(canteenItem, canteen)) return false;
 
             source.RemoveEquipmentItem(canteenItem);
-            canteen.SetCarried(true, AnchorFor(BeltSlot));
+            Carry(canteen, BeltSlot);
             return true;
         }
 
@@ -165,7 +214,7 @@ public class PlayerCanteen : MonoBehaviour
         if (slot == null || !slot.AddEquipmentItem(canteenItem, canteen)) return false;
 
         source.RemoveEquipmentItem(canteenItem);
-        canteen.SetCarried(true, AnchorFor(destination));
+        Carry(canteen, destination);
         return true;
     }
 
@@ -228,15 +277,4 @@ public class PlayerCanteen : MonoBehaviour
         }
     }
 
-    private Transform AnchorFor(string slotName)
-    {
-        Transform anchor = slotName switch
-        {
-            "Left Hand" => leftHandSlotAnchor,
-            "Right Hand" => rightHandSlotAnchor,
-            BeltSlot => beltSlotAnchor,
-            _ => null,
-        };
-        return anchor != null ? anchor : transform;
-    }
 }

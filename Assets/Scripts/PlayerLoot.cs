@@ -15,6 +15,8 @@ public class PlayerLoot : MonoBehaviour
     private PlayerBackpack backpackCarrier;
     private PlayerDropping dropping;
     private PlayerEncumbrance encumbrance;
+    private PlayerTool toolCarrier;
+    private PlayerCanteen canteenCarrier;
 
     private void Awake()
     {
@@ -22,6 +24,35 @@ public class PlayerLoot : MonoBehaviour
         backpackCarrier = GetComponent<PlayerBackpack>();
         dropping = GetComponent<PlayerDropping>();
         encumbrance = GetComponent<PlayerEncumbrance>();
+        toolCarrier = GetComponent<PlayerTool>();
+        canteenCarrier = GetComponent<PlayerCanteen>();
+    }
+
+    // Real bug fixed 2026-08-13: this used to call equippable.SetCarried(
+    // true, transform) directly for every type, parenting straight to the
+    // player root instead of the hand bone PlayerTool/PlayerCanteen's own
+    // Equip path uses — a Pickaxe picked up off the ground (the common
+    // case) ended up positioned at the player's root origin, effectively
+    // invisible, even though it was correctly registered as equipped.
+    // Dispatches to each carrier's own bone-attach logic for the types
+    // that have one; anything else keeps the old player-root fallback
+    // (correct for e.g. Belt/Boot picked into a hand as a temporary
+    // overflow spot — those never actually render meaningfully there
+    // regardless, and don't have a hand-bone concept to attach to anyway).
+    private void AnchorInHand(IEquippable equippable, string handSlotName)
+    {
+        switch (equippable)
+        {
+            case Tool tool:
+                toolCarrier?.CarryPickedUp(tool);
+                break;
+            case Canteen canteen:
+                canteenCarrier?.CarryPickedUp(canteen, handSlotName);
+                break;
+            default:
+                equippable.SetCarried(true, transform);
+                break;
+        }
     }
 
     // At or over max capacity, refuse every pickup outright (2026-08-10,
@@ -96,7 +127,7 @@ public class PlayerLoot : MonoBehaviour
             var hand = equipment.GetSlot(slotName);
             if (hand != null && hand.AddEquipmentItem(item, equippable))
             {
-                equippable.SetCarried(true, transform);
+                AnchorInHand(equippable, slotName);
                 return true;
             }
         }
@@ -110,7 +141,7 @@ public class PlayerLoot : MonoBehaviour
                 dropping?.DropFrom(evictHand, occupant.item);
                 if (evictHand.AddEquipmentItem(item, equippable))
                 {
-                    equippable.SetCarried(true, transform);
+                    AnchorInHand(equippable, HandSlots[0]);
                     return true;
                 }
             }

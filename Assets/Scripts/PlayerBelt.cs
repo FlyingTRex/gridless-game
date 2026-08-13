@@ -17,12 +17,21 @@ public class PlayerBelt : MonoBehaviour
     // regardless of which of these it landed in.
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
+    // Fallback only, used when PlayerBodyModel/the Hips bone isn't
+    // available for some reason — the scene's pre-existing fixed anchor
+    // (not bone-parented, doesn't follow animation).
     [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
     // Matches Pickup.DespawnDelay — see Despawn.cs for why Belt.Stash()/
     // SetCarried(true, ...) are what cancel this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
+
+    // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
+    // Tool/Backpack) — Belt sits right at the hips, no offset needed as a
+    // first guess.
+    [SerializeField] private Vector3 wornPositionOffset = Vector3.zero;
+    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
 
     // The player starts the game already wearing the Settler's Belt
     // variant specifically — same single-purpose starting-gear mechanism
@@ -33,6 +42,7 @@ public class PlayerBelt : MonoBehaviour
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
+    private PlayerBodyModel bodyModel;
 
     public Belt Equipped => equipment.GetEquipped(WaistSlot) as Belt;
 
@@ -41,6 +51,15 @@ public class PlayerBelt : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+        bodyModel = GetComponent<PlayerBodyModel>();
+    }
+
+    // Re-anchors the worn belt onto the current Hips bone — called by
+    // PlayerBodyModel after a gender switch.
+    public void RefreshAnchor()
+    {
+        if (Equipped == null) return;
+        EquipmentAttach.Carry(Equipped, Equipped.transform, bodyModel, HumanBodyBones.Hips, carrySlot, transform, wornPositionOffset, wornEulerOffset);
     }
 
     // Start (not Awake) so every other component's Awake — including
@@ -55,7 +74,7 @@ public class PlayerBelt : MonoBehaviour
         var slot = equipment.GetSlot(WaistSlot);
 
         if (belt != null && slot != null && slot.AddEquipmentItem(belt.ItemDefinition, belt))
-            belt.SetCarried(true, carrySlot != null ? carrySlot : transform);
+            EquipmentAttach.Carry(belt, belt.transform, bodyModel, HumanBodyBones.Hips, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         else
             Destroy(instance);
     }
@@ -98,7 +117,7 @@ public class PlayerBelt : MonoBehaviour
         else
             source.RemoveEquipmentItem(belt.ItemDefinition);
 
-        belt.SetCarried(true, carrySlot != null ? carrySlot : transform);
+        EquipmentAttach.Carry(belt, belt.transform, bodyModel, HumanBodyBones.Hips, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 

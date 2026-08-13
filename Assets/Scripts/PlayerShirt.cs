@@ -10,12 +10,20 @@ public class PlayerShirt : MonoBehaviour
     // regardless of which of these it landed in.
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
+    // Fallback only, used when PlayerBodyModel/the Chest bone isn't
+    // available for some reason.
     [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
     // Matches Pickup.DespawnDelay — see Despawn.cs for why the Shirt itself
     // (Stash()) is what cancels this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
+
+    // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
+    // Tool/Backpack) — a body-conforming garment, no offset needed as a
+    // first guess (unlike Backpack, this isn't a floating prop).
+    [SerializeField] private Vector3 wornPositionOffset = Vector3.zero;
+    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
 
     // The player starts the game already wearing one — no generic
     // "starting gear" system exists anywhere else in the project (checked;
@@ -34,14 +42,24 @@ public class PlayerShirt : MonoBehaviour
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
+    private PlayerBodyModel bodyModel;
 
     public Shirt Equipped => equipment.GetEquipped(ChestSlot) as Shirt;
+
+    // Re-anchors the worn shirt onto the current Chest bone — called by
+    // PlayerBodyModel after a gender switch.
+    public void RefreshAnchor()
+    {
+        if (Equipped == null) return;
+        EquipmentAttach.Carry(Equipped, Equipped.transform, bodyModel, HumanBodyBones.Chest, carrySlot, transform, wornPositionOffset, wornEulerOffset);
+    }
 
     private void Awake()
     {
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+        bodyModel = GetComponent<PlayerBodyModel>();
     }
 
     // Start (not Awake) so every other component's Awake — including
@@ -58,7 +76,7 @@ public class PlayerShirt : MonoBehaviour
 
         if (shirt != null && slot != null && slot.AddEquipmentItem(shirt.ItemDefinition, shirt))
         {
-            shirt.SetCarried(true, carrySlot != null ? carrySlot : transform);
+            EquipmentAttach.Carry(shirt, shirt.transform, bodyModel, HumanBodyBones.Chest, carrySlot, transform, wornPositionOffset, wornEulerOffset);
             if (startingRationItem != null && startingRationCount > 0)
                 shirt.Inventory.AddItem(startingRationItem, startingRationCount);
         }
@@ -104,7 +122,7 @@ public class PlayerShirt : MonoBehaviour
         else
             source.RemoveEquipmentItem(shirt.ItemDefinition);
 
-        shirt.SetCarried(true, carrySlot != null ? carrySlot : transform);
+        EquipmentAttach.Carry(shirt, shirt.transform, bodyModel, HumanBodyBones.Chest, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 

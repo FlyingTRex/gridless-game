@@ -10,12 +10,20 @@ public class PlayerJeans : MonoBehaviour
     // regardless of which of these it landed in.
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
+    // Fallback only, used when PlayerBodyModel/the Hips bone isn't
+    // available for some reason.
     [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
     // Matches Pickup.DespawnDelay — see Despawn.cs for why the Jeans
     // themselves (Stash()) cancel this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
+
+    // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
+    // Tool/Backpack) — a body-conforming garment, no offset needed as a
+    // first guess.
+    [SerializeField] private Vector3 wornPositionOffset = Vector3.zero;
+    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
 
     // The player starts the game already wearing the Settler's Jeans
     // variant specifically — same single-purpose starting-gear mechanism
@@ -26,14 +34,24 @@ public class PlayerJeans : MonoBehaviour
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
+    private PlayerBodyModel bodyModel;
 
     public Jeans Equipped => equipment.GetEquipped(LegSlot) as Jeans;
+
+    // Re-anchors the worn jeans onto the current Hips bone — called by
+    // PlayerBodyModel after a gender switch.
+    public void RefreshAnchor()
+    {
+        if (Equipped == null) return;
+        EquipmentAttach.Carry(Equipped, Equipped.transform, bodyModel, HumanBodyBones.Hips, carrySlot, transform, wornPositionOffset, wornEulerOffset);
+    }
 
     private void Awake()
     {
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+        bodyModel = GetComponent<PlayerBodyModel>();
     }
 
     // Start (not Awake) so every other component's Awake — including
@@ -48,7 +66,7 @@ public class PlayerJeans : MonoBehaviour
         var slot = equipment.GetSlot(LegSlot);
 
         if (jeans != null && slot != null && slot.AddEquipmentItem(jeans.ItemDefinition, jeans))
-            jeans.SetCarried(true, carrySlot != null ? carrySlot : transform);
+            EquipmentAttach.Carry(jeans, jeans.transform, bodyModel, HumanBodyBones.Hips, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         else
             Destroy(instance);
     }
@@ -88,7 +106,7 @@ public class PlayerJeans : MonoBehaviour
         else
             source.RemoveEquipmentItem(jeans.ItemDefinition);
 
-        jeans.SetCarried(true, carrySlot != null ? carrySlot : transform);
+        EquipmentAttach.Carry(jeans, jeans.transform, bodyModel, HumanBodyBones.Hips, carrySlot, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 
