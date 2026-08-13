@@ -2753,10 +2753,18 @@ gained new NPC-facing code paths.
   Trimmed Sticks should ever come from this NPC).
 - [ ] **Forage — Herb Bush**: same NPC, confirm it also searches and
   collects from a nearby Herb Bush.
-- [ ] **Forage side effect (flagged, not a bug)**: drop an unrelated item
-  near the Forage NPC (or leave a stray pickup from something else
-  nearby) — confirm the NPC also picks it up on its way past. Confirm
-  with Ben this is acceptable live, not just on paper.
+- [ ] **Regression — Mining/Woodworking don't chase loose pickups
+  (v0.3.37-dev fix)**: with ore and a stray Stick/Herb/other loose item
+  both in range of a Mine Ore or Chop Wood NPC, confirm it goes straight
+  for its own job's targets and never detours for the unrelated loose
+  item — this was a real live bug (a Mining NPC got "stuck gathering
+  sticks"), not just the originally-flagged side effect. Only a Forage NPC
+  should ever pick up loose items (`NPCJobDefinition.collectLoosePickups`,
+  Forage-only).
+- [ ] **Forage still collects loose items near it**: drop an unrelated
+  item near a Forage NPC — confirm it still picks it up on its way past
+  (this part of the original side effect is intentional and unchanged —
+  only Mining/Woodworking got the behavior turned off).
 - [ ] **All three jobs running at once**: confirm a Mining NPC, a Chop
   Wood NPC, and a Forage NPC operating simultaneously don't interfere with
   each other (each only pursues targets its own tools/job allow).

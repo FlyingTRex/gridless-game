@@ -34,4 +34,20 @@ public class NPCJobDefinition : ScriptableObject
     public int tier = 1;
     public ToolRequirement[] toolRequirements;
     public WorkAnimationType workAnimation = WorkAnimationType.None;
+
+    // Whether NPCGathering.FindTarget also scans loose Pickup objects in
+    // the world for this job -- added 2026-08-13 after a live bug report
+    // (Ben: a Mine Ore NPC got "stuck gathering sticks" instead of
+    // continuing to mine ore). Root cause: the loose-Pickup pool was
+    // originally scanned unconditionally for every job, to close the loop
+    // after a Forage job's bush search scatters Pickups -- but with no
+    // job-relevance filter, any NPCGathering NPC (Mining/Woodworking too)
+    // would chase whatever Pickup was nearest, and a cluster of light,
+    // always-in-range Sticks near a chop site could out-compete
+    // farther-away ore on pure distance, stalling the NPC's actual job
+    // indefinitely. False (default) means this job never looks at loose
+    // Pickups at all -- only ForageJob sets this true, since Forage is the
+    // only job whose targets (BerryBush/HerbBush) don't yield directly and
+    // need a follow-up collection step.
+    public bool collectLoosePickups = false;
 }

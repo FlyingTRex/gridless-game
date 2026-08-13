@@ -5,10 +5,37 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.36-dev` — must always match `GameVersion` in
+**Current version:** `0.3.37-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (11)
+
+### v0.3.37-dev — Fix: Mining NPC getting distracted by loose Sticks
+
+Bug report (Ben, live): a Mine Ore NPC's cargo showed a maxed Stick x20
+stack plus Herb/Plank alongside its ore, and it seemed "stuck gathering
+sticks" instead of continuing to mine.
+
+Root cause: `NPCGathering.FindTarget`'s loose-`Pickup` pool (added
+v0.3.32-dev to close the loop after a Forage job's bush search scatters
+items) was scanned **unconditionally for every job**, not just Forage.
+With no job-relevance filter, a Mining or Woodworking NPC would compete
+for whatever loose item was nearest on pure distance — a cluster of
+light, always-in-range Sticks near a chop site could out-compete
+farther-away ore every time `FindTarget` re-ran, effectively stalling the
+NPC's actual assigned job. This is the real-world manifestation of the
+side effect `NPC_JOB_GENERALIZATION_PLANNING.md` section 3a flagged as
+"worth Ben's explicit sign-off before shipping, not an assumption baked
+in silently" — now that sign-off has come back as "no, don't do that."
+
+Fixed with a new per-job opt-in: `NPCJobDefinition.collectLoosePickups`
+(default `false`). Only `ForageJob.asset` sets it `true` — the only job
+whose targets (`BerryBush`/`HerbBush`) don't yield directly into cargo
+and actually need the follow-up collection step. `MineOreJob`/
+`ChopWoodJob` need no data change (default already correct). Verified via
+batch-mode compile (0 CS errors) + YAML grep of `ForageJob.asset`.
 
 ## 2026-08-13 (10)
 

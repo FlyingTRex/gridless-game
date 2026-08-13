@@ -249,8 +249,17 @@ public class NPCGathering : MonoBehaviour
         foreach (var herb in FindObjectsByType<HerbBush>(FindObjectsSortMode.None))
             ConsiderSearchable(herb, herb, ref bestDistance);
 
-        foreach (var pickup in FindObjectsByType<Pickup>(FindObjectsSortMode.None))
-            ConsiderPickup(pickup, ref bestDistance);
+        // Gated per-job (NPCJobDefinition.collectLoosePickups) -- only
+        // Forage needs this pool (it's what closes the loop after an
+        // INPCSearchable trigger). Scanning it unconditionally let a
+        // Mining/Woodworking NPC get distracted by whatever loose item was
+        // nearest regardless of relevance to its actual job -- see that
+        // field's own comment for the live bug report that caused this.
+        if (job.AssignedJob != null && job.AssignedJob.collectLoosePickups)
+        {
+            foreach (var pickup in FindObjectsByType<Pickup>(FindObjectsSortMode.None))
+                ConsiderPickup(pickup, ref bestDistance);
+        }
     }
 
     private void ConsiderHarvestable(Component comp, INPCHarvestable target, ref float bestDistance)
