@@ -50,8 +50,12 @@ public class PlayerBackpack : MonoBehaviour
     // pitch was bolted onto an already-correct Backpack based on that
     // wrong diagnosis and never undone once the real culprit was found —
     // reverting it back to the last confirmed-working rotation (yaw only).
+    //
+    // Round 8 (Ben, direct instruction): "backpack should be rotated on
+    // the vertical axis 90 degrees" — adding that 90° yaw on top of the
+    // existing 180°.
     [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.3f, -0.2f);
-    [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, 180f, 0f);
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, -90f, 0f);
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;

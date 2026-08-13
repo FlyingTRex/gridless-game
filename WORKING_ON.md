@@ -65,11 +65,22 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   made the shoes look jumbled/overlapping — same mistake pattern
   (speculative rotation added on request to already-working placement,
   never reverted once it didn't help) — reverted to identity.
-  **Confirmed correct as of this round: Backpack, Boots.** Belt/Canteen
-  drop cascade not yet re-verified live. The other 7 types (Sunglasses,
-  Mining Face Shield, Personal Health Monitor, Navigation Computer,
-  Shirt, Jeans, Canteen worn-position) still have zero live confirmation.
-  See `TEST_FEATURE_PLAN.md` section 29.
+  **Live-feedback round 8 (v0.3.48-dev, implementation complete, not yet
+  committed/pushed):** Boot's "confirmed correct" from round 7 turned out
+  wrong too — Ben's actual complaint was pitch, not yaw ("shoes should be
+  parallel with the feet... not perpendicular," with a reference photo).
+  Re-diagnosed as the same ground-lying-vs-mounted pitch mismatch already
+  fixed on Backpack/Jeans — applied the same `-90°` X correction, yaw
+  removed entirely. Backpack also got a precise, non-guessed instruction
+  this round ("rotated on the vertical axis 90 degrees") — added that 90°
+  yaw on top of the existing 180°, mirrored onto the 3 NPC job assets.
+  **Nothing in this whole equipment-visual chain has a final live
+  confirmation yet** — Backpack/Boots looked right, then didn't, more
+  than once. Belt/Canteen drop cascade not yet re-verified live either.
+  The other 7 types (Sunglasses, Mining Face Shield, Personal Health
+  Monitor, Navigation Computer, Shirt, Jeans, Canteen worn-position)
+  still have zero live confirmation. See `TEST_FEATURE_PLAN.md`
+  section 29.
 - 2026-08-13 — Ben — Player equipment now bone-attaches too (same
   RightHand/Chest system NPCs just got, applied to the player's real
   `Tool`/`Backpack` carry objects instead of a decorative copy). v0.3.40-dev,

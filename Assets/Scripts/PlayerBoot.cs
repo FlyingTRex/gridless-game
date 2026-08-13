@@ -32,14 +32,19 @@ public class PlayerBoot : MonoBehaviour
     // Trying a 180 deg yaw flip as the first attempt.
     //
     // Reverted (2026-08-13, live feedback screenshot): the 180 yaw flip
-    // made it look worse — jumbled/overlapping instead of clean — on
-    // something that was already confirmed correct before this trial.
-    // Same mistake pattern as the Backpack's round-3 pitch: a speculative
-    // rotation added to already-working placement, on request rather than
-    // because it was actually broken. Reverted to identity, the last
-    // confirmed-good state.
+    // made it look worse — jumbled/overlapping instead of clean.
+    //
+    // Corrected properly (2026-08-13, Ben: "shoes should be parallel with
+    // the feet... not perpendicular", with a reference photo): this was
+    // never a yaw (front-to-back) problem — wrong axis entirely. It's the
+    // same ground-lying-vs-mounted pitch mismatch already found and fixed
+    // on the Backpack and Jeans. worldPickupPrefab is authored to lie
+    // flat on the ground for display; with zero rotation correction the
+    // shoe stands on its end (toe pointing up, perpendicular to the
+    // ground) instead of lying flat with the toe pointing forward
+    // (parallel). Same -90 X pitch correction as Backpack/Jeans.
     [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.85f, 0f);
-    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(-90f, 0f, 0f);
 
     // The player starts the game already wearing Settler's Sneakers
     // specifically — same single-purpose starting-gear mechanism

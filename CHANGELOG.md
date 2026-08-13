@@ -5,10 +5,36 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.47-dev` — must always match `GameVersion` in
+**Current version:** `0.3.48-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (22)
+
+### v0.3.48-dev — Fix: Boot orientation was a pitch problem, not yaw; Backpack yaw tune
+
+Two more corrections from live feedback.
+
+- **Boots, correctly diagnosed this time**: Ben's exact words — "shoes
+  should be parallel with the feet... not perpendicular" — with a
+  reference photo. This reframed the whole problem: it was never a
+  front-to-back (yaw) issue, which is the axis every prior Boot rotation
+  attempt tried. It's the same ground-lying-vs-mounted pitch mismatch
+  already diagnosed and fixed on the Backpack and Jeans —
+  `worldPickupPrefab` is authored to lie flat on the ground for display,
+  so with no pitch correction the shoe stands on its end (toe pointing
+  up, perpendicular to the ground) instead of lying flat with the toe
+  pointing forward (parallel). Applied the same `-90°` X pitch correction
+  used for Backpack/Jeans, removing the yaw entirely.
+- **Backpack, a precise instruction this round, not a guess**: "backpack
+  should be rotated on the vertical axis 90 degrees." Added that 90° yaw
+  on top of the existing 180° (net `-90°`/`270°`). Mirrored onto the 3
+  NPC job assets' Backpack `attachEulerOffset` for consistency.
+
+Both compiled clean. Boot's pitch axis is now backed by a clear
+diagnosis (not blind trial); the Backpack yaw is a direct instruction
+rather than a guess — both still need live re-confirmation.
 
 ## 2026-08-13 (21)
 
