@@ -21,10 +21,16 @@ public class PlayerBackpack : MonoBehaviour
     [SerializeField] private float despawnDelay = 120f;
 
     // Root-relative worn offset (2026-08-13, same EquipmentAttach math
-    // NPCEquipmentVisual uses, same starting numbers as NPCJobDefinition's
-    // Backpack requirements — a rearward push + 180 deg turn, since the
-    // dropped-pickup model is front-facing by convention).
-    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, 0f, -0.15f);
+    // NPCEquipmentVisual uses). Live-feedback round 2 (Ben, screenshot):
+    // sat far too high — near the neck/shoulders, not the back — with
+    // the original zero Y offset. Root cause: HumanBodyBones.Chest sits
+    // quite high on a Humanoid rig (near the collarbone), not mid-back,
+    // so a pure backward push with no downward correction left it
+    // hovering above the shoulders. Added a real downward push (-0.3) to
+    // bring it down onto the actual back. Still an unconfirmed guess —
+    // same numbers mirrored onto NPCJobDefinition's Backpack requirements
+    // for consistency between player and NPC.
+    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.3f, -0.2f);
     [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, 180f, 0f);
 
     private PlayerInventory playerInventory;

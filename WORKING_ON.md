@@ -16,19 +16,27 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   bone-attaches (Boot/Belt/Canteen/Sunglasses/Face Shield/Health Monitor/
   Nav Computer/Shirt/Jeans, plus a real bug fix in `PlayerLoot` that
   explains why the Pickaxe was invisible — see `CHANGELOG.md`'s
-  v0.3.41-dev entry for full detail). v0.3.41-dev, **implementation
-  complete, not yet committed/pushed.** Triggered by Ben's live report
-  ("backpack and sneakers are not aligned properly, pickaxe isn't wired to
-  the hand") + an explicit ask to fully audit before implementing further
-  — ran an `Explore` agent across every `IEquippable` carrier first, found
-  the real bug (`PlayerLoot.ReceiveEquipment`'s hand-fill branch bypassed
+  v0.3.41-dev entry for full detail). v0.3.41-dev, **committed and
+  pushed.** Triggered by Ben's live report ("backpack and sneakers are
+  not aligned properly, pickaxe isn't wired to the hand") + an explicit
+  ask to fully audit before implementing further — ran an `Explore` agent
+  across every `IEquippable` carrier first, found the real bug
+  (`PlayerLoot.ReceiveEquipment`'s hand-fill branch bypassed
   bone-attachment entirely) plus 9 more types never touched by the
   earlier bone-attach work, then confirmed scope ("all 9 remaining types
   now") before building. New `EquipmentAttach.Carry()` shared helper
   dedupes the resolve-bone/SetCarried/Place pattern across all 11
-  carriers. Compiled clean on the first full-batch attempt (0 CS errors).
-  **No live test yet**, see `TEST_FEATURE_PLAN.md` section 29 — all
-  offset numbers are first-pass guesses.
+  carriers.
+  **Live-feedback round 2 (v0.3.42-dev, implementation complete, not yet
+  committed/pushed):** Boots confirmed correctly at the feet; Backpack
+  sat far too high (near the neck, not the back) — root cause identified
+  (`HumanBodyBones.Chest` sits high on the rig, original offset never
+  pushed downward), fixed with a real `y: -0.3` correction, mirrored onto
+  the 3 NPC job assets to keep player/NPC placement consistent. Belt also
+  looked off in the screenshot but left untouched — plausibly just
+  rear-angle camera occlusion, not a confirmed bug. **Still no live
+  Play-mode confirmation of any of this**, see `TEST_FEATURE_PLAN.md`
+  section 29.
 - 2026-08-13 — Ben — Player equipment now bone-attaches too (same
   RightHand/Chest system NPCs just got, applied to the player's real
   `Tool`/`Backpack` carry objects instead of a decorative copy). v0.3.40-dev,

@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.41-dev` — must always match `GameVersion` in
+**Current version:** `0.3.42-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (16)
+
+### v0.3.42-dev — Tune: Backpack sat too high (Chest bone, live-feedback round 2)
+
+Live feedback on v0.3.41-dev (Ben, screenshot): Boots now correctly at
+the feet (confirmed working), but the Backpack sat far too high — near
+the neck/shoulders instead of the back. Root cause understood, not just
+tuned blind: `HumanBodyBones.Chest` sits quite high on a Humanoid rig
+(near the collarbone), and the original offset only pushed the model
+backward (`z: -0.15`), never down — so it hovered above the shoulders
+rather than centering on the back. Added a real downward push
+(`y: -0.3`, `z: -0.2`) to `PlayerBackpack.wornPositionOffset`, mirrored
+onto `MineOreJob`/`ChopWoodJob`/`ForageJob`'s Backpack
+`attachPositionOffset` to keep player and NPC placement consistent (the
+deliberate design from v0.3.41-dev). Belt also looked off in the
+screenshot, but from a rear-oblique angle that's plausibly just
+occlusion/camera angle rather than a real bug — left untouched pending
+clearer evidence. Still an unconfirmed guess, not yet re-verified live.
 
 ## 2026-08-13 (15)
 
