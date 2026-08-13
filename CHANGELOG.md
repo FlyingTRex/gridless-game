@@ -5,10 +5,50 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.38-dev` — must always match `GameVersion` in
+**Current version:** `0.3.39-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (13)
+
+### v0.3.39-dev — Fix: NPC equipment visual — Pickaxe invisible, Backpack misplaced
+
+Live feedback on v0.3.38-dev (Ben: gave an NPC a Fine Pickaxe — no Pickaxe
+appeared at all; the Backpack appeared but sat wrong, near the hand
+instead of on the back). Two real bugs, not just "needs tuning":
+
+- **The Pickaxe wasn't just misplaced, it was gone** — `Tool.cs`
+  (`FinePickaxePickup.prefab` and every other tool tier) declares
+  `[RequireComponent(typeof(Rigidbody))]`/`[RequireComponent(typeof(Collider))]`.
+  `NPCEquipmentVisual`'s original `StripWorldBehavior` called `Destroy()`
+  on exactly those two components — Unity silently refuses to destroy a
+  component something else on the same object still requires (logs an
+  error, leaves it in place), so the Rigidbody survived, still
+  non-kinematic, still gravity-affected. A live Rigidbody child isn't
+  actually carried by its parent Transform once physics starts simulating
+  it — it falls/drifts away under gravity independent of the hand bone it
+  was parented to. That's almost certainly why it read as "not showing"
+  at all. Fixed by disabling instead of destroying (`Rigidbody.isKinematic
+  = true`, `Collider.enabled = false`, `Pickup`/`ResourceNode.enabled =
+  false`) — a kinematic Rigidbody is purely transform-driven, so it just
+  follows the bone like any other child, no physics involved.
+- **Offsets were interpreted in the wrong space** — `attachPositionOffset`/
+  `attachEulerOffset` were applied as the instance's *local* position/
+  rotation under the attach bone, meaning "0.15 back" meant "0.15 along
+  whatever direction that bone's own local Z axis happens to point" — a
+  hand/chest bone's local axes reflect its bind-pose orientation, which is
+  rig-specific and not something to guess blind (explains why the
+  Backpack's rearward offset instead put it up near the hand). Fixed by
+  computing the offset relative to the **NPC's root transform**
+  (`transform.TransformVector`/`transform.rotation *`) instead — "0.15
+  behind" now reliably means behind the character regardless of which
+  bone it's parented to. Position still tracks the bone during animation
+  (still parented as its child, same as before) — this only changes what
+  the *initial* attach offset means.
+- Verified via batch-mode compile (0 CS errors) only — **still not
+  live-tested**, this fix is itself unverified until Ben looks again.
+  `TEST_FEATURE_PLAN.md` section 27 covers this.
 
 ## 2026-08-13 (12)
 

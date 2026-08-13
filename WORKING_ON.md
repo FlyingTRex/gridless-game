@@ -14,23 +14,33 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
 
 - 2026-08-13 — Ben — NPC equipment visual attachment: Pickaxe/Axe/Mining
   Face Shield/Backpack now render on the NPC model instead of being pure
-  bookkeeping. v0.3.38-dev, **committed and pushed.** New
-  `NPCEquipmentVisual.cs` (bone-attaches each given tool's own
-  `worldPickupPrefab`, RightHand/Head/Chest per a new `ToolRequirement.
-  attachBone` field), added to both `NPCFactoryWorkerMale/Female.prefab`.
-  Also fixed two live bug reports from the same session: (1) `MineOreJob`/
-  `ChopWoodJob`/`ForageJob`'s Backpack (and Mining's Pickaxe) tool
-  requirements only listed one `CraftTier` variant instead of all 5 — a
-  Fine Backpack silently couldn't be given, which also explains why the
-  NPC never actually mined or animated (its job could never reach
-  Ready) — v0.3.36-dev; (2) a Mining NPC got "stuck gathering sticks"
-  because the loose-`Pickup` collection pool (meant only for Forage) was
-  scanned unconditionally for every job — new
-  `NPCJobDefinition.collectLoosePickups` gates it to Forage only —
-  v0.3.37-dev. Verified via compile + YAML grep only so far — **no live
-  Play-mode test yet**, see `TEST_FEATURE_PLAN.md` section 27. Attach
-  offsets are first-pass guesses, explicitly flagged as needing a live
-  look. Full detail across all three versions in `CHANGELOG.md`.
+  bookkeeping. v0.3.38-dev then v0.3.39-dev (live-feedback fix round, same
+  day), **both committed and pushed.** New `NPCEquipmentVisual.cs`
+  (bone-attaches each given tool's own `worldPickupPrefab`, RightHand/
+  Head/Chest per a new `ToolRequirement.attachBone` field), added to both
+  `NPCFactoryWorkerMale/Female.prefab`. Also fixed two live bug reports
+  from earlier the same session: (1) `MineOreJob`/`ChopWoodJob`/
+  `ForageJob`'s Backpack (and Mining's Pickaxe) tool requirements only
+  listed one `CraftTier` variant instead of all 5 — a Fine Backpack
+  silently couldn't be given, which also explains why the NPC never
+  actually mined or animated (its job could never reach Ready) —
+  v0.3.36-dev; (2) a Mining NPC got "stuck gathering sticks" because the
+  loose-`Pickup` collection pool (meant only for Forage) was scanned
+  unconditionally for every job — new `NPCJobDefinition.
+  collectLoosePickups` gates it to Forage only — v0.3.37-dev.
+  **v0.3.39-dev fix round** (Ben tried it live: Pickaxe didn't show at
+  all, Backpack showed but misplaced): the Pickaxe wasn't just
+  misplaced — `Tool.cs` requires `Rigidbody`/`Collider`, and the original
+  code tried to `Destroy()` exactly those, which Unity silently refuses
+  when something still requires them, leaving a live non-kinematic
+  Rigidbody that likely fell away under gravity; fixed by disabling
+  physics instead of destroying it. Position/rotation offsets were also
+  being interpreted in each attach bone's own unpredictable local space
+  instead of relative to the NPC's root — fixed so "0.15 behind" reliably
+  means behind the character regardless of which bone it's parented to.
+  Verified via compile + YAML grep only so far — **still no live
+  Play-mode confirmation**, see `TEST_FEATURE_PLAN.md` section 27. Full
+  detail across all versions in `CHANGELOG.md`.
 - 2026-08-13 — Ben — Player body Male/Female toggle in the ` menu's
   Player tab (MVP2 item 4, direct follow-up to the player-visible-body
   entry below). v0.3.35-dev, **committed and pushed.** New `PlayerBodyModel.cs`

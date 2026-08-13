@@ -76,14 +76,34 @@ public class NPCEquipmentVisual : MonoBehaviour
         if (bone == null) return;
 
         var instance = Instantiate(item.worldPickupPrefab, bone);
-        instance.transform.localPosition = req.attachPositionOffset;
-        instance.transform.localRotation = Quaternion.Euler(req.attachEulerOffset);
 
-        // A dropped-pickup prefab's own interactable/physics components
-        // (Rigidbody, Collider, Pickup/ResourceNode) don't make sense on
-        // something rigidly bone-parented — strip them so this reads as
-        // pure decoration, not a second, independently-interactable
-        // pickup riding along on the NPC's hand.
+        // attachPositionOffset/attachEulerOffset are interpreted relative
+        // to the NPC's own root transform (forward/right/up), not the
+        // bone's own local axes -- a hand/chest/head bone's local space
+        // reflects its bind-pose orientation, which is rig-specific and
+        // not something to guess blind. Position still tracks the bone
+        // going forward (still parented as its child, so it moves with
+        // the bone during animation same as any child transform); this
+        // only changes what the *initial* offset means, so a number like
+        // "0.15 behind" reliably means behind the character, not
+        // whatever direction that bone's Z axis happens to point.
+        instance.transform.position = bone.position + transform.TransformVector(req.attachPositionOffset);
+        instance.transform.rotation = transform.rotation * Quaternion.Euler(req.attachEulerOffset);
+
+        // A dropped-pickup prefab's own physics/interaction shouldn't run
+        // on something rigidly bone-parented — disable it rather than
+        // Destroy() it. Destroy is the wrong tool here: Tool.cs (and
+        // potentially other IEquippable types) RequireComponent(Rigidbody)/
+        // RequireComponent(Collider), and Unity silently refuses to
+        // destroy a component something else still requires (logs an
+        // error, leaves it in place) — which left a live, non-kinematic,
+        // gravity-affected Rigidbody on the instance. A Rigidbody child
+        // isn't actually carried by its parent's Transform once physics
+        // starts simulating it; it falls/drifts away under gravity
+        // independent of the bone it was parented to, which is almost
+        // certainly why the Pickaxe read as "not showing" at all (it fell
+        // away) while the Backpack — apparently not RequireComponent-gated
+        // the same way — merely ended up misplaced.
         StripWorldBehavior(instance);
 
         attachedItems[req.label] = item;
@@ -100,9 +120,12 @@ public class NPCEquipmentVisual : MonoBehaviour
 
     private static void StripWorldBehavior(GameObject instance)
     {
-        foreach (var rb in instance.GetComponentsInChildren<Rigidbody>()) Destroy(rb);
-        foreach (var col in instance.GetComponentsInChildren<Collider>()) Destroy(col);
-        foreach (var pickup in instance.GetComponentsInChildren<Pickup>()) Destroy(pickup);
-        foreach (var node in instance.GetComponentsInChildren<ResourceNode>()) Destroy(node);
+        // Kinematic, not destroyed — a kinematic Rigidbody is purely
+        // transform-driven (no gravity/forces), which is exactly "follows
+        // the bone it's parented to and nothing else."
+        foreach (var rb in instance.GetComponentsInChildren<Rigidbody>()) rb.isKinematic = true;
+        foreach (var col in instance.GetComponentsInChildren<Collider>()) col.enabled = false;
+        foreach (var pickup in instance.GetComponentsInChildren<Pickup>()) pickup.enabled = false;
+        foreach (var node in instance.GetComponentsInChildren<ResourceNode>()) node.enabled = false;
     }
 }
