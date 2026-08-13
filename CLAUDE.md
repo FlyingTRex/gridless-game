@@ -71,6 +71,21 @@ once lit, independent of active crafting) and a longer-term autonomous
 production-chain vision (NPC-fed storage → Furnace auto-smelts) flagged as
 its own future scope, not part of the near-term build.
 
+**Campfire redesign lives in `CAMPFIRE_PLANNING.md`.** Turns the current
+single magic-only scene prop into a real craftable/placeable, fuel-burning,
+cooking structure (2026-08-12): reuses the `FuelTier`/`FuelItem` system
+built for the Furnace (1 fuel slot), adds a 1-slot cooking mechanic (new
+`CookableItem` type, Raw Meat → Cooked Meat while lit and nearby, no
+accessory required — Raw Meat currently has no `EdibleItem` at all, so it
+can't be eaten raw), plus 4 accessory slots (Grill/Soup Pot/Kettle/Frying
+Pan, all equippable at once) that gate additional recipes the way
+`CraftingRecipe.requiredTools` already gates ordinary crafting. Also gives
+Body Temperature its first real gameplay effect (currently 100%
+decorative) plus a spot on the actual HUD. Also specs a Blender rebuild of
+the model (ring of rocks + charred wood, replacing the pre-Blender
+placeholder). Spark becomes an alternate way to light a placed Campfire,
+not the only way one can exist.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:
