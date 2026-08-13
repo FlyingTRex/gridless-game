@@ -2848,3 +2848,36 @@ look.
   camera-culled, so don't expect it to look anchored correctly).
 - [ ] **Toggle while stationary and while moving** — confirm no popping or
   wrong-pose flash at the instant of the switch either way.
+
+## 26. Player body Male/Female toggle (v0.3.35-dev)
+
+New — not yet walked through in Play mode at all. Depends on section 25
+(third-person view) to actually see the body.
+
+- [ ] **Default is Male**: fresh Play-mode start, press ` then check the
+  Player tab — confirm "Male" reads as selected (highlighted tab style)
+  and toggle to third person (V) — confirm the visible body is the same
+  Male model section 25 already tested, unchanged.
+- [ ] **Switch to Female**: with the ` menu open on the Player tab, click
+  "Female" — confirm the tab highlight swaps, and (in third person) the
+  visible body switches to the Female model instantly, no popping/T-pose
+  flash.
+- [ ] **Female animates correctly**: same checklist as section 25's
+  locomotion/stance items, but for the Female model — Idle/Walk/Sprint,
+  all 4 stances, ground contact (no sliding/sinking) — confirm
+  `NPCVisualGroundFix`'s correction re-measures properly for the new
+  model's own bind pose rather than carrying over any Male-specific
+  offset.
+- [ ] **Switch back to Male**: toggle Female → Male — confirm it reverts
+  cleanly, no leftover Female mesh visible, animations correct again.
+- [ ] **Toggle while in first person**: switch gender while still in
+  first-person view (before pressing V) — confirm nothing looks wrong
+  once you do switch to third person afterward (the swap shouldn't
+  require being in third person to take effect correctly).
+- [ ] **Toggle while moving**: switch gender mid-walk — confirm the new
+  model picks up the current Speed/Stance state immediately (walking, not
+  reset to Idle).
+- [ ] **Regression**: confirm equipment visibility in third person
+  (section 25's last-but-one item) still works after a gender switch, and
+  that switching gender repeatedly back and forth doesn't leak a second
+  active instance or leave both/neither model visible.

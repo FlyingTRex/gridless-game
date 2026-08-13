@@ -26,6 +26,13 @@ public class PlayerAnimatorDriver : MonoBehaviour
     private MovementStance lastStance;
     private bool initialized;
 
+    // Read by PlayerBodyModel (2026-08-13) when the player toggles Male/
+    // Female in the ` menu's Player tab -- both gendered Visual instances
+    // exist simultaneously (SetActive-toggled, not Instantiate/Destroy),
+    // so re-pointing this field is all that's needed to make the driver
+    // animate whichever one is currently active.
+    public void SetAnimator(Animator newAnimator) => animator = newAnimator;
+
     private void Awake()
     {
         lastPosition = transform.position;

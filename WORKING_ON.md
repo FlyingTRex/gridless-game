@@ -12,6 +12,19 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-13 — Ben — Player body Male/Female toggle in the ` menu's
+  Player tab (MVP2 item 4, direct follow-up to the player-visible-body
+  entry below). v0.3.35-dev, **implementation complete, not yet
+  committed/pushed.** Deliberately held off starting this until the
+  player-visible-body entry below was actually committed/pushed, since
+  both would otherwise batch-mode-save the same `TestScene.unity` —
+  exactly the collision this file exists to catch. New `PlayerBodyModel.cs`
+  (both gendered `Visual` instances pre-instantiated, `SetActive`-toggled,
+  not created/destroyed at toggle time), small setter additions to
+  `PlayerAnimatorDriver`/`NPCVisualGroundFix`, two tab-style buttons in
+  `GameMenuScreen.DrawPlayerTab()`. Verified via compile + YAML grep only
+  so far — **no live Play-mode test yet**, see `TEST_FEATURE_PLAN.md`
+  section 26. Full detail in `CHANGELOG.md`'s v0.3.35-dev entry.
 - 2026-08-13 — Ben — NPC animation, MVP2 item 4 (scope narrowed to NPC-only).
   v0.3.33-dev, **committed and pushed to origin/main** (confirmed —
   fetch shows origin/main at the same commit; an earlier push report of
@@ -20,13 +33,12 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   moments later). **No live Play-mode test yet**, see
   `TEST_FEATURE_PLAN.md` section 24.
 - 2026-08-13 — Ben — Player visible body + first/third-person camera
-  toggle (MVP2 item 4, player half). v0.3.34-dev, **implementation
-  complete, not yet committed/pushed.** New `Visual` child on the player
-  object in `TestScene.unity` (not a prefab), `PlayerAnimatorMale/
-  Female.controller` (9 states), `PlayerAnimatorDriver.cs`, and
-  `PlayerCameraMode.cs` (V key). Verified via compile checks + YAML grep
-  only so far — **no live Play-mode test yet**, see `TEST_FEATURE_PLAN.md`
-  section 25. Full detail in `CHANGELOG.md`'s v0.3.34-dev entry.
+  toggle (MVP2 item 4, player half). v0.3.34-dev, **committed and pushed
+  to origin/main** (confirmed — local `HEAD` and `origin/main` both at
+  `fb158df`). Full detail in `CHANGELOG.md`'s v0.3.34-dev entry. **No live
+  Play-mode test yet**, see `TEST_FEATURE_PLAN.md` section 25 — remove
+  this line (and the NPC animation line above it, same status) once a
+  Play-mode pass covers both.
 - 2026-08-13 — Ben — NPC job generalization: Woodworking + Berry/Herb
   foraging (v0.3.32-dev, **committed and pushed**). Full design in
   `NPC_JOB_GENERALIZATION_PLANNING.md`,

@@ -34,6 +34,18 @@ public class NPCVisualGroundFix : MonoBehaviour
     private float baseLocalZ;
     private bool initialized;
 
+    // Read by PlayerBodyModel (2026-08-13) when the player toggles Male/
+    // Female in the ` menu's Player tab. Resets initialized so
+    // baseLocalX/Z get re-captured from the newly-active Visual's own
+    // localPosition next LateUpdate, rather than reusing whatever the
+    // previous gender's model happened to be offset by.
+    public void SetVisual(Transform newVisual, Renderer[] newRenderers)
+    {
+        visual = newVisual;
+        renderers = newRenderers;
+        initialized = false;
+    }
+
     private void LateUpdate()
     {
         if (visual == null || renderers == null || renderers.Length == 0) { enabled = false; return; }

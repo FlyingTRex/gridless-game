@@ -51,12 +51,14 @@ public class GameMenuScreen : MonoBehaviour
     private bool isOpen;
     private Tab currentTab = Tab.Player;
     private AdminSpawnScreen adminSpawnScreen;
+    private PlayerBodyModel bodyModel;
 
     public bool IsOpen => isOpen;
 
     private void Awake()
     {
         adminSpawnScreen = GetComponent<AdminSpawnScreen>();
+        bodyModel = GetComponent<PlayerBodyModel>();
     }
 
     private void Update()
@@ -121,12 +123,25 @@ public class GameMenuScreen : MonoBehaviour
         GUILayout.EndHorizontal();
     }
 
-    // Deliberately left blank for now — Ben's call, reserved for future
-    // decisions about what belongs here rather than guessing (Vitals?
-    // Skills? Something else?) and having to undo it later.
+    // First real content in this tab (2026-08-13) — a Male/Female body
+    // toggle, driven by PlayerBodyModel. Still otherwise open for future
+    // decisions (Vitals? Skills? Something else?).
     private void DrawPlayerTab()
     {
         GUILayout.Label("Player", DebugGUI.Header);
+
+        if (bodyModel == null) return;
+
+        GUILayout.Space(10);
+        GUILayout.Label("Body Model", DebugGUI.Label);
+        GUILayout.BeginHorizontal();
+        var maleStyle = bodyModel.IsMale ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
+        if (GUILayout.Button("Male", maleStyle, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
+            bodyModel.SetGender(true);
+        var femaleStyle = !bodyModel.IsMale ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
+        if (GUILayout.Button("Female", femaleStyle, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
+            bodyModel.SetGender(false);
+        GUILayout.EndHorizontal();
     }
 
     // No audio system exists anywhere in the project yet — placeholder

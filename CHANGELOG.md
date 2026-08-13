@@ -5,10 +5,58 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.34-dev` — must always match `GameVersion` in
+**Current version:** `0.3.35-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (9)
+
+### v0.3.35-dev — Player body: Male/Female toggle (` menu, Player tab)
+
+Direct follow-up to v0.3.34-dev, same day: that build shipped a fixed
+Male `Visual` (the `HumanDummy_M White` Kevin Iglesias prefab) with no way
+to pick Female. This adds the missing choice as the first real content in
+`GameMenuScreen`'s previously-blank Player tab.
+
+- **Both gendered Visual instances now exist simultaneously** as siblings
+  under the Player transform — a new `Visual_Female`
+  (`HumanDummy_F White` prefab, same `WornEquipmentLayer` treatment and
+  identity local transform as the renamed `Visual_Male`) sits inactive
+  until toggled on, rather than being instantiated/destroyed at toggle
+  time. Deliberate choice: `PlayerAnimatorDriver` and `NPCVisualGroundFix`
+  each hold a direct serialized reference into whichever Visual is "the"
+  body — destroying the active one out from under them would orphan those
+  references, the same "don't carry a reference across a destroy
+  boundary" caution `CLAUDE.md` documents for editor-script prefab-content
+  edits, just applying to a runtime swap instead of a batch-mode one.
+- **New `PlayerBodyModel.cs`** — `SetGender(bool male)` just
+  `SetActive`-toggles both instances and re-points
+  `PlayerAnimatorDriver`/`NPCVisualGroundFix` at whichever is now active
+  (via two new small setters on those classes:
+  `PlayerAnimatorDriver.SetAnimator`, `NPCVisualGroundFix.SetVisual` —
+  the latter also resets that script's ground-correction `initialized`
+  flag so it re-measures from the newly-active model's own bind pose
+  instead of reusing the previous gender's offset). Male is the default,
+  matching what v0.3.34-dev already shipped, so a fresh scene load looks
+  unchanged unless the player actually opens the menu and switches.
+- **`GameMenuScreen.DrawPlayerTab()`** — two tab-style buttons (reusing
+  the same `TabSelected`/`TabUnselected` styling `DrawTabBar`/
+  `NPCJobScreen`'s family tabs already use), calling `PlayerBodyModel.
+  SetGender` directly. No new key binding, so `ControlsList` doesn't need
+  an entry.
+- Verified via batch-mode compile (0 CS errors) + YAML grep of the saved
+  scene (`PlayerBodyModel`'s 4 field references all non-null,
+  `Visual_Female`'s Animator controller override pointing at
+  `PlayerAnimatorFemale.controller`, `m_IsActive: 0` confirming it starts
+  hidden). **Not yet live-tested** — see `TEST_FEATURE_PLAN.md`.
+- One coordination note, not a build detail: this landed right after
+  v0.3.33-dev/v0.3.34-dev shipped from a second, concurrent Claude Code
+  session (NPC animation, then player visible body) — held off starting
+  this until that session's `TestScene.unity` edits were actually
+  committed and pushed, specifically to avoid two uncommitted batch-mode
+  scene saves racing each other (`WORKING_ON.md` is what caught the
+  overlap before it became a real collision).
 
 ## 2026-08-13 (8)
 
