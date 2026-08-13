@@ -2928,3 +2928,36 @@ offsets) actually look right — expect these need tuning.
   a Mining NPC with a full requirement set actually walks to and mines ore
   nodes, plays its Mining work animation, and doesn't detour for unrelated
   loose items.
+
+## 28. Player equipment visual attachment (v0.3.40-dev)
+
+New — not yet walked through in Play mode at all. This is the one Ben can
+test directly (third person, V key) rather than only watching an NPC.
+
+- [ ] **Equip a tool, look in third person**: equip any tool (Knife/
+  Pickaxe/Hammer/Axe) to a hand via the Inventory screen, press V for
+  third person — confirm it appears roughly in the right hand, following
+  along as the character moves/turns (not floating at a fixed world
+  position).
+- [ ] **Equip a Backpack, look in third person**: confirm it appears on
+  the back, not floating in front of the chest — this is the exact
+  placement mistake just fixed for NPCs (root-relative offset math), so
+  it should already be correct, not need the same fix twice.
+- [ ] **Switch gender while holding a tool/wearing a Backpack**: open the
+  ` menu's Player tab, toggle Male ↔ Female — confirm the held/worn items
+  re-anchor onto the new model's own hands/chest instead of staying
+  attached to the now-invisible previous model (or disappearing
+  entirely).
+- [ ] **Unequip/drop, re-equip**: confirm nothing about the visual
+  attachment breaks the underlying pickup/drop/inventory-move flow —
+  this only changes *where* the physical object sits while equipped, not
+  how it's carried logically.
+- [ ] **First-person view unchanged**: confirm equipped items still don't
+  appear in first-person view (no first-person view-model exists —
+  this change shouldn't have altered that).
+- [ ] **Compare against the NPC pass**: since both use the same
+  `EquipmentAttach` math and the same starting Backpack offset numbers,
+  confirm the player's Backpack placement looks similar to whatever the
+  NPC's ends up looking like once that's checked too (section 27) — if
+  one looks right and the other doesn't, that's a real discrepancy worth
+  tracking down, not just "needs more tuning."

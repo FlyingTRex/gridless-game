@@ -28,11 +28,27 @@ public class PlayerBodyModel : MonoBehaviour
     // player actually changes it.
     private bool isMale = true;
 
+    private PlayerTool tool;
+    private PlayerBackpack backpack;
+
     public bool IsMale => isMale;
 
     private void Awake()
     {
+        tool = GetComponent<PlayerTool>();
+        backpack = GetComponent<PlayerBackpack>();
         ApplyGender(isMale);
+    }
+
+    // Read by PlayerTool/PlayerBackpack (2026-08-13, equipment visual
+    // attachment) — the currently active gendered Visual's own Animator,
+    // not a fixed scene reference, since which gender is active can
+    // change at runtime.
+    public Transform GetBone(HumanBodyBones bone)
+    {
+        var active = isMale ? maleVisual : femaleVisual;
+        var anim = active != null ? active.GetComponent<Animator>() : null;
+        return anim != null ? anim.GetBoneTransform(bone) : null;
     }
 
     public void SetGender(bool male)
@@ -53,5 +69,12 @@ public class PlayerBodyModel : MonoBehaviour
 
         animatorDriver?.SetAnimator(active.GetComponent<Animator>());
         groundFix?.SetVisual(active.transform, active.GetComponentsInChildren<Renderer>());
+
+        // Whatever's currently held/worn was bone-parented under the
+        // *previous* gender's hand/chest bone — re-anchor it onto the
+        // newly active model's own bones, or it stays attached to a
+        // now-inactive (invisible) body.
+        tool?.RefreshAnchor();
+        backpack?.RefreshAnchor();
     }
 }

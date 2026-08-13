@@ -5,10 +5,52 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.39-dev` — must always match `GameVersion` in
+**Current version:** `0.3.40-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (14)
+
+### v0.3.40-dev — Player equipment now bone-attaches too (same system as NPCs)
+
+Ben's ask: apply the same equipment-visual treatment to the player, partly
+so he can test the placement directly in third person rather than only
+watching an NPC. The player is a different case from NPCs — a held
+Pickaxe/worn Backpack is a *real* physical `IEquippable` object already
+(`Tool`/`Backpack`, moved via `SetCarried`), not pure bookkeeping needing
+a decorative copy — so this isn't `NPCEquipmentVisual` reused, it's the
+same *placement math* applied to the existing carry system.
+
+- **New `EquipmentAttach.cs`** — extracted the root-relative placement
+  formula `NPCEquipmentVisual` already uses (and just got fixed in
+  v0.3.39-dev) into a shared static helper, so both call sites use
+  identical, already-tested logic instead of two copies drifting apart.
+  `NPCEquipmentVisual` now calls it too (pure refactor, no behavior
+  change there).
+- **`PlayerBodyModel` gained `GetBone(HumanBodyBones)`** — returns a bone
+  from whichever gendered Visual is currently active, not a fixed scene
+  reference, since gender can change at runtime.
+- **`PlayerTool`/`PlayerBackpack`** now resolve their anchor through
+  `PlayerBodyModel.GetBone` (`RightHand` / `Chest`) instead of the old
+  fixed `handAnchor`/`carrySlot` scene objects — those two Transforms
+  (`HandAnchor`, `BackpackAnchor`, plain children of the Player root with
+  hand-picked static offsets, predating the visible body) are kept only
+  as a fallback if `PlayerBodyModel` or the bone lookup isn't available.
+  The old anchors never moved with animation at all; bone attachment
+  does. Backpack reuses the exact same starting offset numbers as
+  `NPCJobDefinition`'s Backpack requirements (`(0,0,-0.15)` + 180° turn)
+  for a consistent starting guess between player and NPC.
+  Tool starts at identity offset, same as NPCs' Pickaxe/Axe.
+- **Gender-switch re-anchoring**: `PlayerBodyModel.ApplyGender` now calls
+  `PlayerTool.RefreshAnchor()`/`PlayerBackpack.RefreshAnchor()` after
+  swapping the active Visual — without this, anything currently held/worn
+  would stay parented under the *previous* gender's now-inactive (and
+  invisible) model instead of moving to the new one.
+- Verified via batch-mode compile (0 CS errors) only — **not yet
+  live-tested**, same honest framing as every placement change this
+  session. This is the piece Ben can test directly, though, unlike the
+  NPC-only equipment work.
 
 ## 2026-08-13 (13)
 

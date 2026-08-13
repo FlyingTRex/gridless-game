@@ -77,18 +77,12 @@ public class NPCEquipmentVisual : MonoBehaviour
 
         var instance = Instantiate(item.worldPickupPrefab, bone);
 
-        // attachPositionOffset/attachEulerOffset are interpreted relative
-        // to the NPC's own root transform (forward/right/up), not the
-        // bone's own local axes -- a hand/chest/head bone's local space
-        // reflects its bind-pose orientation, which is rig-specific and
-        // not something to guess blind. Position still tracks the bone
-        // going forward (still parented as its child, so it moves with
-        // the bone during animation same as any child transform); this
-        // only changes what the *initial* offset means, so a number like
-        // "0.15 behind" reliably means behind the character, not
-        // whatever direction that bone's Z axis happens to point.
-        instance.transform.position = bone.position + transform.TransformVector(req.attachPositionOffset);
-        instance.transform.rotation = transform.rotation * Quaternion.Euler(req.attachEulerOffset);
+        // See EquipmentAttach.cs for why this is root-relative, not
+        // bone-local (v0.3.39-dev fix). Position still tracks the bone
+        // going forward — still parented as its child, so it moves with
+        // the bone during animation same as any child transform; this
+        // only changes what the *initial* offset means.
+        EquipmentAttach.Place(instance.transform, bone, transform, req.attachPositionOffset, req.attachEulerOffset);
 
         // A dropped-pickup prefab's own physics/interaction shouldn't run
         // on something rigidly bone-parented — disable it rather than

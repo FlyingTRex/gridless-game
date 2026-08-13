@@ -10,6 +10,9 @@ public class PlayerBackpack : MonoBehaviour
     // regardless of which of these it landed in.
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
+    // Fallback only, used when PlayerBodyModel/the Chest bone isn't
+    // available for some reason — the scene's pre-existing fixed
+    // BackpackAnchor child (not bone-parented, doesn't follow animation).
     [SerializeField] private Transform carrySlot;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
@@ -17,9 +20,17 @@ public class PlayerBackpack : MonoBehaviour
     // itself (Stash()) is what cancels this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
 
+    // Root-relative worn offset (2026-08-13, same EquipmentAttach math
+    // NPCEquipmentVisual uses, same starting numbers as NPCJobDefinition's
+    // Backpack requirements — a rearward push + 180 deg turn, since the
+    // dropped-pickup model is front-facing by convention).
+    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, 0f, -0.15f);
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, 180f, 0f);
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
+    private PlayerBodyModel bodyModel;
 
     public Backpack Equipped => equipment.GetEquipped(BackSlot) as Backpack;
 
@@ -28,6 +39,26 @@ public class PlayerBackpack : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+        bodyModel = GetComponent<PlayerBodyModel>();
+    }
+
+    private Transform ResolveCarrySlot()
+    {
+        var bone = bodyModel != null ? bodyModel.GetBone(HumanBodyBones.Chest) : null;
+        if (bone != null) return bone;
+        return carrySlot != null ? carrySlot : transform;
+    }
+
+    // Re-anchors the worn backpack onto the current Chest bone — called by
+    // PlayerBodyModel after a gender switch (it was parented under the
+    // *previous* gender's now-inactive model).
+    public void RefreshAnchor()
+    {
+        if (Equipped == null) return;
+
+        var anchor = ResolveCarrySlot();
+        Equipped.SetCarried(true, anchor);
+        EquipmentAttach.Place(Equipped.transform, anchor, transform, wornPositionOffset, wornEulerOffset);
     }
 
     // Called when the player interacts with a backpack lying in the world.
@@ -73,7 +104,9 @@ public class PlayerBackpack : MonoBehaviour
         else
             source.RemoveEquipmentItem(backpack.ItemDefinition);
 
-        backpack.SetCarried(true, carrySlot != null ? carrySlot : transform);
+        var anchor = ResolveCarrySlot();
+        backpack.SetCarried(true, anchor);
+        EquipmentAttach.Place(backpack.transform, anchor, transform, wornPositionOffset, wornEulerOffset);
         return true;
     }
 

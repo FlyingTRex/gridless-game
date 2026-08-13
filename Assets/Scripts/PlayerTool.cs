@@ -13,6 +13,9 @@ public class PlayerTool : MonoBehaviour
 {
     private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
 
+    // Fallback only, used when PlayerBodyModel/the RightHand bone isn't
+    // available for some reason — the scene's pre-existing fixed
+    // HandAnchor child (not bone-parented, doesn't follow animation).
     [SerializeField] private Transform handAnchor;
     [SerializeField] private float dropDistance = 1.2f;
     [SerializeField] private float dropHeight = 1f;
@@ -20,9 +23,16 @@ public class PlayerTool : MonoBehaviour
     // SetCarried(true, ...) are what cancel this on pickup, not this script.
     [SerializeField] private float despawnDelay = 120f;
 
+    // Root-relative hold offset (2026-08-13, same EquipmentAttach math
+    // NPCEquipmentVisual uses) — default identity, same first-pass guess
+    // shipped for NPCs.
+    [SerializeField] private Vector3 holdPositionOffset = Vector3.zero;
+    [SerializeField] private Vector3 holdEulerOffset = Vector3.zero;
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
+    private PlayerBodyModel bodyModel;
 
     public Tool Equipped
     {
@@ -39,6 +49,27 @@ public class PlayerTool : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         loot = GetComponent<PlayerLoot>();
+        bodyModel = GetComponent<PlayerBodyModel>();
+    }
+
+    private Transform ResolveHandAnchor()
+    {
+        var bone = bodyModel != null ? bodyModel.GetBone(HumanBodyBones.RightHand) : null;
+        if (bone != null) return bone;
+        return handAnchor != null ? handAnchor : transform;
+    }
+
+    // Re-anchors whatever's currently held onto the current hand bone —
+    // called by PlayerBodyModel after a gender switch (the tool was
+    // parented under the *previous* gender's now-inactive model).
+    public void RefreshAnchor()
+    {
+        var current = Equipped;
+        if (current == null) return;
+
+        var anchor = ResolveHandAnchor();
+        current.SetCarried(true, anchor);
+        EquipmentAttach.Place(current.transform, anchor, transform, holdPositionOffset, holdEulerOffset);
     }
 
     // Called when the player interacts with a tool lying in the world.
@@ -101,7 +132,9 @@ public class PlayerTool : MonoBehaviour
         if (slot == null || !slot.AddEquipmentItem(tool.ItemDefinition, tool)) return false;
 
         source.RemoveEquipmentItem(tool.ItemDefinition);
-        tool.SetCarried(true, handAnchor != null ? handAnchor : transform);
+        var anchor = ResolveHandAnchor();
+        tool.SetCarried(true, anchor);
+        EquipmentAttach.Place(tool.transform, anchor, transform, holdPositionOffset, holdEulerOffset);
         return true;
     }
 
