@@ -5,12 +5,45 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.22-dev` — must always match `GameVersion` in
+**Current version:** `0.3.23-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-12
+
+### v0.3.23-dev — MRE Ration: starting food closes out basic starting gear (MVP2 item 3)
+
+New "MRE Ration" item — a sealed foil ration pouch, modeled via Tripo3D
+(clean on the first attempt), scaled/grounded against the player (0.20 x
+0.15 x 0.06m, matching a real MRE's footprint) and verified via YAML grep
+before completion. 0.3 lbs, no `CraftingRecipe`. Two spawn directly into
+the starting Settler's Shirt's own pocket storage at game start — new
+`PlayerShirt.startingRationItem`/`startingRationCount` fields, same
+single-purpose `Start()` pattern as the shirt/belt/canteen/boots starting-
+gear mechanisms, just targeting the shirt's own `Inventory` instead of a
+body equipment slot.
+
+Eaten via the same right-click Eat action every other `EdibleItem` uses —
+no new UI needed, `InventoryScreen`'s pending-action menu already shows
+Eat generically for any item with a registered `EdibleItem`. Restores 25
+Health instantly plus 15 more over 60 seconds: `EdibleItem` gained an
+optional `healOverTimeAmount`/`healOverTimeDuration` pair layered on top of
+its existing instant `restoreAmount`, and `PlayerEating.TryEatFrom` now
+calls `PlayerVitals.StartHealOverTime` when set — reuses the exact
+mechanism Medicine and the Heal Self wish already use, rather than a new
+one. Every existing `EdibleItem` (just Berry so far) defaults to zero/no
+change in behavior.
+
+Closes the last real gap flagged in `MVP2_PLANNING.md` item 3 against
+`docs/game-overview.md`'s "a small cache of survival rations" line — basic
+starting gear is now fully done (clothing, canteen, and food).
+
+Batch-mode compile check passed (0 `CS####` errors); hit one real batch-
+mode infra snag along the way, not a code bug — a stale `bee_backend` lock
+from an earlier run left a hung `Unity.exe` batch process; killed and
+retried cleanly. Manual Play-mode verification still needed — see
+`TEST_FEATURE_PLAN.md`.
 
 ### v0.3.22-dev — Craft tier colors + Crafting screen tier-sort/filter
 

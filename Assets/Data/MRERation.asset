@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
+  m_Name: MRERation
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  itemName: MRE Ration
+  maxStack: 20
+  weight: 0.3
+  tier: 2
+  worldPickupPrefab: {fileID: 5489489454721887283, guid: 99ddd2f615b43cf4ca449f7a3d757fe5, type: 3}
+  icon: {fileID: 21300000, guid: b2d7d6d7aff01884593bf113303ffa77, type: 3}
+  previewIcon: {fileID: 21300000, guid: 58fa938403003d04c97ac66e6d9ec60c, type: 3}
+  baseItem: {fileID: 0}

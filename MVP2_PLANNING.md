@@ -59,7 +59,7 @@ already exists), Gathering (Berry/Herb bushes), Guarding. Blocked
 swing animation reads exactly as "bleh" as mining does today.
 
 ### 3 — Finish basic starting gear
-**Mostly done as of 2026-08-12.** Auto-equip-at-spawn now covers Settler's
+**Done as of 2026-08-12.** Auto-equip-at-spawn now covers Settler's
 Shirt (v0.3.12-dev), Settler's Jeans, Settler's Belt with a Canteen clipped
 to it, and Settler's Sneakers (all same session) — the clothing+canteen
 side of "Boots? Canteen?" from the original open question is fully closed.
@@ -73,14 +73,15 @@ prose should be updated to match, since it still names the knife
 explicitly — flagging rather than silently leaving the doc inconsistent
 with the real decision.)
 
-**Still missing:** starting food rations — `docs/game-overview.md`'s "a
-small cache of survival rations" line. Nothing anywhere grants a fresh
-player initial food; Hunger starts unaddressed at spawn.
-
-Both are real gaps against the game's own text, not new scope — closing
-them is the last mile of this item, not a separate feature. Ties to item 1
-— starting gear weight shouldn't fight a fresh Strength-2.00 player's small
-carry capacity.
+**Closed 2026-08-12 (v0.3.23-dev): starting food rations.** New "MRE
+Ration" item — 0.3 lbs, no recipe, spawns 2 into the starting Settler's
+Shirt's own pocket storage at game start (`PlayerShirt.startingRationItem`/
+`startingRationCount`). Eaten via the same right-click Eat action every
+other `EdibleItem` uses — 25 Health instantly, plus 15 more over 60s
+(`EdibleItem` gained an optional heal-over-time component for this,
+reusing `PlayerVitals.StartHealOverTime`). Closes the last gap against
+`docs/game-overview.md`'s "a small cache of survival rations" line — item 3
+is now **fully done**, both the clothing/canteen side and the food side.
 
 ### 4 — Player and NPC animation
 Likely the single biggest, riskiest item on this list — there's an existing

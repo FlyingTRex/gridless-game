@@ -11021,6 +11021,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerEating
   edibles:
   - {fileID: 11400000, guid: 1938fbd59aa1802478d8cd44c666f768, type: 2}
+  - {fileID: 11400000, guid: e0fcd4f012ebe6c40abcc1ea9f839a33, type: 2}
 --- !u!114 &1681626244
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11594,6 +11595,8 @@ MonoBehaviour:
   dropHeight: 1
   despawnDelay: 120
   startingShirtPrefab: {fileID: 6761061111452742268, guid: 745e3b902fbb5a340920515612879d9f, type: 3}
+  startingRationItem: {fileID: 11400000, guid: a714f4dcb303eb94298ea2055626e701, type: 2}
+  startingRationCount: 2
 --- !u!114 &1681626280
 MonoBehaviour:
   m_ObjectHideFlags: 0

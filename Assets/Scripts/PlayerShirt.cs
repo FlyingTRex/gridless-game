@@ -24,6 +24,13 @@ public class PlayerShirt : MonoBehaviour
     // speculative generalized version for a single caller (2026-08-12).
     [SerializeField] private GameObject startingShirtPrefab;
 
+    // "A small cache of survival rations" (docs/game-overview.md) — dropped
+    // straight into the starting shirt's own pocket storage rather than a
+    // second standalone starting-gear mechanism, since the shirt is already
+    // guaranteed to exist and be equipped by the time this runs below.
+    [SerializeField] private ItemDefinition startingRationItem;
+    [SerializeField] private int startingRationCount = 2;
+
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerLoot loot;
@@ -50,9 +57,15 @@ public class PlayerShirt : MonoBehaviour
         var slot = equipment.GetSlot(ChestSlot);
 
         if (shirt != null && slot != null && slot.AddEquipmentItem(shirt.ItemDefinition, shirt))
+        {
             shirt.SetCarried(true, carrySlot != null ? carrySlot : transform);
+            if (startingRationItem != null && startingRationCount > 0)
+                shirt.Inventory.AddItem(startingRationItem, startingRationCount);
+        }
         else
+        {
             Destroy(instance);
+        }
     }
 
     // Called when the player interacts with a shirt lying in the world.

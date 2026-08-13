@@ -45,6 +45,8 @@ public class PlayerEating : MonoBehaviour
         if (!source.RemoveItem(edible.item, edible.consumeCount)) return false;
 
         vitals.Restore(edible.vital, edible.restoreAmount);
+        if (edible.healOverTimeAmount > 0f)
+            vitals.StartHealOverTime(edible.healOverTimeAmount, edible.healOverTimeDuration);
         if (edible.returnItem != null)
             source.AddItem(edible.returnItem, edible.consumeCount);
 
