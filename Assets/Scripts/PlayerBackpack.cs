@@ -41,8 +41,17 @@ public class PlayerBackpack : MonoBehaviour
     // Trying a -90 deg X (pitch) correction on top of the existing yaw —
     // first attempt at this axis, could easily need +90 instead if this
     // over/under-rotates it the wrong way.
+    //
+    // Reverted (2026-08-13, live feedback: "not aligned at all," Ben
+    // supplied a reference photo). Root cause of the round-3 theory above:
+    // it was wrong. The floating shape misdiagnosed as "part of the
+    // Backpack model" turned out to be the Jeans (fixed separately in
+    // PlayerJeans.cs), not anything belonging to this object. This -90 X
+    // pitch was bolted onto an already-correct Backpack based on that
+    // wrong diagnosis and never undone once the real culprit was found —
+    // reverting it back to the last confirmed-working rotation (yaw only).
     [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.3f, -0.2f);
-    [SerializeField] private Vector3 wornEulerOffset = new Vector3(-90f, 180f, 0f);
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, 180f, 0f);
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;

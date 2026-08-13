@@ -44,15 +44,23 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   round-3 Backpack pitch fix had zero visible effect on the floating
   shape — meaning it was misdiagnosed, never the Backpack. Re-diagnosed
   as Jeans (color matches denim) — `-90°` X pitch fix applied there.
-  **Live-feedback round 5 (v0.3.45-dev, implementation complete, not yet
-  committed/pushed):** the Jeans `-90°` was real progress (moved from
-  "above the head" to "sideways near the hand") — doubled to `-180°` to
-  finish the swing to pointing down. Also fixed a real logic bug found
-  live: dropping a worn Belt didn't drop a Canteen clipped to it (pure
-  data relationship, not a Transform-parent one) — new `PlayerBelt.
-  DropClippedEquipment` cascades the drop. **Backpack reported still
-  misaligned, no new screenshot yet** — holding off on a third blind
-  guess there pending clearer evidence. **Still no live Play-mode
+  **Live-feedback round 5 (v0.3.45-dev, committed and pushed):** the
+  Jeans `-90°` was real progress (moved from "above the head" to
+  "sideways near the hand") — doubled to `-180°` to finish the swing to
+  pointing down. Also attempted a fix for a real bug (dropping a worn
+  Belt didn't drop its clipped Canteen) — but that fix landed in the
+  wrong place (`PlayerBelt.Drop`, not the actual path the UI's Drop
+  button uses).
+  **Live-feedback round 6 (v0.3.46-dev, implementation complete, not yet
+  committed/pushed):** found the real Belt/Canteen drop path
+  (`PlayerDropping.DropFrom`, called directly by `InventoryScreen.
+  DrawItemDropPopup`) and moved the cascade fix there, generalized to any
+  `IInventoryHolder` equippable. Also reverted a real mistake: the
+  round-3 Backpack `-90°` X pitch was based on a wrong diagnosis (the
+  floating shape was Jeans, not part of the Backpack) and was never
+  undone once that was discovered — it broke an already-correct Backpack
+  rotation. Reverted to yaw-only, confirmed via Ben's reference photo of
+  correct backpack-wearing posture. **Still no live Play-mode
   confirmation of any of this**, see `TEST_FEATURE_PLAN.md` section 29.
 - 2026-08-13 — Ben — Player equipment now bone-attaches too (same
   RightHand/Chest system NPCs just got, applied to the player's real

@@ -5,10 +5,41 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.45-dev` — must always match `GameVersion` in
+**Current version:** `0.3.46-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (20)
+
+### v0.3.46-dev — Fix: real Belt/Canteen drop path; revert a mistaken Backpack pitch
+
+Two fixes, both from live testing.
+
+- **The actual bug behind "canteen still attached after dropping the
+  belt"**: the v0.3.45-dev fix (`PlayerBelt.DropClippedEquipment`) was in
+  the wrong place — the Inventory screen's Drop button
+  (`DrawItemDropPopup`) calls `PlayerDropping.DropFrom` directly, not
+  `PlayerBelt.Drop`, so that fix never ran for the actual reported case.
+  Moved the cascade logic into `PlayerDropping.DropFrom` itself and
+  generalized it beyond Belt/Canteen: any `IInventoryHolder` equippable
+  (a worn Backpack holding another equipped item, etc.) now cascades the
+  drop to whatever physical equipment is nested in its own `Inventory`.
+  `PlayerBelt.DropClippedEquipment` stays too — still correct for
+  `PlayerBelt.Drop`'s own internal callers — just no longer the fix for
+  the path that was actually broken.
+- **Reverted a mistaken Backpack rotation.** Tracing back through the
+  live-feedback rounds: the Backpack's position was already confirmed
+  correct by v0.3.42-dev. Round 3's `-90°` X pitch was added based on a
+  wrong diagnosis — a floating shape thought to be part of the Backpack
+  model that turned out to be the Jeans (fixed separately, v0.3.44-dev/
+  v0.3.45-dev). That pitch correction was never undone once the real
+  culprit was found, and it broke what was already working — confirmed
+  by Ben supplying a reference photo of correct backpack-wearing posture
+  and reporting it "not aligned at all." Reverted `PlayerBackpack.
+  wornEulerOffset` (and the 3 NPC job assets' matching Backpack
+  `attachEulerOffset`) back to yaw-only (`0, 180, 0`), the last
+  confirmed-working rotation.
 
 ## 2026-08-13 (19)
 

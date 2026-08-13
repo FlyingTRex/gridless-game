@@ -62,6 +62,20 @@ public class PlayerDropping : MonoBehaviour
                 var despawn = equipmentTransform.gameObject.AddComponent<Despawn>();
                 despawn.delay = equipmentDespawnDelay;
             }
+
+            // Real bug found live (2026-08-13): this is the actual path
+            // the Inventory screen's Drop button uses (DrawItemDropPopup),
+            // which PlayerBelt.Drop's own equivalent fix never covers —
+            // a Canteen clipped to a worn Belt is a pure data relationship
+            // (registered in belt.Inventory), not a Transform-hierarchy
+            // one, so it doesn't automatically follow the Belt into the
+            // world when only the Belt's own SetCarried(false, ...) runs
+            // above. Generalized beyond Belt/Canteen: any IInventoryHolder
+            // equippable (a worn Backpack holding another equipped item,
+            // etc.) gets the same cascade.
+            if (equipment is IInventoryHolder holder && holder.Inventory != null)
+                DropNestedEquipment(holder.Inventory);
+
             return;
         }
 
@@ -69,6 +83,31 @@ public class PlayerDropping : MonoBehaviour
         if (amount <= 0 || !source.RemoveItem(item, amount)) return;
 
         SpawnPickup(item, amount);
+    }
+
+    // Detaches and drops every physical equipment item still registered
+    // in inventory's own slots, scattered slightly so they don't all land
+    // exactly on top of whatever container just got dropped.
+    private void DropNestedEquipment(Inventory inventory)
+    {
+        var nested = new System.Collections.Generic.List<(ItemDefinition item, IEquippable equipment)>();
+        foreach (var slot in inventory.Slots)
+            if (slot.equipment != null)
+                nested.Add((slot.item, slot.equipment));
+
+        foreach (var (item, nestedEquipment) in nested)
+        {
+            inventory.RemoveEquipmentItem(item);
+            nestedEquipment.SetCarried(false, null);
+
+            var nestedTransform = (nestedEquipment as Component)?.transform;
+            if (nestedTransform == null) continue;
+
+            Vector3 scatter = Random.insideUnitSphere * 0.3f;
+            nestedTransform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight + scatter;
+            var despawn = nestedTransform.gameObject.AddComponent<Despawn>();
+            despawn.delay = equipmentDespawnDelay;
+        }
     }
 
     // Instantiates item's world pickup prefab (or the generic fallback) at
