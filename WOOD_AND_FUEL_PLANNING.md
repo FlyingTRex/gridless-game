@@ -59,16 +59,14 @@ quality, same reasoning `FoodTier.cs` already established for Hunger).
   craft is actually running — realistic ("light it and it burns until it's
   out or shut off"), not "only ticks fuel while actively smelting."
 - This means the Furnace needs an explicit **on/off toggle**, or a player
-  who lights it and walks away burns through fuel for nothing. **Not built
-  yet — tracked in `BUGS_AND_ENHANCEMENTS.md`'s "Furnace Fuel System"
-  section.**
-- **No Furnace state exists today at all.** `FurnaceSurface.cs` is a bare
-  marker component with zero fields — today "near a Furnace" is the entire
-  gate on smelting (`PlayerCrafting.HasNearbyFurnace`, a pure proximity
-  check). Building this system means adding real state: lit/unlit flag,
-  a fuel inventory, a remaining-burn-time timer that ticks down over real
-  time — closer in shape to the Canteen's fill/drink state than to
-  anything the Furnace does today.
+  who lights it and walks away burns through fuel for nothing.
+  **Built (v0.3.31-dev)** as `FurnaceScreen`'s Auto-Run toggle.
+- **Built (v0.3.31-dev).** `Furnace.cs` now holds the real state described
+  below — lit/unlit flag, a fuel inventory, a remaining-burn-time timer
+  ticking down over real time. `FurnaceSurface.cs` stays a bare marker,
+  unchanged — it's still the sole gate for `PlayerCrafting.
+  HasNearbyFurnace`/`CraftingRecipe.requiresFurnace`, a separate concern
+  from `Furnace.cs`'s own unattended production line.
 
 ## 4. Loading fuel & ore (decided direction, 2026-08-12)
 
@@ -130,13 +128,33 @@ isn't lost, not committed to an order yet.
    untuned default `1f` every wood item silently had before. **Log itself
    is not yet wired as a `FuelItem`** — its tier/burn-duration wasn't
    decided during planning, only its weight was.
-2. Real Furnace state: lit/unlit flag, a 2-slot fuel inventory, a burn
-   timer ticking in real time while lit.
-3. Furnace on/off toggle (UI + the underlying lit/unlit flag from #2).
-4. Manual ore loading into the Furnace.
-5. Storage Crate auto-feed (fuel and/or ore) from a nearby `StorageBox`.
-6. *(Future phase, unscoped)* Woodcutting NPC job family + an autonomous
-   Furnace process loop + the Woodshed structure.
+2. ✅ **Done (v0.3.31-dev, 2026-08-13):** Real Furnace state: lit/unlit
+   flag, a 2-slot fuel inventory, a burn timer ticking in real time while
+   lit (`Furnace.cs`, on the existing scene `Furnace` GameObject alongside
+   the untouched `FurnaceSurface` marker).
+3. ✅ **Done (v0.3.31-dev):** Furnace on/off toggle — `FurnaceScreen`'s
+   Auto-Run toggle. Lighting itself is automatic (not a player-clicked
+   button like Campfire's) — with Auto-Run on, fuel on hand, and a
+   non-empty recipe queue, the Furnace lights itself, matching the point
+   of building it as an unattended structure in the first place.
+4. ✅ **Done (v0.3.31-dev), reshaped from "manual ore loading":** ore/
+   materials loading is drag-and-drop via `FurnaceScreen` (same as fuel),
+   plus a new `SmeltableItem` recipe type (deliberately separate from
+   `CraftingRecipe` — see `CHANGELOG.md`) driving an up-to-4 sequential
+   smelting queue, distinct from the existing player-driven, skill-gated
+   `IronIngotRecipe` bench craft.
+5. ✅ **Done (v0.3.31-dev), pulled forward ahead of schedule:** StorageBox
+   auto-feed/auto-drain — the player designates a nearby StorageBox each
+   for Fuel Source, Materials Source, and Output via `FurnaceScreen`'s
+   picker; the Furnace's own `Update()` loop pulls/pushes from them every
+   frame regardless of whether the player is nearby, independent of the
+   popup being open — genuine unattended automation (Ben's call, pulling
+   forward part of section 5 below rather than waiting for the full NPC
+   chain).
+6. *(Future phase, unscoped)* Woodcutting NPC job family to keep the
+   linked boxes stocked without a player doing it by hand, plus the
+   Woodshed structure. The Furnace's own process loop (the other half of
+   section 5's vision) is no longer a gap — see step 5 above.
 
 ## Cross-references
 

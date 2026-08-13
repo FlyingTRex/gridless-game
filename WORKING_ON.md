@@ -12,6 +12,22 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-13 — Ben — Furnace real state + unattended automation
+  (v0.3.31-dev, **committing/pushing now**). Applied the Campfire
+  treatment (E-key popup, `FurnaceScreen`, real Fuel/Materials/Output
+  inventories) plus three new asks: an up-to-4 sequential smelting queue
+  (new `SmeltableItem` type, deliberately separate from `CraftingRecipe`
+  — see `CHANGELOG.md`), a player-selectable Output StorageBox, and
+  player-designated nearby StorageBoxes for Fuel/Materials that the
+  Furnace auto-pulls from. Confirmed via 3 `AskUserQuestion` items before
+  building: sequential (not parallel) queue, **true unattended
+  automation** (Furnace ticks fuel/queue/auto-feed every frame regardless
+  of player presence — pulls forward part of `WOOD_AND_FUEL_PLANNING.md`
+  section 5's "autonomous production chain" vision), on-board slots +
+  auto-refill/drain (not a raw passthrough to the linked boxes). Verified
+  via batch-mode compile (0 CS errors) + YAML grep of the saved scene/
+  asset. **Not yet tested in Play mode** — `TEST_FEATURE_PLAN.md` needs a
+  new section for this.
 - 2026-08-12 — Ben — Campfire rebuild shipped (v0.3.26-dev). Full design
   in `CAMPFIRE_PLANNING.md`, built in 4 approved chunks: real craftable/
   placeable `BuildPiece` (Crude unlock, 4 Rock + 3 Stick), two ways to
@@ -69,7 +85,7 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   array are a best-effort guess from the docs, script dumps raw JSON for
   diagnosis on first real use.
 - 2026-08-13 — Ben — Campfire cooking system reworked again (v0.3.30-dev,
-  **not yet committed/pushed** — pending a live Play-mode look). Grew out
+  **committed and pushed**). Grew out
   of Ben looking at the just-shipped v0.3.28-dev popup live and asking
   for more, in sequence: 4 Cooking Utensil boxes (Grill/Cooking Pot/
   Kettle/Frying Pan, one item each), a wood-only Fuel box, a Transfer

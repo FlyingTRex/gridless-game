@@ -299,44 +299,35 @@ NPC presentation first.
   bone to attach to yet), same unsolved gap as Backpack/Belt. Revisit once
   a rigged model exists.
 
-## Furnace Fuel System (ideation, 2026-08-12 — nothing built yet)
+## Furnace Fuel System (real state + automation shipped v0.3.31-dev)
 
-**Full design now lives in `WOOD_AND_FUEL_PLANNING.md`** — the fuel-tier
-table, Furnace state design, and loading mechanisms. The items below are
-specifically the gaps/future-scope notes that surfaced along the way,
-kept here per this file's usual role as the backlog between active work
-and shipped work.
+**Full design lives in `WOOD_AND_FUEL_PLANNING.md`; built system described
+in `CHANGELOG.md`'s v0.3.31-dev entry.** The Furnace now has real state
+(`Furnace.cs`/`FurnaceScreen.cs`, opened by E) — on-board Fuel/Materials/
+Output inventories, an up-to-4 sequential smelting queue
+(`SmeltableItem.cs`), and true unattended automation (`Update()` ticks
+regardless of player presence, same as Campfire's fuel timer). Remaining
+gaps:
 
-- [ ] **Furnace on/off toggle.** Once lit, the Furnace burns fuel
-  continuously in real time whether or not a craft is actually running
-  (Ben's call — realistic, not "only ticks fuel while actively smelting").
-  That means there needs to be an explicit way to shut it off, or a
-  player who lights it once and walks away burns through their fuel
-  supply for nothing. No such toggle exists today (the Furnace has no
-  state at all yet — see `FurnaceSurface.cs`).
+- [x] **Furnace on/off toggle.** Shipped as the `FurnaceScreen` "Auto-Run"
+  toggle — with it off, the Furnace won't auto-light or auto-refill, so it
+  doesn't burn through fuel unattended unless the player wants it to.
 - [ ] **Woodshed auto-feed (future, not scoped).** Ben floated an
   alternative/additional fuel-loading path: a Woodshed building (not
   designed or built yet) that auto-feeds fuel into any Furnace within
-  15m, instead of manually loading its fuel slots by hand. Current plan
-  is to build manual loading (2 fuel slots, filled from the player's
-  inventory like any other container transfer) first, since the Woodshed
-  itself doesn't exist — this would layer on top later as a second way to
-  keep those same slots topped off, not a replacement mechanism.
-- [ ] **Autonomous production chain (future, not scoped).** Ben's fuller
-  vision: a Woodcutting NPC gathers wood into storage, a Mining NPC
-  (already exists) gathers ore into storage, and the Furnace auto-pulls
-  both to continuously produce finished products with no player nearby —
-  a real automated production line. Two real gaps stand in the way, not
-  just fuel/ore data: (1) Woodcutting doesn't exist as an NPC job family
-  yet (Mining is the only one — see `MVP2_PLANNING.md` item 2); (2) the
-  Furnace has no independent process loop — every craft today, including
-  Iron Ingot, only runs because the player is physically present and
-  clicked Craft. Making the Furnace smelt unattended needs its own timer
-  running independent of the player, a genuinely new subsystem (closer in
-  spirit to how a Hireable NPC's job ticks on its own than to anything a
-  crafting station does today). Full writeup in `WOOD_AND_FUEL_PLANNING.md`
-  section 5 — scoped as its own future chunk, not part of the near-term
-  fuel-tier build.
+  15m. Superseded in the near term by the shipped StorageBox-link
+  mechanism (any nearby StorageBox can be designated the Fuel Source),
+  but a dedicated Woodshed could still layer on top later.
+- [ ] **Autonomous production chain — Furnace side shipped, NPC side
+  still not built.** The Furnace itself now auto-pulls fuel/materials from
+  designated StorageBoxes and auto-drains output into one, continuously,
+  with no player nearby (v0.3.31-dev). What's still missing for the
+  *fully* unattended vision (a Woodcutting NPC filling the fuel box, a
+  Mining NPC filling the materials box, nobody ever touching it):
+  Woodcutting doesn't exist as an NPC job family yet (Mining is the only
+  one — see `MVP2_PLANNING.md` item 2). Until then, a player has to keep
+  the linked boxes stocked by hand — the Furnace no longer needs to be
+  *watched* while running, just periodically restocked.
 
 ## StorageBox nearby-section UI — same popup treatment as Campfire?
 
@@ -349,6 +340,54 @@ One open question from that work is still unresolved:
   Inventory tab, untouched by the Campfire change) get the same focused-
   popup treatment for consistency? Raised as a natural follow-on, not
   committed either way.
+
+## Multiplayer conversion (Mirror) — exploration only, 2026-08-13, nothing built
+
+Mirror Networking imported into the project this session. Full audit +
+phased proposal in `MULTIPLAYER_PLANNING.md` — summary:
+
+- **Why Mirror**: free/open-source, dedicated-server-first architecture
+  matching `docs/design-brief.md` item 6 exactly (Valheim/Rust/ARK-style
+  replica servers). Picked over PurrNet (also evaluated) mainly because
+  PurrNet's stated minimum Unity version (`6000.5.4f1`) is newer than this
+  project's pinned `6000.3.21f1`.
+- **Audit findings**: 115 scripts total; 32 `PlayerXXX.cs` files all
+  assume exactly one local player (no singletons, but heavy
+  `FindFirstObjectByType`/`FindObjectsByType` scene-scanning); only
+  `StorageBox` maintains a live registry (`Active`/`FindNearby`) —
+  everything else scans the whole scene; **zero save/load persistence
+  exists anywhere**; the 22 `OnGUI` screens turn out to need no
+  structural change at all, since IMGUI already only ever draws on the
+  local client.
+- **What converting actually requires**: player actions become
+  Command→validate→replicate instead of direct local mutation (the
+  biggest single chunk of work, spread across those 32 scripts); world
+  objects (StorageBox, Campfire, Lockbox, ...) get `NetworkIdentity` +
+  synced `Inventory` state; NPCs with their own `Update()` loop
+  (`NPCMining`/`NPCWander`/`NPCHiring`/`NPCDialogue`/`NPCEncumbrance`)
+  move to server-only simulation; persistence becomes genuinely
+  blocking, not just a nice-to-have, once the server is sole source of
+  truth for a shared world.
+- [ ] **Phase 0 (proposed, not started): infra spike** — bare
+  `NetworkManager`, two clients seeing each other move, before touching
+  any gameplay system. Would also settle the open movement-authority
+  question (client-authoritative `NetworkTransform` vs.
+  server-authoritative with reconciliation) with a real testbed instead
+  of guessing.
+- [ ] **Phase 1 (proposed): one pilot networked world object** —
+  StorageBox, the simplest existing interactable, validates the
+  "world object with synced Inventory" pattern once before repeating it
+  everywhere else.
+- [ ] Phases 2-6 (player-authoritative gameplay, NPCs server-side,
+  persistence, then the macro-layer stuff — geolocated spawn,
+  settlement/city growth, Warfare/PvP) — see `MULTIPLAYER_PLANNING.md`
+  section 3 for the full proposed order.
+- **Open, not decided**: movement authority model, whether this is one
+  long-running effort/branch or done system-by-system with single-player
+  still working throughout, dev/test workflow for running multiple
+  clients, persistence storage format. `WORKING_ON.md` coordination is
+  called out as mandatory once real implementation starts, given the
+  blast radius across nearly the whole codebase.
 
 ## Enhancements — Phase 2 (MVP 2) Backlog
 

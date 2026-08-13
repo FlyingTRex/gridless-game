@@ -2547,11 +2547,9 @@ behavior.
   and can be picked back up again via the same F-key interaction.
 - [ ] **Admin-spawn a Log directly** — confirm it appears in the search
   results and spawns a real Log pickup, not a placeholder cube.
-- [ ] **No player-facing UI exists yet for fuel** — the `FuelItem` assets
-  (Stick/Trimmed Stick tiers = Tier 1, Plank = Tier 2) are data only; the
-  Furnace has no fuel slots, lit/unlit state, or burn timer yet. Nothing
-  to test in-game for this part until that's built — confirms this is
-  understood as a data-layer-only step, not a missed feature.
+- [x] **Furnace fuel/lit/burn-timer UI now exists** — see section 22
+  (v0.3.31-dev). This bullet originally flagged fuel as data-only; no
+  longer accurate, kept here as a pointer forward rather than deleted.
 
 ## 21. Campfire rebuilt — craftable, fuel, cooking, warmth, model, popup (v0.3.26-dev — v0.3.30-dev)
 
@@ -2656,3 +2654,66 @@ than usual given how much changed.**
   Campfire-specific additions. Confirm `InventoryScreen`'s own drag-and-
   drop still works exactly as before (CampfireScreen's is a separate,
   self-contained implementation, but worth confirming nothing regressed).
+
+## 22. Furnace real state + unattended automation (v0.3.31-dev)
+
+New — not yet walked through in Play mode at all. `Furnace.cs`/
+`FurnaceScreen.cs` are entirely new; the scene's existing `Furnace`
+GameObject (`FurnaceSurface.cs`, untouched) gained the new component.
+
+- [ ] **Look at the placed Furnace in `TestScene.unity`** — confirm the
+  prompt reads "Open Furnace" (E), same convention as Campfire's popup.
+- [ ] **Press E** — confirm a popup opens (responsive sizing, same as
+  Campfire's), cursor unlocks, showing "Unlit", an Output row (4 boxes),
+  a Smelting Queue section (0/4), a Transfer section (Backpack + Hands),
+  a Materials row (4 boxes), a Fuel row (2 boxes), and an Automation
+  section (Auto-Run toggle + Fuel Source/Materials Source/Output Box
+  pickers, each currently "(none)").
+- [ ] **Regression check — `IronIngotRecipe` still works as before**:
+  craft an Iron Ingot from the Crafting tab near the Furnace (skill-gated,
+  10 Iron → 1 Iron Ingot) exactly as it did pre-v0.3.31-dev — this new
+  system shouldn't have touched that path (`FurnaceSurface`/
+  `PlayerCrafting.HasNearbyFurnace` are unrelated to the new `Furnace.cs`).
+- [ ] **Drag fuel and materials in manually**: with Sticks/Planks and 10+
+  Iron in your Backpack or hands, drag them from the Transfer section onto
+  the Fuel and Materials rows — confirm they land and leave the source,
+  and confirm a non-fuel item is rejected by the Fuel row, same rejection
+  behavior as Campfire's Fuel box.
+- [ ] **Queue a recipe**: click "Iron Ingot x1 (60s)" in the Smelting
+  Queue section — confirm it shows `[Queued]` and the counter reads 1/4.
+  Click it again — confirm it un-queues (counter back to 0/4).
+- [ ] **Turn Auto-Run on with fuel + a queued recipe + 10 Iron already
+  loaded** — confirm the Furnace lights itself within a frame or two (no
+  Light button anywhere in this UI, unlike Campfire) and the Smelting
+  Queue section shows live progress toward "Iron Ingot — X%". After 60s,
+  confirm 1 Iron Ingot lands in the Output row and materials drop by 10
+  Iron.
+- [ ] **Turn Auto-Run off** — confirm the Furnace doesn't auto-light again
+  once its current fuel burns out, and doesn't auto-refill from any linked
+  box, but anything already lit/mid-smelt keeps running to completion.
+- [ ] **StorageBox links**: place a StorageBox within the Furnace's link
+  range (~10m) with some Sticks in it, open the Furnace popup, confirm it
+  appears as a button under "Fuel Source" — click it, confirm the label
+  updates to that box's name and a "Clear" button appears. With Auto-Run
+  on and the Furnace's on-board Fuel row empty, confirm Sticks migrate
+  from the box into the Fuel row on their own within a few seconds, with
+  no player interaction. Repeat for Materials Source (Iron) and Output Box
+  (confirm smelted Ingots migrate out of the Output row into the assigned
+  box automatically).
+- [ ] **Move a linked StorageBox out of range** (or its contents added
+  elsewhere) — confirm auto-feed/drain simply stops for that link
+  (no error, no crash) until it's back in range.
+- [ ] **Multiple recipes in the queue**: register a second `SmeltableItem`
+  (or use Admin Spawn to get materials for one, if a second exists by the
+  time this is tested) and queue both — confirm the Furnace round-robins
+  between them rather than only ever running the first one repeatedly.
+- [ ] **True unattended check**: queue a recipe, turn Auto-Run on, load
+  fuel + materials, close the popup, and walk far enough away that the
+  Furnace would be off-screen/unloaded-feeling — confirm smelting keeps
+  progressing in real time (check by walking back later) even though
+  nothing was watching it, since `Update()` ticks regardless of player
+  proximity or popup state.
+- [ ] **Regression:** confirm Campfire's popup, fuel, and cooking still
+  work exactly as before (shared code touched: `FirstPersonController.cs`
+  gained a `furnaceScreen` field alongside the existing `campfireScreen`
+  one) and StorageBox's own nearby-Inventory mechanism is unaffected.

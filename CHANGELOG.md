@@ -5,10 +5,64 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.30-dev` — must always match `GameVersion` in
+**Current version:** `0.3.31-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (5)
+
+### v0.3.31-dev — Furnace real state + unattended automation
+
+Furnace goes from a bare `FurnaceSurface` proximity marker (see
+`WOOD_AND_FUEL_PLANNING.md`) to a real, self-contained production
+structure — same popup family as Campfire (`FurnaceScreen`, opened by E),
+but built for automation rather than a player standing there watching it.
+Ben's ask: apply the Campfire treatment, but let the player select an
+output box, queue up to 4 recipes, and designate a nearby StorageBox each
+for fuel and raw materials.
+
+- **New `Furnace.cs`** on the existing scene `Furnace` GameObject
+  (`FurnaceSurface` stays untouched alongside it — `CraftingRecipe.
+  requiresFurnace`/`IronIngotRecipe` still gate purely on that marker,
+  unrelated to this new system). On-board Fuel (2 slots, same `FuelTier`/
+  `FuelItem` system as Campfire), Materials (4 slots), and Output (4 slots)
+  inventories.
+- **New `SmeltableItem.cs`** ScriptableObject — deliberately separate from
+  `CraftingRecipe` even though `IronIngotRecipe` already smelts Iron Ore
+  near a Furnace today. That recipe is player-driven (skill-gated,
+  chance-of-creation roll, crafted from the Crafting tab); `SmeltableItem`
+  is for the Furnace's own unattended queue — deterministic, no skill, no
+  risk — same reasoning `CookableItem` stayed its own type instead of
+  reusing `CraftingRecipe` for Campfire cooking. First instance:
+  `IronOreToIngotSmeltable` (10 Iron → 1 Iron Ingot, 60s).
+- **Up to 4 queued recipes, sequential** (Ben's call via `AskUserQuestion`):
+  `FurnaceScreen` lists every registered `SmeltableItem` with a toggle
+  button; the Furnace round-robins through whichever are queued, one at a
+  time, so an always-satisfiable recipe up front can't starve the others.
+- **True unattended automation** (Ben's call — pulls forward part of
+  `WOOD_AND_FUEL_PLANNING.md`'s section 5 vision): `Furnace.Update()` ticks
+  every frame regardless of whether the player is nearby or has the popup
+  open, same as Campfire's fuel timer already does. With Auto-Run on, the
+  Furnace lights itself whenever it has fuel and a non-empty queue — no
+  Light button, since the point is it works with nobody there to click one.
+- **Three optional StorageBox links** (Fuel Source / Materials Source /
+  Output), assigned via `FurnaceScreen`'s picker — lists every StorageBox
+  within the Furnace's own `storageLinkRange` (not the player's), so
+  anything offered actually works once assigned. On-board slots stay the
+  source of truth (Ben's call: on-board + auto-refill/drain, not a raw
+  passthrough) — `AutoRefill`/`AutoDrain` top up Fuel/Materials from their
+  linked boxes and push Output into its linked box each tick, so a
+  temporarily unlinked or out-of-range box doesn't stall production.
+- `FurnaceScreen.cs` — same self-contained drag-and-drop implementation as
+  `CampfireScreen.cs` (not a shared extraction, same reasoning as before).
+  Transfer section scoped to Backpack + Hands, matching Campfire's.
+- `FirstPersonController` gained `furnaceScreen` field, closed on Escape
+  alongside every other popup.
+- Verified via batch-mode compile (0 CS errors) + YAML grep of the saved
+  scene/asset (Furnace component's `fuelItems`/`smeltableItems` arrays,
+  `FurnaceScreen` on the Player GameObject). **No live Play-mode pass yet**
+  — see `TEST_FEATURE_PLAN.md`.
 
 ## 2026-08-13 (4)
 

@@ -37267,6 +37267,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 97927163799100644, guid: eb76a3a43329d1a4cb508acb05d9ddb1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1577553080}
+    - targetCorrespondingSourceObject: {fileID: 97927163799100644, guid: eb76a3a43329d1a4cb508acb05d9ddb1, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1577553082}
   m_SourcePrefab: {fileID: 3150474306388093854, guid: eb76a3a43329d1a4cb508acb05d9ddb1, type: 3}
 --- !u!1 &1577553079 stripped
 GameObject:
@@ -37306,6 +37309,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 93f946295206eeb40bce6aa0bd542879, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FurnaceSurface
+--- !u!114 &1577553082
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1577553079}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 08738acb33e6e1349869895683737216, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Furnace
+  fuelItems:
+  - {fileID: 11400000, guid: 8a47f03509dfa244e8cfada66e79ca80, type: 2}
+  - {fileID: 11400000, guid: 2807e03b7292b0b41883a55fd922dc01, type: 2}
+  - {fileID: 11400000, guid: fa43693d232debb4cb2d7e15a0004fc1, type: 2}
+  - {fileID: 11400000, guid: ad34db36472242f458708e51d8d84d5d, type: 2}
+  - {fileID: 11400000, guid: 688cb5a3100f7b347b7a61b6be5c3ac4, type: 2}
+  - {fileID: 11400000, guid: 581556919b0ebdf40bad3eab7c5cbc86, type: 2}
+  - {fileID: 11400000, guid: 1994d867602a01349aa68cc5b175dd22, type: 2}
+  smeltableItems:
+  - {fileID: 11400000, guid: d1c7ff2c65cf6d2488108aeb612d5358, type: 2}
+  storageLinkRange: 10
 --- !u!1001 &1577932321
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -40803,6 +40829,7 @@ GameObject:
   - component: {fileID: 1681626279}
   - component: {fileID: 1681626280}
   - component: {fileID: 1681626281}
+  - component: {fileID: 1681626282}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -41709,6 +41736,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: facb03ec6cb5adb47969c98a02a10779, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CampfireScreen
+--- !u!114 &1681626282
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f1500575c327f9848afaed54aa9a8ff9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FurnaceScreen
 --- !u!1001 &1689588954
 PrefabInstance:
   m_ObjectHideFlags: 0

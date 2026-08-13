@@ -57,6 +57,7 @@ public class FirstPersonController : MonoBehaviour
     private BankScreen bankScreen;
     private LockboxScreen lockboxScreen;
     private CampfireScreen campfireScreen;
+    private FurnaceScreen furnaceScreen;
     private GameMenuScreen gameMenuScreen;
     private NPCHiringScreen npcHiringScreen;
     private NPCJobScreen npcJobScreen;
@@ -75,6 +76,7 @@ public class FirstPersonController : MonoBehaviour
         bankScreen = GetComponent<BankScreen>();
         lockboxScreen = GetComponent<LockboxScreen>();
         campfireScreen = GetComponent<CampfireScreen>();
+        furnaceScreen = GetComponent<FurnaceScreen>();
         gameMenuScreen = GetComponent<GameMenuScreen>();
         npcHiringScreen = GetComponent<NPCHiringScreen>();
         npcJobScreen = GetComponent<NPCJobScreen>();
@@ -126,6 +128,7 @@ public class FirstPersonController : MonoBehaviour
                 bankScreen?.Close();
                 lockboxScreen?.Close();
                 campfireScreen?.Close();
+                furnaceScreen?.Close();
                 gameMenuScreen?.Close();
                 npcHiringScreen?.Close();
                 npcJobScreen?.Close();
@@ -265,7 +268,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.30-dev";
+    private const string GameVersion = "0.3.31-dev";
 
     private float lastSpeed;
     private bool lastSprinting;
