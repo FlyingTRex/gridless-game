@@ -30,8 +30,19 @@ public class PlayerBackpack : MonoBehaviour
     // bring it down onto the actual back. Still an unconfirmed guess —
     // same numbers mirrored onto NPCJobDefinition's Backpack requirements
     // for consistency between player and NPC.
+    //
+    // Live-feedback round 3 (Ben, two screenshots): the Y correction
+    // above worked for the bag body (now correctly sitting on the back),
+    // but the same rigid model has a rolled bedroll-style extension at
+    // its top that now juts up past the head. Theory: worldPickupPrefab
+    // is authored to look correct *lying flat on the ground* (a dropped
+    // pickup) — the 180 deg yaw only corrects facing direction, not the
+    // pitch needed to stand a ground-lying prop upright against a back.
+    // Trying a -90 deg X (pitch) correction on top of the existing yaw —
+    // first attempt at this axis, could easily need +90 instead if this
+    // over/under-rotates it the wrong way.
     [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.3f, -0.2f);
-    [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, 180f, 0f);
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(-90f, 180f, 0f);
 
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;

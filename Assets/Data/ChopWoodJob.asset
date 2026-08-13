@@ -35,6 +35,6 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 1057569e62d24c378b9411ac3f1ab1fc, type: 2}
     attachBone: 8
     attachPositionOffset: {x: 0, y: -0.3, z: -0.2}
-    attachEulerOffset: {x: 0, y: 180, z: 0}
+    attachEulerOffset: {x: -90, y: 180, z: 0}
   workAnimation: 2
   collectLoosePickups: 0

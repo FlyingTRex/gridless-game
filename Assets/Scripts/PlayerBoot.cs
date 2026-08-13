@@ -26,8 +26,12 @@ public class PlayerBoot : MonoBehaviour
     // anchor can't perfectly track two independently animating feet
     // either way; splitting into two per-foot meshes would be a bigger,
     // separate change if this doesn't look acceptable live.
+    // Live-feedback round 3 (Ben): position confirmed correct (sits right
+    // at the feet), but asked to try rotating too — the model may be
+    // front-to-back reversed relative to the character's own facing.
+    // Trying a 180 deg yaw flip as the first attempt.
     [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.85f, 0f);
-    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, 180f, 0f);
 
     // The player starts the game already wearing Settler's Sneakers
     // specifically — same single-purpose starting-gear mechanism

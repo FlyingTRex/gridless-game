@@ -27,16 +27,25 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   now") before building. New `EquipmentAttach.Carry()` shared helper
   dedupes the resolve-bone/SetCarried/Place pattern across all 11
   carriers.
-  **Live-feedback round 2 (v0.3.42-dev, implementation complete, not yet
-  committed/pushed):** Boots confirmed correctly at the feet; Backpack
-  sat far too high (near the neck, not the back) — root cause identified
-  (`HumanBodyBones.Chest` sits high on the rig, original offset never
-  pushed downward), fixed with a real `y: -0.3` correction, mirrored onto
-  the 3 NPC job assets to keep player/NPC placement consistent. Belt also
-  looked off in the screenshot but left untouched — plausibly just
-  rear-angle camera occlusion, not a confirmed bug. **Still no live
-  Play-mode confirmation of any of this**, see `TEST_FEATURE_PLAN.md`
-  section 29.
+  **Live-feedback round 2 (v0.3.42-dev, committed and pushed):** Boots
+  confirmed correctly at the feet; Backpack sat far too high (near the
+  neck, not the back) — root cause identified (`HumanBodyBones.Chest`
+  sits high on the rig, original offset never pushed downward), fixed
+  with a real `y: -0.3` correction, mirrored onto the 3 NPC job assets to
+  keep player/NPC placement consistent. Belt also looked off in the
+  screenshot but left untouched — plausibly just rear-angle camera
+  occlusion, not a confirmed bug.
+  **Live-feedback round 3 (v0.3.43-dev, implementation complete, not yet
+  committed/pushed):** the Backpack's bag body now sits correctly (the
+  Y fix worked), but the same rigid model has a bedroll-style top
+  extension jutting up past the head — theory: `worldPickupPrefab` is
+  authored for lying flat on the ground, and the yaw-only correction
+  never addressed the pitch needed to stand it upright against a back.
+  Trying a `-90°` X (pitch) addition, genuinely a coin flip on sign.
+  Boots also got a 180° yaw trial (position was already confirmed
+  correct, Ben asked to try rotation too — may be front-to-back
+  reversed). **Still no live Play-mode confirmation of any of this**,
+  see `TEST_FEATURE_PLAN.md` section 29.
 - 2026-08-13 — Ben — Player equipment now bone-attaches too (same
   RightHand/Chest system NPCs just got, applied to the player's real
   `Tool`/`Backpack` carry objects instead of a decorative copy). v0.3.40-dev,

@@ -5,10 +5,33 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.42-dev` — must always match `GameVersion` in
+**Current version:** `0.3.43-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (17)
+
+### v0.3.43-dev — Tune: Backpack pitch, Boot rotation (live-feedback round 3)
+
+Live feedback (Ben, two screenshots): the Backpack's bag body now sits
+correctly on the back (v0.3.42-dev's Y fix worked), but the same rigid
+model has a rolled bedroll-style extension at its top that juts up past
+the head. Theory, not just another blind number: `worldPickupPrefab` is
+authored to look right *lying flat on the ground* (how every dropped
+pickup in this game displays) — the existing 180° yaw only corrects
+which way it faces, not the pitch needed to stand a ground-lying prop
+upright against a back. Added a `-90°` X (pitch) correction on top of
+the existing yaw, to `PlayerBackpack.wornEulerOffset` and mirrored onto
+the 3 NPC job assets' Backpack `attachEulerOffset` (same consistency
+convention as the position fix). Genuinely a coin flip on sign — could
+need `+90` instead if this over/under-rotates it the wrong way.
+
+Boots: position confirmed correct, but asked to try rotating too (may be
+front-to-back reversed) — trying a 180° yaw flip on `PlayerBoot.
+wornEulerOffset` as the first attempt.
+
+Both unconfirmed guesses, not yet re-verified live.
 
 ## 2026-08-13 (16)
 
