@@ -14,7 +14,7 @@ using UnityEngine;
 // than the bush itself ever disappearing — chopping and searching are
 // two separate resources on the same plant, not one depleting object.
 [DisallowMultipleComponent]
-public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable
+public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable, INPCSearchable
 {
     [SerializeField] private ItemDefinition[] chopTools;
     [SerializeField] private string chopToolLabel = "Knife or Axe";
@@ -63,6 +63,11 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable
     public string GetSecondaryPrompt(GameObject player) =>
         IsSearchOnCooldown ? null : "Search for berries";
 
+    // INPCSearchable (2026-08-13) — only the F-search half; the E-chop
+    // action stays player-only, untouched (Ben's explicit call, see
+    // NPC_JOB_GENERALIZATION_PLANNING.md section 3a).
+    public bool IsAvailable => !IsSearchOnCooldown;
+
     private void Update()
     {
         if (chopRespawnAt >= 0f && Time.time >= chopRespawnAt) chopRespawnAt = -1f;
@@ -88,9 +93,14 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable
             chopRespawnAt = Time.time + chopRespawnDelay;
     }
 
-    public void CompleteSecondary(GameObject player)
+    public void CompleteSecondary(GameObject player) => TriggerSearchForNPC();
+
+    // Same search logic the player's F action always ran — renamed/shared
+    // so NPCGathering can trigger it directly without a GameObject player
+    // to pass through. Returns false (no-op) while on cooldown.
+    public bool TriggerSearchForNPC()
     {
-        if (IsSearchOnCooldown) return;
+        if (IsSearchOnCooldown) return false;
 
         int count = Random.Range(minBerries, maxBerries + 1);
         for (int i = 0; i < count; i++)
@@ -101,6 +111,8 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable
 
         if (searchRespawnDelay > 0f)
             searchRespawnAt = Time.time + searchRespawnDelay;
+
+        return true;
     }
 
     private static bool HasAnyToolInHand(PlayerEquipment equipment, ItemDefinition[] tools)

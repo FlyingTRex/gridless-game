@@ -12,8 +12,25 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-13 — Ben — NPC job generalization: Woodworking + Berry/Herb
+  foraging (v0.3.32-dev, **not yet committed/pushed** — pending a live
+  Play-mode look). Full design in `NPC_JOB_GENERALIZATION_PLANNING.md`,
+  built same day: `NPCMining.cs` renamed to `NPCGathering.cs` (functional
+  rename-only, script GUID preserved so existing prefab references
+  survived), a new `INPCHarvestable` interface lets `ChoppableTree`
+  (standing Trees) join `ResourceNode` as a valid gathering target
+  (direct-yield for NPCs, scatter behavior unchanged for players), a new
+  `INPCSearchable` interface lets `BerryBush`/`HerbBush`'s search action
+  (chop-for-stick skipped, player-only) trigger for NPCs too, and
+  `Pickup.cs` gained an NPC-safe collection path so a foraging NPC can
+  actually walk over and pick up whatever a search scattered — closes the
+  loop with no new state machine, just a third scanned target pool.
+  `ChopWoodJob.asset`/`ForageJob.asset` wired into `NPCJobScreen`.
+  Deliberately deferred: bench-crafting families (Metalworking, Sewing,
+  etc. — section 7 of the planning doc). Verified via compile + YAML grep
+  only so far — **no live Play-mode test yet**, see `TEST_FEATURE_PLAN.md`.
 - 2026-08-13 — Ben — Furnace real state + unattended automation
-  (v0.3.31-dev, **committing/pushing now**). Applied the Campfire
+  (v0.3.31-dev, **committed and pushed**). Applied the Campfire
   treatment (E-key popup, `FurnaceScreen`, real Fuel/Materials/Output
   inventories) plus three new asks: an up-to-4 sequential smelting queue
   (new `SmeltableItem` type, deliberately separate from `CraftingRecipe`

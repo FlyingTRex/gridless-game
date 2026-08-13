@@ -24,7 +24,7 @@ using UnityEngine;
 // PlayerInteraction's secondary-prompt line ("[F] ...") shows correctly
 // on its own with no primary text alongside it.
 [DisallowMultipleComponent]
-public class HerbBush : MonoBehaviour, ISecondaryInteractable
+public class HerbBush : MonoBehaviour, ISecondaryInteractable, INPCSearchable
 {
     [SerializeField] private GameObject herbPrefab;
     [SerializeField] private int minHerbs = 1;
@@ -44,14 +44,21 @@ public class HerbBush : MonoBehaviour, ISecondaryInteractable
     public string GetSecondaryPrompt(GameObject player) =>
         IsOnCooldown ? null : "Search for herbs";
 
+    // INPCSearchable (2026-08-13) — see BerryBush.cs's matching comment;
+    // HerbBush has no chop action to exclude, its whole interaction is
+    // this search.
+    public bool IsAvailable => !IsOnCooldown;
+
     private void Update()
     {
         if (respawnAt >= 0f && Time.time >= respawnAt) respawnAt = -1f;
     }
 
-    public void CompleteSecondary(GameObject player)
+    public void CompleteSecondary(GameObject player) => TriggerSearchForNPC();
+
+    public bool TriggerSearchForNPC()
     {
-        if (IsOnCooldown) return;
+        if (IsOnCooldown) return false;
 
         int count = Random.Range(minHerbs, maxHerbs + 1);
         for (int i = 0; i < count; i++)
@@ -59,6 +66,8 @@ public class HerbBush : MonoBehaviour, ISecondaryInteractable
 
         if (respawnDelay > 0f)
             respawnAt = Time.time + respawnDelay;
+
+        return true;
     }
 
     // Same fixed-ring scatter as BerryBush.SpawnScattered — spawning on a

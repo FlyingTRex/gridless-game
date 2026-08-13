@@ -5,10 +5,84 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.31-dev` — must always match `GameVersion` in
+**Current version:** `0.3.32-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (6)
+
+### v0.3.32-dev — NPC job generalization: Woodworking + Berry/Herb foraging
+
+Built from `NPC_JOB_GENERALIZATION_PLANNING.md`'s design (same day). The
+Hireable NPC system's gathering loop, formerly mining-only in name (though
+mostly generic already in code), now spans three job families with the
+same underlying loop.
+
+- **`NPCMining.cs` renamed to `NPCGathering.cs`** — a `MonoBehaviour`
+  rename, not a functional one (Unity resolves the component by script
+  GUID, preserved via a hand-carried-over `.meta` file, so
+  `NPCFactoryWorker.prefab`'s existing component reference survived
+  intact — verified via YAML grep, not assumed). Internal fields renamed
+  too (`mineRange`/`mineDuration` → `harvestRange`/`harvestDuration`,
+  `MineCurrentTarget` → `HarvestCurrentTarget`) — the prefab's serialized
+  values were migrated by hand in the same commit (a plain rename doesn't
+  auto-carry old field values forward; see CLAUDE.md's serialized-default
+  gotcha) rather than relying on the new field defaults happening to
+  match, even though in this case they did.
+- **New `INPCHarvestable` interface** — `ResourceNode` (already had this
+  exact shape as `TryMineForNPC`, just renamed to `TryHarvestForNPC`) and
+  `ChoppableTree` (new — standing Trees previously had no NPC-compatible
+  path at all) both implement it. `ChoppableTree` gained the same
+  scatter-for-player/direct-yield-for-NPC split `ResourceNode` already
+  established: `Complete()` (the player's hold-to-chop) is completely
+  untouched, `TryHarvestForNPC` instead yields a new `logItem` field
+  directly into cargo and skips the physical Log-scattering step
+  entirely, since an NPC has no "walk over and collect what I just
+  knocked loose" action.
+- **New `INPCSearchable` interface** — `BerryBush`/`HerbBush` implement it
+  (F-search half only; Ben's explicit call to skip `BerryBush`'s separate
+  chop-for-Trimmed-Stick action, which stays player-only). Kept as its
+  own interface rather than folded into `INPCHarvestable`, since
+  triggering a search doesn't put anything into cargo directly — it just
+  seeds the world with `Pickup` objects.
+- **`Pickup.cs` gained an NPC-safe collection path** (`TryPickupForNPC`,
+  plus `SkillGain`/`Quantity` read accessors) — same "no `PlayerLoot`/
+  `PlayerInventory` dependency" treatment `ResourceNode`/`ChoppableTree`
+  already got.
+- **`NPCGathering.FindTarget` now scans three candidate pools**, not one:
+  `INPCHarvestable` targets (walk to it, harvest, cargo grows
+  immediately), `INPCSearchable` targets (walk to it, trigger the search,
+  nothing lands in cargo yet), and loose `Pickup` objects already in the
+  world (walk to it, collect, cargo grows) — the last pool is what closes
+  the loop after a bush search: on a later pass, the NPC finds the
+  `Pickup`s its own search produced (or any other loose one nearby) and
+  collects them. No new state machine needed — this falls out of the
+  existing "keep finding and doing the nearest useful thing" loop for
+  free. **Known, flagged side effect, not a bug:** since loose `Pickup`s
+  are scanned generically, a foraging NPC will also collect any other
+  nearby dropped item, not just what its own search produced.
+- **New data**: `ChopWoodJob.asset` (family Woodworking, requires an Axe
+  — any tier — + a Backpack) and `ForageJob.asset` (family Gathering, no
+  tool beyond a Backpack, covers both `BerryBush` and `HerbBush` as one
+  combined job rather than two — matches how `MVP2_PLANNING.md` already
+  bundled "Gathering (Berry/Herb bushes)" as one line item). Both wired
+  into `NPCJobScreen.families`/`jobs` alongside the existing Mining
+  family. `Tree.prefab`'s `ChoppableTree` component got its new
+  `logItem` field pointed at the real `Log` `ItemDefinition`.
+- Deterministic-yield precedent (matching the Furnace/Campfire automation
+  from `v0.3.31-dev`) doesn't apply here — gathering was already
+  deterministic before this change (`ResourceNode.TryMineForNPC` never
+  had a risk roll); nothing new introduced one.
+- Verified via batch-mode compile (0 CS errors, caught and fixed one
+  missed reference in `NPCDialogue.cs` that the first compile pass
+  flagged) + YAML grep of the saved assets/scene (`ChopWoodJob.asset`/
+  `ForageJob.asset` contents, `Tree.prefab`'s `logItem`,
+  `NPCJobScreen.families`/`jobs` arrays, `NPCFactoryWorker.prefab`'s
+  renamed fields). **No live Play-mode pass yet** — see
+  `TEST_FEATURE_PLAN.md`. Bench-crafting families (Metalworking, Sewing,
+  etc.) remain explicitly deferred, per `NPC_JOB_GENERALIZATION_PLANNING.md`
+  section 7.
 
 ## 2026-08-13 (5)
 

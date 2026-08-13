@@ -101,6 +101,28 @@ model, dev/test workflow, scope shape). Mirror was picked over PurrNet
 mainly because PurrNet's stated minimum Unity version is newer than this
 project's pinned one.
 
+**NPC job generalization (Mining + Woodworking + Berry/Herb foraging,
+bench-crafting sketched for later) lives in
+`NPC_JOB_GENERALIZATION_PLANNING.md`.** Ben's ask (2026-08-13): let the
+player assign an NPC to Woodworking or foraging (and eventually any craft
+family except Building), same as Mining today. Audit found the Hireable
+NPC system already mostly generic (`NPCJobDefinition`/`NPCJobScreen` are
+pure data-driven, `NPCMining`'s loop already targets any `ResourceNode`
+and trains whatever skill the assigned job names) — the real gaps are
+standing Trees (`ChoppableTree`) using a different interaction shape than
+`ResourceNode`, and Berry/Herb bushes (`BerryBush`/`HerbBush`) not
+yielding an item directly at all (their search action only scatters
+`Pickup` objects onto the ground — a genuine two-step search-then-collect
+task, not a shortcut opportunity). Plan: a shared `INPCHarvestable`
+interface for direct-yield targets (ResourceNode, ChoppableTree) plus a
+separate `INPCSearchable` interface for trigger-only targets (BerryBush/
+HerbBush's search half only — their chop-for-stick action stays
+player-only), `Pickup.cs` gains an NPC-safe collection path, and
+`NPCMining.cs` renames to `NPCGathering.cs` with a target search spanning
+all three pools. Bench-crafting families (Metalworking, Sewing, etc.) are
+sketched but explicitly deferred to a later pass — planning only, nothing
+built yet.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:

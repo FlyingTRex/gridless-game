@@ -32,9 +32,19 @@ public class Pickup : MonoBehaviour, IInteractable
     // pickups set up directly in the scene/prefab never get one.
     private float despawnAt = -1f;
 
-    // Read by ResourceNode.TryMineForNPC to learn what a node's chunkPrefab
+    // Read by ResourceNode.TryHarvestForNPC to learn what a node's chunkPrefab
     // actually represents without needing to instantiate it first.
     public ItemDefinition Item => item;
+
+    // Read by NPCGathering (2026-08-13) — same "job's family skill trains,
+    // not the target's own trainedSkill field" convention ResourceNode/
+    // ChoppableTree's SkillGain accessors already established.
+    public float SkillGain => skillGain;
+
+    // Peek-only, doesn't consume — lets NPCGathering weigh a candidate
+    // (NPCEncumbrance.CanPickUp) before committing to it, same reason
+    // ResourceNode has PeekYield alongside TryHarvestForNPC.
+    public int Quantity => quantity;
 
     public string Prompt => item != null ? $"Pick up {item.itemName}" : "Pick up";
     public bool IsInstant => true;
@@ -100,6 +110,34 @@ public class Pickup : MonoBehaviour, IInteractable
         {
             Destroy(gameObject);
         }
+    }
+
+    // NPC-compatible pickup (2026-08-13, see
+    // NPC_JOB_GENERALIZATION_PLANNING.md section 3a) — mirrors
+    // ResourceNode.TryHarvestForNPC's shape: no PlayerLoot/PlayerInventory
+    // dependency, no skill-gain call inside (the caller trains the
+    // assigned job's own family skill via SkillGain above, not this
+    // pickup's trainedSkill field). Always takes the full quantity — an
+    // NPC's cargo capacity was already checked by the caller
+    // (NPCEncumbrance.CanPickUp) before committing to this target, unlike
+    // the player path's partial-leftover handling above.
+    public bool TryPickupForNPC(out ItemDefinition pickedItem, out int pickedQuantity)
+    {
+        pickedItem = item;
+        pickedQuantity = quantity;
+        if (item == null) return false;
+
+        if (canRespawn)
+        {
+            SetVisible(false);
+            respawnAt = Time.time + respawnDelay;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+
+        return true;
     }
 
     // Same spot it started at, with a small random horizontal shift so

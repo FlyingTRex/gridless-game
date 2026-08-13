@@ -20,7 +20,7 @@ public class NPCDialogue : MonoBehaviour
     [SerializeField] private float dialogueDuration = 4f;
 
     private NPCWander wander;
-    private NPCMining mining;
+    private NPCGathering gathering;
     private bool isTalking;
     private float talkTimer;
 
@@ -31,7 +31,7 @@ public class NPCDialogue : MonoBehaviour
         wander = GetComponent<NPCWander>();
         // Optional -- not every NPC has a job loop (Chunk 4), and
         // NPCDialogue shouldn't hard-require one just to pause it.
-        mining = GetComponent<NPCMining>();
+        gathering = GetComponent<NPCGathering>();
     }
 
     private void Update()
@@ -51,14 +51,14 @@ public class NPCDialogue : MonoBehaviour
         isTalking = true;
         talkTimer = dialogueDuration;
         wander.SetPaused(true);
-        mining?.SetPaused(true);
+        gathering?.SetPaused(true);
     }
 
     private void EndDialogue()
     {
         isTalking = false;
         wander.SetPaused(false);
-        mining?.SetPaused(false);
+        gathering?.SetPaused(false);
     }
 
     private void OnGUI()

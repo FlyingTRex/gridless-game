@@ -18,12 +18,12 @@ public class NPCJob : MonoBehaviour
 
     public NPCJobDefinition AssignedJob => assignedJob;
 
-    // Read by NPCMining (its own readiness gate) and NPCHiring (Chunk 6 --
+    // Read by NPCGathering (its own readiness gate) and NPCHiring (Chunk 6 --
     // the work timer only ticks while actually working) so both agree on
     // what "working" means instead of each re-deriving it separately.
     public bool IsReady => assignedJob != null && HasAllTools(assignedJob);
 
-    // Where NPCMining (Chunk 5) walks back to once full and deposits
+    // Where NPCGathering (Chunk 5) walks back to once full and deposits
     // cargo into, then resumes mining. Set via PlayerNPCDeposit's
     // point-and-confirm flow from NPCJobScreen. Deliberately NOT cleared
     // by Assign()'s reassignment wipe -- a Storage Box is a physical spot
@@ -44,7 +44,7 @@ public class NPCJob : MonoBehaviour
         return true;
     }
 
-    // Read by NPCMining (Chunk 4) to check a ResourceNode's RequiredTools
+    // Read by NPCGathering (Chunk 4) to check a ResourceNode's RequiredTools
     // against whatever the NPC actually has equipped, regardless of which
     // labeled slot it's in -- a node just needs "a Pickaxe," not one
     // specifically labeled "Pickaxe" in this job's own requirements.

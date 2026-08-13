@@ -76,7 +76,7 @@ public class NPCWander : MonoBehaviour
         target = spawnPosition + new Vector3(offset.x, 0f, offset.y);
     }
 
-    // Public so NPCMining (Chunk 4) can reuse the exact same
+    // Public so NPCGathering (Chunk 4) can reuse the exact same
     // modelForwardOffsetY correction instead of duplicating it -- any
     // component moving this NPC around should face it the same way.
     public void FaceToward(Vector3 worldTarget)

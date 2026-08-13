@@ -50,6 +50,23 @@ tie the stat block together nicely, or could snowball into Int mattering
 more than the other three. Needs a conscious call either way.
 
 ### 2 — Expand NPC hiring beyond stonework
+**Woodcutting and Gathering (Berry/Herb) shipped 2026-08-13 (v0.3.32-dev)**
+— full design in `NPC_JOB_GENERALIZATION_PLANNING.md`, summarized in
+`CHANGELOG.md`'s v0.3.32-dev entry. `NPCMining.cs` renamed to
+`NPCGathering.cs` (the mechanism really was mostly content, as guessed
+below — a new `INPCHarvestable`/`INPCSearchable` interface pair let
+`ChoppableTree`/`BerryBush`/`HerbBush` plug into the *same* loop instead
+of needing an `NPC<Job>` behavior each). Still open: **Guarding** (not
+started — a materially different job shape, defense/patrol rather than
+gather-and-deposit) and the full **bench-crafting** generalization
+(Metalworking, Sewing, etc. — explicitly deferred, see that planning
+doc's section 7). Still blocked *cosmetically*, not functionally, by item
+4 — a Woodcutting/Foraging NPC with no chop/search animation reads exactly
+as "bleh" as Mining does today; nothing in this build changed that.
+
+<details>
+<summary>Original ideation (2026-08-12), kept for history</summary>
+
 Only one job family exists today (`Mining` -> `Mine Ore`, via
 `NPCJobDefinition`/`NPCJob`/`NPCMining`). The mechanism is proven — a new
 family is mostly content (a new `NPCJobDefinition` + an `NPC<Job>` behavior
@@ -57,6 +74,8 @@ mirroring `NPCMining`). Natural next families: Woodcutting (`ChoppableTree`
 already exists), Gathering (Berry/Herb bushes), Guarding. Blocked
 *cosmetically*, not functionally, by item 4 — a woodcutting NPC with no
 swing animation reads exactly as "bleh" as mining does today.
+
+</details>
 
 ### 3 — Finish basic starting gear
 **Done as of 2026-08-12.** Auto-equip-at-spawn now covers Settler's

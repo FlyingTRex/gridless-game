@@ -20,13 +20,24 @@ using UnityEngine;
 // GetComponentsInChildren<Renderer> is fine — it's any
 // GetComponent<Tree>()/AddComponent<Tree>() call elsewhere that would
 // have resolved to the wrong type).
-public class ChoppableTree : MonoBehaviour, IInteractable
+public class ChoppableTree : MonoBehaviour, IInteractable, INPCHarvestable
 {
     [SerializeField] private GameObject logPrefab;
     [SerializeField] private int logCount = 3;
     [SerializeField] private float scatterForce = 1.2f;
     [SerializeField] private SkillDefinition trainedSkill;
     [SerializeField] private float skillGain = 0.5f;
+
+    // What an NPC-felled tree yields directly into cargo (2026-08-13, see
+    // NPC_JOB_GENERALIZATION_PLANNING.md section 2) -- the player path
+    // keeps spawning logCount physical logPrefab instances via Complete()
+    // below, untouched; an NPC has no "walk over and collect what I just
+    // knocked loose" step, so TryHarvestForNPC yields logItem x logCount
+    // straight to cargo instead, same INPCHarvestable split ResourceNode
+    // already established (TryHarvestForNPC skips the scatter, Complete
+    // keeps it). Set to the same Log ItemDefinition logPrefab's own
+    // ResourceNode.pickupItem points at.
+    [SerializeField] private ItemDefinition logItem;
     // <= 0 means the stump never regrows — same "0 disables it" reading
     // as ResourceNode.respawnDelay, kept consistent rather than inventing
     // a separate bool.
@@ -50,6 +61,12 @@ public class ChoppableTree : MonoBehaviour, IInteractable
     // as punching one used to do nothing; not specially blocked.
     public float GetHoldDuration(GameObject player) =>
         player.GetComponent<PlayerSkills>().GetHoldDuration(trainedSkill);
+
+    // INPCHarvestable (2026-08-13) — same public surface ResourceNode
+    // exposes for NPCGathering's target search/tool-check/carry-check.
+    public bool IsAvailable => !IsStump;
+    public ItemDefinition[] RequiredTools => requiredTools;
+    public float SkillGain => skillGain;
 
     private bool IsStump => regrowAt >= 0f;
 
@@ -110,6 +127,32 @@ public class ChoppableTree : MonoBehaviour, IInteractable
         SetStump(true);
         if (regrowDelay > 0f)
             regrowAt = Time.time + regrowDelay;
+    }
+
+    // Read-only — doesn't fell the tree. Lets NPCGathering check "could I
+    // even carry this" via NPCEncumbrance.CanPickUp before committing.
+    public bool PeekYield(out ItemDefinition item, out int count)
+    {
+        item = logItem;
+        count = logCount;
+        return IsAvailable && logItem != null;
+    }
+
+    // NPC-compatible fell (2026-08-13) — mirrors ResourceNode.
+    // TryHarvestForNPC's exact split: no tool check (the caller already
+    // verified RequiredTools against its own equipped tools), no scatter
+    // (an NPC has no separate collect step), no skill-gain call (the
+    // caller trains the assigned job's own family skill via SkillGain
+    // above, not this tree's trainedSkill field — same "job's family
+    // trains, not the node's" convention Mining already established).
+    public bool TryHarvestForNPC(out ItemDefinition item, out int count)
+    {
+        if (!PeekYield(out item, out count)) return false;
+
+        SetStump(true);
+        if (regrowDelay > 0f)
+            regrowAt = Time.time + regrowDelay;
+        return true;
     }
 
     private bool HasAnyRequiredToolInHand(PlayerEquipment equipment)

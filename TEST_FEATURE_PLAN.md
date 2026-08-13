@@ -2717,3 +2717,53 @@ GameObject (`FurnaceSurface.cs`, untouched) gained the new component.
   work exactly as before (shared code touched: `FirstPersonController.cs`
   gained a `furnaceScreen` field alongside the existing `campfireScreen`
   one) and StorageBox's own nearby-Inventory mechanism is unaffected.
+
+## 23. NPC job generalization: Woodworking + Berry/Herb foraging (v0.3.32-dev)
+
+New — not yet walked through in Play mode at all. `NPCMining.cs` renamed
+to `NPCGathering.cs`; `ChoppableTree`/`BerryBush`/`HerbBush`/`Pickup` all
+gained new NPC-facing code paths.
+
+- [ ] **Regression — Mining still works exactly as before**: hire an NPC,
+  assign Mine Ore (equip Pickaxe/Mining Face Shield/Backpack), confirm it
+  mines ore nodes and deposits into its assigned `StorageBox` exactly as
+  it did pre-v0.3.32-dev — the rename/generalization shouldn't have
+  changed this job's behavior at all.
+- [ ] **Chop Wood — fallen Log nodes**: hire a second NPC, assign Chop
+  Wood, give it an Axe + Backpack. Confirm it walks to and chops a fallen
+  Log node, yielding Plank (+ occasional Stick) into cargo, same as the
+  player's own Axe-chop on a Log node.
+- [ ] **Chop Wood — standing Trees**: with the same NPC, confirm it also
+  walks to and fells a standing Tree — the tree should become a stump
+  (same visual as a player-chopped one), and **no scattered Log objects
+  should spawn** for this NPC-driven chop (the direct-yield path skips the
+  physical scatter entirely) — confirm Log items appear directly in the
+  NPC's cargo instead. Confirm the stump regrows on the same timer as a
+  player-chopped one.
+- [ ] **Mixed Woodworking cargo**: let the Chop Wood NPC keep working
+  until its cargo fills or nothing's left in range — confirm it deposits
+  a natural mix of Log/Plank/Stick into its `StorageBox` (whatever it
+  actually happened to harvest), not just one item type.
+- [ ] **Forage — Berry Bush**: hire a third NPC, assign Forage (Backpack
+  only, no other tool). Confirm it walks to a Berry Bush, triggers the
+  search (bush's cooldown starts, same as a player's F action), then
+  **separately walks over to and collects the scattered Berry pickups**
+  that search produced — this should visibly read as two steps, not an
+  instant grant. Confirm it does *not* use the bush's E-chop action (no
+  Trimmed Sticks should ever come from this NPC).
+- [ ] **Forage — Herb Bush**: same NPC, confirm it also searches and
+  collects from a nearby Herb Bush.
+- [ ] **Forage side effect (flagged, not a bug)**: drop an unrelated item
+  near the Forage NPC (or leave a stray pickup from something else
+  nearby) — confirm the NPC also picks it up on its way past. Confirm
+  with Ben this is acceptable live, not just on paper.
+- [ ] **All three jobs running at once**: confirm a Mining NPC, a Chop
+  Wood NPC, and a Forage NPC operating simultaneously don't interfere with
+  each other (each only pursues targets its own tools/job allow).
+- [ ] **`NPCJobScreen` shows all three families**: open the Assign Job
+  screen for any hired NPC — confirm Mining, Woodworking, and Gathering
+  all appear as tabs, each showing its one job.
+- [ ] **Regression — NPCDialogue**: talk to a working NPC (any job) —
+  confirm it still pauses correctly (this file's `mining` field became
+  `gathering`, verify nothing broke in that rename) and resumes its job
+  after the dialogue line ends.

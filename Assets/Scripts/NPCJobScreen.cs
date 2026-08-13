@@ -143,7 +143,7 @@ public class NPCJobScreen : MonoBehaviour
         GUILayout.Space(8);
     }
 
-    // Chunk 5 (2026-08-10): where NPCMining walks the mined ore back to
+    // Chunk 5 (2026-08-10): where NPCGathering walks the mined ore back to
     // once full. Closes this whole screen and hands off to
     // PlayerNPCDeposit's point-and-confirm targeting, same one-modal-at-
     // a-time handoff NPCHiringScreen's own "Assign Job" button already

@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
+public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable, INPCHarvestable
 {
     [SerializeField] private GameObject chunkPrefab;
     [SerializeField] private int chunkCount = 3;
@@ -162,19 +162,22 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
     }
 
     // NPC-compatible break (2026-08-10, Chunk 4 of the Hireable NPCs
-    // build). Mirrors Complete()'s yield/respawn logic but deliberately
-    // skips the tool check -- NPCMining checks the NPC's own equipped
-    // tools against RequiredTools itself before ever calling this, since
-    // there's no PlayerEquipment to check here -- and returns the mined
-    // item/count instead of spawning physical world pickups, since an NPC
-    // has no separate "walk over and grab it" step to collect them with.
-    // Always yields the true item, ignoring hiddenMaterial/disguise --
-    // Mine Ore already requires a Mining Face Shield to even be assigned,
-    // so treating an equipped NPC as always-revealed is a deliberate
+    // build; renamed TryMineForNPC -> TryHarvestForNPC 2026-08-13 when
+    // this became part of the shared INPCHarvestable interface -- see
+    // NPC_JOB_GENERALIZATION_PLANNING.md). Mirrors Complete()'s
+    // yield/respawn logic but deliberately skips the tool check --
+    // NPCGathering checks the NPC's own equipped tools against
+    // RequiredTools itself before ever calling this, since there's no
+    // PlayerEquipment to check here -- and returns the mined item/count
+    // instead of spawning physical world pickups, since an NPC has no
+    // separate "walk over and grab it" step to collect them with. Always
+    // yields the true item, ignoring hiddenMaterial/disguise -- Mine Ore
+    // already requires a Mining Face Shield to even be assigned, so
+    // treating an equipped NPC as always-revealed is a deliberate
     // simplification, not an oversight. bonusChunkPrefab is also skipped
     // for the same reason: keeps the NPC path predictable rather than
     // matching the player's exact roll-based yield.
-    public bool TryMineForNPC(out ItemDefinition item, out int count)
+    public bool TryHarvestForNPC(out ItemDefinition item, out int count)
     {
         if (!PeekYield(out item, out count)) return false;
 

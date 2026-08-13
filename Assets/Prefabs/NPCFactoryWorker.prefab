@@ -230,9 +230,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 10f34e8dfc5717645ae0b7c3c80800cb, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::NPCMining
+  m_EditorClassIdentifier: Assembly-CSharp::NPCGathering
   searchRadius: 50
-  mineRange: 2
-  mineDuration: 3
+  harvestRange: 2
+  harvestDuration: 3
   moveSpeed: 1.5
   obstacleCheckDistance: 1.5

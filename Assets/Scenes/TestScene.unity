@@ -41640,8 +41640,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCJobScreen
   families:
   - {fileID: 11400000, guid: e72a58bed72a2b340817fd25c3af1927, type: 2}
+  - {fileID: 11400000, guid: a05cd28340d5c8b41bcf4af8f1892fe0, type: 2}
+  - {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   jobs:
   - {fileID: 11400000, guid: 4045c7d8e9910974b815693dd7e02f70, type: 2}
+  - {fileID: 11400000, guid: d2a3311c0535f754798939f7adb757bf, type: 2}
+  - {fileID: 11400000, guid: 3e1b9a866c1251041a073fc6b973ceec, type: 2}
 --- !u!114 &1681626276
 MonoBehaviour:
   m_ObjectHideFlags: 0

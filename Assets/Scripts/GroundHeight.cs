@@ -2,7 +2,7 @@ using UnityEngine;
 
 // Shared ground-height sampling (2026-08-10) -- built ahead of the
 // Terrain/hills conversion (see BUGS_AND_ENHANCEMENTS.md's scene plan) so
-// HostileCreature/NPCWander/NPCMining already snap to the real ground
+// HostileCreature/NPCWander/NPCGathering already snap to the real ground
 // surface by the time hills exist, instead of needing three separate
 // retrofits later. Works identically on today's flat Ground and a future
 // hilly Terrain -- it's just "raycast down, use whatever the Ground layer

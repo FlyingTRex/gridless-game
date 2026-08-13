@@ -120,6 +120,7 @@ MonoBehaviour:
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
+  logItem: {fileID: 11400000, guid: 77c48355fa024ab488ee1230ca83774c, type: 2}
   regrowDelay: 180
   requiredTools:
   - {fileID: 11400000, guid: e1f237e285e7a424bb1f2abebd01fef4, type: 2}
