@@ -167,10 +167,42 @@ public class PlayerBelt : MonoBehaviour
         else
             playerInventory.Inventory.RemoveEquipmentItem(belt.ItemDefinition);
 
+        DropClippedEquipment(belt);
+
         belt.SetCarried(false, null);
         belt.transform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
         var despawn = belt.gameObject.AddComponent<Despawn>();
         despawn.delay = despawnDelay;
+    }
+
+    // Real bug found live (2026-08-13): a Canteen clipped to a worn Belt
+    // is a pure data relationship (registered in belt.Inventory), not a
+    // Transform-hierarchy one — its physical object is bone-attached
+    // directly (EquipmentAttach.Carry), not parented under the Belt
+    // GameObject. Dropping the Belt alone left the Canteen still visibly
+    // "worn," floating in place, with no owner. Detaches and drops every
+    // physical equipment item still clipped to the belt at the same time,
+    // scattered slightly so they don't all land exactly on top of the
+    // belt itself.
+    private void DropClippedEquipment(Belt belt)
+    {
+        var clipped = new System.Collections.Generic.List<(ItemDefinition item, IEquippable equipment)>();
+        foreach (var slot in belt.Inventory.Slots)
+            if (slot.equipment != null)
+                clipped.Add((slot.item, slot.equipment));
+
+        foreach (var (item, clippedEquipment) in clipped)
+        {
+            belt.Inventory.RemoveEquipmentItem(item);
+
+            clippedEquipment.SetCarried(false, null);
+            var clippedTransform = ((Component)clippedEquipment).transform;
+            Vector3 scatter = Random.insideUnitSphere * 0.3f;
+            clippedTransform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight + scatter;
+
+            var despawn = ((Component)clippedEquipment).gameObject.AddComponent<Despawn>();
+            despawn.delay = despawnDelay;
+        }
     }
 
     // Searches Waist, then the hands, for the given belt instance.

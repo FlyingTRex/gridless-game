@@ -33,10 +33,15 @@ public class PlayerJeans : MonoBehaviour
     // point in whatever direction was "up" while lying flat — which,
     // parented to an upright Hips bone with no correction, is consistent
     // with legs pointing straight up past the head instead of down.
-    // Trying the same -90 X pitch correction used for the Backpack, same
-    // coin-flip-on-sign caveat.
+    //
+    // Round 5 (Ben, follow-up screenshot): the -90 X attempt was real
+    // progress — moved from "straight up past the head" to "sideways,
+    // hanging near the hand/arm" — confirming X-pitch is the right axis,
+    // just not enough of it. -90 got roughly a quarter-turn from vertical;
+    // doubling to -180 should swing it the rest of the way from
+    // horizontal to pointing down.
     [SerializeField] private Vector3 wornPositionOffset = Vector3.zero;
-    [SerializeField] private Vector3 wornEulerOffset = new Vector3(-90f, 0f, 0f);
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(-180f, 0f, 0f);
 
     // The player starts the game already wearing the Settler's Jeans
     // variant specifically — same single-purpose starting-gear mechanism

@@ -40,14 +40,20 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   blue/black shape kept jutting up past the head — theory at the time:
   the same rigid Backpack model has a bedroll-style top extension, fixed
   with a `-90°` X (pitch) addition. Boots also got a 180° yaw trial.
-  **Live-feedback round 4 (v0.3.44-dev, implementation complete, not yet
-  committed/pushed):** the round-3 Backpack pitch fix had zero visible
-  effect on the floating shape — meaning it was misdiagnosed, never the
-  Backpack. Re-diagnosed as Jeans (color matches denim; it was the one
-  worn-clothing type with no rotation correction at all) — same
-  ground-lying-prefab theory, same `-90°` X pitch fix applied there
-  instead. **Still no live Play-mode confirmation of any of this**, see
-  `TEST_FEATURE_PLAN.md` section 29.
+  **Live-feedback round 4 (v0.3.44-dev, committed and pushed):** the
+  round-3 Backpack pitch fix had zero visible effect on the floating
+  shape — meaning it was misdiagnosed, never the Backpack. Re-diagnosed
+  as Jeans (color matches denim) — `-90°` X pitch fix applied there.
+  **Live-feedback round 5 (v0.3.45-dev, implementation complete, not yet
+  committed/pushed):** the Jeans `-90°` was real progress (moved from
+  "above the head" to "sideways near the hand") — doubled to `-180°` to
+  finish the swing to pointing down. Also fixed a real logic bug found
+  live: dropping a worn Belt didn't drop a Canteen clipped to it (pure
+  data relationship, not a Transform-parent one) — new `PlayerBelt.
+  DropClippedEquipment` cascades the drop. **Backpack reported still
+  misaligned, no new screenshot yet** — holding off on a third blind
+  guess there pending clearer evidence. **Still no live Play-mode
+  confirmation of any of this**, see `TEST_FEATURE_PLAN.md` section 29.
 - 2026-08-13 — Ben — Player equipment now bone-attaches too (same
   RightHand/Chest system NPCs just got, applied to the player's real
   `Tool`/`Backpack` carry objects instead of a decorative copy). v0.3.40-dev,

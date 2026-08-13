@@ -5,10 +5,38 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.44-dev` — must always match `GameVersion` in
+**Current version:** `0.3.45-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (19)
+
+### v0.3.45-dev — Fix: Belt drop orphaned a clipped Canteen; Jeans rotation round 5
+
+Two fixes from live testing (Ben: dropped Shirt and Belt, "minor bug -
+the canteen should have dropped as well").
+
+- **Real logic bug, `PlayerBelt.Drop`**: a Canteen clipped to a worn Belt
+  is a pure data relationship (registered in `belt.Inventory`), not a
+  Transform-hierarchy one — its physical object is bone-attached directly
+  via `EquipmentAttach.Carry`, not parented under the Belt GameObject.
+  Dropping the Belt alone left the Canteen still visibly "worn," floating
+  in place with no owner. New `PlayerBelt.DropClippedEquipment` detaches
+  and drops every physical equipment item still clipped to the belt in
+  the same call, scattered slightly so they don't all land exactly on top
+  of the belt itself.
+- **Jeans rotation, round 5**: the `-90°` X pitch from v0.3.44-dev was
+  real progress — moved from "straight up past the head" to "sideways,
+  hanging near the hand/arm" — confirming X-pitch is the right axis, just
+  not enough of it. Doubled to `-180°` to swing the rest of the way from
+  horizontal to pointing down.
+
+Both compiled clean; the rotation number is still an unconfirmed guess.
+**Backpack alignment reported still wrong** (Ben, no screenshot yet this
+round) — holding off on a blind third guess there pending clearer
+evidence of what's actually off now (position vs. rotation vs. something
+else).
 
 ## 2026-08-13 (18)
 
