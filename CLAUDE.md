@@ -86,6 +86,21 @@ the model (ring of rocks + charred wood, replacing the pre-Blender
 placeholder). Spark becomes an alternate way to light a placed Campfire,
 not the only way one can exist.
 
+**Multiplayer conversion exploration lives in `MULTIPLAYER_PLANNING.md`.**
+Audits the single-player codebase (2026-08-13) against what converting to
+dedicated-server multiplayer via Mirror Networking (imported this session)
+would actually require — 32 `PlayerXXX.cs` scripts assume exactly one
+local player, only `StorageBox` maintains a live registry (everything else
+scene-scans via `FindObjectsByType`), zero save/load persistence exists
+anywhere, and the 22 `OnGUI`-based screens turn out to need no structural
+change at all (IMGUI is already inherently per-client). Nothing here is a
+locked architecture — it's a phased proposal (infra spike → one pilot
+networked world object → player-authoritative gameplay → NPCs server-side
+→ persistence) plus a list of real open questions (movement-authority
+model, dev/test workflow, scope shape). Mirror was picked over PurrNet
+mainly because PurrNet's stated minimum Unity version is newer than this
+project's pinned one.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:
