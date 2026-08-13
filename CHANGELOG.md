@@ -5,10 +5,61 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.33-dev` — must always match `GameVersion` in
+**Current version:** `0.3.34-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (8)
+
+### v0.3.34-dev — Player visible body + first/third-person camera toggle
+
+MVP2 item 4, player half — direct follow-up to v0.3.33-dev's NPC animation
+pass, same day. The player previously had zero visible mesh (invisible
+`CharacterController` + eye-height camera only); third person is
+meaningless without something to actually see, so this ships both
+together.
+
+- **`FirstPersonController.Pitch`/`CurrentStance`** — two new read-only
+  properties, no behavior change, same reasoning as `NPCGathering`'s
+  animation-driving properties: avoids re-deriving pitch from the camera's
+  baked local-rotation Euler angles later, and avoids scattering raw
+  private-field reads across new scripts.
+- **`PlayerAnimatorDriver.cs`** (new) — mirrors `NPCAnimatorDriver.cs`'s
+  frame-delta Speed technique. Also tracks the previous stance to fire a
+  `StanceChanged` trigger only on an actual change.
+- **`PlayerAnimatorMale.controller`/`PlayerAnimatorFemale.controller`**
+  (new) — 9 states (Idle/Walk/Sprint × Standing, Idle/Walk × Kneeling/
+  Crawling/Prone), driven by `Speed`/`IsSprinting`/`Stance`/
+  `StanceChanged`. The stance-select Any-State transitions are gated on
+  **both** `Stance == N` and the `StanceChanged` trigger, not `Stance == N`
+  alone — a level-only gate would re-trigger every frame while already in
+  that stance and stomp the Idle↔Walk blending happening inside it.
+  Crawling reuses the pack's single Prone-crawl clip (there's no separate
+  skeletonized crawling-idle in the source pack) paired with the
+  stationary Prone-idle clip for its own idle state.
+- **`PlayerCameraMode.cs`** (new) — V-key toggle. Reveals the body via a
+  single `cullingMask` flip (the `Visual` body's renderers sit permanently
+  on `WornEquipmentLayer`, the same layer worn equipment already uses and
+  which the camera already excludes project-wide) rather than a new layer
+  or per-frame visibility toggling. As a side effect, currently-worn
+  equipment also becomes camera-visible in third person — correct
+  behavior, not a bug, though it won't be bone-attached/positioned
+  correctly since equipment-visual-attachment is still unbuilt. Third
+  person is a chase camera following wherever the player's already facing
+  (same single mouse-look scheme, no independent orbit state) with a
+  SphereCast obstruction clamp — no in-repo precedent existed for camera
+  collision, built from scratch.
+- Player lives directly in `TestScene.unity`, not a prefab (unlike NPCs) —
+  the wiring script used `EditorSceneManager.OpenScene`/`SaveScene`
+  instead of `PrefabUtility.LoadPrefabContents`, a genuinely different
+  mechanic from the NPC build, not a copy-paste of it.
+- Explicitly out of scope, same standing decision as before: a
+  first-person arms/view-model, and equipment-visual attachment (bone
+  positioning). Verified via YAML grep (no null motion refs across either
+  controller, all component references on the Player object non-null) —
+  script deleted after running. **Not yet live-tested** — see
+  `TEST_FEATURE_PLAN.md` section 25.
 
 ## 2026-08-13 (7)
 

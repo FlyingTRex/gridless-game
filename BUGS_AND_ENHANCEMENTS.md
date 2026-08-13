@@ -307,9 +307,19 @@ NPC presentation first.
   gender, driven by a new `NPCAnimatorDriver.cs`. **Still open from this
   entry:** the equipment-visual-attachment script (`Animator.
   GetBoneTransform` + instantiate-as-child) is unbuilt — Boots/Backpack/
-  Belt still equip as pure bookkeeping with no visible attachment — and
-  player-visible-body is still deliberately deferred (separate future
-  plan, per Ben 2026-08-13). Vendor NPC ideation also still unwritten.
+  Belt still equip as pure bookkeeping with no visible attachment. Vendor
+  NPC ideation also still unwritten.
+- **Player-visible-body shipped — v0.3.34-dev, see `CHANGELOG.md`.** The
+  "deferred, not forgotten" note above is resolved: the player has a KI
+  dummy `Visual` child (same rig approach as NPCs), a stance-aware
+  `PlayerAnimatorMale/Female.controller`, and a V-key toggle
+  (`PlayerCameraMode.cs`) between the normal first-person view and a
+  SphereCast-clamped third-person chase camera. **Still explicitly out of
+  scope, same as before:** a first-person arms/view-model (still parked
+  until multiplayer's on the table), and equipment-visual attachment —
+  worn gear becomes camera-visible in third person (a `cullingMask` side
+  effect) but isn't positioned on the body via a bone attachment, so it
+  won't look anchored correctly yet.
 
 ## Furnace Fuel System (real state + automation shipped v0.3.31-dev)
 

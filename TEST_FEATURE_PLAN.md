@@ -2806,3 +2806,45 @@ so every item below needs a real look, not just a compile/YAML check.
   (`NPCAnimatorMale.controller`/`NPCAnimatorFemale.controller`), built by
   the same script but not literally the same asset, so a mistake in one
   wouldn't necessarily show up in the other.
+
+## 25. Player visible body + first/third-person camera toggle (v0.3.34-dev)
+
+New — not yet walked through in Play mode at all. Per `CLAUDE.md`, Humanoid
+retargeting can't be verified headlessly, so every item below needs a real
+look.
+
+- [ ] **First-person view unchanged (regression)**: before touching V at
+  all, confirm the game looks and plays exactly as before this feature —
+  no visible body parts in view, no camera position/FOV change, normal
+  look/move feel. This is the most important check: it's easy for a body
+  attachment mistake to leak into the first-person view.
+- [ ] **V toggles to third person**: press V, confirm the camera pulls back
+  to a behind-the-shoulder view and the player's own body becomes visible
+  (KI dummy, standing pose matching current movement).
+- [ ] **V toggles back to first person**: press V again, confirm the camera
+  snaps back to the normal eye-height first-person view with no lingering
+  offset or wrong pitch.
+- [ ] **Camera collision**: in third person, walk backward into a wall or
+  large object — confirm the camera pulls in smoothly rather than clipping
+  through the obstruction, and pulls back out once clear.
+- [ ] **Locomotion animates correctly in third person, Standing stance**:
+  confirm Idle/Walk/Sprint all play the right clip as you start moving,
+  walk, and hold Shift to sprint.
+- [ ] **All 4 stances animate correctly**: toggle through Kneel (X)/Crawl
+  (C)/Prone (Z) while in third person — confirm each stance shows its own
+  idle and walk animation (not stuck on Standing's), and that switching
+  stances doesn't get the Animator stuck mid-transition or replaying the
+  wrong pose repeatedly (the `StanceChanged`-trigger gating exists
+  specifically to prevent this — worth watching closely).
+- [ ] **Ground contact**: watch for foot sliding on Walk and any
+  sinking/floating across all 4 stances in third person — same
+  Humanoid-retargeting risk class already hit once on the NPC pass
+  (`NPCVisualGroundFix`, reused as-is here).
+- [ ] **Worn equipment becomes visible in third person**: equip something
+  (e.g. a Backpack), toggle to third person — confirm it's visible on the
+  body's layer alongside the body itself (this is a side effect of the
+  `cullingMask` toggle, not dedicated equipment-attachment code — the item
+  won't be *positioned* on the body via a bone attachment, just no longer
+  camera-culled, so don't expect it to look anchored correctly).
+- [ ] **Toggle while stationary and while moving** — confirm no popping or
+  wrong-pose flash at the instant of the switch either way.

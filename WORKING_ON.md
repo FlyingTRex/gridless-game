@@ -12,20 +12,21 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-- 2026-08-13 — Ben — NPC animation, MVP2 item 4 (scope narrowed to NPC-only;
-  player-body animation deferred to a separate future plan). v0.3.33-dev,
-  **implementation complete, not yet committed/pushed.** Built:
-  `NPCJobDefinition.WorkAnimationType` (Mining/Chopping/Gathering,
-  data-driven per job asset), `NPCGathering.IsActingOnTarget`/
-  `CurrentWorkAnimation` read-only properties, new `NPCAnimatorDriver.cs`
-  (Speed via frame-delta, decoupled from whichever script currently owns
-  movement), and real `NPCAnimatorMale.controller`/`NPCAnimatorFemale.
-  controller` (Idle/Walk/WorkMining/WorkChopping/WorkGathering) replacing
-  the old placeholder `NPCIdle.controller` on both Factory Worker prefabs.
-  Verified via compile checks + YAML grep (no stale/null motion refs,
-  correct controller guids on both prefabs) only so far — **no live
-  Play-mode test yet**, see `TEST_FEATURE_PLAN.md` section 24. Full detail
-  in `CHANGELOG.md`'s v0.3.33-dev entry.
+- 2026-08-13 — Ben — NPC animation, MVP2 item 4 (scope narrowed to NPC-only).
+  v0.3.33-dev, **committed and pushed to origin/main** (confirmed —
+  fetch shows origin/main at the same commit; an earlier push report of
+  "remote rejected" turned out to be a transient ref-lock race, not a real
+  collision — all LFS objects had already uploaded and the ref updated
+  moments later). **No live Play-mode test yet**, see
+  `TEST_FEATURE_PLAN.md` section 24.
+- 2026-08-13 — Ben — Player visible body + first/third-person camera
+  toggle (MVP2 item 4, player half). v0.3.34-dev, **implementation
+  complete, not yet committed/pushed.** New `Visual` child on the player
+  object in `TestScene.unity` (not a prefab), `PlayerAnimatorMale/
+  Female.controller` (9 states), `PlayerAnimatorDriver.cs`, and
+  `PlayerCameraMode.cs` (V key). Verified via compile checks + YAML grep
+  only so far — **no live Play-mode test yet**, see `TEST_FEATURE_PLAN.md`
+  section 25. Full detail in `CHANGELOG.md`'s v0.3.34-dev entry.
 - 2026-08-13 — Ben — NPC job generalization: Woodworking + Berry/Herb
   foraging (v0.3.32-dev, **committed and pushed**). Full design in
   `NPC_JOB_GENERALIZATION_PLANNING.md`,

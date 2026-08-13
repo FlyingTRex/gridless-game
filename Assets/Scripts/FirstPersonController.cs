@@ -66,6 +66,13 @@ public class FirstPersonController : MonoBehaviour
     private float pitch;
     private MovementStance stance = MovementStance.Standing;
 
+    // Read by PlayerAnimatorDriver/PlayerCameraMode -- avoids re-deriving
+    // pitch from the camera's baked local-rotation Euler angles (wraparound-
+    // prone) and avoids scattering raw private-field reads elsewhere, same
+    // reasoning as NPCGathering's animation-driving properties.
+    public float Pitch => pitch;
+    public MovementStance CurrentStance => stance;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -268,7 +275,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.33-dev";
+    private const string GameVersion = "0.3.34-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

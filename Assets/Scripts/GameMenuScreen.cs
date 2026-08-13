@@ -26,6 +26,7 @@ public class GameMenuScreen : MonoBehaviour
         ("Right Mouse Button", "Rename a world object"),
         ("Space", "Jump"),
         ("Tab", "Open the player menu (Inventory / Skills / Crafting)"),
+        ("V", "Toggle first-person / third-person view"),
         ("W A S D", "Move"),
         ("X", "Toggle Kneel stance"),
         ("Z", "Toggle Prone stance"),
