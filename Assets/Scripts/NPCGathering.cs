@@ -81,6 +81,15 @@ public class NPCGathering : MonoBehaviour
     // component happens to be moving it at that moment.
     public void SetPaused(bool paused) => isPaused = paused;
 
+    // Read by NPCAnimatorDriver to pick/hold the right Work state. True
+    // across the exact same window Update() counts harvestTimer -- i.e.
+    // once adjacent to a target and not mid-return -- so it lines up with
+    // movement having already stopped for that target.
+    public bool IsActingOnTarget => currentTarget != null && !isReturning && harvestTimer > 0f;
+
+    public NPCJobDefinition.WorkAnimationType CurrentWorkAnimation =>
+        job.AssignedJob != null ? job.AssignedJob.workAnimation : NPCJobDefinition.WorkAnimationType.None;
+
     private void Awake()
     {
         wander = GetComponent<NPCWander>();

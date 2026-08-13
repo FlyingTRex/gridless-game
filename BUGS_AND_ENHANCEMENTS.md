@@ -298,6 +298,18 @@ NPC presentation first.
   (bookkeeping only, `SetCarried` anchors to `transform` since there's no
   bone to attach to yet), same unsolved gap as Backpack/Belt. Revisit once
   a rigged model exists.
+- **Model-source decision resolved, animation controller shipped —
+  v0.3.33-dev, see `CHANGELOG.md`.** Option 2 (KI Human Character Dummy +
+  Human Mega Animations Pack, Full #162341) was picked; both are imported
+  and the Male/Female Factory Worker prefabs use the dummy as a `Visual`
+  child. `NPCIdle.controller`'s placeholder single-state graph is now a
+  real Idle/Walk/WorkMining/WorkChopping/WorkGathering controller per
+  gender, driven by a new `NPCAnimatorDriver.cs`. **Still open from this
+  entry:** the equipment-visual-attachment script (`Animator.
+  GetBoneTransform` + instantiate-as-child) is unbuilt — Boots/Backpack/
+  Belt still equip as pure bookkeeping with no visible attachment — and
+  player-visible-body is still deliberately deferred (separate future
+  plan, per Ben 2026-08-13). Vendor NPC ideation also still unwritten.
 
 ## Furnace Fuel System (real state + automation shipped v0.3.31-dev)
 

@@ -26,3 +26,4 @@ MonoBehaviour:
   - label: Backpack
     acceptableItems:
     - {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
+  workAnimation: 2

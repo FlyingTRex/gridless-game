@@ -12,9 +12,23 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-13 — Ben — NPC animation, MVP2 item 4 (scope narrowed to NPC-only;
+  player-body animation deferred to a separate future plan). v0.3.33-dev,
+  **implementation complete, not yet committed/pushed.** Built:
+  `NPCJobDefinition.WorkAnimationType` (Mining/Chopping/Gathering,
+  data-driven per job asset), `NPCGathering.IsActingOnTarget`/
+  `CurrentWorkAnimation` read-only properties, new `NPCAnimatorDriver.cs`
+  (Speed via frame-delta, decoupled from whichever script currently owns
+  movement), and real `NPCAnimatorMale.controller`/`NPCAnimatorFemale.
+  controller` (Idle/Walk/WorkMining/WorkChopping/WorkGathering) replacing
+  the old placeholder `NPCIdle.controller` on both Factory Worker prefabs.
+  Verified via compile checks + YAML grep (no stale/null motion refs,
+  correct controller guids on both prefabs) only so far — **no live
+  Play-mode test yet**, see `TEST_FEATURE_PLAN.md` section 24. Full detail
+  in `CHANGELOG.md`'s v0.3.33-dev entry.
 - 2026-08-13 — Ben — NPC job generalization: Woodworking + Berry/Herb
-  foraging (v0.3.32-dev, **not yet committed/pushed** — pending a live
-  Play-mode look). Full design in `NPC_JOB_GENERALIZATION_PLANNING.md`,
+  foraging (v0.3.32-dev, **committed and pushed**). Full design in
+  `NPC_JOB_GENERALIZATION_PLANNING.md`,
   built same day: `NPCMining.cs` renamed to `NPCGathering.cs` (functional
   rename-only, script GUID preserved so existing prefab references
   survived), a new `INPCHarvestable` interface lets `ChoppableTree`

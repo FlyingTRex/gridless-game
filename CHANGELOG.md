@@ -5,10 +5,60 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.32-dev` — must always match `GameVersion` in
+**Current version:** `0.3.33-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (7)
+
+### v0.3.33-dev — NPC animation: locomotion + per-job work actions
+
+MVP2 item 4 (NPC half only — player-body animation deferred to a separate
+plan). NPCs previously had a proof-of-pipeline single-state Idle Animator
+Controller (`NPCIdle.controller`, built 2026-08-11 just to surface/fix the
+Humanoid-retargeting ground-sink bug `NPCVisualGroundFix` corrects) — no
+Walk state, nothing reacting to movement or job actions. Replaced with a
+real controller per gender.
+
+- **`NPCJobDefinition.WorkAnimationType`** (`None`/`Mining`/`Chopping`/
+  `Gathering`) — a new data-driven field tagging which Kevin Iglesias
+  `Work/` animation loop a job plays, set on the three shipped job assets
+  (`MineOreJob`→Mining, `ChopWoodJob`→Chopping, `ForageJob`→Gathering). The
+  pack's `Work/` subfolder names happened to line up 1:1 with the three
+  job families already built in `NPC_JOB_GENERALIZATION_PLANNING.md`.
+- **`NPCGathering.IsActingOnTarget`/`CurrentWorkAnimation`** — two new
+  read-only properties, no behavior change; expose the existing
+  `harvestTimer` dwell window (already tracked for the harvest/search
+  action itself) to the animator layer.
+- **`NPCAnimatorDriver.cs`** (new) — drives `Speed`/`IsWorking`/`WorkType`
+  Animator parameters. Deliberately computes `Speed` from raw frame-to-
+  frame position displacement rather than reading `NPCWander`/
+  `NPCGathering`'s internal movement state directly, so it stays correct
+  regardless of which script currently owns the NPC's transform.
+- **`NPCAnimatorMale.controller`/`NPCAnimatorFemale.controller`** (new,
+  replacing `NPCIdle.controller` on both Factory Worker prefabs) — Idle/
+  Walk (`Speed` threshold) plus WorkMining/WorkChopping/WorkGathering
+  (any-state transition on `IsWorking` + `WorkType`, back to Idle once
+  `IsWorking` clears). v1 uses each job's single `...Loop` clip directly
+  (`HumanM/F@Mining01 - Loop Ground`, `TreeChopping01 - Loop`,
+  `Gathering01`) — the pack's Begin/Stop transitional clips for Mining/
+  Chopping are deliberately skipped for now, addable later without
+  restructuring anything.
+- Built via a throwaway batch-mode Editor script (`AnimatorController` API
+  — states/params/transitions are fully scriptable), split into two
+  separate `-executeMethod` invocations (controller-build+job-tagging,
+  then prefab-wiring) specifically so the prefab-wiring phase's
+  `PrefabUtility.LoadPrefabContents` cycle couldn't leave any reference
+  from the first phase stale, per `CLAUDE.md`'s documented gotcha.
+  Verified via YAML grep (no `fileID: 0` motion references, correct
+  controller guids on both prefabs) — script deleted after running.
+- **Not yet live-tested** — per `CLAUDE.md`, Humanoid retargeting can't be
+  reliably evaluated in batch mode. Needs a Play-mode pass checking foot
+  sliding on Walk, whether `NPCVisualGroundFix` still keeps feet planted
+  under the new work-action poses (a mining/chopping stance may sink
+  differently than the idle pose did), and that transitions read sensibly
+  across a full ~3s harvest cycle.
 
 ## 2026-08-13 (6)
 

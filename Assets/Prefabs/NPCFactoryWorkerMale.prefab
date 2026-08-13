@@ -67,7 +67,7 @@ PrefabInstance:
     - target: {fileID: 7869543608362826461, guid: 9bd72731ebe2248478ba4849c274a43b, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: 78f54ca1bde648440b1d49be9ebd86f5, type: 2}
+      objectReference: {fileID: 9100000, guid: aadbb71b5a2442c4d9e1d1735df75699, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -81,6 +81,11 @@ Transform:
 --- !u!137 &8104495797086063911 stripped
 SkinnedMeshRenderer:
   m_CorrespondingSourceObject: {fileID: 7355915943570368427, guid: 9bd72731ebe2248478ba4849c274a43b, type: 3}
+  m_PrefabInstance: {fileID: 1616094553667988108}
+  m_PrefabAsset: {fileID: 0}
+--- !u!95 &8888902080278532177 stripped
+Animator:
+  m_CorrespondingSourceObject: {fileID: 7869543608362826461, guid: 9bd72731ebe2248478ba4849c274a43b, type: 3}
   m_PrefabInstance: {fileID: 1616094553667988108}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &4983459020196990745
@@ -156,6 +161,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
       insertIndex: -1
       addedObject: {fileID: 947897229345743293}
+    - targetCorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1258544070457268151}
   m_SourcePrefab: {fileID: 100100000, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
 --- !u!4 &2899605274916642986 stripped
 Transform:
@@ -182,3 +190,16 @@ MonoBehaviour:
   visual: {fileID: 3295391981941180971}
   renderers:
   - {fileID: 8104495797086063911}
+--- !u!114 &1258544070457268151
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4646995035460805641}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 207068bd2e1e0404485dfa05c66bf56a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCAnimatorDriver
+  animator: {fileID: 8888902080278532177}

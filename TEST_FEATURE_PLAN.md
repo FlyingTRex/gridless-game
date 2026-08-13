@@ -2767,3 +2767,42 @@ gained new NPC-facing code paths.
   confirm it still pauses correctly (this file's `mining` field became
   `gathering`, verify nothing broke in that rename) and resumes its job
   after the dialogue line ends.
+
+## 24. NPC animation — locomotion + per-job work actions (v0.3.33-dev)
+
+New — not yet walked through in Play mode at all. Per `CLAUDE.md`'s
+Humanoid-retargeting gotcha, batch mode can't verify any of this visually,
+so every item below needs a real look, not just a compile/YAML check.
+
+- [ ] **Idle → Walk**: watch an unassigned NPC wander (`NPCWander`). Confirm
+  it plays the Idle pose while stationary and transitions smoothly into the
+  Walk cycle as soon as it starts moving toward a wander target, back to
+  Idle once it arrives and pauses. No foot sliding during Walk.
+- [ ] **Ground contact still holds under the new states**: this is the
+  specific regression risk flagged when building this — `NPCVisualGroundFix`
+  was tuned against the old placeholder Idle pose only. Watch closely for
+  sinking/floating on Walk and on each Work pose below, not just Idle.
+- [ ] **Mining work animation**: hire an NPC, assign Mine Ore, watch it
+  approach an ore node. Confirm it switches into the mining animation once
+  in range (roughly when it stops moving) and holds it for the ~3s harvest
+  window, then returns to Idle/Walk once it moves to the next target.
+- [ ] **Chopping work animation**: same check with a Chop Wood NPC on a
+  Log node or standing Tree — confirm the chopping animation plays during
+  the harvest window.
+- [ ] **Gathering work animation**: same check with a Forage NPC at a
+  Berry/Herb bush — confirm the gathering animation plays during the
+  search's dwell window.
+- [ ] **Correct animation per job, not a generic one**: with two NPCs
+  assigned to different jobs (e.g. one Mining, one Chopping) working near
+  each other, confirm each plays its *own* job's animation, not either
+  defaulting to the other or to Idle while "working."
+- [ ] **Return-to-deposit still animates as Walk**: once an NPC's cargo
+  fills and it heads back to its `StorageBox` (`NPCGathering`'s
+  `isReturning` state), confirm it plays Walk during that trip, not Idle
+  or a stuck Work pose.
+- [ ] **Male vs Female prefab both work**: repeat at least the Idle/Walk/
+  one Work-state check on both `NPCFactoryWorkerMale` and
+  `NPCFactoryWorkerFemale` — they use separate Animator Controllers
+  (`NPCAnimatorMale.controller`/`NPCAnimatorFemale.controller`), built by
+  the same script but not literally the same asset, so a mistake in one
+  wouldn't necessarily show up in the other.

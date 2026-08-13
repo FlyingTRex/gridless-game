@@ -23,8 +23,15 @@ public class ToolRequirement
 [CreateAssetMenu(menuName = "Gridless/NPC Job Definition", fileName = "NewNPCJob")]
 public class NPCJobDefinition : ScriptableObject
 {
+    // Which Kevin Iglesias Work/ animation loop NPCAnimatorDriver plays while
+    // this job's harvestTimer is counting (NPCGathering.IsActingOnTarget) --
+    // one enum entry per Work subfolder actually mapped to a shipped job
+    // family so far, not every subfolder the pack ships.
+    public enum WorkAnimationType { None, Mining, Chopping, Gathering }
+
     public string jobName = "New Job";
     public SkillDefinition family;
     public int tier = 1;
     public ToolRequirement[] toolRequirements;
+    public WorkAnimationType workAnimation = WorkAnimationType.None;
 }
