@@ -59,7 +59,12 @@ public class PlayerBackpack : MonoBehaviour
     // higher on the body." Rotation confirmed correct — only the Y needed
     // raising, from -0.3 toward the actual mid-back rather than down near
     // the hips.
-    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.15f, -0.2f);
+    //
+    // Round 10 (Ben): live-tweaked directly in the Play-mode Inspector to
+    // a final, confirmed-good position — the -90 yaw from round 8 was
+    // exactly right, position refined a bit further than the round-9
+    // guess.
+    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, 0.05f, -0.18f);
     [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, -90f, 0f);
 
     private PlayerInventory playerInventory;

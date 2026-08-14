@@ -43,8 +43,15 @@ public class PlayerBoot : MonoBehaviour
     // shoe stands on its end (toe pointing up, perpendicular to the
     // ground) instead of lying flat with the toe pointing forward
     // (parallel). Same -90 X pitch correction as Backpack/Jeans.
-    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.85f, 0f);
-    [SerializeField] private Vector3 wornEulerOffset = new Vector3(-90f, 0f, 0f);
+    //
+    // Live-tweaked by Ben directly in the Play-mode Inspector (2026-08-13)
+    // rather than another guess-and-screenshot round — the blind-pitch
+    // theory above turned out not to match what actually looked right.
+    // Trusting the live-tested result over the theory: yaw (Y), not pitch
+    // (X), is what actually corrected it. "This looks closer," not yet
+    // confirmed final.
+    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.93f, 0.35f);
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, 90f, 0f);
 
     // The player starts the game already wearing Settler's Sneakers
     // specifically — same single-purpose starting-gear mechanism

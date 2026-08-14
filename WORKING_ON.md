@@ -82,12 +82,20 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   (facing sideways, stacked front-to-back) — switched approach rather
   than keep guessing: Ben is now live-tweaking `PlayerBoot`'s
   `wornPositionOffset`/`wornEulerOffset` directly in the Play-mode
-  Inspector. Once final numbers are found, bake them in as the new field
-  defaults. Belt/Canteen drop cascade not yet re-verified live. The
-  other 7 types (Sunglasses, Mining Face Shield, Personal Health
-  Monitor, Navigation Computer, Shirt, Jeans, Canteen worn-position)
-  still have zero live confirmation. See `TEST_FEATURE_PLAN.md`
-  section 29.
+  Inspector.
+  **Live-feedback round 10 (v0.3.50-dev, committed and pushed):** both
+  Boot and Backpack got live-tweaked values baked in as the new script
+  defaults. Boot: `(0, -0.93, 0.35)` / `(0, 90, 0)` — a **yaw** fix, not
+  the pitch this session's guessing kept assuming; "looks closer," not
+  yet declared final. Backpack: `(0, 0.05, -0.18)` / `(0, -90, 0)` —
+  refines round 9's guess with a precise value, confirms the round-8
+  yaw instruction was exactly right; mirrored onto the 3 NPC job assets.
+  **Backpack effectively done** (two confirmations in a row). **Boot
+  still open** — "closer," not confirmed final. Belt/Canteen drop
+  cascade not yet re-verified live. The other 7 types (Sunglasses,
+  Mining Face Shield, Personal Health Monitor, Navigation Computer,
+  Shirt, Jeans, Canteen worn-position) still have zero live
+  confirmation. See `TEST_FEATURE_PLAN.md` section 29.
 - 2026-08-13 — Ben — Player equipment now bone-attaches too (same
   RightHand/Chest system NPCs just got, applied to the player's real
   `Tool`/`Backpack` carry objects instead of a decorative copy). v0.3.40-dev,

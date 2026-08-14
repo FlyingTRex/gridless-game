@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.49-dev` — must always match `GameVersion` in
+**Current version:** `0.3.50-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (24)
+
+### v0.3.50-dev — Boot and Backpack: live-tweaked final values baked in
+
+Switched from guess-and-screenshot to Ben live-tweaking both `PlayerBoot`
+and `PlayerBackpack`'s offset fields directly in the Play-mode Inspector
+(gender-toggle in the ` menu forces a re-anchor so edited values actually
+take visible effect, since neither carrier re-applies its offset every
+frame). Baked in the results as the new script defaults:
+
+- **`PlayerBoot`**: position `(0, -0.93, 0.35)`, rotation `(0, 90, 0)` —
+  notably a **yaw** correction, not the pitch this session's blind
+  guessing kept trying. "Looks closer," not yet declared final.
+- **`PlayerBackpack`**: position `(0, 0.05, -0.18)`, rotation
+  `(0, -90, 0)` — refines round 9's guessed height with a precise
+  live-tested value; the `-90` yaw from round 8's direct instruction was
+  exactly right. Mirrored onto the 3 NPC job assets' Backpack
+  `attachPositionOffset`/`attachEulerOffset` for consistency.
 
 ## 2026-08-13 (23)
 
