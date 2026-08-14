@@ -196,8 +196,22 @@ public class PlayerMenuScreen : MonoBehaviour
         foreach (Tab tab in Enum.GetValues(typeof(Tab)))
         {
             var style = tab == currentTab ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
-            if (GUILayout.Button(tab.ToString(), style, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
+            if (GUILayout.Button(tab.ToString(), style, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)) && tab != currentTab)
+            {
+                // Leaving Inventory mid-drag needs an explicit reset — its
+                // DrawPopups() (the only place HandleGlobalDragRelease runs)
+                // is gated on currentTab == Tab.Inventory, so switching tabs
+                // before releasing the mouse otherwise freezes dragCandidate/
+                // dragItem/dragEquipment indefinitely: the next drag-release
+                // back on this tab, possibly much later, resolves against
+                // those stale fields instead of a fresh drag. Real crash hit
+                // live (2026-08-14): the dragged Tool had since been dropped
+                // and despawned, and the stale drag's eventual TryDrop call
+                // threw MissingReferenceException calling Stash() on it.
+                if (currentTab == Tab.Inventory)
+                    inventoryScreen.ResetPopups();
                 currentTab = tab;
+            }
         }
         GUILayout.EndHorizontal();
     }

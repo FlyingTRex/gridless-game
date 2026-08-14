@@ -407,6 +407,19 @@ signs off on scope and order.
   `GetAttributeValue`-driven pattern every other stat effect already uses.
   Ties into item 9's warm-food/tea half too — see `MVP2_PLANNING.md`'s
   stat/world-sim cluster note.
+- [ ] **Max Will should scale with Intelligence (2026-08-14, Ben's call).**
+  Today `PlayerVitals.maxWill` only grows via discrete per-event
+  `GrowMaxWill` increments (called by `PlayerMagic` on every successfully
+  completed wish) — no stat drives it at all. Constitution already grows
+  Max Health/Max Stamina via a real formula
+  (`100 + k × (Constitution-2)^1.5`, `DEXTERITY_CONSTITUTION_PLANNING.md`);
+  Will should get the analogous treatment off Intelligence instead,
+  likely via `PlayerVitals.SetMaxWill` the same shape as
+  `SetMaxHealth`/`SetMaxStamina`, called from wherever Intelligence's
+  value is read each frame. Needs a design pass to pick the actual
+  curve/anchor points (does the existing per-wish `GrowMaxWill` stay as
+  an *additional* source on top, or is it superseded entirely?) before
+  building.
 - [ ] **Universal degradation** — nothing lasts forever; gear, buildings, and
   vehicles decay if left unmaintained.
 - [ ] **Gardening** — harvest seeds, plant and grow crops.
@@ -496,6 +509,21 @@ signs off on scope and order.
 
 ## Bugs
 
+- [ ] **Reading a book always grants Intelligence XP, even when you already
+  knew its subject (2026-08-14).** Found live testing Skill Books
+  (`SKILL_BOOKS_PLANNING.md`): `PlayerReading.TryRead()` grants the flat
+  0.25 Intelligence gain unconditionally on every read, with no check for
+  whether the reader already knew the target recipe/wish. Since
+  `WritableRecipes`/`WritableWishes` only let you write about something
+  you already know well enough to write about, reading your own
+  self-authored book is always redundant content, yet still pays out —
+  a real double-dip (write's own Intelligence gain, then another 0.25 on
+  the read of the exact thing you just wrote). Also applies to reading a
+  duplicate found book for something already known. Ben's call
+  (2026-08-14): log it, don't fix yet. Fix direction if picked up later:
+  `TryRead` should check `crafting.HasRequiredSkill(book.TargetRecipe)` /
+  `magic.IsLineageKnown(...)` + wish-known before granting the read's
+  Intelligence XP.
 - [ ] **`WovenGrassCloth.mat` also has `metallicFactor: 1` (2026-08-14).**
   Found while checking whether the `IconBaker` near-black-metallic bug
   (fixed same day, see `CHANGELOG.md`'s v0.3.58-dev entry) affected

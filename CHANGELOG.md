@@ -5,12 +5,34 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.66-dev` — must always match `GameVersion` in
+**Current version:** `0.3.67-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (13)
+## 2026-08-14 (14)
+
+### v0.3.67-dev — Fix `MissingReferenceException` crash from a stale Inventory drag surviving a tab switch
+
+Real bug found live (Ben: dragged an admin-spawned Masterwork Pickaxe to
+equip it, "nothing happens at all," then a `MissingReferenceException`
+appeared later after dropping a second pickaxe near a hired NPC).
+Root cause: `InventoryScreen`'s drag state (`dragCandidate`/`dragItem`/
+`dragSource`/`dragEquipment`) is only ever resolved by
+`HandleGlobalDragRelease()`, called from `DrawPopups()` — but
+`PlayerMenuScreen.OnGUI()` only calls `DrawPopups()` while
+`currentTab == Tab.Inventory`. Starting a drag, then clicking a
+different tab (Skills/Crafting/Player/...) *before* releasing the mouse,
+freezes that drag state indefinitely with no reset — clicking a tab
+button never called `InventoryScreen.ResetPopups()` (only closing the
+whole menu via Tab did). The next ordinary drag-release back on the
+Inventory tab, potentially much later, resolved the stale drag against
+whatever drop zone the mouse happened to be over, calling `Stash()` on
+the originally-dragged `Tool` — which by then had been separately
+dropped in the world and destroyed. Fixed in `PlayerMenuScreen.
+DrawTabBar()`: switching away from the Inventory tab now calls
+`InventoryScreen.ResetPopups()` first, same as closing the whole menu
+already did.
 
 ### v0.3.66-dev — Fix `GetLastRect` console spam in the Inventory screen
 

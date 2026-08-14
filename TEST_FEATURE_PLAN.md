@@ -185,6 +185,17 @@ re-verify the same underlying behaviors using drag instead.
 - [ ] Spot-check the remaining equip types (Belt, NavComputer,
   HealthMonitor, Sunglasses, MiningFaceShield) drag-equip correctly from
   both the main inventory and a Backpack.
+- [x] **Regression — stale drag survives a tab switch (fixed v0.3.67-dev).**
+  Start dragging an equipped item (e.g. a Tool) in the Inventory tab,
+  click a *different* tab before releasing the mouse, do something else
+  (drop/despawn the same physical object elsewhere), then come back to
+  the Inventory tab and do an unrelated drag-release — confirm this does
+  NOT throw a `MissingReferenceException` calling `Stash()` on the
+  original object. Found live 2026-08-14 (Ben): `PlayerMenuScreen`'s
+  `DrawTabBar()` didn't call `InventoryScreen.ResetPopups()` on a tab
+  switch (only closing the whole menu did), so `HandleGlobalDragRelease`
+  — gated to only run while `currentTab == Tab.Inventory` — never got a
+  chance to resolve or clear the in-progress drag until arbitrarily later.
 
 ### Tools are equippable (v0.3.12-dev)
 
