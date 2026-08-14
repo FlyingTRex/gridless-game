@@ -9,12 +9,6 @@ public class PlayerCrafting : MonoBehaviour
 
     private static readonly string[] HandSlotNames = { "Left Hand", "Right Hand" };
 
-    // Skill points above a tier's threshold at which chance-of-creation
-    // risk bottoms out (see RollOutcome) — a flat cap rather than scaling
-    // to the next tier's own threshold, since the gaps (10/25/50/100) are
-    // unevenly spaced and a single, consistent "meaningfully practiced
-    // past the minimum" number is simpler to reason about and tune.
-    private const float RiskMarginCap = 20f;
     private const float SpectacularFailureDamage = 10f;
 
     // How close an AnvilSurface (Boulder, Anvil, ...) needs to be for a
@@ -37,6 +31,12 @@ public class PlayerCrafting : MonoBehaviour
     private PlayerVitals vitals;
     private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
+    // Recipes a skill book has specifically granted, bypassing the normal
+    // skill-level gate for that one recipe only (SKILL_BOOKS_PLANNING.md)
+    // — never touches trainedSkill's actual level, and never grants
+    // anything else at that recipe's tier.
+    private readonly HashSet<CraftingRecipe> bookGrantedRecipes = new HashSet<CraftingRecipe>();
+
     private string message;
     private float messageExpireTime;
 
@@ -58,15 +58,6 @@ public class PlayerCrafting : MonoBehaviour
     public int ActiveCompleted => activeCompleted;
     public float ActiveItemDuration => CurrentItemDuration();
     public float ActiveElapsed => activeElapsed;
-
-    private enum CraftOutcome
-    {
-        BrilliantSuccess,
-        Success,
-        BarelyFail,
-        BadFailure,
-        SpectacularFailure,
-    }
 
     // Read by CraftingScreen (the Crafting tab of PlayerMenuScreen, Tab key)
     // to render the recipe list.
@@ -150,7 +141,15 @@ public class PlayerCrafting : MonoBehaviour
         int required = CraftTierScale.SkillRequirement(recipe.outputItem.tier);
         if (required <= 0) return true;
 
-        return skills != null && skills.GetLevel(recipe.trainedSkill) >= required;
+        return (skills != null && skills.GetLevel(recipe.trainedSkill) >= required)
+            || bookGrantedRecipes.Contains(recipe);
+    }
+
+    // Called by a crafting/weapon skill book's read action — grants this
+    // one specific recipe regardless of the discipline's actual level.
+    public void GrantRecipe(CraftingRecipe recipe)
+    {
+        if (recipe != null) bookGrantedRecipes.Add(recipe);
     }
 
     // True if the recipe has no requiresAnvilSurface flag set, or an
@@ -365,7 +364,9 @@ public class PlayerCrafting : MonoBehaviour
     // succeed plainly, same as before this system existed — there's no
     // skill/tier concept to drive risk for them. Everything else rolls
     // between five outcomes based on how far the player's skill is above
-    // this tier's threshold (see RollOutcome) and applies the result:
+    // this tier's threshold (see CraftOutcomeRoll, extracted 2026-08-13
+    // so PlayerWriting can reuse the identical formula) and applies the
+    // result:
     // a better/worse tier of the same item, wasted materials, a broken
     // tool, or player damage.
     private void ResolveOutcome(CraftingRecipe recipe)
@@ -379,7 +380,7 @@ public class PlayerCrafting : MonoBehaviour
         float margin = skills != null
             ? skills.GetLevel(recipe.trainedSkill) - CraftTierScale.SkillRequirement(recipe.outputItem.tier)
             : 0f;
-        var outcome = RollOutcome(Mathf.Max(0f, margin));
+        var outcome = CraftOutcomeRoll.Roll(Mathf.Max(0f, margin));
 
         switch (outcome)
         {
@@ -409,31 +410,6 @@ public class PlayerCrafting : MonoBehaviour
                 ShowMessage($"Disaster! The attempt failed, the materials were destroyed{toolClause}, and you were hurt in the process.");
                 break;
         }
-    }
-
-    // Interpolates each outcome's odds between "just barely qualified for
-    // this tier" (margin 0 — riskiest) and "meaningfully practiced past
-    // it" (margin >= RiskMarginCap — safest). SpectacularFailure isn't
-    // its own Lerp — it gets whatever probability mass the other four
-    // don't use, so they don't need to be hand-tuned to sum to exactly 1.
-    private static CraftOutcome RollOutcome(float skillMargin)
-    {
-        float t = Mathf.Clamp01(skillMargin / RiskMarginCap);
-
-        float brilliant = Mathf.Lerp(0.02f, 0.10f, t);
-        float success = Mathf.Lerp(0.63f, 0.85f, t);
-        float barelyFail = Mathf.Lerp(0.20f, 0.04f, t);
-        float badFailure = Mathf.Lerp(0.12f, 0.01f, t);
-
-        float roll = Random.value;
-        if (roll < brilliant) return CraftOutcome.BrilliantSuccess;
-        roll -= brilliant;
-        if (roll < success) return CraftOutcome.Success;
-        roll -= success;
-        if (roll < barelyFail) return CraftOutcome.BarelyFail;
-        roll -= barelyFail;
-        if (roll < badFailure) return CraftOutcome.BadFailure;
-        return CraftOutcome.SpectacularFailure;
     }
 
     // Destroys one instance of whichever requiredTools item is actually

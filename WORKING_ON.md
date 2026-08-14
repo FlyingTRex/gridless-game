@@ -12,25 +12,103 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-- 2026-08-13 — Ben — Save/load persistence, v1 (v0.3.51-dev, **committed,
-  not yet pushed**). Full build of `SAVE_LOAD_PLANNING.md`:
-  `SaveId`/`SaveIdRegistry` for world-object identity, `ItemDatabase`/
-  `SkillDatabase`/`NPCJobDatabase` for resolving ScriptableObject
-  references by stable ID (populated via a one-off Editor script, now
-  deleted), `SaveManager` (manual Save button only, ` menu Player tab;
-  loads automatically on start if a save file exists), and the recursive
-  `InventorySaveUtility`/`EquipmentSaveUtility` pair that captures/restores
-  nested equipment state (a worn Backpack's contents, a Canteen clipped to
-  a worn Belt with its liquid intact). Hit and fixed two real batch-mode
-  bugs live: `EditorSceneManager.SaveScene(scene)` without an explicit
-  path silently cancels via a Save File dialog in batch mode (no error,
-  just doesn't save — happened twice before catching it), and
-  `SceneAutoOpen`'s `delayCall` doesn't reliably fire before a
-  `-executeMethod` run reaches the method body (fixed with an explicit
-  `OpenScene` call instead). Verified via 3 rounds of batch-mode compile
-  (0 CS errors) + direct YAML grep. **Not yet tested in Play mode** — see
-  `TEST_FEATURE_PLAN.md` section 30 for the real save/reload-the-Editor/
-  load pass this still needs before it's done.
+- 2026-08-13 — Ben — Skill books, MVP2 item 7 (design + build starting
+  same day). Full design in `SKILL_BOOKS_PLANNING.md` — reading grants a
+  bounded head start (a specific `CraftingRecipe`/`WishRecipe` exception,
+  or a lineage unlock for magic), writing risks a bounded failure
+  (reuses `PlayerCrafting`'s `CraftOutcome` roll, margin = author's
+  Intelligence vs. the subject's tier). 16-step build order across 6
+  phases, cross-referenced against `MVP2_PLANNING.md` (advances item 1's
+  Intelligence trigger for free, item 7's NPC-training phase blocked on
+  item 2's bench-crafting, creates a small follow-up for item 6's save
+  system once built). **Phase 1 item 7 (models) done**: Book/Scroll/
+  Paper/Ink generated via a new Blender script
+  (`Tools/Blender/GenerateSkillBookModels.py`, Ben's call over the usual
+  Tripo3D pipeline), imported into `Assets/Models/`, measured via
+  batch-mode script per `CLAUDE.md`'s mandatory bounds-check — all four
+  land exactly on their intended real-world size and are correctly
+  grounded. Two real bugs caught and fixed live: `Material.diffuse_color`
+  alone doesn't drive the actual EEVEE render (needs explicit Principled
+  BSDF node wiring), and `primitive_cube_add(size=1)` scaled by
+  `length/2` produced exactly half the intended size for Book/Paper — both
+  caught by measurement, not assumed correct.
+  **Phase 0 + most of Phase 1 done, same session:** `PlayerMagic`
+  (`StartingLineage` → a real `knownLineages` set + `LearnLineage`),
+  `CraftOutcome`/`RollOutcome` extracted into a new shared
+  `CraftOutcomeRoll.cs` (`PlayerCrafting` calls it exactly as before —
+  no behavior change), new `SkillBook : IEquippable` (per-instance
+  `TargetRecipe`/`TargetWish`/`BonusLevel`, mirrors `Canteen`'s
+  Stash/SetCarried shape), `bookGrantedRecipes`/`bookGrantedWishes`
+  exception sets wired into `HasRequiredSkill`/`CanAttempt`. New
+  `ItemDefinition`s + pickup prefabs + baked icons for `SkillBookItem`
+  (Book model, shared by both crafting/weapon and magic targets — Scroll
+  stays unused, reserved for a future separate item), `Paper`, and `Ink`.
+  **Phase 2 (writing) done too, same session:** new `PlayerWriting.cs` +
+  `WritingScreen.cs` — a new "Writing" tab in `PlayerMenuScreen` (Tab
+  key, no new keybinding) listing every recipe/wish the player currently
+  knows, each with a Write button; consumes 1 Paper + 1 Ink per attempt,
+  rolls via the shared `CraftOutcomeRoll` (margin = Intelligence vs. the
+  subject's tier), spawns a real `SkillBook` on anything but a failure,
+  damages the author 2–10 on `SpectacularFailure`, grants Intelligence
+  XP scaled by outcome (0.5/1.5/3, first-pass numbers). Verified via 6
+  rounds of batch-mode compile (0 CS errors) + direct YAML grep of the
+  new scene wiring (`PlayerWriting`/`WritingScreen` on the Player object,
+  all 4 references correctly set).
+  **Phase 3 (reading) done too, same session — the loop is now closed
+  end to end:** new `PlayerReading.cs`. A `SkillBook` is equipment-backed
+  (not a plain stackable item), so Read hooks into `InventoryScreen`'s
+  `pendingActionEquipment` popup the same way Canteen's Drink/Fill
+  already do there, rather than the originally-sketched
+  `PlayerEating.TryEatFrom` shape (that only fits plain-item
+  consumables) — a real mid-build design correction, not just an
+  implementation detail. Grants the recipe/wish exception
+  (`PlayerCrafting.GrantRecipe`/`PlayerMagic.GrantWish`, plus
+  `LearnLineage` first for a magic target), a small Intelligence tick
+  (0.25), then permanently destroys the book. `PlayerReading` needed
+  manual scene wiring (confirmed via grep that nothing
+  RequireComponents its sibling group — `PlayerEating`/`PlayerMedicine`
+  are added directly in the scene too, not chained), unlike
+  `PlayerWriting`/`WritingScreen` which rode `PlayerMenuScreen`'s
+  existing `RequireComponent` chain automatically. Verified via 8 rounds
+  of batch-mode compile (0 CS errors) across the whole build so far +
+  direct YAML grep of every new asset/prefab/scene reference.
+  **Phase 5 (sourcing) done too, same session:** player-to-player trade
+  confirmed free (existing pickup/drop flow); real Paper/Ink source —
+  `PaperRecipe` (1 Plank → 4 Paper) and `InkRecipe` (2 Berry → 1 Ink),
+  both Crude/no-skill-gate, registered on `PlayerCrafting.recipes`;
+  "random world drops" placed as two found `SkillBook`s directly in
+  `TestScene.unity` (one targeting `MasterworkKnifeRecipe`, one
+  `SparkWish`) — a `StorageBox` turned out unable to be pre-filled at
+  scene-authoring time at all (its `Inventory` is created fresh in
+  `Awake`, never serialized), so a bare world `SkillBook` replaced the
+  originally-planned pre-filled-box stopgap. Rare magic-teaching NPCs
+  stay explicitly deferred.
+  **Real bug caught and fixed placing the found books**:
+  `SkillBook.TargetRecipe`/`TargetWish`/`BonusLevel` were plain C#
+  auto-properties, not `[SerializeField]` — invisible to Unity's scene
+  serializer, so a book placed directly in a saved scene silently lost
+  its target on reload (never affected a book written/read within one
+  Play session, which lives entirely in memory). Fixed with real
+  `[SerializeField]` backing fields — then hit a *second*, related trap:
+  even with that fix, a plain C# field assignment on a prefab instance's
+  component still didn't register as a serializable override without an
+  explicit `PrefabUtility.RecordPrefabInstancePropertyModifications`
+  call. Both caught by directly grepping the saved scene YAML for the
+  actual `propertyPath:` entry, not by trusting "the script logged
+  success" — new general-purpose gotcha written up in `CLAUDE.md` for
+  any future batch-mode script doing the same thing.
+  **Phase 6 (verification) done too, same session — build is feature-
+  complete except the one blocked phase:** final comprehensive batch-mode
+  compile + YAML sweep across every Phase 0–5 artifact, all clean. New
+  `TEST_FEATURE_PLAN.md` section 31 written — a real manual Play-mode
+  checklist (write/read loops for both crafting and magic, the two
+  pre-placed found books, both failure/success extremes, Intelligence
+  training, Writing tab UI regressions). Only Phase 4 (NPC training)
+  remains unbuilt, correctly blocked on NPC bench-crafting existing.
+  **Not yet committed, not yet live-tested in Play mode** — every check
+  so far has been compile + YAML grep only, same status save/load
+  carried until Ben's own live round-trip confirmed it. That live pass
+  is the natural next step before this can be called done.
 - 2026-08-13 — Ben — Full equipment-visual sweep: every `IEquippable` now
   bone-attaches (Boot/Belt/Canteen/Sunglasses/Face Shield/Health Monitor/
   Nav Computer/Shirt/Jeans, plus a real bug fix in `PlayerLoot` that

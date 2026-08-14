@@ -5,10 +5,95 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.52-dev` — must always match `GameVersion` in
+**Current version:** `0.3.53-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (27)
+
+### v0.3.53-dev — Skill books, MVP2 item 7 (design + full build, Phases 0–3/5/6)
+
+Full design in `SKILL_BOOKS_PLANNING.md` (with a
+[rendered summary artifact](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)),
+built the same day. Reading grants a bounded head start; writing risks a
+bounded failure. Two consumer types, one unified mechanic:
+
+- **Crafting/weapon skill books** grant one specific `CraftingRecipe` as a
+  standing exception to the normal skill gate — never touches the
+  discipline's actual level, never grants anything else at that tier.
+- **Magic wish books** (e.g. "Fireball") do the same for a `WishRecipe`
+  *and* unlock its lineage if not already known — confirmed against
+  `PlayerMagic.cs` as one unified mechanic, not two separate systems.
+  `PlayerMagic.StartingLineage` (a single field) became a real
+  `knownLineages` set + `LearnLineage`/`GrantWish`, with no cap — a
+  player can eventually know all four lineages.
+- **Writing** reuses `PlayerCrafting`'s existing outcome-roll formula
+  directly (extracted into a new shared `CraftOutcomeRoll.cs` — margin =
+  author's Intelligence vs. the subject's tier requirement, no new
+  formula needed). Consumes 1 Paper + 1 Ink per attempt regardless of
+  outcome; `SpectacularFailure` also deals 2–10 damage to the author;
+  only `BrilliantSuccess` grants a lineage tome a 1–10 bonus starting
+  level. Author's Intelligence trains on any non-failure, scaled by
+  outcome quality — this is also Intelligence's first real trigger+effect
+  pair (mirroring `PlayerEncumbrance`'s Strength pattern), a candidate
+  MVP2 item 1 had only ever sketched.
+- **Reading** turned out not to fit the originally-sketched
+  `PlayerEating.TryEatFrom` shape (that only works for plain
+  `ItemDefinition`-only consumables) — a `SkillBook` is equipment-backed
+  (a real physical instance carrying its own target), so `PlayerReading`
+  hooks into `InventoryScreen`'s `pendingActionEquipment` popup instead,
+  the same shape `Canteen`'s Drink/Fill buttons already established
+  there. Grants the recipe/wish exception, a small Intelligence tick,
+  then permanently destroys the book.
+
+New "Writing" tab in `PlayerMenuScreen` (Tab key, no new keybinding) —
+lists every recipe/wish the player currently knows, each with a Write
+button. New models (Book/Scroll/Paper/Ink) generated via a new permanent
+Blender script, `Tools/Blender/GenerateSkillBookModels.py` (Ben's call
+over the usual Tripo3D pipeline) — Scroll's own model exists but stays
+unused, reserved for a future separate random-roll item. Paper/Ink now
+have a real recipe source (1 Plank → 4 Paper, 2 Berry → 1 Ink, both
+Crude/no-skill-gate) instead of Admin-Spawn-only. Two "found" books
+placed directly in `TestScene.unity` (`MasterworkKnifeRecipe` and
+`SparkWish`) as the smallest honest stopgap for random world drops, since
+no loot-chest/loot-table system exists anywhere in this codebase yet.
+
+**Explicitly not built**: Phase 4 (NPC training) is correctly blocked —
+NPCs have zero crafting/bench-work system at all yet
+(`NPC_JOB_GENERALIZATION_PLANNING.md`'s own deferred bench-crafting
+scope), so a granted recipe would have nothing to attach to. Rare
+magic-teaching NPCs and NPCs writing their own books are both explicitly
+deferred to a later MVP, per the design.
+
+Two real, generalizable bugs caught and fixed live, now documented in
+`CLAUDE.md`'s gotcha list: `SkillBook.TargetRecipe`/`TargetWish`/
+`BonusLevel` were plain C# auto-properties, invisible to Unity's scene
+serializer — harmless for a book written/read within one Play session,
+but silently lost on reload for a book placed directly in a saved scene.
+Fixed with real `[SerializeField]` backing fields, plus a second trap:
+even then, a plain field assignment on a prefab instance's component
+still needed an explicit `PrefabUtility.
+RecordPrefabInstancePropertyModifications` call to actually serialize.
+Both caught by grepping the saved scene YAML directly, not by trusting
+"the script logged success."
+
+Verified via 10+ rounds of batch-mode compile (0 CS errors throughout) +
+direct YAML grep of every new asset/prefab/scene reference. New
+`TEST_FEATURE_PLAN.md` section 31 — a full manual Play-mode checklist.
+**Not yet live-tested in Play mode** — every check so far has been
+structural (compile + YAML), same status save/load carried until its own
+live round-trip confirmation. Cross-referenced against `MVP2_PLANNING.md`
+(advances item 1, item 7's NPC phase blocked on item 2, creates a
+follow-up flagged in `SAVE_LOAD_PLANNING.md` section 10 for item 6's save
+system to eventually capture this new state).
+
+**Live-feedback fix, same day**: Ben's first live look flagged the Player
+tab's Intelligence tile as the odd one out — Strength already shows a
+derived sub-line (Encumbrance), Intelligence didn't show anything for
+its own new mechanic. Added a matching "Reading & Writing — Paper: X,
+Ink: Y" sub-line, same `DrawTile` shape Strength's Encumbrance line
+already uses.
 
 ## 2026-08-13 (26)
 

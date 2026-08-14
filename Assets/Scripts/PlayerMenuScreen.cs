@@ -13,12 +13,13 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(CraftingScreen))]
 [RequireComponent(typeof(MagicScreen))]
 [RequireComponent(typeof(BuildScreen))]
+[RequireComponent(typeof(WritingScreen))]
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerGuilds))]
 [RequireComponent(typeof(PlayerEncumbrance))]
 public class PlayerMenuScreen : MonoBehaviour
 {
-    private enum Tab { Player, Inventory, Skills, Crafting, Magic, Build }
+    private enum Tab { Player, Inventory, Skills, Crafting, Magic, Build, Writing }
 
     private const float TabWidth = 140f;
     private const float TabHeight = 32f;
@@ -60,14 +61,23 @@ public class PlayerMenuScreen : MonoBehaviour
     [SerializeField] private SkillDefinition constitutionSkill;
     [SerializeField] private SkillDefinition intelligenceSkill;
 
+    // Intelligence's own sub-line (2026-08-13) — same "show the concrete
+    // mechanic under the raw number" spirit as Strength's Encumbrance
+    // sub-line, pointed at reading/writing (SKILL_BOOKS_PLANNING.md)
+    // instead of carry capacity.
+    [SerializeField] private ItemDefinition paperItem;
+    [SerializeField] private ItemDefinition inkItem;
+
     private InventoryScreen inventoryScreen;
     private SkillsScreen skillsScreen;
     private CraftingScreen craftingScreen;
     private MagicScreen magicScreen;
     private BuildScreen buildScreen;
+    private WritingScreen writingScreen;
     private PlayerSkills skills;
     private PlayerGuilds guilds;
     private PlayerEncumbrance encumbrance;
+    private PlayerInventory playerInventory;
 
     private bool isOpen;
     private Tab currentTab = Tab.Player;
@@ -82,9 +92,11 @@ public class PlayerMenuScreen : MonoBehaviour
         craftingScreen = GetComponent<CraftingScreen>();
         magicScreen = GetComponent<MagicScreen>();
         buildScreen = GetComponent<BuildScreen>();
+        writingScreen = GetComponent<WritingScreen>();
         skills = GetComponent<PlayerSkills>();
         guilds = GetComponent<PlayerGuilds>();
         encumbrance = GetComponent<PlayerEncumbrance>();
+        playerInventory = GetComponent<PlayerInventory>();
     }
 
     private void Update()
@@ -133,6 +145,10 @@ public class PlayerMenuScreen : MonoBehaviour
             case Tab.Crafting: DrawScrollable(craftingScreen.DrawContent); break;
             case Tab.Magic: DrawScrollable(magicScreen.DrawContent); break;
             case Tab.Build: DrawScrollable(buildScreen.DrawContent); break;
+            // Manages its own internal scroll view already, same reason
+            // as Inventory above — wrapping it in DrawScrollable would
+            // nest two scrollbars.
+            case Tab.Writing: writingScreen.DrawContent(); break;
         }
 
         GUILayout.FlexibleSpace();
@@ -187,7 +203,7 @@ public class PlayerMenuScreen : MonoBehaviour
             DrawStrengthTile,
             () => DrawStatTile("Dexterity", dexteritySkill),
             () => DrawStatTile("Constitution", constitutionSkill),
-            () => DrawStatTile("Intelligence", intelligenceSkill),
+            DrawIntelligenceTile,
             // Fame/Faction — reputation-style stats, conceptually
             // different from the skill-via-use core stats above (would be
             // driven by other NPCs'/factions' standing toward the player,
@@ -253,6 +269,20 @@ public class PlayerMenuScreen : MonoBehaviour
             ? $"Encumbrance: {encumbrance.CarriedWeight:F0}/{encumbrance.Capacity:F0} lbs"
             : null;
         DrawTile("Strength", value.ToString("F2"), TileWidth, sub, GrowthProgress(strengthSkill));
+    }
+
+    // Intelligence's own derived sub-line (2026-08-13, Ben's ask — "no
+    // read and write under the intelligence box"), same spirit as
+    // Strength's Encumbrance line above: Paper/Ink on hand, since those
+    // gate the Writing tab's actual use of this stat
+    // (SKILL_BOOKS_PLANNING.md).
+    private void DrawIntelligenceTile()
+    {
+        float value = skills != null ? skills.GetAttributeValue(intelligenceSkill) : 0.25f;
+        string sub = playerInventory != null
+            ? $"Reading & Writing — Paper: {playerInventory.Inventory.GetCount(paperItem)}, Ink: {playerInventory.Inventory.GetCount(inkItem)}"
+            : null;
+        DrawTile("Intelligence", value.ToString("F2"), TileWidth, sub, GrowthProgress(intelligenceSkill));
     }
 
     private void DrawPlaceholderTile(string label, string value) => DrawTile(label, value, TileWidth);

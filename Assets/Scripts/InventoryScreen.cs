@@ -67,6 +67,7 @@ public class InventoryScreen : MonoBehaviour
     private PlayerDropping dropping;
     private PlayerEating eating;
     private PlayerMedicine medicine;
+    private PlayerReading reading;
     private PlayerBackpack backpackCarrier;
     private PlayerBelt beltCarrier;
     private PlayerBoot bootCarrier;
@@ -186,6 +187,7 @@ public class InventoryScreen : MonoBehaviour
         dropping = GetComponent<PlayerDropping>();
         eating = GetComponent<PlayerEating>();
         medicine = GetComponent<PlayerMedicine>();
+        reading = GetComponent<PlayerReading>();
         backpackCarrier = GetComponent<PlayerBackpack>();
         beltCarrier = GetComponent<PlayerBelt>();
         bootCarrier = GetComponent<PlayerBoot>();
@@ -472,7 +474,19 @@ public class InventoryScreen : MonoBehaviour
             }
         }
 
-        if (pendingActionEquipment != null)
+        // A SkillBook is never worn (CanEquipToSlot always false), so it
+        // skips the generic Equip/Unequip block entirely below — Read is
+        // its only real action besides Drop, consuming it permanently
+        // (SKILL_BOOKS_PLANNING.md's Phase 3).
+        if (pendingActionEquipment is SkillBook book)
+        {
+            if (reading != null && GUILayout.Button("Read"))
+            {
+                reading.TryRead(pendingActionSource, book);
+                return true;
+            }
+        }
+        else if (pendingActionEquipment != null)
         {
             if (IsCurrentlyWorn(pendingActionEquipment))
             {

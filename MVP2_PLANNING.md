@@ -18,7 +18,7 @@ specced yet.
 4. **Player and NPC animation.** — ✅ Shipped (v0.3.33-dev/v0.3.34-dev, 2026-08-13); not yet live-tested in Play mode.
 5. **Sky and weather.**
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
-7. **Skill books.**
+7. **Skill books.** — 🟡 Design fully worked out (`SKILL_BOOKS_PLANNING.md`, 2026-08-13 — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)); not yet built.
 8. **Expand hunting** — diverse animals, and the ability to use a weapon against them.
 9. **Cooking** — supplements healing (better foods give health/healing); teas and drinks.
 10. **"Prefab" buildings** — drop a full premade building into a scene, rather than piece-by-piece.
@@ -49,6 +49,11 @@ make Int's own growth compound into every other stat's growth rate — could
 tie the stat block together nicely, or could snowball into Int mattering
 more than the other three. Needs a conscious call either way.
 
+**Intelligence's trigger+effect resolved via item 7** — see
+`SKILL_BOOKS_PLANNING.md`. Reading/writing became the concrete trigger,
+mirroring `PlayerEncumbrance`'s Strength pattern exactly. Dexterity/
+Constitution still have no build plan of their own.
+
 ### 2 — Expand NPC hiring beyond stonework
 **Woodcutting and Gathering (Berry/Herb) shipped 2026-08-13 (v0.3.32-dev)**
 — full design in `NPC_JOB_GENERALIZATION_PLANNING.md`, summarized in
@@ -63,6 +68,10 @@ gather-and-deposit) and the full **bench-crafting** generalization
 doc's section 7). Still blocked *cosmetically*, not functionally, by item
 4 — a Woodcutting/Foraging NPC with no chop/search animation reads exactly
 as "bleh" as Mining does today; nothing in this build changed that.
+
+**Also now a blocker for item 7's Phase 4** (`SKILL_BOOKS_PLANNING.md`)
+— NPC book-training has nothing to attach to until this item's deferred
+bench-crafting sub-scope ships.
 
 <details>
 <summary>Original ideation (2026-08-12), kept for history</summary>
@@ -146,11 +155,30 @@ meaningful. Revisiting that stand-in with a real multi-day timer is a
 natural follow-up now that persistence exists, but is its own separate
 piece of work, not bundled into this build.
 
+**Known future follow-up from item 7** (`SAVE_LOAD_PLANNING.md` section
+10): once skill books are built, this system needs a small increment to
+capture `knownLineages`/`bookGrantedRecipes`/`bookGrantedWishes` plus
+`SkillBook` item instances — composes almost for free since `SkillBook`
+is designed as an `IEquippable`, but isn't automatic.
+
 ### 7 — Skill books
-Directly the unlock vehicle for Intelligence's proposed training trigger
-(item 1) and for teaching NPCs. Also unlocks the second magic lineage and
-Scrolls per `docs/design-brief.md`'s Magic System section. A good hub item
-— small on its own, but several other items lean on it existing.
+**Full design worked out 2026-08-13** — see `SKILL_BOOKS_PLANNING.md`
+([rendered summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)).
+Confirms and sharpens the original framing: reading/writing became a
+direct trigger on Intelligence (item 1's proposed training trigger,
+mirroring `PlayerEncumbrance`'s Strength pattern); a crafting/weapon
+skill book grants one specific `CraftingRecipe` as a standing exception
+to the normal skill gate, not a level/XP boost; a magic wish book (e.g.
+"Fireball") does the same for a `WishRecipe` *and* unlocks its lineage if
+not already known, confirmed against `PlayerMagic.cs` as one unified
+mechanic rather than two separate systems. Writing reuses `PlayerCrafting`
+'s existing `CraftOutcome` roll directly (margin = author's Intelligence
+vs. the subject's tier requirement) — no new formula needed. Real code
+prerequisite surfaced: `PlayerMagic.IsLineageKnown` only checks a single
+`StartingLineage` field today, so a player can't know more than one
+lineage in code yet; that needs to become a real set before any of this
+can be built. Rare magic-teaching NPCs and NPCs writing their own books
+are both explicitly deferred to a later MVP.
 
 ### 8 — Expand hunting
 Today: one huntable animal (Wolf, via `HostileCreature`), and only
@@ -189,7 +217,12 @@ item 6). Not yet decided which Ben meant.
   for what a hired NPC starts equipped with.
 - **Combat/hunting cluster**: item 8 leans on item 1 (Dexterity) and item 4
   (weapon animation).
-- **Standalone-ish**: item 7 (skill books) is small and mostly just needs
-  deciding; item 10 needs its scope question answered first.
+- **No longer standalone: item 7 (skill books)**, now fully designed
+  (`SKILL_BOOKS_PLANNING.md`, 2026-08-13) and cross-linked three ways —
+  it advances item 1 (Intelligence's trigger) for free, its NPC-training
+  phase is blocked on item 2 (bench-crafting), and it creates a real
+  follow-up increment for item 6 (new save-state surface). Item 10 still
+  needs its scope question answered before any of this clustering applies
+  to it.
 
 Build order not yet decided.

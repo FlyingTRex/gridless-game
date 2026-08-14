@@ -139,6 +139,26 @@ state beyond a plain `ItemDefinition` reference. Loose world pickups,
 built structures, and Lockbox/Bank contents are explicitly deferred out of
 v1. Planning only, not yet built.
 
+**Skill books design lives in `SKILL_BOOKS_PLANNING.md`.** MVP2 item 7,
+fully worked out 2026-08-13. Reading/writing became a direct trigger on
+Intelligence (mirroring `PlayerEncumbrance`'s Strength pattern); a
+crafting/weapon skill book grants one specific `CraftingRecipe` as a
+standing exception to the normal skill gate (never a level/XP boost); a
+magic wish book (e.g. "Fireball") does the same for a `WishRecipe` *and*
+unlocks its lineage if not already known — confirmed against
+`PlayerMagic.cs` as one unified mechanic, not two separate systems.
+Writing reuses `PlayerCrafting`'s existing `CraftOutcome` roll directly
+(margin = author's Intelligence vs. the subject's tier requirement) — no
+new formula needed; a catastrophic writing failure destroys the book and
+damages the author (2–10), while only the best outcome grants a lineage
+tome a random 1–10 head start above 0. Real prerequisite surfaced:
+`PlayerMagic.IsLineageKnown` only checks a single `StartingLineage` field
+today, so a player can't know more than one lineage in code yet. Rare
+magic-teaching NPCs and NPCs writing their own books are both explicitly
+deferred to a later MVP; a hired NPC being *taught* from a book has to be
+handed it and reads it itself. Planning only, not yet built. Rendered
+summary: https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:
@@ -478,3 +498,49 @@ them in real units (lbs, seconds, coins) — don't assume a ratio that's correct
 one quantity is correct for another just because both are "tier scaling." When in
 doubt, give the new quantity its own table (see `WeightModifier` for the pattern)
 rather than a formula derived from an unrelated one.
+
+## Gotcha: per-instance runtime data on a `MonoBehaviour` needs `[SerializeField]`
+*and* an explicit `RecordPrefabInstancePropertyModifications` call to survive a
+batch-mode scene save
+
+Hit live (2026-08-13, `SkillBook.cs` — see `SKILL_BOOKS_PLANNING.md`): a script
+whose per-instance state (which `CraftingRecipe`/`WishRecipe` a written book
+targets) is only ever set at runtime, never hand-authored in the Inspector, is easy
+to write as plain C# auto-properties (`public CraftingRecipe TargetRecipe { get;
+private set; }`) instead of `[SerializeField]` fields — nothing about writing it
+that way looks wrong, and it works perfectly for the duration of a single Play
+session, since in-memory field values don't need Unity's serializer at all while
+the game is just running. It silently breaks the moment that same object needs to
+survive a **saved scene file** instead — for example, placing a pre-configured
+instance directly into `TestScene.unity` at edit-time (a "found" item sitting in
+the world) rather than spawning it at runtime. A plain auto-property is invisible
+to Unity's scene serializer; the object still reports a fully successful
+instantiate-and-save with no error, but reloading the scene comes back with the
+field silently reset to its type default (`null`/`0`), even though nothing in the
+log ever said so.
+
+**Two fixes needed together, not one:**
+1. Back the property with a real `[SerializeField] private` field
+   (`[SerializeField] private CraftingRecipe targetRecipe;` +
+   `public CraftingRecipe TargetRecipe => targetRecipe;`), so the value is at least
+   part of the object's serialized data at all.
+2. **Still not sufficient on its own** for an object created via
+   `PrefabUtility.InstantiatePrefab` in a batch-mode script — a plain C# field
+   assignment on a prefab instance's component (`component.someField = x`) doesn't
+   automatically register as a serializable prefab-instance *override* the way an
+   Inspector edit or a `SerializedObject`-based change does. The fix needs an
+   explicit `PrefabUtility.RecordPrefabInstancePropertyModifications(component)`
+   call immediately after setting the field, or the change still silently doesn't
+   make it into the saved scene YAML despite step 1 being correct.
+
+**How to apply:** for any new component with runtime-only state that might ever be
+authored into a saved scene/prefab (not just set-and-read within one Play
+session), use real `[SerializeField]` fields from the start, not auto-properties —
+and for any batch-mode Editor script that instantiates a prefab and configures its
+fields via direct C# rather than `SerializedObject`, call
+`PrefabUtility.RecordPrefabInstancePropertyModifications` afterward. Verify by
+grepping the saved scene YAML for the actual field name under that
+`PrefabInstance`'s `m_Modifications` (`propertyPath: <fieldName>` — not a bare
+`fieldName: value` line, which is only how it looks for a fully-serialized
+component, not a prefab-instance override) — not by trusting "the script logged
+success," same discipline as every other stale-reference gotcha in this file.

@@ -3045,3 +3045,61 @@ re-entering Play mode). First pass confirmed:
 - [ ] **Regression — starting gear**: on a *fresh* save (no file), confirm
   the Settler's Belt/Canteen/Shirt/Jeans auto-equip sequence still runs
   normally (save/load shouldn't interfere with the no-save-file path).
+
+## 31. Skill books (writing + reading), v1
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep of every new asset/prefab/scene
+reference). Full design in `SKILL_BOOKS_PLANNING.md`. Two found
+`SkillBook`s are already placed in `TestScene.unity` for convenience:
+one near (4, 0, 4) targeting `MasterworkKnifeRecipe`, one near (-4, 0, 6)
+targeting `SparkWish` — a quick way to test *reading* before ever
+writing anything.
+
+- [ ] **Basic crafting/weapon write → read loop**: get 1 Paper + 1 Ink
+  (Admin Spawn, or gather a Plank/2 Berries and craft them via the new
+  Paper/Ink recipes in the Crafting tab), open the Writing tab (Tab
+  menu), pick a recipe you already know, click Write — confirm Paper +
+  Ink are both consumed and a message shows the outcome. If it wasn't a
+  failure, confirm a new Skill Book appears in your inventory. Open its
+  action popup and click Read — confirm the book disappears and you can
+  now craft the targeted recipe even *without* the normal skill level
+  (test by writing/reading a recipe above your current tier).
+- [ ] **Scope check — one recipe only**: after reading a book for one
+  specific recipe (e.g. a Fine-tier item), confirm you still can't craft
+  *other* recipes at that same tier you haven't separately unlocked —
+  the grant should be scoped to exactly the one recipe, not the whole
+  tier.
+- [ ] **Basic magic write → read loop, unknown lineage**: as a character
+  who only knows their starting lineage, write a book targeting a wish
+  in a *different* lineage (only available if you already know that
+  lineage — if not, use the pre-placed `SparkWish` found book instead
+  to test the read half specifically). Reading it should grant both the
+  lineage itself (check the Magic tab — the new lineage's wishes should
+  now be listed under `KnownWishes`) *and* the specific wish, while a
+  different wish in that same lineage (if one exists) should still be
+  unusable.
+- [ ] **Found books (no writing required)**: walk to each of the two
+  pre-placed found books, pick them up, and Read each — confirm the
+  Masterwork Knife recipe becomes craftable and the Spark wish becomes
+  castable, with no Paper/Ink spent (found books skip writing entirely).
+- [ ] **`SpectacularFailure` damage**: with low Intelligence and a
+  high-tier subject (a deeply negative margin), write repeatedly until a
+  `SpectacularFailure` lands — confirm it deals 2–10 damage and produces
+  no book, and that Paper/Ink were still consumed despite the failure.
+- [ ] **`BrilliantSuccess` lineage bonus**: with high Intelligence
+  relative to the subject's tier, write a wish book repeatedly until a
+  `BrilliantSuccess` lands — confirm the resulting book's read grants a
+  starting lineage level somewhere in the 1–10 range instead of exactly
+  0 (check the Skills tab or `SkillsScreen`'s lineage level display right
+  after reading).
+- [ ] **Intelligence actually trains**: note your Intelligence level
+  before a writing/reading session, confirm it visibly increases after a
+  few successful writes and reads (Player tab tile).
+- [ ] **UI regression — Writing tab**: confirm the Writing tab shows
+  "Nothing you currently know how to craft yet" / "You don't know any
+  wishes yet" correctly on a fresh character with nothing craftable yet,
+  and that the Paper/Ink count line turns into a warning color when
+  either is at 0.
+- [ ] **Not testable yet, by design**: NPC training (Phase 4) is blocked
+  on NPC bench-crafting, which doesn't exist — skip until that ships.

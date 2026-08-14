@@ -242,6 +242,29 @@ things worth knowing going in, not blocking anything now:
   confirming this assumption once real content is being tested against
   it rather than guessing further now.
 
+## 10. Known future follow-up: skill books (not v1 scope, flagged for later)
+
+`SKILL_BOOKS_PLANNING.md` (MVP2 item 7, designed 2026-08-13, not yet
+built) introduces new player state this v1 save system doesn't capture:
+`knownLineages`, `bookGrantedRecipes`, `bookGrantedWishes`, and
+`SkillBook` item instances sitting in inventory. Once skill books are
+actually built, this needs a small follow-up increment, not a redesign:
+
+- `SkillBook` was deliberately designed as an `IEquippable`, so it
+  composes almost for free with the recursive
+  `EquipmentSaveUtility`/`InventorySaveUtility` capture already built and
+  live-tested here — just needs one more type-specific branch (mirroring
+  the existing `Canteen` case) for its
+  `targetRecipe`/`targetWish`/`bonusLevel` fields.
+- Three new fields on `SaveManager.CapturePlayer`/`RestorePlayer` for
+  `knownLineages`/`bookGrantedRecipes`/`bookGrantedWishes` (each
+  resolved through `ItemDatabase`/a similar recipe/wish ID lookup, same
+  pattern section 5 already established for `ItemDefinition`/
+  `SkillDefinition`).
+
+Not urgent — skill books aren't built yet — but flagged here so it isn't
+discovered later as a "why didn't my skill books survive a reload" bug.
+
 ## Cross-references
 
 - `BUGS_AND_ENHANCEMENTS.md`'s "Save/load persistence (v1, deliberately
@@ -253,3 +276,6 @@ things worth knowing going in, not blocking anything now:
 - `MULTIPLAYER_PLANNING.md` — source for section 7's framing; also the
   reason `StorageBox` was picked as the pilot world object for step 4,
   independently arrived at by both docs.
+- `SKILL_BOOKS_PLANNING.md` — source of section 10 above; that doc's own
+  "Cross-references against MVP2_PLANNING.md" section states the same
+  follow-up from the other direction.
