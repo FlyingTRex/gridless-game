@@ -396,11 +396,6 @@ signs off on scope and order.
 
 - [ ] **Universal degradation** — nothing lasts forever; gear, buildings, and
   vehicles decay if left unmaintained.
-- [ ] **Skill books/magazines** — readable items granting basic training or
-  boosting an existing skill, an alternate path alongside learn-by-doing.
-  Also the unlock vehicle for learning a second magic lineage and for
-  found/scribed Scrolls (see design-brief.md's Magic System section) — those
-  ride this same mechanic, not separate systems.
 - [ ] **Gardening** — harvest seeds, plant and grow crops.
 - [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
   extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather
@@ -1321,25 +1316,6 @@ signs off on scope and order.
   into yet), and territory/ownership restrictions (no multiplayer/
   macro-layer exists). Don't assume any deferred piece exists without
   checking.
-- [ ] **Sky texture could use another pass.** Procedural cloudy skybox shipped
-  v0.1.55-dev through v0.1.57-dev (`GenerateSkyTexture.cs`, throwaway —
-  `Assets/Data/Sky.mat` + `Assets/Textures/SkyTexture.png` are the persistent
-  result) — gradient direction and basic visibility are now correct per Ben's
-  screenshots, but clouds are still sparse/barely present in a normal view
-  ("this is fine for now," not "this is done"). Worth another round of tuning
-  cloud coverage/density and possibly the cloud shape/softness if it comes up
-  again — same tileable-noise technique as the grass texture, see
-  `CHANGELOG.md`'s v0.1.55/56/57-dev entries for the full history of what was
-  tried (including the inverted-gradient bug already fixed) before changing
-  anything.
-  **Likely root cause identified 2026-08-04, not yet applied here:** while
-  fixing the ore textures, found that `Mathf.SmoothStep(low, high, rawValue)`
-  doesn't threshold anything the way GLSL's `smoothstep` does — see `CLAUDE.md`'s
-  new gotcha on this exact bug. The sky's cloud-coverage code used the identical
-  pattern, so the persistently-faint clouds across three tuning rounds were very
-  likely this, not a frequency/contrast problem. Try the corrected
-  `SmoothThreshold` helper from that gotcha before anything else. *(Reported by
-  Ben.)*
 - [ ] **Simplify item-holding to two states: equipped or inventory-stored — no
   ad-hoc "held in a hand" third state.** Today `PlayerLoot`'s pickup priority is
   Backpack → Left Hand → Right Hand → evict-into-world (`CHANGELOG.md`

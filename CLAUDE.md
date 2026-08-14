@@ -101,27 +101,28 @@ model, dev/test workflow, scope shape). Mirror was picked over PurrNet
 mainly because PurrNet's stated minimum Unity version is newer than this
 project's pinned one.
 
-**NPC job generalization (Mining + Woodworking + Berry/Herb foraging,
-bench-crafting sketched for later) lives in
-`NPC_JOB_GENERALIZATION_PLANNING.md`.** Ben's ask (2026-08-13): let the
-player assign an NPC to Woodworking or foraging (and eventually any craft
-family except Building), same as Mining today. Audit found the Hireable
-NPC system already mostly generic (`NPCJobDefinition`/`NPCJobScreen` are
-pure data-driven, `NPCMining`'s loop already targets any `ResourceNode`
-and trains whatever skill the assigned job names) — the real gaps are
-standing Trees (`ChoppableTree`) using a different interaction shape than
-`ResourceNode`, and Berry/Herb bushes (`BerryBush`/`HerbBush`) not
-yielding an item directly at all (their search action only scatters
-`Pickup` objects onto the ground — a genuine two-step search-then-collect
-task, not a shortcut opportunity). Plan: a shared `INPCHarvestable`
-interface for direct-yield targets (ResourceNode, ChoppableTree) plus a
-separate `INPCSearchable` interface for trigger-only targets (BerryBush/
-HerbBush's search half only — their chop-for-stick action stays
-player-only), `Pickup.cs` gains an NPC-safe collection path, and
-`NPCMining.cs` renames to `NPCGathering.cs` with a target search spanning
-all three pools. Bench-crafting families (Metalworking, Sewing, etc.) are
-sketched but explicitly deferred to a later pass — planning only, nothing
-built yet.
+**NPC job generalization (Mining + Woodworking + Berry/Herb foraging) is
+built — see `NPC_JOB_GENERALIZATION_PLANNING.md`.** Ben's ask (2026-08-13):
+let the player assign an NPC to Woodworking or foraging (and eventually
+any craft family except Building), same as Mining today. Audit found the
+Hireable NPC system already mostly generic (`NPCJobDefinition`/
+`NPCJobScreen` are pure data-driven, `NPCMining`'s loop already targets
+any `ResourceNode` and trains whatever skill the assigned job names) — the
+real gaps were standing Trees (`ChoppableTree`) using a different
+interaction shape than `ResourceNode`, and Berry/Herb bushes (`BerryBush`/
+`HerbBush`) not yielding an item directly at all (their search action only
+scatters `Pickup` objects onto the ground — a genuine two-step
+search-then-collect task, not a shortcut opportunity). Built same day
+(v0.3.32-dev, committed and pushed): a shared `INPCHarvestable` interface
+for direct-yield targets (ResourceNode, ChoppableTree) plus a separate
+`INPCSearchable` interface for trigger-only targets (BerryBush/HerbBush's
+search half only — their chop-for-stick action stays player-only),
+`Pickup.cs` gained an NPC-safe collection path, and `NPCMining.cs` was
+renamed to `NPCGathering.cs` (GUID preserved) with a target search
+spanning all three pools. Bench-crafting families (Metalworking, Sewing,
+etc.) are sketched in the planning doc but explicitly deferred to a later
+pass. Verified via compile + YAML grep only so far — no live Play-mode
+confirmation yet.
 
 **Save/load persistence real implementation plan lives in
 `SAVE_LOAD_PLANNING.md`.** Expands the narrow v1 draft in
@@ -139,25 +140,27 @@ state beyond a plain `ItemDefinition` reference. Loose world pickups,
 built structures, and Lockbox/Bank contents are explicitly deferred out of
 v1. Planning only, not yet built.
 
-**Skill books design lives in `SKILL_BOOKS_PLANNING.md`.** MVP2 item 7,
-fully worked out 2026-08-13. Reading/writing became a direct trigger on
-Intelligence (mirroring `PlayerEncumbrance`'s Strength pattern); a
-crafting/weapon skill book grants one specific `CraftingRecipe` as a
-standing exception to the normal skill gate (never a level/XP boost); a
-magic wish book (e.g. "Fireball") does the same for a `WishRecipe` *and*
-unlocks its lineage if not already known — confirmed against
-`PlayerMagic.cs` as one unified mechanic, not two separate systems.
-Writing reuses `PlayerCrafting`'s existing `CraftOutcome` roll directly
-(margin = author's Intelligence vs. the subject's tier requirement) — no
-new formula needed; a catastrophic writing failure destroys the book and
-damages the author (2–10), while only the best outcome grants a lineage
-tome a random 1–10 head start above 0. Real prerequisite surfaced:
-`PlayerMagic.IsLineageKnown` only checks a single `StartingLineage` field
-today, so a player can't know more than one lineage in code yet. Rare
-magic-teaching NPCs and NPCs writing their own books are both explicitly
-deferred to a later MVP; a hired NPC being *taught* from a book has to be
-handed it and reads it itself. Planning only, not yet built. Rendered
-summary: https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115
+**Skill books are built — see `SKILL_BOOKS_PLANNING.md`.** MVP2 item 7,
+designed and built 2026-08-13 (v0.3.53-dev, committed and pushed).
+Reading/writing became a direct trigger on Intelligence (mirroring
+`PlayerEncumbrance`'s Strength pattern); a crafting/weapon skill book
+grants one specific `CraftingRecipe` as a standing exception to the normal
+skill gate (never a level/XP boost); a magic wish book (e.g. "Fireball")
+does the same for a `WishRecipe` *and* unlocks its lineage if not already
+known — confirmed against `PlayerMagic.cs` as one unified mechanic, not
+two separate systems. Writing reuses `PlayerCrafting`'s `CraftOutcome`
+roll directly (margin = author's Intelligence vs. the subject's tier
+requirement), extracted into shared `CraftOutcomeRoll.cs`; a catastrophic
+writing failure destroys the book and damages the author (2–10), while
+only the best outcome grants a lineage tome a random 1–10 head start above
+0. `PlayerMagic.IsLineageKnown` now checks a real `knownLineages` set
+instead of a single `StartingLineage` field, so a player can know more
+than one lineage. Rare magic-teaching NPCs and NPCs writing/reading their
+own books are both explicitly deferred to a later MVP (blocked on NPC
+bench-crafting for the crafting-book half). Verified via compile + YAML
+grep only so far — no live Play-mode confirmation yet, see
+`TEST_FEATURE_PLAN.md` section 31. Rendered summary:
+https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115
 
 **Weather Maker is built and live-tested — see `WEATHER_MAKER_PLANNING.md`.**
 MVP2 item 5, built 2026-08-13. Digital Ruby's Weather Maker (v8.1.0,

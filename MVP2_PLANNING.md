@@ -18,7 +18,7 @@ specced yet.
 4. **Player and NPC animation.** — ✅ Shipped (v0.3.33-dev/v0.3.34-dev, 2026-08-13); not yet live-tested in Play mode.
 5. **Sky and weather.** — ✅ Built and live-tested (Weather Maker, `WEATHER_MAKER_PLANNING.md`, 2026-08-13).
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
-7. **Skill books.** — 🟡 Design fully worked out (`SKILL_BOOKS_PLANNING.md`, 2026-08-13 — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)); not yet built.
+7. **Skill books.** — 🟡 Built (v0.3.53-dev, `SKILL_BOOKS_PLANNING.md` — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode. Phase 4 (NPC training) correctly blocked on item 2's bench-crafting.
 8. **Expand hunting** — diverse animals, and the ability to use a weapon against them.
 9. **Cooking** — supplements healing (better foods give health/healing); teas and drinks.
 10. **"Prefab" buildings** — drop a full premade building into a scene, rather than piece-by-piece.
@@ -172,23 +172,28 @@ capture `knownLineages`/`bookGrantedRecipes`/`bookGrantedWishes` plus
 is designed as an `IEquippable`, but isn't automatic.
 
 ### 7 — Skill books
-**Full design worked out 2026-08-13** — see `SKILL_BOOKS_PLANNING.md`
-([rendered summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)).
-Confirms and sharpens the original framing: reading/writing became a
-direct trigger on Intelligence (item 1's proposed training trigger,
-mirroring `PlayerEncumbrance`'s Strength pattern); a crafting/weapon
-skill book grants one specific `CraftingRecipe` as a standing exception
-to the normal skill gate, not a level/XP boost; a magic wish book (e.g.
-"Fireball") does the same for a `WishRecipe` *and* unlocks its lineage if
-not already known, confirmed against `PlayerMagic.cs` as one unified
-mechanic rather than two separate systems. Writing reuses `PlayerCrafting`
-'s existing `CraftOutcome` roll directly (margin = author's Intelligence
-vs. the subject's tier requirement) — no new formula needed. Real code
-prerequisite surfaced: `PlayerMagic.IsLineageKnown` only checks a single
-`StartingLineage` field today, so a player can't know more than one
-lineage in code yet; that needs to become a real set before any of this
-can be built. Rare magic-teaching NPCs and NPCs writing their own books
-are both explicitly deferred to a later MVP.
+**Design worked out and built same day (2026-08-13)** — see
+`SKILL_BOOKS_PLANNING.md` ([rendered summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)).
+Reading/writing became a direct trigger on Intelligence (item 1's
+proposed training trigger, mirroring `PlayerEncumbrance`'s Strength
+pattern) — `PlayerMagic.StartingLineage` became a real `knownLineages`
+set with no cap, the real code prerequisite the design phase surfaced.
+A crafting/weapon skill book grants one specific `CraftingRecipe` as a
+standing exception to the normal skill gate, not a level/XP boost; a
+magic wish book (e.g. "Fireball") does the same for a `WishRecipe` *and*
+unlocks its lineage if not already known — one unified mechanic, not two
+separate systems. Writing reuses `PlayerCrafting`'s `CraftOutcome` roll
+directly via a newly-extracted shared `CraftOutcomeRoll.cs` — no new
+formula needed. New "Writing" tab in `PlayerMenuScreen`; reading hooks
+into `InventoryScreen`'s equipment-action popup (same shape Canteen's
+Drink/Fill use — a real mid-build correction from the originally-sketched
+`PlayerEating`-style dispatch, which only fits plain stackable items).
+Two "found" skill books placed in `TestScene.unity` for easy testing.
+**Phase 4 (NPC training) correctly left unbuilt** — blocked on item 2's
+bench-crafting, which doesn't exist yet. Rare magic-teaching NPCs and
+NPCs writing their own books both explicitly deferred to a later MVP.
+Verified via 10+ rounds of batch-mode compile + direct YAML grep —
+**not yet live-tested in Play mode.**
 
 ### 8 — Expand hunting
 Today: one huntable animal (Wolf, via `HostileCreature`), and only
@@ -222,17 +227,20 @@ item 6). Not yet decided which Ben meant.
   directly or are currently working around.
 - **Stat/world-sim cluster**: items 1 + 5 + 9 reinforce each other
   (Constitution, weather, food/warmth) into one coherent survival loop
-  instead of three separate features.
+  instead of three separate features. **Item 5 is the first of the three
+  actually built** — `PlayerWeatherEffects.cs` delivers real weather→
+  body-temperature cooling now, so items 1 (Constitution resisting it)
+  and 9 (warm food/tea countering it) are the two legs still missing to
+  complete the loop this cluster was always describing.
 - **NPC/labor cluster**: item 2 leans on item 4 for presentation and item 3
   for what a hired NPC starts equipped with.
 - **Combat/hunting cluster**: item 8 leans on item 1 (Dexterity) and item 4
   (weapon animation).
-- **No longer standalone: item 7 (skill books)**, now fully designed
-  (`SKILL_BOOKS_PLANNING.md`, 2026-08-13) and cross-linked three ways —
-  it advances item 1 (Intelligence's trigger) for free, its NPC-training
-  phase is blocked on item 2 (bench-crafting), and it creates a real
-  follow-up increment for item 6 (new save-state surface). Item 10 still
-  needs its scope question answered before any of this clustering applies
-  to it.
+- **No longer standalone: item 7 (skill books)**, now built (v0.3.53-dev,
+  `SKILL_BOOKS_PLANNING.md`) and cross-linked three ways — it advanced
+  item 1 (Intelligence's trigger) for free, its NPC-training phase is
+  blocked on item 2 (bench-crafting), and it creates a real follow-up
+  increment for item 6 (new save-state surface). Item 10 still needs its
+  scope question answered before any of this clustering applies to it.
 
 Build order not yet decided.
