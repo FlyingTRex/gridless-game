@@ -12,8 +12,8 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-- 2026-08-13 — Ben — Save/load persistence, v1 (v0.3.51-dev, **implementation
-  complete, not yet committed/pushed**). Full build of `SAVE_LOAD_PLANNING.md`:
+- 2026-08-13 — Ben — Save/load persistence, v1 (v0.3.51-dev, **committed,
+  not yet pushed**). Full build of `SAVE_LOAD_PLANNING.md`:
   `SaveId`/`SaveIdRegistry` for world-object identity, `ItemDatabase`/
   `SkillDatabase`/`NPCJobDatabase` for resolving ScriptableObject
   references by stable ID (populated via a one-off Editor script, now
