@@ -38,11 +38,11 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   the binary asset via a throwaway script, was "never, at this setting."
   Fixed by duplicating the profile and tuning to a ~3 real-minute day for
   fast testing (Ben's explicit call — will want slowing down before real
-  play, see `TEST_FEATURE_PLAN.md` section 32). **Not yet committed.**
-  Still open: actual precipitation hasn't been seen live yet (needs a
-  temporary rain/snow weather-zone profile to test), so the gameplay
-  bridge's actual cooling effect is unverified so far, and the current
-  fast day/night pace is a testing stand-in, not the real pacing.
+  play, see `TEST_FEATURE_PLAN.md` section 32). **v0.3.54-dev, committed
+  and pushed.** Still open: actual precipitation hasn't been seen live
+  yet (needs a temporary rain/snow weather-zone profile to test), so the
+  gameplay bridge's actual cooling effect is unverified so far, and the
+  current fast day/night pace is a testing stand-in, not the real pacing.
 - 2026-08-13 — Ben — Skill books, MVP2 item 7 (design + build starting
   same day). Full design in `SKILL_BOOKS_PLANNING.md` — reading grants a
   bounded head start (a specific `CraftingRecipe`/`WishRecipe` exception,
