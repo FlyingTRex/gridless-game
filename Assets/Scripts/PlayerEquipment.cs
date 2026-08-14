@@ -70,4 +70,20 @@ public class PlayerEquipment : MonoBehaviour
         var right = GetSlot("Right Hand");
         return (left != null && left.GetCount(item) > 0) || (right != null && right.GetCount(item) > 0);
     }
+
+    // Every distinct item currently held in either hand slot — unlike
+    // HasInHand above (checks one specific known item), this is for
+    // callers that need to find out *what* is held without knowing its
+    // ItemDefinition ahead of time (PlayerCombat scanning for an equipped
+    // melee weapon, 2026-08-14).
+    public IEnumerable<ItemDefinition> GetHandItems()
+    {
+        foreach (var slotName in new[] { "Left Hand", "Right Hand" })
+        {
+            var slot = GetSlot(slotName);
+            if (slot == null) continue;
+            foreach (var s in slot.Slots)
+                if (s.item != null) yield return s.item;
+        }
+    }
 }

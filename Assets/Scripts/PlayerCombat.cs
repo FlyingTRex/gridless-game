@@ -9,17 +9,23 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerInteraction))]
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerBuilding))]
+[RequireComponent(typeof(PlayerEquipment))]
 public class PlayerCombat : MonoBehaviour
 {
     [SerializeField] private float attackRange = 2.5f;
     [SerializeField] private float punchDamage = 9f;
     [SerializeField] private float punchCooldown = 0.7f;
     [SerializeField] private SkillDefinition bareHandedSkill;
+    // Trained instead of bareHandedSkill whenever an ItemDefinition.
+    // isMeleeWeapon item is held (Knife, first use case, 2026-08-14) — one
+    // shared skill for every melee weapon, not one per weapon type.
+    [SerializeField] private SkillDefinition meleeSkill;
     [SerializeField] private float skillGain = 0.5f;
 
     private PlayerInteraction interaction;
     private PlayerSkills skills;
     private PlayerBuilding building;
+    private PlayerEquipment equipment;
     private float cooldownRemaining;
 
     private void Awake()
@@ -27,6 +33,7 @@ public class PlayerCombat : MonoBehaviour
         interaction = GetComponent<PlayerInteraction>();
         skills = GetComponent<PlayerSkills>();
         building = GetComponent<PlayerBuilding>();
+        equipment = GetComponent<PlayerEquipment>();
     }
 
     private void Update()
@@ -62,7 +69,23 @@ public class PlayerCombat : MonoBehaviour
         var target = hit.collider.GetComponentInParent<IDamageable>();
         if (target == null) return;
 
-        target.TakeDamage(punchDamage);
-        skills.GainExperience(bareHandedSkill, skillGain);
+        var (damage, trainedSkill) = ResolveAttack();
+        target.TakeDamage(damage);
+        skills.GainExperience(trainedSkill, skillGain);
+    }
+
+    // Bare-handed unless a melee weapon is actually held in a hand right
+    // now — checked fresh per swing (not cached), same "gate evaluated at
+    // the moment it matters" spirit as every other equipped-tool check in
+    // this project. First hand slot holding an isMeleeWeapon item wins;
+    // two weapons at once isn't a real case today.
+    private (float damage, SkillDefinition skill) ResolveAttack()
+    {
+        foreach (var item in equipment.GetHandItems())
+        {
+            if (item != null && item.isMeleeWeapon)
+                return (punchDamage + CraftTierScale.WeaponDamageBonus(item.tier), meleeSkill);
+        }
+        return (punchDamage, bareHandedSkill);
     }
 }

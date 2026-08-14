@@ -636,14 +636,21 @@ signs off on scope and order.
   flagged proactively rather than found the hard way — fix would mean
   reaching into `Belt`'s own attachment points the same way `PlayerLoot`/
   `PlayerCanteen` already do for equip-destination purposes.
-- [ ] **Only Bare-handed exists of the five weapon-usage skills named back
-  in the 2026-08-05 Crafting/Gathering/Skills Pipeline planning
-  (Archery/Spear/Sword/Gun/Bare-handed) — 2026-08-10.** Basic Combat
-  shipped with fists-only; no melee weapon (Spear, Knife-as-weapon) or
-  ranged weapon (Bow) actually deals combat damage yet, so those four
-  skills still have nothing to train them, same as before this session's
-  Combat work. Bare-handed's own numbers (9 dmg, 0.7s cooldown) were
-  picked to fit a first-pass placeholder Wolf, not vetted against a real
+- [ ] **Melee weapon damage framework built (2026-08-14, v0.3.61-dev) —
+  ranged still open.** Superseded the original "five weapon-usage skills"
+  plan (Archery/Spear/Sword/Gun/Bare-handed) with one shared **Melee**
+  skill (Ben's call: "generalize it under Melee") covering every melee
+  weapon instead of one skill per weapon type. New generic
+  `ItemDefinition.isMeleeWeapon` flag + `CraftTierScale
+  .WeaponDamageBonus(tier)` (Crude/Rudimentary +0, Normal +1, Fine +1.5,
+  Masterwork +2, on top of the base 9-damage punch) — `PlayerCombat`
+  checks `PlayerEquipment.GetHandItems()` for a flagged weapon each swing
+  and trains Melee instead of Bare-handed when one's held. First applied
+  to the Knife (all 5 tiers flagged); any future melee weapon (Spear,
+  Sword) just needs the same flag, no `PlayerCombat` changes required.
+  **Ranged combat (Archery/Gun) is a separate, still-fully-open gap** —
+  this framework only covers melee. Bare-handed's own numbers (9 dmg,
+  0.7s cooldown) are still first-pass, not vetted against a real
   weapon-tier progression.
 - [ ] **Fame / Faction — placeholder tiles only, no backing system
   (2026-08-10).** Added to the Player tab alongside the 4 core stats

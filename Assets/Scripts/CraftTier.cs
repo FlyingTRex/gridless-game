@@ -105,6 +105,26 @@ public static class CraftTierScale
         return best;
     }
 
+    // Melee weapon tier -> flat damage bonus added on top of the base
+    // bare-handed punch (PlayerCombat.punchDamage) — deliberately its own
+    // small table, not reused from Modifier/WeightModifier above (same
+    // "a ratio tuned for one quantity doesn't transfer to another" trap
+    // WeightModifier's own comment already documents). Ben's call
+    // (2026-08-14), first applied to the Knife: Crude/Rudimentary add
+    // nothing (not yet a real edge), Normal +1, Fine +1.5, Masterwork +2 —
+    // a deliberately modest boost (~22% over a 9-damage punch at the high
+    // end), meant as a reusable framework for every future melee weapon,
+    // not a Knife-specific number.
+    public static float WeaponDamageBonus(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => 0f,
+        CraftTier.Rudimentary => 0f,
+        CraftTier.Normal => 1f,
+        CraftTier.Fine => 1.5f,
+        CraftTier.Masterwork => 2f,
+        _ => 0f,
+    };
+
     // Seconds a skill-gated hold interaction (gathering, chopping, and
     // eventually crafting) takes at each tier — replaces the old
     // punch-N-times/hitsToBreak model. Low tier takes longest (still

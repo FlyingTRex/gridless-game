@@ -47,4 +47,14 @@ public class ItemDefinition : ScriptableObject
     // refined from it, instead of needing a second recipe per variant.
     // Null (the default) means "not a refined form of anything."
     public ItemDefinition baseItem;
+
+    // Optional — marks this item as a melee weapon for PlayerCombat.
+    // False (default) for everything else, including plain crafting Tools
+    // (Pickaxe/Axe/Hammer) that aren't meant to double as weapons. When
+    // true, holding this item adds CraftTierScale.WeaponDamageBonus(tier)
+    // on top of the base bare-handed punch and trains the shared Melee
+    // skill instead of Bare-handed — first applied to the Knife
+    // (2026-08-14), deliberately reusable by any future melee weapon
+    // (Sword, Spear, ...) without touching PlayerCombat again.
+    public bool isMeleeWeapon;
 }

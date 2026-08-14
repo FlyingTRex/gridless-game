@@ -42679,6 +42679,7 @@ MonoBehaviour:
   punchDamage: 9
   punchCooldown: 0.7
   bareHandedSkill: {fileID: 11400000, guid: 61773e62aaa5a3345a27299d1fc5d870, type: 2}
+  meleeSkill: {fileID: 11400000, guid: 5fc692f3e66de154288ddb79551309ec, type: 2}
   skillGain: 0.5
 --- !u!114 &1681626273
 MonoBehaviour:

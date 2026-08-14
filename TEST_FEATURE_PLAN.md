@@ -3278,3 +3278,21 @@ wiring). One `SandDigSite` is pre-placed in `TestScene.unity` near
 - [ ] **Save/load**: break the dig site, save, reload — confirm it comes
   back in the correct state (still showing the hole, correct time
   remaining on the respawn timer) rather than resetting.
+
+## 37. Melee weapon damage framework, v1
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep of the new assets/scene
+wiring).
+
+- [ ] **Bare-handed unchanged**: with nothing in hand, confirm punching
+  still deals exactly 9 damage and trains Bare-handed (not Melee).
+- [ ] **Knife adds the right bonus per tier**: equip each of the 5 Knife
+  tiers in turn and attack something damageable — confirm total damage
+  is 9 (Crude/Rudimentary), 10 (Normal), 10.5 (Fine), 11 (Masterwork).
+- [ ] **Knife trains Melee, not Bare-handed**: with a Knife equipped,
+  confirm the Melee skill (Skills tab, Combat category) increases and
+  Bare-handed does not.
+- [ ] **Switching mid-session**: unequip the Knife mid-fight, confirm the
+  very next swing reverts to bare-handed damage/skill immediately (the
+  check happens fresh per swing, not cached).

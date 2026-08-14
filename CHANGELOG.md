@@ -5,10 +5,40 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.60-dev` — must always match `GameVersion` in
+**Current version:** `0.3.61-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (8)
+
+### v0.3.61-dev — Melee weapon damage framework, first applied to the Knife
+
+Ben's ask: tier-based damage bonus for the Knife (Crude/Rudimentary +0,
+Normal +1, Fine +1.5, Masterwork +2 on top of the base 9-damage punch),
+built as a reusable framework for future weapons rather than a
+Knife-specific special case. Superseded the original five-weapon-skill
+plan (Archery/Spear/Sword/Gun/Bare-handed) with one shared **Melee**
+skill (Ben: "let's generalize it under Melee") — a display/categorization
+choice only, no mechanical link to the Strength stat, confirmed before
+building.
+
+New `CraftTierScale.WeaponDamageBonus(tier)` — deliberately its own
+table, not reused from `Modifier`/`WeightModifier` (same "a ratio tuned
+for one quantity doesn't transfer to another" lesson those two already
+document). New generic `ItemDefinition.isMeleeWeapon` flag and
+`PlayerEquipment.GetHandItems()` (finds *what's* held without knowing its
+identity ahead of time, unlike the existing `HasInHand` which checks one
+specific known item). `PlayerCombat` now checks both hands for a flagged
+weapon on every swing — bare-handed and Melee-trained-with-a-weapon are
+resolved by the same code path, one small helper method, not a branch
+scattered through the swing logic. All 5 Knife tiers flagged; any future
+melee weapon (Spear, Sword) just needs the same flag, no `PlayerCombat`
+changes required. Ranged combat (Archery/Gun) stays a separate, still
+fully open gap.
+
+Verified via batch-mode compile (0 CS errors) + direct YAML grep of every
+new asset and the scene wiring. **Not yet tested in Play mode.**
 
 ## 2026-08-14 (7)
 
