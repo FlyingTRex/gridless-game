@@ -592,3 +592,32 @@ grepping the saved scene YAML for the actual field name under that
 `fieldName: value` line, which is only how it looks for a fully-serialized
 component, not a prefab-instance override) — not by trusting "the script logged
 success," same discipline as every other stale-reference gotcha in this file.
+
+## Gotcha: a batch-mode tool run without `-nographics` can silently mutate a
+global `ProjectSettings` file as a side effect — don't wave an unexpected diff
+through as "benign" without actually testing it
+
+Hit live (2026-08-14, Copper/Silver/Gold/Platinum Ingots, v0.3.57-dev): running
+`IconBaker` (which requires a real graphics device — see its own `-nographics`
+warning) left `ProjectSettings/GraphicsSettings.asset`'s
+`m_LightsUseLinearIntensity` flipped `0` → `1`, an unrequested, unexplained
+change picked up alongside the actual intended asset changes. It was
+rationalized in the moment as "benign, arguably correct — consistent with the
+project's Linear color space" and committed without loading the Editor to
+actually look at anything. **It was not benign** — it broke Player/NPC model
+rendering project-wide (reported by Ben two commits later: "the npc and player
+models are invisible now"), sitting unnoticed for two full ship cycles
+(Rudimentary Shovel, Sand dig sites) before being traced back and reverted.
+
+**How to apply:** any diff in a `ProjectSettings/*.asset` file that isn't the
+change you actually intended — even one line, even one that sounds plausible
+given other recent project state — is a real regression risk exactly like an
+unexpected scene/prefab diff, not a rounding artifact to wave through. Treat it
+with the same suspicion as the "trivial floating-point re-serialization on
+unrelated materials" check already established for scene saves: read the diff,
+form an actual hypothesis for *why* the tool touched it, and if it can't be
+verified safe (ideally by loading the Editor and looking, not just reasoning
+about it), call it out to Ben explicitly rather than deciding unilaterally that
+it's fine. A graphics/rendering setting is exactly the category of change whose
+breakage won't show up in a compile check or a YAML grep — only in an actual
+Play-mode look, which a batch-mode session can't do itself.

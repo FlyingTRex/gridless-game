@@ -5,10 +5,27 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.61-dev` — must always match `GameVersion` in
+**Current version:** `0.3.62-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (9)
+
+### v0.3.62-dev — fix: Player/NPC models invisible (bad GraphicsSettings from two commits ago)
+
+Real regression, reported live by Ben ("the npc and player models are
+invisible now"). Root-caused to `ProjectSettings/GraphicsSettings.asset`'s
+`m_LightsUseLinearIntensity`, silently flipped `0` → `1` as an
+unintended side effect of running `IconBaker` (v0.3.57-dev, the Ingot
+build — `IconBaker` needs a real graphics device, unlike every other
+batch-mode script this session) and committed without actually verifying
+it in the Editor, wrongly judged "benign" at the time. Reverted to `0`,
+its value for the entire rest of the project's history. New `CLAUDE.md`
+gotcha written up — any unexpected `ProjectSettings/*.asset` diff is a
+real regression risk, not a rounding artifact to wave through, and this
+category of breakage won't show up in a compile check or YAML grep, only
+an actual Play-mode look.
 
 ## 2026-08-14 (8)
 
