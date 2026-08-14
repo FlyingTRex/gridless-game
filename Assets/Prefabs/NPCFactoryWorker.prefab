@@ -83,6 +83,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4316012993688278746}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3983197878184327458}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3246594296850682120}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
 --- !u!1 &384420937806375696 stripped
 GameObject:
@@ -158,6 +164,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCHiring
   hireCoinType: 0
   hireCoinAmount: 10
+  workDurationSeconds: 300
 --- !u!114 &4055500810525801307
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -236,3 +243,29 @@ MonoBehaviour:
   harvestDuration: 3
   moveSpeed: 1.5
   obstacleCheckDistance: 1.5
+--- !u!114 &3983197878184327458
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: 4e3b96b4d403435c95111451d923fc50
+--- !u!114 &3246594296850682120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6d333e93bb824e47b6edb67f056cf16, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCFlee
+  baseMoveSpeed: 1.2

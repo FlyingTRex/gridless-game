@@ -75,6 +75,20 @@ public static class CraftTierScale
         _ => 1f,
     };
 
+    // Fame granted when any skill (any category, including core stats)
+    // crosses into this tier for the first time — see FAME_PLANNING.md
+    // (2026-08-14). Crude isn't reachable as a "just unlocked" tier (every
+    // skill starts there), so it has no entry; Rudimentary is the first
+    // real milestone.
+    public static float FameOnTierUnlock(CraftTier tier) => tier switch
+    {
+        CraftTier.Rudimentary => 1f,
+        CraftTier.Normal => 2f,
+        CraftTier.Fine => 3f,
+        CraftTier.Masterwork => 5f,
+        _ => 0f,
+    };
+
     // Minimum level (0-100, see PlayerSkills.MaxLevel) in a recipe's
     // trainedSkill required to craft that tier. Crude is deliberately 0 —
     // not 1 — since skill starts at 0 and today's only way to gain most

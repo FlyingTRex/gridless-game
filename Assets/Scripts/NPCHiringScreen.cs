@@ -23,6 +23,7 @@ public class NPCHiringScreen : MonoBehaviour
 
     private PlayerCurrency wallet;
     private NPCJobScreen jobScreen;
+    private PlayerFame fame;
     private NPCHiring current;
     private bool isOpen;
     private Vector2 statsScroll;
@@ -33,6 +34,7 @@ public class NPCHiringScreen : MonoBehaviour
     {
         wallet = GetComponent<PlayerCurrency>();
         jobScreen = GetComponent<NPCJobScreen>();
+        fame = GetComponent<PlayerFame>();
     }
 
     // Same "only opens from normal gameplay" rule every other screen
@@ -80,7 +82,9 @@ public class NPCHiringScreen : MonoBehaviour
 
             GUI.enabled = wallet.GetBalance(current.HireCoinType) >= current.HireCoinAmount;
             if (GUILayout.Button("Hire"))
-                current.TryHire(wallet);
+            {
+                if (current.TryHire(wallet)) fame?.GrantHire();
+            }
             GUI.enabled = true;
         }
         else
@@ -117,6 +121,7 @@ public class NPCHiringScreen : MonoBehaviour
             if (GUILayout.Button("Fire"))
             {
                 current.Fire();
+                fame?.GrantFire();
                 SetOpen(false);
                 GUILayout.EndArea();
                 return;

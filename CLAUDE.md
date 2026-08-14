@@ -202,35 +202,38 @@ the already-shipped Intelligence system: a small (+5% at cap) global XP
 multiplier on every *other* skill's gains, superseding the original
 `BUGS_AND_ENHANCEMENTS.md` sketch's much bigger (+50%) version.
 
-**Fame system input side is fully designed — see `FAME_PLANNING.md`.**
-Worked out 2026-08-14, planning only, nothing built yet. A single
--1000-to-1000 Fame float (not per-trade, despite the original design-brief
-framing), fed by NPC treatment (hire +1, fire -0.5, unpaid wages -0.5 per
-missed cycle, killing any humanoid NPC -10 — the last one blocked on hired
-NPCs not implementing `IDamageable` at all yet), player death (-2), and
-skill-tier mastery in any discipline including the core stats (Rudimentary
-+1 through Masterwork +5, reusing `PlayerSkills`' existing tier-unlock
-detection for free — the "everyone knows the Hulk for his strength" case
-needed no new component, just confirming the hook isn't scoped to exclude
-the `Attribute` skill category). Guild membership adds Join +1/Leave -1
-(flat and symmetric, hooking `PlayerGuilds.Join`/`Leave`, which already
-work today) plus Start-a-guild +3/Close -6, both blocked on a
-player-driven guild-creation mechanic that doesn't exist yet
-(`GuildDefinition` is a plain pre-authored asset, not player-creatable).
-Business-reach Fame (Inn/Trader,
-scaling with customers served) is designed but blocked on an entire
-commerce/vendor system that doesn't exist anywhere in this project yet —
-the biggest prerequisite gap in the doc. Output side has two real effects
-designed too: negative Fame makes every NPC (including already-hired
-ones) flee within ~10m, pausing their current job until the player
-leaves; and a 5-band Fame system (Infamous/Notorious/Neutral/Known/
-Renowned, mirroring `CraftTier`'s own 5-tier shape) scales a Traveling
-Trader's visit frequency and pricing, with item quality only improving
-at the top Renowned band. Both blocked on real prerequisites (an
-`NPCFlee` component; the same nonexistent vendor system). The design
-brief's original per-trade "better prices/rarer game/luckier mining"
-examples still don't cleanly carry over now that Fame is a single overall
-number — that part's still open.
+**Fame system is built — see `FAME_PLANNING.md`.** Designed and built
+2026-08-14. A single -1000-to-1000 Fame float (not per-trade, despite the
+original design-brief framing) on a new `PlayerFame` component. Built:
+Hire +1/Fire -0.5/unpaid wages -0.5 per missed cycle (hooked into
+`NPCHiring`/`NPCHiringScreen`), skill-tier mastery in any discipline
+including the core stats (Rudimentary +1 through Masterwork +5, via a new
+`PlayerSkills.TierUnlocked` event + `CraftTierScale.FameOnTierUnlock` —
+the "everyone knows the Hulk for his strength" case needed no new
+detection logic, just `PlayerFame` subscribing), guild Join +1/Leave -1
+(`PlayerGuilds`), and the negative-Fame NPC-flee output effect
+(`NPCFlee.cs` on `NPCFactoryWorker.prefab` — every NPC within ~10m,
+pausing their job until the player leaves, reusing `NPCWander`'s
+move/ground-sample/face plumbing aimed away from the player instead of a
+random point). Real Player-tab tile with a band-name sub-line
+(`DrawFameTile`), replacing the old placeholder.
+
+Four pieces are designed but blocked on real prerequisites, each logged
+as its own `BUGS_AND_ENHANCEMENTS.md` follow-up rather than built blind:
+killing any humanoid NPC (-10, blocked — hired NPCs don't implement
+`IDamageable` at all); player death (-2, blocked — there's no player-death
+detection anywhere in the codebase at all, found live while building this
+pass); starting/closing a guild (+3/-6, blocked — `GuildDefinition` is a
+pre-authored asset only, no player-driven guild creation exists); and
+business-reach Fame plus the output-side Traveling Trader (a 5-band
+Infamous/Notorious/Neutral/Known/Renowned system mirroring `CraftTier`'s
+shape, scaling visit frequency/pricing/quality — blocked on an entire
+vendor/commerce system that doesn't exist in any form, the biggest
+prerequisite in the doc). The design brief's original per-trade "better
+prices/rarer game/luckier mining" examples still don't cleanly carry over
+now that Fame is a single overall number — that part's still open.
+Verified via batch-mode compile + YAML grep only so far — not yet
+live-tested in Play mode.
 
 ## Design docs (`docs/`)
 

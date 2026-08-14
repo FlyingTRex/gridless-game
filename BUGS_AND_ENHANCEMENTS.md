@@ -412,24 +412,47 @@ signs off on scope and order.
 - [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
   extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather
   than replacing it.
-- [ ] **Fame/reputation system — input side fully designed 2026-08-14, see
-  `FAME_PLANNING.md`.** A single -1000 to 1000 Fame float, fed by NPC
-  treatment (hire/fire/unpaid wages/killing), player death, skill-tier
-  mastery (any discipline, including core stats — the "everyone knows the
-  Hulk for his strength" case), guild membership (join/leave already
-  work; starting/closing your own guild is blocked — no player-driven
-  guild-creation mechanic exists), and business reach (Inn/Trader, once
-  those exist). Output side has two real effects designed too: negative Fame
-  makes every NPC flee within ~10m (pausing their job until you leave),
-  and a 5-band Fame system (mirroring `CraftTier`'s shape) scales a
-  Traveling Trader's visit frequency/pricing, with item quality improving
-  only at the top band. Both still blocked on real prerequisites. The
-  design brief's original per-trade examples still don't cleanly carry
-  over now that Fame is a single overall number. **Still open, flagged
-  but not resolved:** Ben separately floated Fame/Reputation as a possible
+- [x] **Fame/reputation system — built 2026-08-14, see
+  `FAME_PLANNING.md`.** A real `PlayerFame` component, single -1000 to
+  1000 float. Built: Hire +1/Fire -0.5/unpaid-wages -0.5-per-cycle (all
+  hooked into `NPCHiring`/`NPCHiringScreen`), skill-tier mastery in any
+  discipline including core stats (`PlayerSkills.TierUnlocked` event +
+  `CraftTierScale.FameOnTierUnlock`, the "everyone knows the Hulk for his
+  strength" case), guild Join +1/Leave -1 (`PlayerGuilds`), and the
+  negative-Fame NPC-flee output effect (`NPCFlee.cs`, every NPC within
+  ~10m, pausing their job until the player leaves). Real Player-tab tile
+  with a band-name sub-line, replacing the old placeholder. Four pieces
+  are designed but blocked on real prerequisites — see the four separate
+  entries below, each its own follow-up. **Still open, flagged but not
+  resolved:** Ben separately floated Fame/Reputation as a possible
   *later* phase (pushed past Phase 2 entirely) — never confirmed either
-  way against this Phase 2 placement; explicit call this session was to
-  keep designing regardless of timing. Planning only, not yet built.
+  way against this Phase 2 placement; doesn't change that it's now built.
+  Verified via batch-mode compile + YAML grep only so far — not yet
+  live-tested in Play mode.
+- [ ] **Fame: Kill NPC (-10) blocked on hired-NPC death system.** Hired
+  NPCs (`NPCFactoryWorker` and friends) don't implement `IDamageable` at
+  all — only `HostileCreature` does — so `PlayerCombat`'s attack raycast
+  can't even detect one as a target. Needs a real health/death system on
+  hired NPCs before this Fame hook can wire in. See `FAME_PLANNING.md`.
+- [ ] **Fame: Player death (-2) blocked on death detection not existing
+  at all.** Found live while building the rest of Fame (2026-08-14):
+  `PlayerVitals.health` just clamps at 0 via `Mathf.Max` — nothing ever
+  fires a "player died" event, no respawn/game-over exists anywhere.
+  Needs real death handling before this Fame hook can wire in. See
+  `FAME_PLANNING.md`.
+- [ ] **Fame: Start a guild (+3)/Close (-6) blocked on player-driven
+  guild creation not existing.** `GuildDefinition` is a plain
+  pre-authored `ScriptableObject` asset (`[CreateAssetMenu]`, hand-built
+  in the Editor like `SkillDefinition`) — a player "starting a guild"
+  doesn't exist as a concept, only joining/leaving a developer-authored
+  one does. See `FAME_PLANNING.md`.
+- [ ] **Fame: business-reach input (Inn/Trader) + the Traveling Trader
+  output effect, both blocked on an entire commerce system that doesn't
+  exist.** No Inn, Trader, or vendor/customer/transaction system exists
+  anywhere in this codebase — not a missing hook, an entire unbuilt
+  commerce layer. The biggest prerequisite in `FAME_PLANNING.md`, which
+  has the full design ready (a 5-band frequency/pricing/quality table)
+  once the underlying system gets built.
 - [ ] **Basic transportation** — log raft/boat up through a cart; a tamed
   animal can pull a cart or carry loot.
 - [ ] **Larger/settlement-level storage** — distinct from Phase 1's personal

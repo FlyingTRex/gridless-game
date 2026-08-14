@@ -41877,6 +41877,7 @@ GameObject:
   - component: {fileID: 1681626291}
   - component: {fileID: 1681626293}
   - component: {fileID: 1681626292}
+  - component: {fileID: 1681626294}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -43002,6 +43003,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDexterity
   dexteritySkill: {fileID: 11400000, guid: 7bc8b6051aa4fe7468a79381cfff10da, type: 2}
+--- !u!114 &1681626294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 650d79d9d22cc864c9fcd8a61d4ec22f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerFame
+  fame: 0
 --- !u!1001 &1689588954
 PrefabInstance:
   m_ObjectHideFlags: 0

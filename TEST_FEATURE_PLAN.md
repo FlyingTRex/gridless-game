@@ -3296,3 +3296,40 @@ wiring).
 - [ ] **Switching mid-session**: unequip the Knife mid-fight, confirm the
   very next swing reverts to bare-handed damage/skill immediately (the
   check happens fresh per swing, not cached).
+
+## 38. Fame system, v1
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep of the new scripts and scene
+wiring). Four pieces (Kill NPC, Player death, Start/Close a guild,
+business-reach + Traveling Trader) are explicitly not built yet, blocked
+on real prerequisites — see `FAME_PLANNING.md`/`BUGS_AND_ENHANCEMENTS.md`
+— don't expect to test those.
+
+- [ ] **Fame tile shows correctly**: open the Player tab, confirm the
+  Fame tile shows a real number (starting at 0) and a band-name sub-line
+  ("Neutral" at 0).
+- [ ] **Hire/Fire move Fame**: hire an NPC, confirm Fame increases by 1;
+  fire them, confirm it decreases by 0.5.
+- [ ] **Unpaid wages tick down Fame**: hire an NPC, let them work through
+  a full pay cycle without paying, wait an additional full cycle unpaid —
+  confirm Fame drops by 0.5 for that additional wait (not just once when
+  they first started waiting).
+- [ ] **Guild Join/Leave move Fame**: via Admin Spawn (the only current
+  entry point), join a guild — confirm Fame +1; leave — confirm Fame -1.
+- [ ] **Tier-unlock moves Fame, any discipline**: train any skill (a
+  crafting discipline, or a core stat like Strength) into a new tier,
+  confirm Fame increases by the right amount (+1 Rudimentary, +2 Normal,
+  +3 Fine, +5 Masterwork).
+- [ ] **Fame band label updates correctly**: push Fame's value across a
+  band boundary (e.g. above 100 for "Known"), confirm the Player tab's
+  sub-line updates to match.
+- [ ] **Fame clamps at the range edges**: (harder to test directly without
+  admin tools) confirm Fame never displays below -1000 or above 1000.
+- [ ] **NPCs flee at negative Fame**: get Fame below 0 (repeated firing/
+  leaving guilds), approach a hired NPC — confirm they run away from you
+  within ~10m, faster than normal wander speed, and that a hired NPC's
+  job visibly pauses while fleeing.
+- [ ] **Fleeing resumes normal behavior**: back away until outside ~10m
+  (or restore Fame to non-negative), confirm the NPC stops fleeing and
+  resumes wandering/working normally, not stuck in a fleeing state.

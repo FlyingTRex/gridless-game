@@ -5,10 +5,54 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.63-dev` — must always match `GameVersion` in
+**Current version:** `0.3.64-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (11)
+
+### v0.3.64-dev — Fame system built
+
+Every input/output effect from `FAME_PLANNING.md` that had something
+real to hook is now built: new `PlayerFame` component (a single -1000 to
+1000 float), Hire +1/Fire -0.5/unpaid-wages -0.5-per-cycle (hooked into
+`NPCHiringScreen`/`NPCHiring`), skill-tier mastery in any discipline
+including the core stats (new `PlayerSkills.TierUnlocked` event +
+`CraftTierScale.FameOnTierUnlock` — the "everyone knows the Hulk for his
+strength" case needed no new detection logic, just `PlayerFame`
+subscribing), guild Join +1/Leave -1 (`PlayerGuilds`), and the
+negative-Fame NPC-flee output effect (new `NPCFlee.cs` on
+`NPCFactoryWorker.prefab` — every NPC within ~10m flees at 2x wander
+speed, pausing their job until the player leaves, reusing `NPCWander`'s
+move/ground-sample/face plumbing aimed away from the player instead of a
+random point). Real Player-tab tile with a band-name sub-line
+(Infamous/Notorious/Neutral/Known/Renowned), replacing the old
+`DrawPlaceholderTile("Fame", "0")`.
+
+Four pieces stay explicitly unbuilt, each logged as its own
+`BUGS_AND_ENHANCEMENTS.md` follow-up rather than built blind: Kill NPC
+(-10, blocked — hired NPCs don't implement `IDamageable` at all); Player
+death (-2, blocked — **found live while building this pass**: there is
+no player-death detection anywhere in the codebase, `PlayerVitals.health`
+just clamps at 0 via `Mathf.Max` with no event ever firing); Start/Close
+a guild (+3/-6, blocked — `GuildDefinition` is a pre-authored asset only,
+no player-driven guild creation exists); and business-reach Fame plus the
+Traveling Trader (blocked on an entire vendor/commerce system that
+doesn't exist in any form — the biggest prerequisite in the whole doc).
+
+**Real bug caught mid-build**: adding `using System;` to `PlayerSkills.cs`
+(for the new `Action<CraftTier>` event) created an ambiguous reference
+between `UnityEngine.Random` and `System.Random` at an existing
+`Random.Range` call site — a real compile error that a first batch-mode
+run somehow reported as clean (likely a stale/incomplete run from the
+Editor being open at the time, not caught until a second, genuinely
+project-locked run surfaced it properly). Fixed by fully qualifying
+`UnityEngine.Random.Range`.
+
+Verified via batch-mode compile (0 CS errors) + direct YAML grep of
+every new script and scene/prefab wiring. **Not yet tested in Play
+mode.**
 
 ## 2026-08-14 (10)
 

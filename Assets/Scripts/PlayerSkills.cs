@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -129,6 +130,13 @@ public class PlayerSkills : MonoBehaviour
         if (skill != null) levels[skill] = level;
     }
 
+    // Fired whenever GainExperience crosses a skill into a new CraftTier —
+    // any skill, any category (Gathering/CraftingDiscipline/Combat/Magic/
+    // Attribute, including core stats). PlayerFame subscribes to this for
+    // its tier-unlock input (FAME_PLANNING.md, 2026-08-14) — added here
+    // rather than duplicating TierJustUnlocked's detection logic elsewhere.
+    public event Action<CraftTier> TierUnlocked;
+
     public void GainExperience(SkillDefinition skill, float amount)
     {
         if (skill == null || amount <= 0f) return;
@@ -146,11 +154,11 @@ public class PlayerSkills : MonoBehaviour
         // that didn't actually happen.
         if (newLevel > current)
         {
-            string[] pool = TierJustUnlocked(current, newLevel, out var unlockedTier)
-                ? TierUnlockTemplates[unlockedTier]
-                : MessageTemplates;
+            bool tierUnlocked = TierJustUnlocked(current, newLevel, out var unlockedTier);
+            if (tierUnlocked) TierUnlocked?.Invoke(unlockedTier);
 
-            string template = pool[Random.Range(0, pool.Length)];
+            string[] pool = tierUnlocked ? TierUnlockTemplates[unlockedTier] : MessageTemplates;
+            string template = pool[UnityEngine.Random.Range(0, pool.Length)];
             message = string.Format(template, skill.skillName, newLevel.ToString("F1"));
             messageExpireTime = Time.time + MessageDuration;
         }

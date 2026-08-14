@@ -34,9 +34,16 @@ public class NPCHiring : MonoBehaviour, IInteractable
     private NPCSkills skills;
     private NPCEncumbrance encumbrance;
     private NPCCargo cargo;
+    private PlayerFame playerFame;
     private bool isHired;
     private bool isWaitingForPayment;
     private float workTimer;
+
+    // -0.5 Fame every full workDurationSeconds spent unpaid, not a
+    // one-time hit — a chronically-neglected NPC keeps costing Fame (see
+    // FAME_PLANNING.md, 2026-08-14). Separate from workTimer, which stops
+    // advancing once isWaitingForPayment is true.
+    private float unpaidTimer;
 
     public bool IsHired => isHired;
     public bool IsWaitingForPayment => isWaitingForPayment;
@@ -74,10 +81,21 @@ public class NPCHiring : MonoBehaviour, IInteractable
         skills = GetComponent<NPCSkills>();
         encumbrance = GetComponent<NPCEncumbrance>();
         cargo = GetComponent<NPCCargo>();
+        playerFame = FindFirstObjectByType<PlayerFame>();
     }
 
     private void Update()
     {
+        if (isHired && isWaitingForPayment)
+        {
+            unpaidTimer += Time.deltaTime;
+            if (unpaidTimer >= workDurationSeconds)
+            {
+                unpaidTimer -= workDurationSeconds;
+                playerFame?.GrantUnpaidCycle();
+            }
+        }
+
         if (!isHired || isWaitingForPayment || !job.IsReady) return;
 
         workTimer += Time.deltaTime;
@@ -109,6 +127,7 @@ public class NPCHiring : MonoBehaviour, IInteractable
         isHired = false;
         isWaitingForPayment = false;
         workTimer = 0f;
+        unpaidTimer = 0f;
         job.ClearJob();
     }
 
@@ -119,6 +138,7 @@ public class NPCHiring : MonoBehaviour, IInteractable
 
         isWaitingForPayment = false;
         workTimer = 0f;
+        unpaidTimer = 0f;
         return true;
     }
 

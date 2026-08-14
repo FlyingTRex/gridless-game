@@ -20,6 +20,7 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerDexterity))]
 [RequireComponent(typeof(PlayerConstitution))]
 [RequireComponent(typeof(PlayerVitals))]
+[RequireComponent(typeof(PlayerFame))]
 public class PlayerMenuScreen : MonoBehaviour
 {
     private enum Tab { Player, Inventory, Skills, Crafting, Magic, Build, Writing }
@@ -83,6 +84,7 @@ public class PlayerMenuScreen : MonoBehaviour
     private PlayerDexterity dexterity;
     private PlayerConstitution constitution;
     private PlayerVitals vitals;
+    private PlayerFame fame;
     private PlayerInventory playerInventory;
 
     private bool isOpen;
@@ -105,6 +107,7 @@ public class PlayerMenuScreen : MonoBehaviour
         dexterity = GetComponent<PlayerDexterity>();
         constitution = GetComponent<PlayerConstitution>();
         vitals = GetComponent<PlayerVitals>();
+        fame = GetComponent<PlayerFame>();
         playerInventory = GetComponent<PlayerInventory>();
     }
 
@@ -214,11 +217,11 @@ public class PlayerMenuScreen : MonoBehaviour
             DrawConstitutionTile,
             DrawIntelligenceTile,
             // Fame/Faction — reputation-style stats, conceptually
-            // different from the skill-via-use core stats above (would be
-            // driven by other NPCs'/factions' standing toward the player,
-            // not personal GainExperience). Placeholder tiles only, no
-            // backing system yet.
-            () => DrawPlaceholderTile("Fame", "0"),
+            // different from the skill-via-use core stats above (driven by
+            // NPC treatment/guild membership/tier mastery, not personal
+            // GainExperience directly — see FAME_PLANNING.md, 2026-08-14).
+            // Faction stays a placeholder — no backing system yet.
+            DrawFameTile,
             () => DrawPlaceholderTile("Faction", "None"),
         });
 
@@ -310,6 +313,26 @@ public class PlayerMenuScreen : MonoBehaviour
             ? $"Max Health: {vitals.MaxHealth:F0}  Max Stamina: {vitals.MaxStamina:F0}"
             : null;
         DrawTile("Constitution", value.ToString("F2"), TileWidth, sub, GrowthProgress(constitutionSkill));
+    }
+
+    // Fame's own derived sub-line (2026-08-14, FAME_PLANNING.md) — the
+    // band name a Traveling Trader (once built) would react to, same
+    // "show the concrete mechanic under the raw number" spirit as every
+    // other custom tile above. No growth bar — Fame isn't a 0-100
+    // skill-via-use track, it can move in either direction.
+    private void DrawFameTile()
+    {
+        float value = fame != null ? fame.Fame : 0f;
+        DrawTile("Fame", value.ToString("F1"), TileWidth, FameBandLabel(value));
+    }
+
+    private static string FameBandLabel(float value)
+    {
+        if (value <= -500f) return "Infamous";
+        if (value <= -100f) return "Notorious";
+        if (value < 100f) return "Neutral";
+        if (value < 500f) return "Known";
+        return "Renowned";
     }
 
     private void DrawPlaceholderTile(string label, string value) => DrawTile(label, value, TileWidth);

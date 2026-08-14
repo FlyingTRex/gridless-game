@@ -1,12 +1,17 @@
 # Fame Planning
 
 Deferred/optional-layer system from `docs/design-brief.md`'s Phase 2 list,
-currently just a placeholder `Fame: 0` tile on the Player tab with no
-backing system at all (added 2026-08-10 purely so the full tab layout
-could be judged together). Worked out in one session (2026-08-14).
-**Planning only, nothing built yet** — input side is fully designed.
-Output side has two real effects designed (NPCs fleeing negative Fame,
-a Fame-band-scaled Traveling Trader) plus several still-open threads.
+was just a placeholder `Fame: 0` tile on the Player tab with no backing
+system at all (added 2026-08-10 purely so the full tab layout could be
+judged together). Designed and built same session (2026-08-14).
+
+**Built**: the real `PlayerFame` component, every input with something to
+hook (Hire/Fire/unpaid wages, guild Join/Leave, skill/stat tier-unlock),
+the NPC-flee output effect, and a real Player-tab tile with a band-name
+sub-line. Everything else in this doc — Kill NPC, Player death, Start/
+Close a guild, business-reach Fame, and the Traveling Trader — is
+designed but blocked on a system that doesn't exist yet, each logged as
+its own `BUGS_AND_ENHANCEMENTS.md` follow-up rather than built blind.
 
 ## Why this, why now
 
@@ -47,41 +52,46 @@ applies broadly rather than needing a per-discipline lookup.
   (hundreds of interactions), not swing dramatically from a handful of
   actions.
 
-## Input side — fully designed
+## Input side
 
 ### NPC treatment
 
 Ben's framing: "if I hire an npc, I should get some fame. If I fire one,
 I should lose fame. if I kill an npc... I lose a lot more fame."
 
-- **Hire an NPC**: **+1**. Hooks `NPCHiring.TryHire` (already exists).
-- **Fire an NPC**: **-0.5**. Hooks `NPCHiring.Fire` (already exists).
-  Deliberately asymmetric with Hire — Ben's call: leaving is a lighter
-  mark than the positive weight of having hired at all, not a straight
-  reversal.
-- **Leave a hired NPC unpaid**: **-0.5 per missed pay cycle** (not a
-  one-time hit — a chronically-neglected NPC keeps costing Fame). Hooks
-  `NPCHiring`'s existing `IsWaitingForPayment`/`TryPay`. Same theme as
-  Fire ("you're not taking care of your people"), same magnitude.
-- **Kill any humanoid NPC**: **-10** (confirmed applies broadly — "any
-  humanoid NPC, hired or not," not scoped to a betrayal-specific penalty
-  for only your own hires). Roughly 10x Hire/Fire's weight, matching
-  Ben's "a lot more" framing. Explicitly **not** the same as killing a
-  `HostileCreature` (Wolf) — ordinary survival combat carries no Fame
+- **Hire an NPC**: **+1** — ✅ **Built.** Hooks `NPCHiring.TryHire` via
+  `NPCHiringScreen`'s Hire button.
+- **Fire an NPC**: **-0.5** — ✅ **Built.** Hooks `NPCHiring.Fire` via the
+  Fire button. Deliberately asymmetric with Hire — Ben's call: leaving is
+  a lighter mark than the positive weight of having hired at all, not a
+  straight reversal.
+- **Leave a hired NPC unpaid**: **-0.5 per missed pay cycle** — ✅
+  **Built.** New `unpaidTimer` on `NPCHiring`, separate from `workTimer`
+  (which stops advancing once `isWaitingForPayment` is true) — ticks
+  every `workDurationSeconds` spent unpaid, resets on `TryPay`/`Fire`.
+  Not a one-time hit — a chronically-neglected NPC keeps costing Fame.
+- **Kill any humanoid NPC**: **-10** — 🚧 **Blocked, not built.**
+  Confirmed applies broadly ("any humanoid NPC, hired or not," not
+  scoped to a betrayal-specific penalty for only your own hires),
+  roughly 10x Hire/Fire's weight. Explicitly **not** the same as killing
+  a `HostileCreature` (Wolf) — ordinary survival combat carries no Fame
   penalty, only killing a person does.
-  **Blocked — real prerequisite gap**: hired NPCs (`NPCFactoryWorker` and
-  friends) don't implement `IDamageable` at all today — only
-  `HostileCreature` does (confirmed via grep). `PlayerCombat`'s attack
-  raycast literally cannot detect a hired NPC as a valid target right
-  now. This Fame hook needs a hired-NPC health/death system to exist
-  first, same shape as digging needing the Shovel before dig sites could
-  ship.
+  **Real prerequisite gap**: hired NPCs (`NPCFactoryWorker` and friends)
+  don't implement `IDamageable` at all — only `HostileCreature` does.
+  `PlayerCombat`'s attack raycast literally cannot detect a hired NPC as
+  a valid target right now. Logged as its own `BUGS_AND_ENHANCEMENTS.md`
+  follow-up rather than built blind.
 
 ### Player death
 
-- **-2** (Ben's adjustment from an initial -1 proposal). A public
-  failure costs some standing — roughly double Fire/Unpaid's weight, but
-  a fifth of Kill's — a real but minor stumble, not a moral failing.
+- **-2** — 🚧 **Blocked, not built.** A public failure costs some
+  standing — double Fire/Unpaid's weight, a fifth of Kill's.
+  **Real prerequisite gap, found while building this pass**: there is no
+  player-death detection anywhere in the codebase at all —
+  `PlayerVitals.health` just clamps at 0 via `Mathf.Max`, nothing ever
+  fires a "player died" event, no respawn/game-over exists. This wasn't
+  caught during the original design conversation; logged as its own
+  `BUGS_AND_ENHANCEMENTS.md` follow-up now.
 
 ### Skill/stat mastery — tier-unlock events
 
@@ -89,25 +99,20 @@ Ben's framing, using the Hulk as the reference point: "everyone knows
 who the hulk is for his strength... as your stats change... the fame
 gets adjusted as well." Resolved to reuse the *exact* mechanism already
 used for discipline skills, not a new live-tracked component — see
-"Considered and rejected" below for why.
+"Considered and rejected" below for why. — ✅ **Built.**
 
 - **Any skill, any category, crossing into a new `CraftTier` — including
-  core stats.** Rudimentary +1, Normal +2, Fine +3, Masterwork +5
-  (scaling with how meaningful the milestone is, same spirit as
-  `CraftTierScale`'s other per-tier tables).
-- **Mechanism**: reuses `PlayerSkills.GainExperience`'s existing
-  `TierJustUnlocked` detection — the exact code path that already
-  triggers the "skill increased" banner message, for *every* skill
-  regardless of `SkillCategory` (Gathering/CraftingDiscipline/Combat/
-  Magic/Attribute). Core stats (Strength/Dexterity/Constitution/
-  Intelligence) already flow through this identical path today (that's
-  how Strength's own tier-unlock banner already works), so **no new
-  component is needed for the Hulk case specifically** — only
-  confirmation that Fame's hook isn't scoped to exclude the `Attribute`
-  category. Real implementation note for later: `GainExperience` doesn't
-  currently expose this event externally; `PlayerFame` will need either
-  a new event/callback on `PlayerSkills`, or to duplicate the tier-check
-  logic itself.
+  core stats.** Rudimentary +1, Normal +2, Fine +3, Masterwork +5, in
+  `CraftTierScale.FameOnTierUnlock(tier)` — its own dedicated table, same
+  pattern as `WeaponDamageBonus`/`WeightModifier`.
+- **Mechanism**: `PlayerSkills` gained a new `event Action<CraftTier>
+  TierUnlocked`, invoked from `GainExperience` right where
+  `TierJustUnlocked` already fires the "skill increased" banner — for
+  *every* skill regardless of `SkillCategory` (Gathering/
+  CraftingDiscipline/Combat/Magic/Attribute). Core stats already flowed
+  through this exact path (that's how Strength's own tier-unlock banner
+  already worked), so the Hulk case needed **no new detection logic**,
+  just `PlayerFame` subscribing to the new event in `OnEnable`.
 
 **Considered and rejected**: a live, continuously-recalculated Fame term
 tracking current stat value (rising *and* falling as stats change) —
@@ -126,24 +131,25 @@ guild. it would stand to logic that being part of a guild makes you
 known to more people. starting a guild would give you a bigger addition,
 and closing the guild would cause you to lose double the join."
 
-- **Join a guild**: **+1**. Hooks `PlayerGuilds.Join` (already exists and
-  works today — the only current entry point is admin-only per that
-  script's own comment, but the Fame hook attaches to the method itself,
-  so it fires the same way once a real in-world join UI ships too).
-- **Leave a guild**: **-1** — flat and equal to Join, deliberately
-  symmetric (unlike Hire/Fire's asymmetric +1/-0.5). Hooks
-  `PlayerGuilds.Leave` (also already exists).
-- **Start (found) a guild**: **+3** — bigger than joining an existing
-  one, first-pass number (no exact figure was specified beyond "bigger").
-  **Blocked**: `GuildDefinition` is a plain pre-authored `ScriptableObject`
-  asset (`[CreateAssetMenu]`, hand-built in the Editor like
-  `SkillDefinition`) — there's no player-driven guild-creation mechanic
-  at all today. A player "starting a guild" doesn't exist as a concept
-  yet, only joining/leaving a developer-authored one does.
-- **Close a guild you started**: **-6**. Landed at 2x the Start amount
-  (3), not 2x Join as the original framing suggested — Ben's final given
-  number (-6) is what's recorded here; noting the discrepancy from the
-  initial "double the join" wording rather than silently reconciling it.
+- **Join a guild**: **+1** — ✅ **Built.** Hooks `PlayerGuilds.Join`
+  (the only current entry point is admin-only per that script's own
+  comment, but the Fame hook attaches to the method itself, so it fires
+  the same way once a real in-world join UI ships too).
+- **Leave a guild**: **-1** — ✅ **Built.** Hooks `PlayerGuilds.Leave`,
+  flat and equal to Join, deliberately symmetric (unlike Hire/Fire's
+  asymmetric +1/-0.5).
+- **Start (found) a guild**: **+3** — 🚧 **Blocked, not built.** Bigger
+  than joining an existing one, first-pass number.
+  **Real prerequisite gap**: `GuildDefinition` is a plain pre-authored
+  `ScriptableObject` asset (`[CreateAssetMenu]`, hand-built in the Editor
+  like `SkillDefinition`) — there's no player-driven guild-creation
+  mechanic at all. A player "starting a guild" doesn't exist as a
+  concept yet, only joining/leaving a developer-authored one does.
+  Logged as its own `BUGS_AND_ENHANCEMENTS.md` follow-up.
+- **Close a guild you started**: **-6** — 🚧 **Blocked, not built.**
+  Landed at 2x the Start amount (3), not 2x Join as the original framing
+  suggested — Ben's final given number (-6) is what's recorded here.
+  Same blocker as Start.
   Same blocker as Start — needs the same not-yet-existing guild-creation
   mechanic.
 
@@ -160,13 +166,14 @@ logic that people would learn about you as well."
   could fire far more often than any other input once real, matching the
   "tune by playtesting once the real system exists" spirit of every
   other first-pass number in this project.
-  **Blocked — bigger prerequisite than Kill's**: neither an Inn nor a
-  Trader concept exists anywhere in this codebase or `docs/design-brief
-  .md` today, and there's no vendor/customer/transaction system at all
-  (confirmed via grep — only `PlayerCurrency`/`Coin`/banking exist, no
-  selling). This isn't a missing hook on an existing system, it's an
-  entire unbuilt commerce system — the biggest prerequisite gap of
-  anything in this doc.
+  🚧 **Blocked, not built — bigger prerequisite than Kill's**: neither an
+  Inn nor a Trader concept exists anywhere in this codebase or
+  `docs/design-brief.md` today, and there's no vendor/customer/
+  transaction system at all (confirmed via grep — only
+  `PlayerCurrency`/`Coin`/banking exist, no selling). This isn't a
+  missing hook on an existing system, it's an entire unbuilt commerce
+  system — the biggest prerequisite gap of anything in this doc. Logged
+  as its own `BUGS_AND_ENHANCEMENTS.md` follow-up.
 
 ### Explicitly deferred
 
@@ -179,7 +186,7 @@ logic that people would learn about you as well."
   business-reach, add this as a real follow-up rather than designing it
   blind alongside everything else.
 
-## Output side — not yet designed
+## Output side
 
 The design brief's three original examples (hunter → rarer/better game
 + higher-quality meat/hides; blacksmith → better customers/prices;
@@ -190,7 +197,7 @@ distinguished from a renowned hunter's under this structure. Two real
 effects got fully designed this session anyway (below); the rest is
 still open.
 
-### Negative Fame — NPCs flee
+### Negative Fame — NPCs flee — ✅ Built
 
 Ben's framing: "if you have negative fame, npc's will run away from you.
 you are a potential threat."
@@ -211,10 +218,13 @@ you are a potential threat."
   plumbing, just picking a target *away* from the player instead of a
   random one, at roughly **2x** normal wander speed (~2.4 vs. the
   default 1.2) so it reads as panic, not casual repositioning.
-- **Not yet designed**: the actual `NPCFlee` component itself (this is
-  the behavior spec, not the implementation) — needs to interrupt
-  whichever state (`NPCWander` idle-wander vs. an active `NPCJob`) the
-  NPC is currently in, then hand control back cleanly afterward.
+- **Built**: `NPCFlee.cs`, added to `NPCFactoryWorker.prefab`. Checks
+  distance to `PlayerFame`'s transform each frame; while fleeing, calls
+  `SetPaused(true)` on both `NPCWander` and (if present) `NPCGathering`
+  and drives movement directly via a small local copy of `NPCWander`'s
+  MoveTowards/ground-sample/face pattern (aimed away from the player
+  instead of at a random point), then un-pauses both once the player
+  leaves range.
 
 ### Fame bands, and the Traveling Trader
 
@@ -269,22 +279,34 @@ the input side's "business/commerce reach" section above).
   more get added later (e.g. a per-trade-style effect once/if Fame ever
   gets split back into per-discipline values).
 
-## Open questions before this is buildable
+## Built this session (2026-08-14)
 
-- How `PlayerFame` actually observes tier-unlock events — `PlayerSkills
-  .GainExperience` has no external event today.
-- The `NPCFlee` component itself — needs to interrupt both `NPCWander`
-  idle-wander and active `NPCJob` execution cleanly, then hand control
-  back afterward.
-- The entire vendor/customer/transaction system both the input-side
-  Trader/Inn and the output-side Traveling Trader depend on — doesn't
-  exist in any form yet, the single biggest prerequisite in this whole
-  doc.
+- `PlayerFame.cs` — the real component, `-1000` to `1000`, clamped.
+- `PlayerSkills.TierUnlocked` event + `CraftTierScale.FameOnTierUnlock`.
+- Hire/Fire hooks in `NPCHiringScreen`; unpaid-cycle tracking in
+  `NPCHiring`; Join/Leave hooks in `PlayerGuilds`.
+- `NPCFlee.cs`, added to `NPCFactoryWorker.prefab`.
+- `PlayerMenuScreen.DrawFameTile` — real value + band-name sub-line,
+  replacing the old `DrawPlaceholderTile("Fame", "0")` call.
+
+## Real prerequisite gaps — logged as `BUGS_AND_ENHANCEMENTS.md` follow-ups
+
+- **Kill NPC Fame** — needs hired NPCs to implement `IDamageable`/a
+  health-death system.
+- **Player death Fame** — needs player-death detection to exist at all;
+  found while building this pass, wasn't caught during design.
+- **Start/Close guild Fame** — needs a player-driven guild-creation
+  mechanic; `GuildDefinition` is currently a pre-authored asset only.
+- **Business-reach Fame + the Traveling Trader** (both input and output
+  sides) — needs an entire vendor/customer/transaction system that
+  doesn't exist in any form. The single biggest prerequisite in this doc.
+
+## Still open, not blocked on anything — just not decided
+
 - Exact real-world pacing check: has anyone sanity-checked how fast Fame
   would actually move given realistic hire/fire/tier-unlock frequency
   across a playthrough? Not yet simulated the way Strength's capacity
   curve was.
-- New Player-tab tile treatment — does Fame get a custom sub-line like
-  `DrawStrengthTile`/`DrawIntelligenceTile`/`DrawDexterityTile`/
-  `DrawConstitutionTile`, replacing the current `DrawPlaceholderTile`
-  call? Not discussed yet.
+- Everything in "Still open" above (the `bonusChunkChance` hook,
+  hunting-quality scaling, whether Flee/Trader are the only output
+  effects) — real candidates, none confirmed in detail yet.

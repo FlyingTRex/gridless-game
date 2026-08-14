@@ -14,7 +14,14 @@ public class PlayerGuilds : MonoBehaviour
 
     private readonly List<GuildDefinition> joined = new List<GuildDefinition>();
 
+    private PlayerFame fame;
+
     public IReadOnlyList<GuildDefinition> Joined => joined;
+
+    private void Awake()
+    {
+        fame = GetComponent<PlayerFame>();
+    }
 
     public bool IsMember(GuildDefinition guild) => guild != null && joined.Contains(guild);
 
@@ -24,8 +31,14 @@ public class PlayerGuilds : MonoBehaviour
     {
         if (guild == null || joined.Contains(guild) || joined.Count >= MaxGuilds) return false;
         joined.Add(guild);
+        fame?.GrantGuildJoin();
         return true;
     }
 
-    public bool Leave(GuildDefinition guild) => guild != null && joined.Remove(guild);
+    public bool Leave(GuildDefinition guild)
+    {
+        if (guild == null || !joined.Remove(guild)) return false;
+        fame?.GrantGuildLeave();
+        return true;
+    }
 }
