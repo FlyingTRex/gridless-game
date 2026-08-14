@@ -417,13 +417,17 @@ signs off on scope and order.
   treatment (hire/fire/unpaid wages/killing), player death, skill-tier
   mastery (any discipline, including core stats — the "everyone knows the
   Hulk for his strength" case), and business reach (Inn/Trader, once those
-  exist). Output side (what Fame actually *does*) is still fully open —
-  the design brief's original per-trade examples don't cleanly carry over
-  now that Fame is a single overall number. **Still open, flagged but not
-  resolved:** Ben separately floated Fame/Reputation as a possible *later*
-  phase (pushed past Phase 2 entirely) — never confirmed either way against
-  this Phase 2 placement; explicit call this session was to keep designing
-  regardless of timing. Planning only, not yet built.
+  exist). Output side has two real effects designed too: negative Fame
+  makes every NPC flee within ~10m (pausing their job until you leave),
+  and a 5-band Fame system (mirroring `CraftTier`'s shape) scales a
+  Traveling Trader's visit frequency/pricing, with item quality improving
+  only at the top band. Both still blocked on real prerequisites. The
+  design brief's original per-trade examples still don't cleanly carry
+  over now that Fame is a single overall number. **Still open, flagged
+  but not resolved:** Ben separately floated Fame/Reputation as a possible
+  *later* phase (pushed past Phase 2 entirely) — never confirmed either
+  way against this Phase 2 placement; explicit call this session was to
+  keep designing regardless of timing. Planning only, not yet built.
 - [ ] **Basic transportation** — log raft/boat up through a cart; a tamed
   animal can pull a cart or carry loot.
 - [ ] **Larger/settlement-level storage** — distinct from Phase 1's personal

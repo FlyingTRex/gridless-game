@@ -4,8 +4,9 @@ Deferred/optional-layer system from `docs/design-brief.md`'s Phase 2 list,
 currently just a placeholder `Fame: 0` tile on the Player tab with no
 backing system at all (added 2026-08-10 purely so the full tab layout
 could be judged together). Worked out in one session (2026-08-14).
-**Planning only, nothing built yet** — input side is fully designed,
-output side is still open.
+**Planning only, nothing built yet** — input side is fully designed.
+Output side has two real effects designed (NPCs fleeing negative Fame,
+a Fame-band-scaled Traveling Trader) plus several still-open threads.
 
 ## Why this, why now
 
@@ -157,30 +158,100 @@ The design brief's three original examples (hunter → rarer/better game
 miner → better luck striking rich veins) were written for a **per-trade**
 Fame structure and don't cleanly carry over now that Fame is a single
 overall number — a renowned blacksmith's fame currently can't be
-distinguished from a renowned hunter's under this structure. Needs its
-own design pass.
+distinguished from a renowned hunter's under this structure. Two real
+effects got fully designed this session anyway (below); the rest is
+still open.
 
-**One real hook already identified, not yet built**: `ResourceNode`
-already has a `bonusChunkChance` field (0-1, currently used for e.g. a
-chopped Log's chance of also yielding a Stick) — Fame could scale this
-directly for a "better luck" effect, no new field needed on `ResourceNode`
-itself.
+### Negative Fame — NPCs flee
 
-**Blocked, same as the input-side note above**: "better prices" has
-nothing to hook into — no vendor/pricing system exists.
+Ben's framing: "if you have negative fame, npc's will run away from you.
+you are a potential threat."
 
-**Not addressed at all yet**: hunting-quality scaling (blocked doubly —
-neither a real hunting-diversity system nor a meat/hide-quality mechanic
-exists; `HostileCreature`/Wolf is still the only huntable target), and
-whether output effects should require a *minimum* Fame threshold (only
-kicking in once you're actually renowned, not from Fame's first point)
-or scale continuously from zero.
+- **Trigger**: simple threshold for v1 — any Fame < 0, at a fixed
+  detection range (**~10m**, wider than `NPCWander`'s own 6m wander
+  radius so there's room to actually flee before the player is on top of
+  them). Scaling detection range/urgency by *how* negative Fame is was
+  considered and explicitly deferred to a later refinement.
+- **Scope**: applies to **every** NPC, including ones the player has
+  already hired — confirmed deliberately harsher than scoping it to
+  strangers only. A hired NPC fleeing **pauses their current job**
+  (mining, gathering, ...) for the duration, same shape as the existing
+  dialogue-pause mechanism (`NPCWander.SetPaused`), and resumes normal
+  behavior once the player leaves detection range. Does **not** auto-fire
+  or un-hire anyone — that stays a deliberate player action.
+- **Movement**: reuses `NPCWander`'s existing move/ground-sample/face
+  plumbing, just picking a target *away* from the player instead of a
+  random one, at roughly **2x** normal wander speed (~2.4 vs. the
+  default 1.2) so it reads as panic, not casual repositioning.
+- **Not yet designed**: the actual `NPCFlee` component itself (this is
+  the behavior spec, not the implementation) — needs to interrupt
+  whichever state (`NPCWander` idle-wander vs. an active `NPCJob`) the
+  NPC is currently in, then hand control back cleanly afterward.
+
+### Fame bands, and the Traveling Trader
+
+Ben's framing: "negative fame would end up reducing how often the
+travelling trader showed up, and a positive fame would make the trader
+show up more. if the player fame was over 500, the quality of items the
+trader has available would increase. NPC traders/vendors (including
+food) could also alter their price based on fame."
+
+**A new concept, distinct from the input-side "run a Trader" business**:
+this is a wandering vendor NPC that periodically visits the player,
+not something the player operates. Neither this nor the input-side
+Trader/Inn exist yet — no vendor/customer/transaction system exists
+anywhere in this codebase at all (confirmed via grep, same finding as
+the input side's "business/commerce reach" section above).
+
+**Five discrete Fame bands** (Ben confirmed these edges), mirroring
+`CraftTier`'s own 5-tier shape:
+
+| Band | Fame range | Visit frequency | Pricing |
+|---|---|---|---|
+| Infamous | ≤ -500 | 0.5x | +50% |
+| Notorious | -499 to -100 | 0.75x | +20% |
+| Neutral | -99 to 99 | 1.0x (baseline) | baseline |
+| Known | 100 to 499 | 1.25x | -10% |
+| Renowned | ≥ 500 | 1.5x | -20% |
+
+- **Visit frequency** multiplier applies to however the Traveling
+  Trader's spawn/visit interval ends up being built (not designed yet).
+- **Pricing** is symmetric (confirmed) — Renowned gets a real discount,
+  not just "Infamous pays a markup, everyone else is flat." Applies
+  broadly to "NPC traders/vendors (including food)," not just this one
+  Traveling Trader specifically.
+- **Item quality** only kicks in at the top band (Renowned, ≥ 500) — the
+  original single threshold Ben gave, now folded into the same band
+  table rather than a separate special case.
+- First-pass numbers (frequency/price multipliers), same "tune by
+  playtesting" spirit as everything else in this project — band *edges*
+  are confirmed, the multiplier magnitudes are a starting point.
+
+### Still open
+
+- The `bonusChunkChance` hook (`ResourceNode` already has this field,
+  0-1, e.g. a chopped Log's chance of also yielding a Stick) — Fame
+  scaling it directly for a "better luck" gathering effect (the miner
+  example from the design brief) is a real candidate, not yet designed
+  in detail or confirmed.
+- Hunting-quality scaling (blocked doubly — neither a real
+  hunting-diversity system nor a meat/hide-quality mechanic exists;
+  `HostileCreature`/Wolf is still the only huntable target).
+- Whether the Flee/Trader band effects are the *only* output effects, or
+  more get added later (e.g. a per-trade-style effect once/if Fame ever
+  gets split back into per-discipline values).
 
 ## Open questions before this is buildable
 
-- The full output/effects design (see above).
 - How `PlayerFame` actually observes tier-unlock events — `PlayerSkills
   .GainExperience` has no external event today.
+- The `NPCFlee` component itself — needs to interrupt both `NPCWander`
+  idle-wander and active `NPCJob` execution cleanly, then hand control
+  back afterward.
+- The entire vendor/customer/transaction system both the input-side
+  Trader/Inn and the output-side Traveling Trader depend on — doesn't
+  exist in any form yet, the single biggest prerequisite in this whole
+  doc.
 - Exact real-world pacing check: has anyone sanity-checked how fast Fame
   would actually move given realistic hire/fire/tier-unlock frequency
   across a playthrough? Not yet simulated the way Strength's capacity

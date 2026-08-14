@@ -215,10 +215,17 @@ needed no new component, just confirming the hook isn't scoped to exclude
 the `Attribute` skill category). Business-reach Fame (Inn/Trader,
 scaling with customers served) is designed but blocked on an entire
 commerce/vendor system that doesn't exist anywhere in this project yet —
-the biggest prerequisite gap in the doc. Output side (what Fame actually
-*does* — the design brief's per-trade "better prices/rarer game/luckier
-mining" examples) is still fully open, doesn't cleanly carry over now that
-Fame is a single overall number instead of per-trade.
+the biggest prerequisite gap in the doc. Output side has two real effects
+designed too: negative Fame makes every NPC (including already-hired
+ones) flee within ~10m, pausing their current job until the player
+leaves; and a 5-band Fame system (Infamous/Notorious/Neutral/Known/
+Renowned, mirroring `CraftTier`'s own 5-tier shape) scales a Traveling
+Trader's visit frequency and pricing, with item quality only improving
+at the top Renowned band. Both blocked on real prerequisites (an
+`NPCFlee` component; the same nonexistent vendor system). The design
+brief's original per-trade "better prices/rarer game/luckier mining"
+examples still don't cleanly carry over now that Fame is a single overall
+number — that part's still open.
 
 ## Design docs (`docs/`)
 
