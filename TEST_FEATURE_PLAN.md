@@ -3051,13 +3051,11 @@ re-entering Play mode). First pass confirmed:
 
 ## 31. Skill books (writing + reading), v1
 
-New — not yet walked through in Play mode at all (verified so far only
-via batch-mode compile + direct YAML grep of every new asset/prefab/scene
-reference). Full design in `SKILL_BOOKS_PLANNING.md`. Two found
-`SkillBook`s are already placed in `TestScene.unity` for convenience:
-one near (4, 0, 4) targeting `MasterworkKnifeRecipe`, one near (-4, 0, 6)
-targeting `SparkWish` — a quick way to test *reading* before ever
-writing anything.
+Full design in `SKILL_BOOKS_PLANNING.md`. Two found `SkillBook`s are
+already placed in `TestScene.unity` for convenience: one near (4, 0, 4)
+targeting `MasterworkKnifeRecipe`, one near (-4, 0, 6) targeting
+`SparkWish` — a quick way to test *reading* before ever writing
+anything.
 
 - [ ] **Basic crafting/weapon write → read loop**: get 1 Paper + 1 Ink
   (Admin Spawn, or gather a Plank/2 Berries and craft them via the new
@@ -3082,10 +3080,14 @@ writing anything.
   now be listed under `KnownWishes`) *and* the specific wish, while a
   different wish in that same lineage (if one exists) should still be
   unusable.
-- [ ] **Found books (no writing required)**: walk to each of the two
+- [x] **Found books (no writing required)**: walk to each of the two
   pre-placed found books, pick them up, and Read each — confirm the
   Masterwork Knife recipe becomes craftable and the Spark wish becomes
   castable, with no Paper/Ink spent (found books skip writing entirely).
+  Confirmed live 2026-08-14 (Ben): both books read cleanly with no
+  errors, each granting the Intelligence XP tick; the Spark book
+  correctly no-op'd on the wish/lineage grant itself since it was
+  already known (no duplicate grant, no relock).
 - [ ] **`SpectacularFailure` damage**: with low Intelligence and a
   high-tier subject (a deeply negative margin), write repeatedly until a
   `SpectacularFailure` lands — confirm it deals 2–10 damage and produces

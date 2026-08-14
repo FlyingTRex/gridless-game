@@ -84,6 +84,15 @@ public class InventoryScreen : MonoBehaviour
     private PlayerVitals vitals;
     private Vector2 scrollPos;
 
+    // Screen-space rect of the scroll view opened in DrawContent(), used by
+    // HandleAutoScroll for edge-of-view hit-testing during a drag. Captured
+    // from the PREVIOUS frame's GUILayout.EndScrollView() — calling
+    // GUILayoutUtility.GetLastRect() immediately after BeginScrollView()
+    // throws ("cannot call GetLast immediately after beginning a group"),
+    // since the scroll view's own inner group has no entries yet at that
+    // point. One frame of lag is imperceptible for this purpose.
+    private Rect lastScrollViewRect;
+
     // Recomputed once per DrawContent() call (see StorageBox.FindNearby) —
     // every StorageBox within storageRange, nearest first. The nearest
     // one's contents render directly in the scroll view (DrawContent) as
@@ -219,7 +228,6 @@ public class InventoryScreen : MonoBehaviour
 
         float scrollHeight = Mathf.Min(Screen.height - ChromeReserve - CurrencySectionHeight, 640f);
         scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(scrollHeight));
-        var scrollViewRect = GUILayoutUtility.GetLastRect();
 
         // A valid target (e.g. a hand slot, ~10 rows down the 14-row
         // Equipment list) can easily be scrolled out of view while an item
@@ -232,7 +240,7 @@ public class InventoryScreen : MonoBehaviour
         // the top/bottom edge of the scroll view — doesn't require the
         // scrollbar itself to be interactable.
         if (isDragging)
-            HandleAutoScroll(scrollViewRect);
+            HandleAutoScroll(lastScrollViewRect);
 
         DrawInventorySection();
 
@@ -320,6 +328,7 @@ public class InventoryScreen : MonoBehaviour
         }
 
         GUILayout.EndScrollView();
+        lastScrollViewRect = GUILayoutUtility.GetLastRect();
     }
 
     // Called by PlayerMenuScreen right after ending its own full-screen

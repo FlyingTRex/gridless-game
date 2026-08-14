@@ -287,6 +287,12 @@ Read these directly rather than trusting a summary — they're actively evolving
   tabs, added 2026-08-04). The Controls tab is meant to always reflect every real
   binding, alphabetized by key name; a new hotkey isn't done until this list
   says so too, same spirit as the changelog/version-bump rule above.
+- **After every `git commit` + `git push`, remind Ben what `MVP2_PLANNING.md`
+  and `BUGS_AND_ENHANCEMENTS.md` currently show** — a short summary of
+  open/next-up items, not a full reprint of either file. Commit+push is a
+  natural checkpoint; use it to keep the backlog visible instead of letting
+  it go stale between explicit "how are we doing on our mvp2 and bug list?"
+  asks.
 
 ## Checklist: adding a new `IEquippable` (worn item)
 

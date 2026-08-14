@@ -5,12 +5,31 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.65-dev` — must always match `GameVersion` in
+**Current version:** `0.3.66-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (12)
+## 2026-08-14 (13)
+
+### v0.3.66-dev — Fix `GetLastRect` console spam in the Inventory screen
+
+`InventoryScreen.DrawContent()` called `GUILayoutUtility.GetLastRect()`
+immediately after `GUILayout.BeginScrollView(...)`, which Unity's IMGUI
+disallows (its own scroll-view group has no layout entries yet at that
+point) — spammed "You cannot call GetLast immediately after beginning a
+group" every OnGUI frame the Inventory screen was open. Found live (Ben:
+console screenshot while reading a Skill Book, unrelated to the book
+itself — it fires on any Inventory-screen frame). Fixed by caching the
+scroll view's rect from the *previous* frame's `GUILayout.EndScrollView()`
+instead (`lastScrollViewRect` field), used by `HandleAutoScroll` for the
+drag-to-edge auto-scroll feature — one frame of lag, imperceptible for
+this purpose.
+
+Also confirmed live: the two pre-placed `SkillBook` found-books
+(`TEST_FEATURE_PLAN.md` section 31) read cleanly with no errors, each
+granting the Intelligence XP tick, with the Spark wish/lineage grant
+correctly no-op'ing on the second read since it was already known.
 
 ### v0.3.65-dev — Factions removed from the design entirely
 
