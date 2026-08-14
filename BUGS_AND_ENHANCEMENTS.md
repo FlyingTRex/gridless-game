@@ -135,35 +135,26 @@ session:
   base. Crude/Normal/Fine/Masterwork Shovel still need their own item +
   recipe (presumably non-Iron materials for Crude, per the tier-matched-
   materials rule — not yet decided what).
-- [ ] **Dig sites, not free-form digging (Ben's pick, session 1)** — a
-  `ResourceNode` instance dressed as a loose dirt/clay/sand patch,
-  `requiredTools` = the Shovel tiers, same hold-to-break shape every
-  gathering node in this game already uses. **Ground itself almost
-  certainly does NOT need to change for this** — a self-contained "hole"
-  prop (its own small crater mesh, walls + a fake-depth floor) can sit at
-  the dig site and appear on break, the same "swap in a prop" trick a
-  chopped tree's stump or a broken Rock Node's chunks already use. Needs
-  one small, generic addition to `ResourceNode`: an optional
-  `holeVisualPrefab` field shown on break / hidden on respawn — reusable
-  by any future node that wants a "left a mark" visual, not Shovel-only.
-  **Free-form dig-anywhere (point the shovel at any ground point) is
-  explicitly deferred** — that's what would actually require giving
-  `Ground` real volume (it's currently a bare Unity Plane primitive, zero
-  thickness, confirmed by reading the scene directly) or moving to a real
-  terrain/heightmap system. Genuinely harder, its own later multi-session
-  arc, not part of this first pass.
-- [ ] **New raw material — Clay/Dirt/Sand (Ben's pick over buried loot or
-  earthworks for session 1)**. Exact name/count of materials not decided.
-  **Still fully open, explicitly deferred to next session:** what actually
-  consumes it. Leading idea floated but not committed: a new Building
-  material tier (Clay/Adobe bricks after Plank, or a mortar ingredient) —
-  gives Building a real next step and digging an immediate payoff, but
-  Ben's call was "figure it out next session," not decided now. Don't
-  assume this without checking in first.
-- [ ] **Still open, same shape as the Mining-vs-Gathering question from
-  Hireable NPCs:** does digging train the existing generic `Gathering`
-  skill, or does it warrant its own dedicated skill? Worth deciding
-  explicitly rather than defaulting either way.
+- [x] **Dig sites — built 2026-08-14 (v0.3.60-dev).** A `SandDigSite`
+  `ResourceNode` (`requiredTools` = Rudimentary Shovel, trains the
+  existing `Gathering` skill — Ben's call, not a new dedicated skill)
+  yields `Sand`, same hold-to-break shape every gathering node uses.
+  Ground itself needed no changes, confirmed — a self-contained
+  `holeVisualPrefab` (new generic optional `ResourceNode` field, folded
+  into `SetVisible` so every call site gets it for free) shows a crater
+  prop on break and hides it again on respawn, reusable by any future
+  node wanting a "left a mark" visual, not Shovel-only. Three simple
+  Blender-generated props (`Tools/Blender/GenerateSandDigModels.py`): the
+  standing sand patch, the small clump that scatters as the actual
+  `Sand` pickup, and the dirt-brown hole. **Free-form dig-anywhere is
+  still explicitly deferred** — unchanged from the original plan, that
+  needs real `Ground` volume or a terrain system, its own later arc.
+- [ ] **What Sand actually gets used for is scoped to MVP3, not built
+  this session (2026-08-14).** Ben's call: both floated consumers — a new
+  Building material tier (Clay/Adobe bricks after Plank) and a new
+  Glassmaking line (Sand + Furnace → Glass) — are real scope, each its
+  own new system, not a quick follow-up. Sand itself is a real,
+  obtainable item now; nothing consumes it yet.
 - [ ] **Water becomes a locally-limited resource, reusing the same prop
   trick.** There's already a real, working proof this trick works for water
   specifically — a single `WaterSource` in `TestScene.unity`, literally

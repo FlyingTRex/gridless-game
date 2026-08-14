@@ -5,10 +5,55 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.59-dev` — must always match `GameVersion` in
+**Current version:** `0.3.60-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (7)
+
+### v0.3.60-dev — Sand dig sites, first piece of the digging system
+
+Unblocked by the Rudimentary Shovel (v0.3.59-dev, same day) — the
+`BUGS_AND_ENHANCEMENTS.md` digging plan's `requiredTools` gate finally has
+a real tool to point at. Two design questions the backlog explicitly left
+open got resolved: digging trains the existing `Gathering` skill (not a
+new dedicated one), and what Sand actually gets used for (a new Building
+material tier, a new Glassmaking line — both real scope) is deliberately
+scoped to MVP3, not built this pass.
+
+New generic `ResourceNode.holeVisualPrefab` field — a persistent child
+object (despite the "Prefab" name) toggled active/inactive, folded
+directly into `SetVisible` rather than scattered across its 5 call sites,
+so every one of them (including save/load restore) gets the "leaves a
+hole on break, hides it on respawn" behavior for free. Three simple
+Blender-generated props back it: the standing sand patch, a small clump
+(the actual `Sand` pickup, scattered on break), and a dirt-brown hole.
+
+**Real bug caught and fixed**: `SandDigBuilder`'s first run left
+`ResourceNode.trainedSkill`/`requiredTools[0]` silently null on the saved
+prefab — both references were loaded once at the top of the build script
+and used only after later `NewScene`/`SaveAsPrefabAsset` calls, the same
+stale-reference trap `CLAUDE.md` already documents for `OpenScene`/
+`LoadPrefabContents`, just with a different failure shape (`GameObject`
+model references carried across the same boundary survived fine;
+`ScriptableObject` references didn't). Fixed by re-fetching immediately
+before use, then correcting the already-saved prefab asset in place
+(same guid, so the already-placed scene instance picked up the fix
+automatically) rather than deleting and rebuilding.
+
+**Second real bug, caught by actually looking at the baked icon**: Sand's
+first color choice (`0.76, 0.68, 0.48`, a "realistic" sand tan) baked to
+near-white — unlike the Ingot family, Sand is a non-metallic diffuse
+material, so it gets full lighting contribution from `IconBaker`'s bright
+ambient + two directional lights instead of the mostly-specular, dimmer
+response a metallic surface gets at the same albedo. Darkened
+empirically (`0.55, 0.47, 0.32`) until it read correctly.
+
+New `Sand.asset`, `SandPickup.prefab`, `SandDigSite.prefab`, one
+`SandDigSite` instance placed in `TestScene.unity`. Verified via
+batch-mode compile (0 CS errors) + direct YAML grep of every new asset
+and the scene wiring. **Not yet tested in Play mode.**
 
 ## 2026-08-14 (6)
 

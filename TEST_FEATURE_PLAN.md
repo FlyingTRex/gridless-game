@@ -3252,3 +3252,29 @@ wiring).
   in hand like other Tools (Pickaxe/Axe/Hammer/Knife) — no functional
   digging use yet, since that mechanic doesn't exist, but the basic
   equip/carry/drop loop should work identically to every other Tool.
+
+## 36. Sand dig sites, v1
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep of the new assets and scene
+wiring). One `SandDigSite` is pre-placed in `TestScene.unity` near
+(8, 0, -4).
+
+- [ ] **Tool gate**: without the Rudimentary Shovel in hand, confirm the
+  dig site can't be broken (correct warning shown); equip the Shovel,
+  confirm it becomes breakable.
+- [ ] **Yields Sand**: break the dig site, confirm 3 Sand pickups scatter
+  and can be collected, same as any other `ResourceNode`.
+- [ ] **Gathering trains**: confirm the Gathering skill visibly increases
+  after digging.
+- [ ] **Hole appears/disappears correctly**: confirm the dirt-brown hole
+  visual shows immediately after breaking the dig site, and that the
+  sand patch reappears (hole disappears) once the respawn timer
+  (180s) elapses.
+- [ ] **Icon and in-world visuals read correctly**: confirm Sand's icon
+  and the patch/pickup/hole props all look like sand/dirt, not washed
+  out or discolored (this was a real bug caught and fixed before
+  shipping — worth a real visual confirmation now that it's live).
+- [ ] **Save/load**: break the dig site, save, reload — confirm it comes
+  back in the correct state (still showing the hole, correct time
+  remaining on the respawn timer) rather than resetting.

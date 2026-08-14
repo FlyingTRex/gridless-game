@@ -66,6 +66,15 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
     [SerializeField] private ItemDefinition pickupItem;
     [SerializeField] private int pickupCount = 1;
 
+    // Optional child object (not a Prefab to Instantiate, despite the
+    // name — a persistent child toggled active/inactive to avoid
+    // Instantiate/Destroy churn on every break/respawn cycle), shown once
+    // this node breaks and hidden again on respawn — a "left a mark"
+    // visual (Sand dig sites' crater, first use case, 2026-08-14; reusable
+    // by any future node that wants the same effect). Null (default)
+    // means no such visual, same as every other optional field here.
+    [SerializeField] private GameObject holeVisualPrefab;
+
     private Vector3 spawnPosition;
     private Collider col;
     private Renderer[] renderers;
@@ -328,10 +337,18 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
         respawnAt = -1f;
     }
 
+    // Inverted here rather than at each of this method's call sites
+    // (Complete, TryHarvestForNPC, CompleteSecondary, Respawn,
+    // RestoreAvailability) — the hole is a "left a mark" visual, so it
+    // should show exactly when the node itself is hidden (broken/
+    // respawning) and hide exactly when the node is available again,
+    // which is already precisely what every caller already expresses via
+    // this one shared visible flag.
     private void SetVisible(bool visible)
     {
         if (col != null) col.enabled = visible;
         foreach (var r in renderers)
             r.enabled = visible;
+        if (holeVisualPrefab != null) holeVisualPrefab.SetActive(!visible);
     }
 }
