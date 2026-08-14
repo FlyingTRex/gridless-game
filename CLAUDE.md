@@ -202,6 +202,24 @@ the already-shipped Intelligence system: a small (+5% at cap) global XP
 multiplier on every *other* skill's gains, superseding the original
 `BUGS_AND_ENHANCEMENTS.md` sketch's much bigger (+50%) version.
 
+**Fame system input side is fully designed — see `FAME_PLANNING.md`.**
+Worked out 2026-08-14, planning only, nothing built yet. A single
+-1000-to-1000 Fame float (not per-trade, despite the original design-brief
+framing), fed by NPC treatment (hire +1, fire -0.5, unpaid wages -0.5 per
+missed cycle, killing any humanoid NPC -10 — the last one blocked on hired
+NPCs not implementing `IDamageable` at all yet), player death (-2), and
+skill-tier mastery in any discipline including the core stats (Rudimentary
++1 through Masterwork +5, reusing `PlayerSkills`' existing tier-unlock
+detection for free — the "everyone knows the Hulk for his strength" case
+needed no new component, just confirming the hook isn't scoped to exclude
+the `Attribute` skill category). Business-reach Fame (Inn/Trader,
+scaling with customers served) is designed but blocked on an entire
+commerce/vendor system that doesn't exist anywhere in this project yet —
+the biggest prerequisite gap in the doc. Output side (what Fame actually
+*does* — the design brief's per-trade "better prices/rarer game/luckier
+mining" examples) is still fully open, doesn't cleanly carry over now that
+Fame is a single overall number instead of per-trade.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:

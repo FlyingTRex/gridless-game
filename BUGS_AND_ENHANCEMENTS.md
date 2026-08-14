@@ -412,16 +412,18 @@ signs off on scope and order.
 - [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
   extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather
   than replacing it.
-- [ ] **Fame/reputation system** — skill mastery earns fame in that trade
-  line, and fame feeds back into the world (a renowned hunter attracts
-  rarer/better game, a famous blacksmith draws better customers/prices).
-  Distinct from Phase 1's skill-tied quality mechanic: quality is about
-  *your* competence, fame is the world *recognizing* it. **Already has
-  inert placeholder UI** (`Fame: 0` tile on the Player tab, zero backing
-  system) — see design-brief.md line ~124. **Still open, flagged but not
+- [ ] **Fame/reputation system — input side fully designed 2026-08-14, see
+  `FAME_PLANNING.md`.** A single -1000 to 1000 Fame float, fed by NPC
+  treatment (hire/fire/unpaid wages/killing), player death, skill-tier
+  mastery (any discipline, including core stats — the "everyone knows the
+  Hulk for his strength" case), and business reach (Inn/Trader, once those
+  exist). Output side (what Fame actually *does*) is still fully open —
+  the design brief's original per-trade examples don't cleanly carry over
+  now that Fame is a single overall number. **Still open, flagged but not
   resolved:** Ben separately floated Fame/Reputation as a possible *later*
   phase (pushed past Phase 2 entirely) — never confirmed either way against
-  this Phase 2 placement. Worth deciding explicitly before building.
+  this Phase 2 placement; explicit call this session was to keep designing
+  regardless of timing. Planning only, not yet built.
 - [ ] **Basic transportation** — log raft/boat up through a cart; a tamed
   animal can pull a cart or carry loot.
 - [ ] **Larger/settlement-level storage** — distinct from Phase 1's personal
