@@ -509,21 +509,6 @@ signs off on scope and order.
 
 ## Bugs
 
-- [ ] **Reading a book always grants Intelligence XP, even when you already
-  knew its subject (2026-08-14).** Found live testing Skill Books
-  (`SKILL_BOOKS_PLANNING.md`): `PlayerReading.TryRead()` grants the flat
-  0.25 Intelligence gain unconditionally on every read, with no check for
-  whether the reader already knew the target recipe/wish. Since
-  `WritableRecipes`/`WritableWishes` only let you write about something
-  you already know well enough to write about, reading your own
-  self-authored book is always redundant content, yet still pays out —
-  a real double-dip (write's own Intelligence gain, then another 0.25 on
-  the read of the exact thing you just wrote). Also applies to reading a
-  duplicate found book for something already known. Ben's call
-  (2026-08-14): log it, don't fix yet. Fix direction if picked up later:
-  `TryRead` should check `crafting.HasRequiredSkill(book.TargetRecipe)` /
-  `magic.IsLineageKnown(...)` + wish-known before granting the read's
-  Intelligence XP.
 - [ ] **`WovenGrassCloth.mat` also has `metallicFactor: 1` (2026-08-14).**
   Found while checking whether the `IconBaker` near-black-metallic bug
   (fixed same day, see `CHANGELOG.md`'s v0.3.58-dev entry) affected

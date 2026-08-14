@@ -5,10 +5,25 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.67-dev` — must always match `GameVersion` in
+**Current version:** `0.3.68-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (15)
+
+### v0.3.68-dev — Fix Intelligence double-dip reading a self-written book
+
+Closes the `BUGS_AND_ENHANCEMENTS.md` bug logged earlier today: reading
+a Skill Book always granted the flat 0.25 Intelligence gain, even when
+the reader already knew the book's subject — always true for a
+self-authored book, since writing one requires already knowing the
+recipe/wish. `PlayerReading.TryRead()` now checks
+`crafting.HasRequiredSkill(book.TargetRecipe)` (recipe books) or the new
+`PlayerMagic.IsWishUsable(wish)` (wish books, split out of `CanAttempt`
+so the check isn't polluted by a Will-cost gate that's irrelevant here)
+*before* granting the recipe/wish, and only pays the Intelligence gain
+when the read actually teaches something new.
 
 ## 2026-08-14 (14)
 

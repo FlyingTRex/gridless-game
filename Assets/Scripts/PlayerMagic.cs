@@ -121,6 +121,17 @@ public class PlayerMagic : MonoBehaviour
         return true;
     }
 
+    // True if the wish is already castable — known lineage, and either the
+    // raw skill level clears its tier requirement or a prior book already
+    // granted it as a standing exception. Split out from CanAttempt (which
+    // also gates on Will) so PlayerReading can ask "would this book teach
+    // the reader anything new" without a low-Will false negative.
+    public bool IsWishUsable(WishRecipe wish) =>
+        wish != null
+        && IsLineageKnown(wish.lineage)
+        && (skills.GetLevel(wish.lineage) >= CraftTierScale.SkillRequirement(wish.unlockTier)
+            || bookGrantedWishes.Contains(wish));
+
     // Gated on successWillCost, not failureWillCost, even though success
     // isn't guaranteed — success costs more than failure, so requiring
     // only the cheaper amount could let an attempt succeed and then be
@@ -128,11 +139,7 @@ public class PlayerMagic : MonoBehaviour
     // leave Will unchanged, a confusing "it worked but nothing was spent"
     // state). Requiring the more expensive amount up front avoids that.
     public bool CanAttempt(WishRecipe wish) =>
-        wish != null
-        && IsLineageKnown(wish.lineage)
-        && (skills.GetLevel(wish.lineage) >= CraftTierScale.SkillRequirement(wish.unlockTier)
-            || bookGrantedWishes.Contains(wish))
-        && vitals.Will >= wish.successWillCost;
+        IsWishUsable(wish) && vitals.Will >= wish.successWillCost;
 
     // Called by a magic skill book's read action — grants this one
     // specific wish regardless of current lineage level. Does NOT grant

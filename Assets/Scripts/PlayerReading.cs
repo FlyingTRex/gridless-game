@@ -16,7 +16,12 @@ public class PlayerReading : MonoBehaviour
 
     // Reading trains Intelligence too (SKILL_BOOKS_PLANNING.md's
     // Foundation section) — smaller than any of writing's own gains,
-    // since reading is the passive half of the loop.
+    // since reading is the passive half of the loop. Only paid out when
+    // the read actually teaches the reader something new — otherwise
+    // reading your own self-authored book (always already-known content,
+    // since writing itself requires already knowing the subject) or a
+    // duplicate found book double-dips for free. Found live 2026-08-14
+    // (Ben), see BUGS_AND_ENHANCEMENTS.md's now-closed entry.
     private const float ReadIntelligenceGain = 0.25f;
 
     private PlayerCrafting crafting;
@@ -41,6 +46,13 @@ public class PlayerReading : MonoBehaviour
         if (source == null || book == null) return false;
         if (book.TargetRecipe == null && book.TargetWish == null) return false;
 
+        // Checked before granting anything below — granting the recipe/
+        // wish would make these true unconditionally, hiding the "was
+        // this already known" answer this Intelligence gain depends on.
+        bool alreadyKnown = book.TargetRecipe != null
+            ? crafting.HasRequiredSkill(book.TargetRecipe)
+            : magic.IsWishUsable(book.TargetWish);
+
         if (book.TargetRecipe != null)
         {
             crafting.GrantRecipe(book.TargetRecipe);
@@ -55,7 +67,8 @@ public class PlayerReading : MonoBehaviour
             magic.GrantWish(book.TargetWish);
         }
 
-        skills.GainExperience(intelligenceSkill, ReadIntelligenceGain);
+        if (!alreadyKnown)
+            skills.GainExperience(intelligenceSkill, ReadIntelligenceGain);
 
         source.RemoveEquipmentItem(book.ItemDefinition);
         Destroy(book.gameObject);
