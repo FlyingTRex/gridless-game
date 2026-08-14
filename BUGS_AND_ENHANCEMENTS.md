@@ -394,6 +394,18 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
+- [ ] **Constitution — cold/heat resistance (2026-08-14).** The original
+  item-1 "Expand Stats" brainstorm (`MVP2_PLANNING.md`) listed "resistance
+  to cold/heat/poison" as a candidate Constitution effect alongside max
+  Health/Stamina, but only the Health/Stamina half actually shipped
+  (`DEXTERITY_CONSTITUTION_PLANNING.md`, v0.3.55-dev) — Constitution
+  currently does nothing to blunt `PlayerWeatherEffects`' weather-driven
+  `bodyTemperature` cooling. Natural hook once picked up: scale
+  `PlayerWeatherEffects.maxCoolingRatePerSecond` down (or add a separate
+  resistance multiplier) by the player's Constitution value, same
+  `GetAttributeValue`-driven pattern every other stat effect already uses.
+  Ties into item 9's warm-food/tea half too — see `MVP2_PLANNING.md`'s
+  stat/world-sim cluster note.
 - [ ] **Universal degradation** — nothing lasts forever; gear, buildings, and
   vehicles decay if left unmaintained.
 - [ ] **Gardening** — harvest seeds, plant and grow crops.

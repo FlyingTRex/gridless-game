@@ -12,7 +12,7 @@ specced yet.
 
 ## The list
 
-1. **Expand Stats** — use Strength as the method/template.
+1. **Expand Stats** — use Strength as the method/template. — ✅ Done (Intelligence via item 7, v0.3.53-dev; Dexterity/Constitution v0.3.55-dev, `DEXTERITY_CONSTITUTION_PLANNING.md`), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode.
 2. **Expand NPC hiring** beyond stonework (Mining is the only job family today). — 🟡 Woodcutting + Gathering shipped (v0.3.32-dev); Guarding and bench-crafting still open.
 3. **Finish basic starting gear** for a new player. — ✅ Done (2026-08-12).
 4. **Player and NPC animation.** — ✅ Shipped (v0.3.33-dev/v0.3.34-dev, 2026-08-13); not yet live-tested in Play mode.
@@ -44,15 +44,31 @@ so far:
   efficiency. Triggers: crafting, casting wishes, reading skill books
   (direct tie to item 7), teaching/mentoring NPCs.
 
-**Open question, not decided:** an Intelligence-driven XP multiplier would
-make Int's own growth compound into every other stat's growth rate — could
-tie the stat block together nicely, or could snowball into Int mattering
-more than the other three. Needs a conscious call either way.
+**Open question above — resolved 2026-08-14, deliberately small.** An
+Intelligence-driven XP multiplier shipped (`xpGained *= 1 + intLevel/2000`,
++5% at cap, never applies to Intelligence's own gains) — small enough that
+it doesn't snowball Int into mattering more than the other three, per
+Ben's explicit call ("very small").
 
 **Intelligence's trigger+effect resolved via item 7** — see
 `SKILL_BOOKS_PLANNING.md`. Reading/writing became the concrete trigger,
-mirroring `PlayerEncumbrance`'s Strength pattern exactly. Dexterity/
-Constitution still have no build plan of their own.
+mirroring `PlayerEncumbrance`'s Strength pattern exactly.
+
+**Dexterity/Constitution built 2026-08-14** — full design and build in
+`DEXTERITY_CONSTITUTION_PLANNING.md` (v0.3.55-dev). Landed differently
+from the candidates sketched above: Constitution's trigger ended up
+exercise-based (sprinting + a secret soccer-kick bonus), not the
+adversity-based "surviving damage" candidate originally floated; its
+effect is Max Health/Max Stamina via an additive front-loaded curve
+(a pure power law couldn't hit both a sane low anchor and a front-loaded
+shape at once). Dexterity's effect narrowed to just movement speed (not
+also attack speed/dodge/crafting speed as originally brainstormed); its
+triggers are sprinting (shared with Constitution), sneaking, jumping, and
+completing any `CraftingRecipe` — the manual-vs-machine distinction
+(hand-crafting trains it, Furnace/Campfire automation doesn't) needed no
+new field, since `CraftingRecipe` vs. `SmeltableItem`/`CookableItem`
+already is that exact boundary in the data model. This closes out item 1
+entirely — all four core stats now have a real trigger and effect.
 
 ### 2 — Expand NPC hiring beyond stonework
 **Woodcutting and Gathering (Berry/Herb) shipped 2026-08-13 (v0.3.32-dev)**
@@ -227,15 +243,20 @@ item 6). Not yet decided which Ben meant.
   directly or are currently working around.
 - **Stat/world-sim cluster**: items 1 + 5 + 9 reinforce each other
   (Constitution, weather, food/warmth) into one coherent survival loop
-  instead of three separate features. **Item 5 is the first of the three
-  actually built** — `PlayerWeatherEffects.cs` delivers real weather→
-  body-temperature cooling now, so items 1 (Constitution resisting it)
-  and 9 (warm food/tea countering it) are the two legs still missing to
-  complete the loop this cluster was always describing.
+  instead of three separate features. **Items 1 and 5 are now both
+  built** — `PlayerWeatherEffects.cs` delivers real weather→body-
+  temperature cooling, and Constitution now grows Max Health/Max Stamina
+  (though it doesn't yet grant cold/heat resistance the way the original
+  item-1 brainstorm floated — that never made it into the actual build,
+  see the item 1 section above). Item 9 (warm food/tea countering cold)
+  is the one leg still missing to complete the loop this cluster was
+  always describing.
 - **NPC/labor cluster**: item 2 leans on item 4 for presentation and item 3
   for what a hired NPC starts equipped with.
-- **Combat/hunting cluster**: item 8 leans on item 1 (Dexterity) and item 4
-  (weapon animation).
+- **Combat/hunting cluster**: item 8 leans on item 1 (Dexterity, now built
+  — though item 1's effect narrowed to movement speed only, so item 8
+  would need its own attack-speed/accuracy hook rather than assuming
+  Dexterity already provides one) and item 4 (weapon animation).
 - **No longer standalone: item 7 (skill books)**, now built (v0.3.53-dev,
   `SKILL_BOOKS_PLANNING.md`) and cross-linked three ways — it advanced
   item 1 (Intelligence's trigger) for free, its NPC-training phase is
