@@ -5,10 +5,28 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.48-dev` — must always match `GameVersion` in
+**Current version:** `0.3.49-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (23)
+
+### v0.3.49-dev — Backpack height tune: rotation confirmed correct, just too low
+
+Ben: "backpack is in the right alignment, needs to be higher on the
+body." First fully-positive rotation confirmation in this whole chain —
+only the Y position needed raising, from `-0.3` (sitting down near the
+hips) to `-0.15` (mid-back). Mirrored onto the 3 NPC job assets'
+Backpack `attachPositionOffset`.
+
+Boots: after another guess round showed the pitch fix was real progress
+(no longer standing on its end) but yaw/position still wrong (facing
+sideways, stacked front-to-back instead of side-by-side), switched
+approach — Ben is now live-tweaking `PlayerBoot`'s offsets directly in
+the Play-mode Inspector rather than continuing blind guess-and-screenshot
+rounds. No code change from that yet; final numbers will get baked in as
+the new defaults once found.
 
 ## 2026-08-13 (22)
 

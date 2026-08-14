@@ -74,10 +74,17 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   removed entirely. Backpack also got a precise, non-guessed instruction
   this round ("rotated on the vertical axis 90 degrees") — added that 90°
   yaw on top of the existing 180°, mirrored onto the 3 NPC job assets.
-  **Nothing in this whole equipment-visual chain has a final live
-  confirmation yet** — Backpack/Boots looked right, then didn't, more
-  than once. Belt/Canteen drop cascade not yet re-verified live either.
-  The other 7 types (Sunglasses, Mining Face Shield, Personal Health
+  **Live-feedback round 9 (v0.3.49-dev, committed and pushed):** first
+  fully-positive confirmation in this whole chain — Backpack rotation
+  confirmed correct, only needed raising (`y: -0.3` → `-0.15`), mirrored
+  onto the 3 NPC job assets. **Backpack is done.** Boots: the pitch fix
+  was real progress (no longer standing on its end) but still wrong
+  (facing sideways, stacked front-to-back) — switched approach rather
+  than keep guessing: Ben is now live-tweaking `PlayerBoot`'s
+  `wornPositionOffset`/`wornEulerOffset` directly in the Play-mode
+  Inspector. Once final numbers are found, bake them in as the new field
+  defaults. Belt/Canteen drop cascade not yet re-verified live. The
+  other 7 types (Sunglasses, Mining Face Shield, Personal Health
   Monitor, Navigation Computer, Shirt, Jeans, Canteen worn-position)
   still have zero live confirmation. See `TEST_FEATURE_PLAN.md`
   section 29.

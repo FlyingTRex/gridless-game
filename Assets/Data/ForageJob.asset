@@ -24,7 +24,7 @@ MonoBehaviour:
     - {fileID: 11400000, guid: eea31ec6d54844c19e9c541ae9472293, type: 2}
     - {fileID: 11400000, guid: 1057569e62d24c378b9411ac3f1ab1fc, type: 2}
     attachBone: 8
-    attachPositionOffset: {x: 0, y: -0.3, z: -0.2}
+    attachPositionOffset: {x: 0, y: -0.15, z: -0.2}
     attachEulerOffset: {x: 0, y: -90, z: 0}
   workAnimation: 3
   collectLoosePickups: 1
