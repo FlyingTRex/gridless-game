@@ -51,6 +51,13 @@ public class NPCSkills : MonoBehaviour
     public float GetAttributeValue(SkillDefinition skill) =>
         Mathf.Max(0.25f, GetLevel(skill) / 10f);
 
+    // Written by SaveManager on load — same direct-set semantics as
+    // PlayerSkills.RestoreLevel.
+    public void RestoreLevel(SkillDefinition skill, float level)
+    {
+        if (skill != null) levels[skill] = level;
+    }
+
     public void GainExperience(SkillDefinition skill, float amount)
     {
         if (skill == null || amount <= 0f) return;

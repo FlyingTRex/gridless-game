@@ -123,6 +123,22 @@ all three pools. Bench-crafting families (Metalworking, Sewing, etc.) are
 sketched but explicitly deferred to a later pass — planning only, nothing
 built yet.
 
+**Save/load persistence real implementation plan lives in
+`SAVE_LOAD_PLANNING.md`.** Expands the narrow v1 draft in
+`BUGS_AND_ENHANCEMENTS.md` (and `MVP2_PLANNING.md` item 6) into a buildable
+plan (2026-08-13): a `SaveId` component + scene-scan registry for world-
+object identity, `ItemDatabase`/`SkillDatabase` lookup assets for
+resolving `ItemDefinition`/`SkillDefinition` references by stable string
+ID, `ISaveable` + a `SaveManager` writing Newtonsoft.Json (chosen over
+built-in `JsonUtility` for native Dictionary/nested-object support) to
+`Application.persistentDataPath`, and a manual Save-button-only trigger
+for v1 (no autosave). The hardest piece is full recursive nested-equipment
+capture — a worn Backpack/Boot/Belt can itself hold another equipped item
+(a Canteen clipped to a Belt or stashed in a Backpack), each with its own
+state beyond a plain `ItemDefinition` reference. Loose world pickups,
+built structures, and Lockbox/Bank contents are explicitly deferred out of
+v1. Planning only, not yet built.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:

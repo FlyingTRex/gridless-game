@@ -73,6 +73,18 @@ public class FirstPersonController : MonoBehaviour
     public float Pitch => pitch;
     public MovementStance CurrentStance => stance;
 
+    // Used by SaveManager on load. CharacterController must be disabled
+    // while its Transform is moved directly or it fights the move — same
+    // "CharacterController-disable dance" AdminSpawnScreen's own comment
+    // describes for placing the player onto a spawned piece.
+    public void Teleport(Vector3 position, float yaw)
+    {
+        controller.enabled = false;
+        transform.position = position;
+        transform.rotation = Quaternion.Euler(0f, yaw, 0f);
+        controller.enabled = true;
+    }
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -275,7 +287,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.50-dev";
+    private const string GameVersion = "0.3.51-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

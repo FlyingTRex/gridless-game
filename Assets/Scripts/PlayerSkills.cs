@@ -107,6 +107,15 @@ public class PlayerSkills : MonoBehaviour
     public float GetHoldDuration(SkillDefinition skill) =>
         CraftTierScale.HoldDuration(CraftTierScale.TierForSkillLevel(GetLevel(skill)));
 
+    // Written by SaveManager on load — sets a level directly from save
+    // data, bypassing GainExperience's diminishing-returns curve and
+    // "skill increased" banner (neither applies to restoring a level that
+    // was already reached in a previous session).
+    public void RestoreLevel(SkillDefinition skill, float level)
+    {
+        if (skill != null) levels[skill] = level;
+    }
+
     public void GainExperience(SkillDefinition skill, float amount)
     {
         if (skill == null || amount <= 0f) return;

@@ -213,6 +213,17 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
         return true;
     }
 
+    // Restores liquid/amount straight from save data (SaveManager,
+    // 2026-08-13) — bypasses Fill()'s nearby-water-source gate entirely,
+    // which correctly doesn't apply to loading a game back into a state it
+    // was already validly in when saved.
+    public void RestoreLiquid(LiquidType liquid, float amount)
+    {
+        Liquid = liquid;
+        Amount = amount;
+        UpdateVisuals();
+    }
+
     // Fully hides the object while it's stashed in a regular inventory slot
     // rather than sitting in the world or carried in hand/on the belt.
     public void Stash()

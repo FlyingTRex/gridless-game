@@ -95,6 +95,20 @@ public class NPCJob : MonoBehaviour
         assignedJob = job;
     }
 
+    // Written by SaveManager on load — sets the full job/tools/deposit
+    // state directly from save data, bypassing Assign()'s tool-wipe-on-
+    // reassignment rule (a player-action safeguard, not relevant to
+    // restoring exactly the state that was saved).
+    public void RestoreState(NPCJobDefinition job, Dictionary<string, ItemDefinition> tools, StorageBox deposit)
+    {
+        assignedJob = job;
+        equippedTools.Clear();
+        if (tools != null)
+            foreach (var kv in tools)
+                equippedTools[kv.Key] = kv.Value;
+        depositContainer = deposit;
+    }
+
     public void ClearJob()
     {
         equippedTools.Clear();

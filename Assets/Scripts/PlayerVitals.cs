@@ -193,6 +193,22 @@ public class PlayerVitals : MonoBehaviour
         health = Mathf.Max(0f, health - amount);
     }
 
+    // Written by SaveManager on load — sets every vital directly from save
+    // data rather than through Restore(VitalType, amount)'s clamped-add
+    // semantics, since a save file's stored value is already the correct
+    // final number, not a delta to add.
+    public void RestoreVitals(float health, float hunger, float thirst, float stamina,
+        float bodyTemperature, float will, float maxWill)
+    {
+        this.health = health;
+        this.hunger = hunger;
+        this.thirst = thirst;
+        this.stamina = stamina;
+        this.bodyTemperature = bodyTemperature;
+        this.will = will;
+        this.maxWill = maxWill;
+    }
+
     public void Restore(VitalType vital, float amount)
     {
         switch (vital)

@@ -12,6 +12,25 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-13 — Ben — Save/load persistence, v1 (v0.3.51-dev, **implementation
+  complete, not yet committed/pushed**). Full build of `SAVE_LOAD_PLANNING.md`:
+  `SaveId`/`SaveIdRegistry` for world-object identity, `ItemDatabase`/
+  `SkillDatabase`/`NPCJobDatabase` for resolving ScriptableObject
+  references by stable ID (populated via a one-off Editor script, now
+  deleted), `SaveManager` (manual Save button only, ` menu Player tab;
+  loads automatically on start if a save file exists), and the recursive
+  `InventorySaveUtility`/`EquipmentSaveUtility` pair that captures/restores
+  nested equipment state (a worn Backpack's contents, a Canteen clipped to
+  a worn Belt with its liquid intact). Hit and fixed two real batch-mode
+  bugs live: `EditorSceneManager.SaveScene(scene)` without an explicit
+  path silently cancels via a Save File dialog in batch mode (no error,
+  just doesn't save — happened twice before catching it), and
+  `SceneAutoOpen`'s `delayCall` doesn't reliably fire before a
+  `-executeMethod` run reaches the method body (fixed with an explicit
+  `OpenScene` call instead). Verified via 3 rounds of batch-mode compile
+  (0 CS errors) + direct YAML grep. **Not yet tested in Play mode** — see
+  `TEST_FEATURE_PLAN.md` section 30 for the real save/reload-the-Editor/
+  load pass this still needs before it's done.
 - 2026-08-13 — Ben — Full equipment-visual sweep: every `IEquippable` now
   bone-attaches (Boot/Belt/Canteen/Sunglasses/Face Shield/Health Monitor/
   Nav Computer/Shirt/Jeans, plus a real bug fix in `PlayerLoot` that

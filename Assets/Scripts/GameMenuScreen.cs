@@ -7,6 +7,7 @@ using UnityEngine.InputSystem;
 // Crafting, Skills, Bank, Lockbox): only opens while the cursor is already
 // locked, so it can't stack on top of another open screen.
 [RequireComponent(typeof(AdminSpawnScreen))]
+[RequireComponent(typeof(SaveManager))]
 public class GameMenuScreen : MonoBehaviour
 {
     private enum Tab { Player, Audio, Graphics, Controls, Credits, Admin }
@@ -52,6 +53,9 @@ public class GameMenuScreen : MonoBehaviour
     private Tab currentTab = Tab.Player;
     private AdminSpawnScreen adminSpawnScreen;
     private PlayerBodyModel bodyModel;
+    private SaveManager saveManager;
+    private string saveStatusMessage;
+    private float saveStatusExpireTime;
 
     public bool IsOpen => isOpen;
 
@@ -59,6 +63,7 @@ public class GameMenuScreen : MonoBehaviour
     {
         adminSpawnScreen = GetComponent<AdminSpawnScreen>();
         bodyModel = GetComponent<PlayerBodyModel>();
+        saveManager = GetComponent<SaveManager>();
     }
 
     private void Update()
@@ -142,6 +147,20 @@ public class GameMenuScreen : MonoBehaviour
         if (GUILayout.Button("Female", femaleStyle, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
             bodyModel.SetGender(false);
         GUILayout.EndHorizontal();
+
+        // Manual save trigger only for v1 (SAVE_LOAD_PLANNING.md, Ben's
+        // call) — no autosave. Loading happens automatically on game
+        // start if a save file exists (SaveManager.Start).
+        GUILayout.Space(20);
+        GUILayout.Label("Save Game", DebugGUI.Label);
+        if (saveManager != null && GUILayout.Button("Save", GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
+        {
+            saveManager.Save();
+            saveStatusMessage = "Saved.";
+            saveStatusExpireTime = Time.time + 3f;
+        }
+        if (saveStatusMessage != null && Time.time < saveStatusExpireTime)
+            GUILayout.Label(saveStatusMessage, DebugGUI.Label);
     }
 
     // No audio system exists anywhere in the project yet — placeholder

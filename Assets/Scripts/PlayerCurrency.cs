@@ -47,6 +47,11 @@ public class PlayerCurrency : MonoBehaviour
         return amount - add;
     }
 
+    // Written by SaveManager on load — sets a balance directly from save
+    // data rather than through Add's cap-and-leftover semantics.
+    public void RestoreBalance(CoinType type, int amount) =>
+        balances[(int)type] = Mathf.Clamp(amount, 0, MaxBalance);
+
     public bool Spend(CoinType type, int amount)
     {
         if (amount <= 0) return false;

@@ -5,10 +5,82 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.50-dev` — must always match `GameVersion` in
+**Current version:** `0.3.51-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (25)
+
+### v0.3.51-dev — Save/load persistence, v1
+
+Full implementation of `SAVE_LOAD_PLANNING.md`'s plan — a manual Save
+button (` menu, Player tab), no autosave, loading automatically on game
+start if a save file exists at `Application.persistentDataPath/save.json`
+(Newtonsoft.Json, already a package dependency from earlier Mirror/PurrNet
+evaluation). Nothing in this project persisted anything before this.
+
+**Stable identity.** New `SaveId` component (auto-generating GUID, same
+"small single-purpose marker" convention as `IWaterSource`/`IRenameable`)
++ `SaveIdRegistry` scene-scan lookup, now required on `StorageBox`/
+`ResourceNode`/`NPCHiring`. New `ItemDatabase`/`SkillDatabase`/
+`NPCJobDatabase` — stable-ID lookups (asset file name as the ID) for the
+three `ScriptableObject` reference types save data needs to resolve,
+living in `Assets/Resources/` so `Resources.Load` works in a build. A
+one-off Editor script populated all three (84 items, 18 skills, 3 jobs)
+and added `SaveId` to all 85 existing world objects in `TestScene.unity`
+— **hit and fixed a real batch-mode bug live**: `EditorSceneManager.
+SaveScene(scene)` without an explicit path opens a native Save File
+dialog, which silently cancels with no error in batch mode (`-nographics`,
+no UI) — the whole save quietly no-op'd twice in a row while logging
+"success." Fixed by passing `scene.path` explicitly. Also found
+`SceneAutoOpen`'s `EditorApplication.delayCall` doesn't reliably fire
+before a `-executeMethod` batch run reaches the method body — the first
+two runs silently operated on an empty untitled scene (zero Player, zero
+world objects found) while still logging success. Fixed by calling
+`EditorSceneManager.OpenScene` explicitly instead of relying on it. Script
+deleted after running, per convention.
+
+**The recursive nested-equipment piece** (section 4 of the plan, the
+hardest part): new `EquipmentSaveUtility` + `InventorySaveUtility`, a
+genuinely recursive pair — any `Inventory` (player, `PlayerEquipment`
+slots, `NPCCargo`, `StorageBox`) captures each slot's item + count, or,
+for an equipped slot, calls into `EquipmentSaveUtility` for that
+instance's own extra state (`Canteen`'s liquid/amount) and, for anything
+implementing `IInventoryHolder` (Backpack/Boot/Belt), its own nested
+`Inventory` — which calls back into `InventorySaveUtility`. Restoring an
+equipped slot instantiates a fresh copy of the item's real
+`worldPickupPrefab`, replays that state, and leaves it `Stash()`ed;
+`PlayerBodyModel.RefreshAllAnchors()` (new — just calls the existing
+`ApplyGender` sweep) then bone-attaches every worn item in one pass,
+reusing the exact mechanism a gender toggle already had for "populated
+slot, needs a real anchor" — no per-equipment-type restore code needed
+beyond that.
+
+**Captured**: Player vitals/skills/currency/inventory/full equipment
+(recursive)/position+yaw/gender; `StorageBox` name + contents;
+`ResourceNode` respawn state (stored as **seconds remaining**, not an
+absolute `Time.time` — meaningless across a restart, and this project's
+stated future goal is real multi-day timers once persistence exists, so
+the format is already shaped for that); Hireable NPCs (hired/waiting-for-
+payment/work timer, assigned job + equipped tools + deposit container
+cross-reference, cargo, skills, position). **Explicitly deferred, per the
+plan**: loose world pickups, built structures, Lockbox/Bank contents.
+
+New small additions to support restore: `FirstPersonController.Teleport`
+(disables `CharacterController` before moving the transform, same
+"CharacterController-disable dance" `AdminSpawnScreen` already documents),
+`Canteen.RestoreLiquid`, and direct-set restore methods on
+`PlayerVitals`/`PlayerSkills`/`PlayerCurrency`/`NPCSkills`/`NPCJob`/
+`NPCHiring` (bypassing each one's normal gated-mutation methods, which
+correctly don't apply to loading a value that's already valid).
+
+Verified via 3 rounds of batch-mode compile (0 CS errors each) + direct
+YAML grep of the saved scene/database assets. **Not yet tested in Play
+mode** — needs a save/reload-the-Editor/load pass with a real mix of
+state (worn Backpack with contents, a hired NPC with cargo, a
+partially-respawning ore node) before this is considered done; see
+`TEST_FEATURE_PLAN.md`.
 
 ## 2026-08-13 (24)
 

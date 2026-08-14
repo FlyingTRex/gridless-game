@@ -7,6 +7,7 @@ using UnityEngine;
 // tab of PlayerMenuScreen is open and draws its contents alongside the
 // player's own inventory, so storing/retrieving items just means walking up
 // and pressing Tab.
+[RequireComponent(typeof(SaveId))]
 public class StorageBox : MonoBehaviour, IRenameable, IInteractable
 {
     // Every enabled box registers here so InventoryScreen can find nearby

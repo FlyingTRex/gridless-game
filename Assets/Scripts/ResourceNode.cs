@@ -1,5 +1,6 @@
 using UnityEngine;
 
+[RequireComponent(typeof(SaveId))]
 public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable, INPCHarvestable
 {
     [SerializeField] private GameObject chunkPrefab;
@@ -88,6 +89,28 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
     public bool IsAvailable => respawnAt < 0f;
     public ItemDefinition[] RequiredTools => requiredTools;
     public float SkillGain => skillGain;
+
+    // Read/written by SaveManager — seconds remaining, not an absolute
+    // Time.time (meaningless across a session restart, and this project's
+    // stated future goal is real multi-day timers once persistence exists,
+    // so the format should already be real-world-duration-shaped). -1
+    // means available/not counting down, same convention respawnAt itself
+    // already uses.
+    public float RespawnSecondsRemaining => respawnAt < 0f ? -1f : Mathf.Max(0f, respawnAt - Time.time);
+
+    public void RestoreAvailability(float secondsRemaining)
+    {
+        if (secondsRemaining < 0f)
+        {
+            respawnAt = -1f;
+            SetVisible(true);
+        }
+        else
+        {
+            respawnAt = Time.time + secondsRemaining;
+            SetVisible(false);
+        }
+    }
 
     // Replaced the old hitsToBreak/punch-N-times model 2026-08-08 — see
     // design-brief.md's Interaction model note. Duration is skill-driven

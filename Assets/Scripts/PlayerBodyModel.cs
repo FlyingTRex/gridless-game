@@ -69,6 +69,13 @@ public class PlayerBodyModel : MonoBehaviour
         return anim != null ? anim.GetBoneTransform(bone) : null;
     }
 
+    // Re-anchors every equipped carrier onto the current gender's bones —
+    // same sweep a gender toggle already runs. Also the correct way to
+    // make a save-restored equipment slot's now-populated-but-still-hidden
+    // item become visible/attached (SaveManager, 2026-08-13) without
+    // duplicating the 11-carrier list a second place.
+    public void RefreshAllAnchors() => ApplyGender(isMale);
+
     public void SetGender(bool male)
     {
         if (male == isMale) return;

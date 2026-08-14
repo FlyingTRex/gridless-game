@@ -17,6 +17,7 @@ using UnityEngine;
 [RequireComponent(typeof(NPCSkills))]
 [RequireComponent(typeof(NPCEncumbrance))]
 [RequireComponent(typeof(NPCCargo))]
+[RequireComponent(typeof(SaveId))]
 public class NPCHiring : MonoBehaviour, IInteractable
 {
     [SerializeField] private CoinType hireCoinType = CoinType.Copper;
@@ -51,6 +52,16 @@ public class NPCHiring : MonoBehaviour, IInteractable
     // -- there was previously no visibility into how close an NPC was to
     // needing payment.
     public float WorkTimeRemaining => Mathf.Max(0f, workDurationSeconds - workTimer);
+
+    // Read/written by SaveManager.
+    public float WorkTimer => workTimer;
+
+    public void RestoreHiringState(bool hired, bool waitingForPayment, float timer)
+    {
+        isHired = hired;
+        isWaitingForPayment = waitingForPayment;
+        workTimer = timer;
+    }
 
     public string Prompt => $"Talk to {DisplayName}";
     public bool IsInstant => true;

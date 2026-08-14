@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 733fb3fde6dab3d4aa0d7d7ace328bd9, type: 3}
+  m_Name: NPCJobDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::NPCJobDatabase
+  jobs:
+  - {fileID: 11400000, guid: d2a3311c0535f754798939f7adb757bf, type: 2}
+  - {fileID: 11400000, guid: 3e1b9a866c1251041a073fc6b973ceec, type: 2}
+  - {fileID: 11400000, guid: 4045c7d8e9910974b815693dd7e02f70, type: 2}

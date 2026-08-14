@@ -12275,6 +12275,7 @@ GameObject:
   - component: {fileID: 496731631}
   - component: {fileID: 496731629}
   - component: {fileID: 496731627}
+  - component: {fileID: 496731632}
   m_Layer: 0
   m_Name: Iron Ore Node
   m_TagString: Untagged
@@ -12352,6 +12353,19 @@ Transform:
   - {fileID: 818187129}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &496731632
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 496731626}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: df898e5eafcf4a68a6bfc484af1df81b
 --- !u!1001 &496844084
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17525,6 +17539,7 @@ GameObject:
   - component: {fileID: 753444136}
   - component: {fileID: 753444135}
   - component: {fileID: 753444134}
+  - component: {fileID: 753444137}
   m_Layer: 0
   m_Name: Platinum Ore Node
   m_TagString: Untagged
@@ -17602,6 +17617,19 @@ Transform:
   - {fileID: 1342511009}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &753444137
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 753444133}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: 77c68d80170c48dea6c1a926fae5f5df
 --- !u!1001 &756128816
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -26841,6 +26869,7 @@ GameObject:
   - component: {fileID: 1134091750}
   - component: {fileID: 1134091749}
   - component: {fileID: 1134091748}
+  - component: {fileID: 1134091751}
   m_Layer: 0
   m_Name: Silver Ore Node
   m_TagString: Untagged
@@ -26918,6 +26947,19 @@ Transform:
   - {fileID: 1829249113}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1134091751
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1134091747}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: 63275fa7b55e4f64ac0efc37b4a9db9a
 --- !u!1001 &1134547037
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -33703,6 +33745,7 @@ GameObject:
   - component: {fileID: 1420300050}
   - component: {fileID: 1420300049}
   - component: {fileID: 1420300048}
+  - component: {fileID: 1420300051}
   m_Layer: 0
   m_Name: Gold Ore Node
   m_TagString: Untagged
@@ -33780,6 +33823,19 @@ Transform:
   - {fileID: 1767890711}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1420300051
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1420300047}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: 02775b09fa0f485ba51e5adfdbfb820f
 --- !u!1001 &1423854714
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -38201,6 +38257,7 @@ GameObject:
   - component: {fileID: 1585725785}
   - component: {fileID: 1585725783}
   - component: {fileID: 1585725781}
+  - component: {fileID: 1585725786}
   m_Layer: 0
   m_Name: Copper Ore Node
   m_TagString: Untagged
@@ -38278,6 +38335,19 @@ Transform:
   - {fileID: 1323911104}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1585725786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1585725780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: cc609604868544ed8ea6c50486eeee7c
 --- !u!1001 &1587121194
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -39289,6 +39359,7 @@ GameObject:
   - component: {fileID: 1609834785}
   - component: {fileID: 1609834783}
   - component: {fileID: 1609834781}
+  - component: {fileID: 1609834786}
   m_Layer: 0
   m_Name: Rock Node
   m_TagString: Untagged
@@ -39361,6 +39432,19 @@ Transform:
   - {fileID: 576239676}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1609834786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1609834780}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: ba7c0da0bef9496cba6ba6842844f845
 --- !u!1001 &1612156720
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -41470,6 +41554,7 @@ GameObject:
   - component: {fileID: 1681626284}
   - component: {fileID: 1681626283}
   - component: {fileID: 1681626286}
+  - component: {fileID: 1681626287}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -41716,6 +41801,8 @@ MonoBehaviour:
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  wornPositionOffset: {x: 0, y: 0.05, z: -0.18}
+  wornEulerOffset: {x: 0, y: -90, z: 0}
 --- !u!114 &1681626242
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -41792,6 +41879,10 @@ MonoBehaviour:
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  handPositionOffset: {x: 0, y: 0, z: 0}
+  handEulerOffset: {x: 0, y: 0, z: 0}
+  beltPositionOffset: {x: 0.15, y: 0, z: 0.05}
+  beltEulerOffset: {x: 0, y: 0, z: 0}
   startingCanteenPrefab: {fileID: 1298230240246958378, guid: c04e0ce687a01ea48babf30602745b30, type: 3}
 --- !u!114 &1681626245
 MonoBehaviour:
@@ -41844,9 +41935,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerNavComputer
   navComputerItem: {fileID: 11400000, guid: 49fef511b80a3e146baa5bafa40d2bf9, type: 2}
+  carrySlot: {fileID: 0}
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  wornPositionOffset: {x: 0, y: 0, z: 0}
+  wornEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &1681626249
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -41905,9 +41999,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerHealthMonitor
   monitorItem: {fileID: 11400000, guid: e52089f7b590d7a4aac1cafb0d214180, type: 2}
+  carrySlot: {fileID: 0}
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  wornPositionOffset: {x: 0, y: 0, z: 0}
+  wornEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &1681626253
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -41921,9 +42018,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSunglasses
   sunglassesItem: {fileID: 11400000, guid: accd20e48c401a145a38cd1e9f8bb5ed, type: 2}
+  carrySlot: {fileID: 0}
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  wornPositionOffset: {x: 0, y: 0.05, z: 0.08}
+  wornEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &1681626254
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -42034,9 +42134,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMiningFaceShield
   shieldItem: {fileID: 11400000, guid: bd145eb22399f79429ccf56bd3920fd7, type: 2}
+  carrySlot: {fileID: 0}
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  wornPositionOffset: {x: 0, y: 0.05, z: 0.08}
+  wornEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &1681626261
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -42094,6 +42197,8 @@ MonoBehaviour:
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  wornPositionOffset: {x: 0, y: 0, z: 0}
+  wornEulerOffset: {x: 0, y: 0, z: 0}
   startingBeltPrefab: {fileID: 7114214064217805237, guid: 31d466fdf621a5d40881c4cc0b97b049, type: 3}
 --- !u!114 &1681626265
 MonoBehaviour:
@@ -42317,6 +42422,8 @@ MonoBehaviour:
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  wornPositionOffset: {x: 0, y: -0.93, z: 0.35}
+  wornEulerOffset: {x: 0, y: 90, z: 0}
   startingBootPrefab: {fileID: 1076927276889531975, guid: b1d981826462ebb4a901fd8ae212a728, type: 3}
 --- !u!114 &1681626278
 MonoBehaviour:
@@ -42334,6 +42441,8 @@ MonoBehaviour:
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  holdPositionOffset: {x: 0, y: 0, z: 0}
+  holdEulerOffset: {x: 0, y: 0, z: 0}
 --- !u!114 &1681626279
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -42350,6 +42459,8 @@ MonoBehaviour:
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  wornPositionOffset: {x: 0, y: 0, z: 0}
+  wornEulerOffset: {x: 0, y: 0, z: 0}
   startingShirtPrefab: {fileID: 6761061111452742268, guid: 745e3b902fbb5a340920515612879d9f, type: 3}
   startingRationItem: {fileID: 11400000, guid: a714f4dcb303eb94298ea2055626e701, type: 2}
   startingRationCount: 2
@@ -42369,6 +42480,8 @@ MonoBehaviour:
   dropDistance: 1.2
   dropHeight: 1
   despawnDelay: 120
+  wornPositionOffset: {x: 0, y: 0, z: 0}
+  wornEulerOffset: {x: -180, y: 0, z: 0}
   startingJeansPrefab: {fileID: 5544515998802353897, guid: 48e7be3e6ed801b49b8ea763ee13092f, type: 3}
 --- !u!114 &1681626281
 MonoBehaviour:
@@ -42456,6 +42569,18 @@ MonoBehaviour:
   femaleVisual: {fileID: 593190315}
   animatorDriver: {fileID: 1681626284}
   groundFix: {fileID: 1681626285}
+--- !u!114 &1681626287
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1a679306f42731443b9588086e40d6e1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveManager
 --- !u!1001 &1689588954
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -52414,6 +52539,7 @@ GameObject:
   - component: {fileID: 2050189835}
   - component: {fileID: 2050189834}
   - component: {fileID: 2050189833}
+  - component: {fileID: 2050189838}
   m_Layer: 0
   m_Name: Small Storage Box
   m_TagString: Untagged
@@ -52529,6 +52655,19 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2050189838
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2050189832}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: 72ebbf2b17da4443b95852f3a7bb21da
 --- !u!1001 &2050957166
 PrefabInstance:
   m_ObjectHideFlags: 0

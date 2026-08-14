@@ -3005,3 +3005,39 @@ plus all 9 newly bone-attached types.
   (not just world pickup) still results in correct placement — this
   path already worked for Tool/Backpack pre-sweep; shouldn't have
   regressed for anything.
+
+## 30. Save/load persistence, v1 (v0.3.51-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep of the saved scene/database
+assets). Needs a real save → close the Editor (not just re-enter Play
+mode — has to survive an actual process restart to prove anything) →
+reopen → load pass.
+
+- [ ] **Basic round-trip**: change a few vitals (take damage, eat/drink),
+  pick up some inventory items, save (` menu, Player tab, Save button),
+  fully close and reopen the Editor, enter Play mode — confirm everything
+  comes back exactly (health/hunger/thirst/stamina, inventory contents,
+  position).
+- [ ] **Worn equipment, plain**: equip a Backpack (nothing inside it yet),
+  save/reload — confirm it's still worn and visually bone-attached
+  correctly (not sitting invisible/unattached).
+- [ ] **The hard case — nested equipment state**: put items inside a worn
+  Backpack, clip a filled Canteen onto a worn Belt, save/reload — confirm
+  the Backpack's contents survive, the Canteen is still clipped to the
+  Belt (not lost or duplicated), and its liquid type/amount are intact.
+- [ ] **StorageBox**: store some items in a box, rename it, save/reload —
+  confirm the name and contents both persist.
+- [ ] **ResourceNode mid-respawn**: break an ore node so it's mid-respawn-
+  timer, save/reload — confirm it's still unavailable and comes back at
+  roughly the right time (not instantly available, not stuck forever).
+- [ ] **Hireable NPC**: hire an NPC, assign a job, give it tools, let it
+  gather a bit (cargo, skill gain), save/reload — confirm hired state,
+  job, tools, cargo, and skill levels all persist. If a deposit container
+  was set, confirm the cross-reference still points at the same box.
+- [ ] **No save file yet**: delete/rename the save file (or test on a
+  fresh install) — confirm the game starts normally with default
+  starting-gear behavior, no error.
+- [ ] **Regression — starting gear**: on a *fresh* save (no file), confirm
+  the Settler's Belt/Canteen/Shirt/Jeans auto-equip sequence still runs
+  normally (save/load shouldn't interfere with the no-save-file path).
