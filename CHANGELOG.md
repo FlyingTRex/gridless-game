@@ -5,10 +5,45 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.56-dev` — must always match `GameVersion` in
+**Current version:** `0.3.57-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (4)
+
+### v0.3.57-dev — Copper/Silver/Gold/Platinum Ingots
+
+Closes two long-standing `BUGS_AND_ENHANCEMENTS.md` gaps: Silver/Gold/
+Platinum had no refined "bar" item, and Copper's own refined item had no
+recipe consuming it. New `CopperIngot`/`SilverIngot`/`GoldIngot`/
+`PlatinumIngot` `ItemDefinition`s, each with a prefab cloned from
+`IronIngot.prefab` (same base mesh, retinted material) and baked icons,
+plus a `CraftingRecipe` (10 ore → 1 ingot, Metalworking-trained, requires
+Furnace) and a matching `SmeltableItem` for the Furnace's automated queue
+— full parity with Iron's existing pattern, both wired into
+`PlayerCrafting.recipes`/`Furnace.smeltableItems` in `TestScene.unity`.
+
+**Two real bugs caught before shipping:** the base ingot material
+(`Assets/Models/IronIngot.glb`'s imported material) turns out to use a
+glTF-style shader (`baseColorFactor`), not URP Lit's usual `_BaseColor`/
+`_Color` — the first tint attempt silently left every new ingot sharing
+Iron's own gray color, caught by grepping the saved `.mat` YAML for the
+actual color values rather than trusting the batch script's clean exit,
+then fixed in place (same material guid, so the already-built prefabs'
+references stayed valid). Second: Copper turned out to have its own
+separate refined intermediate item (`Copper.asset`, distinct from
+`CopperOre.asset` — confirmed by checking what `IronIngotRecipe` actually
+consumes, `Iron.asset` not `IronOre.asset`, and the v0.1.117/121-dev
+changelog entries for how each metal's punch-chain actually resolves) —
+unlike Silver/Gold/Platinum, which never got that second item and stay at
+their raw Ore as the true final tier. The first build wired all four
+ingots to consume their `*Ore` item directly, which was correct for three
+of the four but wrong for Copper; fixed by repointing
+`CopperIngotRecipe`/`CopperOreToIngotSmeltable` to consume `Copper.asset`
+instead. Verified via batch-mode compile (0 CS errors) + direct YAML grep
+of every new/edited asset and the scene wiring. **Not yet tested in Play
+mode.**
 
 ## 2026-08-14 (3)
 

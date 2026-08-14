@@ -723,31 +723,6 @@ signs off on scope and order.
   Two independent confirmations now; worth prioritizing a real fix if a
   third asset hits it, rather than accumulating more manual-bake
   one-offs.
-- [ ] **Silver/Gold/Platinum still don't have a refined "bar" item the
-  way Copper/Iron do** (v0.1.121-dev gave them the missing punchable
-  mid-tier, matching Copper/Iron structurally, but the final tier still
-  yields the existing `SilverOre`/`GoldOre`/`PlatinumOre` item directly,
-  not a further-refined material). Worth deciding whether these three
-  should eventually get a true refined tier too (a smelting recipe
-  consuming the raw Ore?), or whether raw Ore is the intended final form
-  for these three specifically (more currency/jewelry-flavored than
-  Copper/Iron's tool-material role) — not an oversight, just an open
-  design question same as the ones below.
-- [ ] **New "Iron" item (`Iron.asset`, v0.1.119-dev) has no crafting
-  recipe consuming it yet either.** Same situation as Copper below —
-  built ahead of the crafting need when the Boulder→chunk→refined-
-  material tier structure was extended to Iron Ore too. Nothing turns
-  Iron into anything, and no recipe consumes it as an ingredient.
-- [ ] **New "Copper" item (`Copper.asset`, v0.1.117-dev) has no crafting
-  recipe consuming it yet.** Built ahead of the crafting need, same
-  situation as Rock below and the pre-existing "Copper Ore" item —
-  Ben's explicit call when extending the Boulder→chunk→refined-material
-  tier structure to copper, not an oversight. Nothing currently turns
-  Copper into anything (no smelting/refining recipe exists), and no
-  recipe consumes it as an ingredient either. Worth deciding what
-  Copper is actually *for* (a Bronze-tier alloy ingredient? a currency
-  material distinct from Copper Coin?) before it reads as forgotten
-  dead content the way Rock/Wood below already do.
 - [ ] **"Rock" item (`MediumRock.asset`) is now completely orphaned.** Side
   effect of the v0.1.90-dev change making Boulder's chunk punchable
   instead of directly pickupable (per Ben's request): `MediumRockChunk.

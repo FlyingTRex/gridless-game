@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
+  m_Name: GoldIngot
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  itemName: Gold Ingot
+  maxStack: 20
+  weight: 1
+  tier: 2
+  worldPickupPrefab: {fileID: 2775416453323346494, guid: 37c555fb5c491b04dae043872e1b5111, type: 3}
+  icon: {fileID: 21300000, guid: c939400fed374ef4a912273f0aeff6b8, type: 3}
+  previewIcon: {fileID: 21300000, guid: 4a76b95f3c54abc44aae7741548be752, type: 3}
+  baseItem: {fileID: 0}

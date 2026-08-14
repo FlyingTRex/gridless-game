@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
+  m_Name: CopperIngot
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  itemName: Copper Ingot
+  maxStack: 20
+  weight: 1
+  tier: 2
+  worldPickupPrefab: {fileID: 6954557512130711097, guid: 04445b7a83d834340ba8e50b35e5c3fd, type: 3}
+  icon: {fileID: 21300000, guid: f6c6785a940b99848b20b82ec25952b2, type: 3}
+  previewIcon: {fileID: 21300000, guid: c96728d40b68b67419b08bef4eb33297, type: 3}
+  baseItem: {fileID: 0}

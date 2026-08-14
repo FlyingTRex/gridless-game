@@ -3198,3 +3198,31 @@ design in `DEXTERITY_CONSTITUTION_PLANNING.md`.
 - [ ] **Save/load round-trip**: train Health/Stamina caps up via
   Constitution, save, reload — confirm the raised caps persist (not reset
   to a flat 100).
+
+## 34. Copper/Silver/Gold/Platinum Ingots, v1
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep of the new assets/prefabs and
+scene wiring).
+
+- [ ] **Each ingot's distinct color**: bake/admin-spawn one of each
+  ingot, confirm they're visually distinguishable in-world (Copper
+  orange-brown, Silver light gray, Gold yellow, Platinum pale
+  silver-white) rather than all still showing Iron's gray — this is the
+  exact bug caught and fixed before shipping, worth a real visual
+  confirmation now that it's live.
+- [ ] **Copper's correct ingredient**: gather 10 `Copper` (the refined
+  item obtained by punching a Copper Ore Node's mid-tier chunk, not
+  `Copper Ore` itself), craft at the Furnace — confirm the recipe accepts
+  it. This is the one metal where the ingredient item differs from its
+  Ore.
+- [ ] **Silver/Gold/Platinum's correct ingredient**: gather 10 of each raw
+  Ore item directly (`Silver Ore`/`Gold Ore`/`Platinum Ore` — these three
+  have no separate refined intermediate), craft at the Furnace — confirm
+  each recipe accepts its own raw Ore.
+- [ ] **Furnace automated queue**: queue each of the four `*OreToIngotSmeltable`
+  entries in the Furnace's unattended queue, confirm each produces the
+  correct ingot without the player present, same as Iron already does.
+- [ ] **Icons render correctly**: confirm all four ingots show a real
+  baked icon (not a blank/placeholder) in both the small inventory slot
+  and any larger preview box.

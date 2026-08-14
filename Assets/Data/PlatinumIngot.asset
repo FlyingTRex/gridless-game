@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
+  m_Name: PlatinumIngot
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  itemName: Platinum Ingot
+  maxStack: 20
+  weight: 1
+  tier: 2
+  worldPickupPrefab: {fileID: 6988886757746752841, guid: c30d7b1ebb421bc47a0e3d8401d9f71b, type: 3}
+  icon: {fileID: 21300000, guid: b579aeb6410df384585714300d018625, type: 3}
+  previewIcon: {fileID: 21300000, guid: 4e9c0d4621163984f9b6ef6e30cba537, type: 3}
+  baseItem: {fileID: 0}

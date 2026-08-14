@@ -38329,6 +38329,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 1994d867602a01349aa68cc5b175dd22, type: 2}
   smeltableItems:
   - {fileID: 11400000, guid: d1c7ff2c65cf6d2488108aeb612d5358, type: 2}
+  - {fileID: 11400000, guid: 12130b0be204e9949abe4031ee280cc1, type: 2}
+  - {fileID: 11400000, guid: 9a18b6589ee969e4290a8f17189ee8e5, type: 2}
+  - {fileID: 11400000, guid: a3a3176f44e21344b9da560ec19803c1, type: 2}
+  - {fileID: 11400000, guid: e7ca027e5a89e374cab997a9153883fa, type: 2}
   storageLinkRange: 10
 --- !u!1001 &1577932321
 PrefabInstance:
@@ -42085,6 +42089,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 75554fbdd392c7346ae8e8ef5a7cca15, type: 2}
   - {fileID: 11400000, guid: 1fab242ee0e5ff742a61bff30ec5e829, type: 2}
   - {fileID: 11400000, guid: 36af17bd943101f48a825c7e88a1cb3d, type: 2}
+  - {fileID: 11400000, guid: 7109e31f2f10d914d8440f1e3fbf2f78, type: 2}
+  - {fileID: 11400000, guid: 86ca1289a4c4026469197ae130ae60e6, type: 2}
+  - {fileID: 11400000, guid: 99efbc0f2ac8a0646ab7d82eaaa81276, type: 2}
+  - {fileID: 11400000, guid: 80b77314c8c194549a28878a6f0d85dd, type: 2}
   storageRange: 10
 --- !u!114 &1681626240
 MonoBehaviour:

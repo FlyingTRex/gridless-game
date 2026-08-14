@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5909bc3ba1a4792429a7c748f9dcf761, type: 3}
+  m_Name: SilverOreToIngotSmeltable
+  m_EditorClassIdentifier: Assembly-CSharp::SmeltableItem
+  ingredients:
+  - item: {fileID: 11400000, guid: b01857e6c74b5944c99bcf6d98e29822, type: 2}
+    count: 10
+  outputItem: {fileID: 11400000, guid: 8b60a7e8dcbcebb4e8ed602fdf894344, type: 2}
+  outputCount: 1
+  smeltDurationSeconds: 60
