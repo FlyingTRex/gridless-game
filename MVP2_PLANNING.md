@@ -13,9 +13,9 @@ specced yet.
 ## The list
 
 1. **Expand Stats** — use Strength as the method/template.
-2. **Expand NPC hiring** beyond stonework (Mining is the only job family today).
-3. **Finish basic starting gear** for a new player.
-4. **Player and NPC animation.**
+2. **Expand NPC hiring** beyond stonework (Mining is the only job family today). — 🟡 Woodcutting + Gathering shipped (v0.3.32-dev); Guarding and bench-crafting still open.
+3. **Finish basic starting gear** for a new player. — ✅ Done (2026-08-12).
+4. **Player and NPC animation.** — ✅ Shipped (v0.3.33-dev/v0.3.34-dev, 2026-08-13); not yet live-tested in Play mode.
 5. **Sky and weather.**
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
 7. **Skill books.**
@@ -103,16 +103,19 @@ reusing `PlayerVitals.StartHealOverTime`). Closes the last gap against
 is now **fully done**, both the clothing/canteen side and the food side.
 
 ### 4 — Player and NPC animation
-Likely the single biggest, riskiest item on this list — there's an existing
-unresolved ideation thread on this from 2026-08-11
-(`BUGS_AND_ENHANCEMENTS.md`'s "Next Session: NPC Model, Animation &
-Equipment Visuals"), three model-source options being compared, nothing
-decided yet. Nearly everything else on this list depends on it visually:
-item 2 (NPCs actually look like they're working), item 3 (gear shows on a
-body instead of being pure bookkeeping), item 8 (weapon swings are
-readable). Worth treating as its own mini-project, and worth sequencing
-relatively early since so much else is blocked *cosmetically* even where
-it isn't blocked *functionally*.
+**Shipped 2026-08-13**, both halves, same day: NPC animation (v0.3.33-dev)
+and the player half — visible body + first/third-person camera toggle
+(v0.3.34-dev). Both committed and pushed to `origin/main`. Direct
+follow-ups landed the same day too: Male/Female body toggle
+(v0.3.35-dev), then the full equipment-visual bone-attach sweep
+(v0.3.38-dev through v0.3.50-dev) that put items 2 and 3's gear onto an
+actual body instead of pure bookkeeping — the dependency this item was
+unblocking.
+
+**Not yet live-tested in Play mode** — see `TEST_FEATURE_PLAN.md`
+sections 24 (NPC animation) and 25 (player visible body/camera toggle).
+Worth a real pass before calling this fully closed, same caveat save/load
+carried until today's confirmation.
 
 ### 5 — Sky and weather
 The procedural sky texture already exists but has a known unresolved bug
