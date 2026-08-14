@@ -105,10 +105,13 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   pre-placed found books, both failure/success extremes, Intelligence
   training, Writing tab UI regressions). Only Phase 4 (NPC training)
   remains unbuilt, correctly blocked on NPC bench-crafting existing.
-  **Not yet committed, not yet live-tested in Play mode** — every check
-  so far has been compile + YAML grep only, same status save/load
-  carried until Ben's own live round-trip confirmed it. That live pass
-  is the natural next step before this can be called done.
+  **v0.3.53-dev, committed and pushed** (also added an Intelligence tile
+  Reading & Writing sub-line after Ben's first live look flagged it
+  missing next to Strength's Encumbrance line). **Not yet live-tested in
+  Play mode** — every check so far has been compile + YAML grep only,
+  same status save/load carried until Ben's own live round-trip
+  confirmed it. That live pass is the natural next step before this can
+  be called done.
 - 2026-08-13 — Ben — Full equipment-visual sweep: every `IEquippable` now
   bone-attaches (Boot/Belt/Canteen/Sunglasses/Face Shield/Health Monitor/
   Nav Computer/Shirt/Jeans, plus a real bug fix in `PlayerLoot` that
