@@ -27,10 +27,13 @@ it makes the timing call easier later, not harder.
 - **Distinct from the shipped skill-tied quality mechanic.** Quality (the
   `CraftOutcome` roll) is about *your* competence; Fame is *the world
   recognizing* it. Two different things, not a reskin of one system.
-- **Distinct from Factions.** Factions are a separate, behavior-driven
-  trust/fear standing system (`docs/design-brief.md`'s Factions, Guilds &
-  Warbands section) — not built yet either, but a different axis entirely
-  from Fame.
+- **Factions removed from the design entirely, 2026-08-14.** Was going to
+  be a separate behavior-driven trust/fear standing system
+  (`docs/design-brief.md`'s Factions, Guilds & Warbands section) — never
+  built, and duplicated what Fame already does. Fame now absorbs its role
+  everywhere it was referenced (Warband conduct, Settlement Warfare
+  outcomes) — see `docs/design-brief.md`'s now-renamed "Guilds & Warbands"
+  section.
 - **Has a Phase 3 PvP dimension already sketched**, not designed further
   here: Settlement Warfare (winning/losing a city fight) moves Fame
   directly, per the design brief. Out of scope until multiplayer exists.

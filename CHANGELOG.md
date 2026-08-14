@@ -5,10 +5,34 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.64-dev` — must always match `GameVersion` in
+**Current version:** `0.3.65-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (12)
+
+### v0.3.65-dev — Factions removed from the design entirely
+
+Ben's call: Factions (the separate reputation/trust-standing system
+alongside Merchant Guilds and Warbands, per `design-brief.md`'s original
+reconciliation) never got built and duplicated what the newly-built Fame
+system already does. Fame absorbs its role everywhere Faction was
+referenced — Warband conduct and Settlement Warfare outcomes now move
+Fame directly, confirmed explicitly before editing anything.
+
+Removed the inert `Faction: None` Player-tab tile (`PlayerMenuScreen.cs`)
+along with the now-dead `DrawPlaceholderTile` helper it was the last
+caller of. Updated every forward-looking design doc: `design-brief.md`'s
+three-system "Factions, Guilds & Warbands" section is now two systems,
+"Guilds & Warbands"; `game-overview.md`'s "Player-Created Factions" pitch
+renamed to "Player-Formed Warbands" (what it actually described —
+territorial player groups — was always closer to Warbands than to the
+personal-reputation Faction concept); `skill-path-space.md` and
+`BUGS_AND_ENHANCEMENTS.md` updated to point at Fame instead.
+`reconciliation-questions.md` (a historical decision record) got a
+correction note rather than a rewrite — same "don't rewrite history,
+append a correction" discipline `CHANGELOG.md` itself follows.
 
 ## 2026-08-14 (11)
 

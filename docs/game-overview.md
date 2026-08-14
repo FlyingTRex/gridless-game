@@ -46,9 +46,9 @@ Players face physical threats from NPC factions, hostile player interactions, an
 - **Medical Skill Tree:** Healing and medical abilities are learned and improved through application. Treating wounds, performing first aid, and crafting medical supplies elevate medical mastery.
 - **Infirmaries & NPC Medics:** Players can equip medical facilities within their compounds, stocking them with specialized gear and hiring trained NPC medics to treat injuries.
 
-### Sociopolitical Systems: Factions & Merchant Guilds
+### Sociopolitical Systems: Warbands & Merchant Guilds
 Collective enterprise and sociopolitical structures shape regional dynamics:
-- **Player-Created Factions:** Players can band together to establish autonomous factions, securing territorial control, fortifying shared regional compounds, managing collective infrastructure, and engaging in regional rivalries or conflicts over resources and gem markets.
+- **Player-Formed Warbands:** Players can band together into Warbands, securing territorial control, fortifying shared regional compounds, managing collective infrastructure, and engaging in regional rivalries or conflicts over resources and gem markets through Settlement Warfare. (Renamed from "Player-Created Factions," 2026-08-14 — Factions, a separate reputation/trust-standing concept, was removed from the design entirely; what this bullet actually describes — territorial groups, not personal reputation — is `docs/design-brief.md`'s Warbands/Militias.)
 - **Merchant Guilds:** Institutional guilds operate across major settlements, offering structured apprenticeships for advanced crafting tiers, exclusive trade contracts, preferential exchange rates for volatile assets like gems, and guild-backed caravan protection.
 
 ### Automation & NPC Management

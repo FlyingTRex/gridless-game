@@ -2117,7 +2117,8 @@ fixed v0.3.16-dev)
 ## 6c. Player Menu (Tab) — Player Tab (2026-08-10)
 
 - [ ] **Core stat tiles:** Strength, Dexterity, Constitution, Intelligence show as
-  a 3-tile-per-row grid (Fame/Faction fill out the second row), each reading
+  a 3-tile-per-row grid (Fame fills out the second row alongside them — 5 tiles
+  total since Faction was removed from the design 2026-08-14), each reading
   `Name: 2.00` on a fresh character — the **.25–10 display scale**
   (`PlayerSkills.GetAttributeValue`), not the raw 0–100 skill level every craft
   skill uses. All four start above the .25 floor (raw level 20, per
@@ -2126,8 +2127,8 @@ fixed v0.3.16-dev)
   bottom, same visual style as `VitalsBarHUD`'s vital bars. Fills 0→1 as the stat
   progresses toward its *next .25 point* (not the 0–100 cap) — on a fresh
   character this reads as empty (no gold fill) since no progress has accumulated
-  yet; that's expected, not a bug. Fame/Faction/Guild tiles do **not** get a
-  Growth bar — none of those have a `GainExperience`-backed track.
+  yet; that's expected, not a bug. Fame/Guild tiles do **not** get a Growth
+  bar — neither has a `GainExperience`-backed track.
 - [ ] **Tile grid fills the screen edge-to-edge** (`PlayerMenuScreen.TileWidth` is
   computed from `Screen.width`, not a fixed pixel size) — confirm at a couple of
   window sizes that tiles stretch to fill available width rather than leaving a
@@ -2152,14 +2153,16 @@ fixed v0.3.16-dev)
     exactly capacity and trying to pick up one more item. No on-screen message
     for this yet (same as every other pickup-failure case, e.g. full
     inventory — a pre-existing gap, not new).
-- [ ] **Fame / Faction:** placeholder tiles (`Fame: 0`, `Faction: None`), always
-  visible, no backing system yet.
+- [ ] **Fame tile:** real value + band-name sub-line, always visible — see
+  §38 for the full Fame test checklist (this section only covers the tile's
+  own layout/rendering, not what moves the number).
 - [ ] **Guild tiles:** one full-width tile per joined guild (same total width as
-  the 3-tile stat row above), stacked one per row below Fame/Faction — **no row
+  the 3-tile stat row above), stacked one per row below Fame — **no row
   at all while zero guilds are joined.** Join/leave via the Admin tab (see §15)
   since there's no in-world way to join yet; confirm a tile appears/disappears
   live the moment you click Join/Leave, capped at 3 simultaneous guilds
-  (`PlayerGuilds.MaxGuilds`).
+  (`PlayerGuilds.MaxGuilds`), and that Fame moves by the right amount on each
+  (see §38).
 
 ## 8. Water Source Direct Interaction
 

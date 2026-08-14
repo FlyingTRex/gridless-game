@@ -388,7 +388,8 @@ phased proposal in `MULTIPLAYER_PLANNING.md` — summary:
 **Draft, not finalized (2026-08-10) — Ben's explicit call: "we won't
 consider this finalized yet."** Pulled together from `docs/design-brief.md`'s
 existing "Phase 2 — Settlement depth" list (Systems Wishlist section) and its
-dedicated Factions, Guilds & Warbands section, now that Phase 1 closed out in
+dedicated Factions, Guilds & Warbands section (now "Guilds & Warbands" —
+Factions was removed from the design entirely 2026-08-14), now that Phase 1 closed out in
 full, so there's a working list to pick off chunk-by-chunk the same way
 Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
@@ -472,10 +473,6 @@ signs off on scope and order.
   schematics, then write instructional manuals/grimoires to mentor other
   players or NPCs. Ties into the skill-books item above as the inverse
   (author your own instead of finding a pre-made one).
-- [ ] **Factions** — reputation/trust standing driven by behavior (safe,
-  productive settlements build trust; raiding erodes it). Separate from
-  Fame above and from Warbands below. **Already has inert placeholder UI**
-  (`Faction: None` tile), same as Fame.
 - [ ] **Merchant Guilds** — craft-skill bonuses and trade perks, not
   territorial. Structured apprenticeships for advanced crafting tiers,
   exclusive trade contracts, preferential exchange rates on volatile
@@ -484,9 +481,10 @@ signs off on scope and order.
   ahead of schedule this session — membership only, none of the
   bonus/perk/apprenticeship mechanics described here yet.
 - [ ] **Warbands/Militias** (Phase 3, listed here for context since it's
-  part of the same Factions/Guilds/Warbands trio) — the literal combatant
-  groups in Settlement Warfare. A Warband's conduct can move its members'
-  Faction standing even though the two systems are otherwise separate.
+  part of the same Guilds/Warbands pair — originally a trio with Factions,
+  which was removed from the design entirely 2026-08-14; Fame now covers
+  its role) — the literal combatant groups in Settlement Warfare. A
+  Warband's conduct moves its members' Fame directly.
 - [ ] **Scene layout/organization** (punted from the scene-prep work,
   2026-08-11) — the 200×200 Terrain is now fully populated (Trees, ore
   Boulders, Berry/Herb Bushes, Wolves, and hireable NPCs all scattered as
@@ -683,16 +681,6 @@ signs off on scope and order.
   this framework only covers melee. Bare-handed's own numbers (9 dmg,
   0.7s cooldown) are still first-pass, not vetted against a real
   weapon-tier progression.
-- [ ] **Fame / Faction — placeholder tiles only, no backing system
-  (2026-08-10).** Added to the Player tab alongside the 4 core stats
-  purely so the full tab layout could be seen and judged together; both
-  read a static `Fame: 0` / `Faction: None` with nothing feeding them.
-  Conceptually different from the core stats — reputation/standing
-  driven by other NPCs'/factions' view of the player, not personal
-  `GainExperience` — so building these out is a different kind of system
-  than Dexterity/Constitution/Intelligence above, not just "the next
-  stat in line." No design work done beyond the placeholder tiles.
-  *(Reported by Ben.)*
 - [ ] **32 `ItemDefinition` items still need a deliberate `weight` value —
   all currently sitting at the untuned 1 lb default (2026-08-10).**
   `CraftTierScale.WeightModifier` (Backpack/Knife/Axe/Hammer/Pickaxe

@@ -64,8 +64,7 @@ mid-tier node), in addition to the Ruins gateway.
 Somewhere on this replica Earth, a launch facility already stands. Taking it is
 faster than building one. The most violent and narratively riskiest route — it's a
 shortcut bought with force rather than mastery, and (per the Settlement Warfare
-system) should carry real Faction/reputation consequences for the Warband that
-pulls it off.
+system) should carry real Fame consequences for the Warband that pulls it off.
 
 ## Convergence
 
@@ -82,8 +81,8 @@ pulls it off.
 - Does reaching Ascend to the Stars end a character's arc, unlock a new layer of
   play (orbit, other replica-Earth servers, the "real" world beyond the
   simulation?), or is it a repeatable/server-wide milestone?
-- Conquered Launch Site needs a ruling on Faction/reputation fallout, consistent
-  with the Settlement Warfare capture/destroy consequences already defined in
+- Conquered Launch Site needs a ruling on Fame fallout, consistent with the
+  Settlement Warfare capture/destroy consequences already defined in
   `design-brief.md`.
 - Does Chartered Expedition require the funding character to personally travel, or
   can a purely economic playstyle "win" without ever leaving a city?

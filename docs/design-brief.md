@@ -120,19 +120,22 @@ screen at character creation, staying consistent with the skill-via-use philosop
 - **Magic lineage** is the one randomized element at character creation — confirms
   Pillar 7 / Magic System above. Randomized only as a *starting point*, not a
   lifetime lock — see Magic System's learnable-lineage note.
-- **Deferred/optional layers:** Sanity/Morale and Reputation/Fame are candidates for
-  later phases, not part of the initial character model. **Placeholder UI only,
-  2026-08-10:** the Player tab (built for the core stats above) picked up `Fame: 0`
-  and `Faction: None` tiles the same day, purely so the full tab layout could be
-  judged together — no backing system, no data, nothing feeding them. Doesn't
-  change this section's "later phase" placement, just flagging that inert UI now
-  exists ahead of the real system.
-
-**Still open — flagged, not resolved here:** Ben's note that Reputation/Fame is a
-"later phase" candidate is worth squaring against this brief's existing Phase 2
-placement of the Fame/reputation system and Factions (below) — confirm with Ben
-whether Phase 2 still holds or these should push later, rather than assuming either
-way.
+- **Sanity/Morale** is a candidate for later phases, not part of the initial
+  character model.
+- **Reputation/Fame — built 2026-08-14, see `FAME_PLANNING.md`.** Started as an
+  inert `Fame: 0` placeholder tile (2026-08-10), then designed and built same
+  session: a real `PlayerFame` component, fed by NPC treatment, guild membership,
+  and skill/stat tier mastery, with a working negative-Fame NPC-flee effect. The
+  original "later phase vs. Phase 2" timing question (Ben had separately floated
+  Fame as a possible later-phase candidate, never confirmed against this brief's
+  Phase 2 placement) was resolved by just building it regardless of timing —
+  see `FAME_PLANNING.md`'s "Why this, why now" section.
+- **Factions removed from the design entirely, 2026-08-14.** The separate
+  reputation/trust-standing concept (originally described alongside Merchant
+  Guilds/Warbands, now just "Guilds & Warbands" below) never got built and
+  duplicated Fame's role — Fame now covers what Faction was meant to (trust/fear
+  standing, the world reacting to behavior). The `Faction: None` placeholder
+  tile that shipped alongside `Fame: 0` is gone too.
 
 ## Tech Stack
 
@@ -239,8 +242,8 @@ area associated with that settlement on the macro layer).
 ## Settlement Warfare (Capture vs. Destroy)
 
 *Terminology updated per reconciliation: the attacking/defending combatant groups
-below are **Warbands/Militias** — see Factions, Guilds & Warbands for how that term
-relates to reputation Factions and Merchant Guilds, which are separate systems.*
+below are **Warbands/Militias** — see Guilds & Warbands for how that term relates
+to Merchant Guilds, a separate system.*
 
 An attacking Warband chooses one of two objectives against a target city ("City B"),
 each with distinct mechanics and consequences:
@@ -249,10 +252,12 @@ each with distinct mechanics and consequences:
   fights to remove City B's current population (defending players/NPCs) while
   preserving the buildings. Skill and fame consequences are tied directly to the
   outcome: the **losing side's** skill and fame decrease, and the **winning side's**
-  skill and fame increase. This makes the Phase 2 fame/reputation system stakeable,
-  not just earnable through peaceful practice — a city fight is a real risk to a
-  player's standing, not only a risk to the settlement. A Warband's conduct in a
-  capture fight also affects the Faction standing of the players in it (see below).
+  skill and fame increase. This makes the built Fame system stakeable, not just
+  earnable through peaceful practice — a city fight is a real risk to a player's
+  standing, not only a risk to the settlement. A Warband's conduct in a capture
+  fight moves the Fame of the players in it directly (2026-08-14 — Factions, the
+  system this used to route through, was removed from the design; Fame absorbed
+  its role).
 - **Destroy** — the objective is to raze the city rather than take it. Buildings lose
   durability under attack until destroyed, which compounds into City Growth's
   negative modifiers twice over: (1) the building stops providing its positive growth
@@ -275,29 +280,23 @@ each with distinct mechanics and consequences:
   won't always have both sides' players online at once).
 - The **Conquered Launch Site** endgame route (see Endgame: Leaving the Planet,
   below) is specifically a capture of a launch site by a Warband, and needs its
-  Faction/reputation fallout ruled on consistently with whatever gets decided here.
+  Fame fallout ruled on consistently with whatever gets decided here.
 
-## Factions, Guilds & Warbands
+## Guilds & Warbands
 
-Three separate systems, decided via reconciliation — easy to conflate, so kept
-distinct here:
+Two separate systems (originally three with Factions, reconciled down to two
+2026-08-14 — see the note above):
 
-- **Factions** — reputation/perception, not territory. How trusted or feared a
-  player or group is, driven by behavior: safe, productive settlements build trust;
-  raiding erodes it. Purely a standing/reputation layer.
 - **Merchant Guilds** — craft-skill bonuses and trade perks. Not territorial — guild
   benefits apply regardless of who controls the surrounding settlement. Per Ben's
   original pitch: structured apprenticeships for advanced crafting tiers, exclusive
   trade contracts, preferential exchange rates on volatile assets like gems, and
   guild-backed caravan protection.
 - **Warbands/Militias** — the literal combatant groups in Settlement Warfare (above).
-  Separate from reputation Factions, but a Warband's conduct can move the Faction
-  standing of the players associated with it — raiding as a Warband erodes your
-  personal/group Faction trust even though Factions and Warbands are different
-  systems.
+  A Warband's conduct moves the Fame of the players associated with it directly —
+  raiding as a Warband erodes your personal/group Fame.
 
-**Still open:** concrete mechanics and magnitudes for all three — how Faction
-standing is actually measured and what it unlocks/restricts, Merchant Guild
+**Still open:** concrete mechanics and magnitudes for both — Merchant Guild
 apprenticeship/contract specifics, and how Warband membership is formed/managed.
 
 ## Magic System
@@ -564,7 +563,7 @@ not early-game crafting.
      node. Fund and contract someone else's ship rather than build one.
   4. **Conquered Launch Site** (warlord) — Master Warlord + a mid-tier
      Combat/Warbands node. Take an existing launch site by force — ties directly
-     into Settlement Warfare and should carry real Faction consequences (see that
+     into Settlement Warfare and should carry real Fame consequences (see that
      section's still-open items).
 - **Convergence:** any one route → **Escape Velocity** → **Ascend to the Stars**.
   One narrow endpoint regardless of which discipline got a player there.
@@ -572,9 +571,9 @@ not early-game crafting.
 **Still open** (from `docs/skill-path-space.md`, not resolved here): whether the four
 routes are mutually exclusive per-character or freely chosen among qualifying ones;
 what Ascend to the Stars actually does (ends the character's arc? unlocks a new
-layer of play? repeatable/server-wide milestone?); the Faction/reputation ruling for
-Conquered Launch Site (ties to the Settlement Warfare capture/destroy consequences
-above); and whether Chartered Expedition requires personally traveling or allows a
+layer of play? repeatable/server-wide milestone?); the Fame ruling for Conquered
+Launch Site (ties to the Settlement Warfare capture/destroy consequences above);
+and whether Chartered Expedition requires personally traveling or allows a
 purely economic "win."
 
 ## Systems Wishlist (Feature Inspirations)
@@ -662,9 +661,6 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
   then write instructional manuals/grimoires to mentor other players or NPCs. Ties
   into the Phase 1 skill-books idea as the inverse: instead of finding a pre-made
   book, you can author your own from what you've learned.
-- **Factions (reputation)** — see the Factions, Guilds & Warbands section. Behavior-
-  driven trust/fear standing, separate from Fame above and from combat Warbands.
-
 **Phase 3 — Systemic & late-game depth** (biggest, most complex systems — tackle last)
 - **Utility infrastructure** (Icarus) — power and water as real requirements, with
   pipes/cables that must be physically run to connect buildings/machines.
@@ -696,8 +692,8 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
     10 Gold). This is the personal deposit/withdraw/exchange/storage slice only —
     trading between players, the gem market, and city-scale central banking are still
     not built.
-- **Merchant Guilds & Warbands** — see the Factions, Guilds & Warbands section.
-  Guilds provide craft bonuses/trade perks and aren't territorial; Warbands are the
+- **Merchant Guilds & Warbands** — see the Guilds & Warbands section. Guilds
+  provide craft bonuses/trade perks and aren't territorial; Warbands are the
   literal combatant groups in Settlement Warfare, deferred here alongside it.
 - **Warcraft-style warfare** — assemble and grow a Warband, attack another
   settlement/city. Ties directly into the macro-layer city growth pillar and into
@@ -2039,14 +2035,15 @@ a good icon means a correctly-placed model.
 ## Open Questions / Next Decisions
 
 Reconciliation with `docs/game-overview.md` resolved the big cross-doc conflicts
-(magic, Factions/Guilds vs. Settlement Warfare, currency ladder, Earth vs. replica —
+(magic, Guilds/Warbands vs. Settlement Warfare, currency ladder, Earth vs. replica —
 see `docs/reconciliation-questions.md`). Most remaining open items now live as
 "Still open" call-outs in their relevant section rather than here: invented city
 names and boundary tier sizes (World Scope), growth-curve/negative-modifier
 magnitudes (City Growth Mechanics), capture control-transfer and live-vs-simulated
-combat (Settlement Warfare), Faction/Guild/Warband concrete mechanics (Factions,
-Guilds & Warbands), and early-tier magic abilities (Magic System). The one item
-without a natural home elsewhere:
+combat (Settlement Warfare), Guild/Warband concrete mechanics (Guilds & Warbands —
+Factions, the third system originally alongside these two, was removed from the
+design 2026-08-14, Fame absorbed its role), and early-tier magic abilities (Magic
+System). The one item without a natural home elsewhere:
 
 - **Economy specifics:** currency denominations are now decided (5-tier, see
   Commerce system in Phase 3), but source (mined? earned? printed by settlements?)

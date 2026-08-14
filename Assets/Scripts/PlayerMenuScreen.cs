@@ -52,8 +52,8 @@ public class PlayerMenuScreen : MonoBehaviour
     // wouldn't read as useful feedback). Since displayed = level/10, a
     // .25 displayed step is 2.5 raw skill levels — e.g. raw level 20
     // (Strength 2.00) to 22.5 (Strength 2.25) fills this 0->1. Not shown
-    // on Fame/Faction/Guild tiles — none of those have a
-    // GainExperience-backed growth track.
+    // on Fame/Guild tiles — neither has a GainExperience-backed growth
+    // track.
     private const float BarHeight = 18f;
     private const float LevelPerQuarterPoint = 2.5f;
     private static Texture2D barBackgroundTex;
@@ -202,9 +202,10 @@ public class PlayerMenuScreen : MonoBehaviour
         GUILayout.EndHorizontal();
     }
 
-    // Stats + Fame + Faction fill a 3-tile-per-row grid (6 entries = 2 even
-    // rows); guild tiles follow as their own one-per-row section, full
-    // RowWidth each (2026-08-10, Ben's layout call).
+    // Stats + Fame fill a 3-tile-per-row grid (5 entries = one full row of
+    // 3 plus a partial row of 2, since Faction was removed from the
+    // design 2026-08-14); guild tiles follow as their own one-per-row
+    // section, full RowWidth each (2026-08-10, Ben's layout call).
     private void DrawPlayerTab()
     {
         GUILayout.Label("Player", DebugGUI.Header);
@@ -216,21 +217,20 @@ public class PlayerMenuScreen : MonoBehaviour
             DrawDexterityTile,
             DrawConstitutionTile,
             DrawIntelligenceTile,
-            // Fame/Faction — reputation-style stats, conceptually
-            // different from the skill-via-use core stats above (driven by
-            // NPC treatment/guild membership/tier mastery, not personal
-            // GainExperience directly — see FAME_PLANNING.md, 2026-08-14).
-            // Faction stays a placeholder — no backing system yet.
+            // Fame — reputation-style stat, conceptually different from
+            // the skill-via-use core stats above (driven by NPC treatment/
+            // guild membership/tier mastery, not personal GainExperience
+            // directly — see FAME_PLANNING.md, 2026-08-14). Faction was
+            // removed from the design entirely (2026-08-14) — Fame now
+            // covers the trust/reputation role Faction was meant to fill.
             DrawFameTile,
-            () => DrawPlaceholderTile("Faction", "None"),
         });
 
         DrawGuildTiles();
     }
 
     // Lays tiles out TilesPerRow to a row, TileGap between both columns
-    // and rows — the shared grid the stat/Fame/Faction section is built
-    // from.
+    // and rows — the shared grid the stat/Fame section is built from.
     private void DrawTileRows(Action[] tiles)
     {
         for (int i = 0; i < tiles.Length; i += TilesPerRow)
@@ -334,8 +334,6 @@ public class PlayerMenuScreen : MonoBehaviour
         if (value < 500f) return "Known";
         return "Renowned";
     }
-
-    private void DrawPlaceholderTile(string label, string value) => DrawTile(label, value, TileWidth);
 
     // 0-1 progress from the current .25 displayed point toward the next —
     // see the field comment above for why this isn't just level/100.

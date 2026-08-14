@@ -50,6 +50,16 @@ Decision: Three separate systems, not one:
 Factions = reputation/perception. How trusted or feared a player/group is, driven by behavior (safe productive settlements build trust; raiding erodes it).
 Merchant Guilds = craft-skill bonuses and trade perks. Not territorial — guild benefits apply regardless of who controls the surrounding settlement.
 Warbands / Militias = the literal combatant groups in Settlement Warfare (city capture/destroy fights). Separate from reputation Factions, though a Warband's conduct can affect the Faction standing of players associated with it.
+
+**Superseded, 2026-08-14**: Factions was removed from the design entirely — the
+reputation/perception role described above never got built and duplicated the
+real, shipped Fame system (`FAME_PLANNING.md`), which now covers it directly
+(NPC treatment, guild membership, skill/stat mastery, and — per this decision's
+own last line — Warband conduct). This decision's three-system split is now
+two: Merchant Guilds and Warbands/Militias, see `docs/design-brief.md`'s
+"Guilds & Warbands" section. Kept here as the historical record of why the
+split happened in the first place, not rewritten.
+
 3. Currency Ladder
 
 Decision: 5-tier ladder, merging both docs' versions: Copper → Iron (×10) → Silver (×10) → Gold (×10) → Platinum (×10)
