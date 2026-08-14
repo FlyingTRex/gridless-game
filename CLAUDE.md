@@ -604,20 +604,71 @@ warning) left `ProjectSettings/GraphicsSettings.asset`'s
 change picked up alongside the actual intended asset changes. It was
 rationalized in the moment as "benign, arguably correct — consistent with the
 project's Linear color space" and committed without loading the Editor to
-actually look at anything. **It was not benign** — it broke Player/NPC model
-rendering project-wide (reported by Ben two commits later: "the npc and player
-models are invisible now"), sitting unnoticed for two full ship cycles
-(Rudimentary Shovel, Sand dig sites) before being traced back and reverted.
+actually look at anything.
+
+**Correction, same day:** when Ben reported Player/NPC models fully invisible
+two commits later, this diff was the prime suspect and got reverted first —
+but that revert **did not fix the actual bug** (see the next gotcha below for
+the real cause), and the setting drifted back to `1` on its own shortly after
+anyway (confirmed intentional/Editor-driven, not something to keep fighting).
+The underlying lesson still holds even though this specific diff turned out
+innocent: an unreviewed `ProjectSettings` diff is a real enough regression
+risk to justify treating with suspicion, but **don't stop investigating once
+you've found *a* plausible-looking suspect** — reverting it and moving on
+without confirming the symptom actually went away wastes a report cycle and
+delays finding the real cause, same failure shape as declaring a fix "done"
+off a clean compile instead of an actual look.
 
 **How to apply:** any diff in a `ProjectSettings/*.asset` file that isn't the
-change you actually intended — even one line, even one that sounds plausible
-given other recent project state — is a real regression risk exactly like an
-unexpected scene/prefab diff, not a rounding artifact to wave through. Treat it
-with the same suspicion as the "trivial floating-point re-serialization on
-unrelated materials" check already established for scene saves: read the diff,
-form an actual hypothesis for *why* the tool touched it, and if it can't be
-verified safe (ideally by loading the Editor and looking, not just reasoning
-about it), call it out to Ben explicitly rather than deciding unilaterally that
-it's fine. A graphics/rendering setting is exactly the category of change whose
-breakage won't show up in a compile check or a YAML grep — only in an actual
-Play-mode look, which a batch-mode session can't do itself.
+change you actually intended is still worth a real hypothesis for *why* the
+tool touched it before committing — but if a bug report comes in, verify your
+fix actually resolves the reported symptom before considering it closed, not
+just that you found and reverted something suspicious-looking.
+
+## Gotcha: a legacy Built-in-only shader can render fully invisible under URP,
+not the usual pink "shader missing" indicator — and `Material.GetColor` on a
+property the shader doesn't have silently returns transparent black, not an
+error
+
+**The real cause of the 2026-08-14 invisible-Player/NPC bug**, found by
+walking the Inspector live with Ben (Hierarchy → body mesh child → Skinned
+Mesh Renderer → Materials) after the `ProjectSettings` red herring above led
+nowhere: all 7 `HumanDummy*.mat` variants (`Assets/Kevin Iglesias/Human
+Character Dummy/Materials/`) used the legacy Built-in Render Pipeline shader
+`Unlit/Texture` (recognizable by `m_Shader: {fileID: 10752, guid:
+0000000000000000f000000000000000, type: 0}` — the all-zeros-with-an-f guid is
+Unity's convention for a built-in shader reference, not a real asset guid).
+This project has been on URP since early in its history, and a genuinely
+Built-in-only shader like this one is incompatible — but instead of the usual
+bright pink "shader failed" fallback, it apparently rendered fully invisible
+under this project's specific pipeline/lighting setup. Latent since
+v0.3.4-dev (confirmed via `git log`/`git status` on the material file — zero
+commits or uncommitted changes since the original NPC visual import), so
+unrelated to any change from this session; it just never actually manifested
+as full invisibility until now, and nobody had looked closely at an NPC's
+material assignment specifically before.
+
+**Fixing the shader introduced a second bug in the same edit, from a
+different pitfall**: swapping to `Universal Render Pipeline/Unlit` and
+migrating properties (`_MainTex` → `_BaseMap`, `_Color` → `_BaseColor`) is the
+right move, but `Unlit/Texture` never actually exposed a `_Color` property to
+begin with — Unity logged `Material 'HumanDummy' with Shader 'Unlit/Texture'
+doesn't have a color property '_Color'` and `Material.GetColor("_Color")`
+silently returned `(0, 0, 0, 0)` (transparent black) instead of throwing.
+Written straight into the new shader's `_BaseColor`, this made every model
+fully transparent all over again — correct shader, correct texture, wrong
+tint, same end symptom. Caught by grepping the saved `.mat` YAML for the
+actual `_BaseColor` value after the "fix," not by trusting the batch script's
+clean log output.
+
+**How to apply:** (1) don't assume a legacy/incompatible shader always shows
+pink — it can render fully invisible instead, so "the object is just gone,
+no error" doesn't rule out a shader-compatibility problem the way you might
+expect. (2) When migrating a material off a legacy shader, don't blindly
+carry over every old property by name — check first whether the *old* shader
+actually exposed that property (a `GetColor`/`GetFloat`/`GetTexture` call on a
+nonexistent property warns but doesn't throw, and returns a zeroed-out
+default that will silently corrupt the new value). Verify the migrated
+material's actual saved color/texture values in the YAML afterward, the same
+"don't trust a clean log" discipline as every other asset-creation gotcha in
+this file.

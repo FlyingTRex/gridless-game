@@ -5,10 +5,43 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.62-dev` — must always match `GameVersion` in
+**Current version:** `0.3.63-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (10)
+
+### v0.3.63-dev — fix: Player/NPC models actually invisible for real this time (legacy shader)
+
+The v0.3.62-dev `GraphicsSettings` revert was a red herring — Ben reported
+the models were still invisible after it. **Real root cause, found by
+walking the Inspector live together** (Hierarchy → body mesh child →
+Skinned Mesh Renderer → Materials): all 7 `HumanDummy*.mat` variants used
+the legacy Built-in Render Pipeline shader `Unlit/Texture`, incompatible
+with this URP project — latent since v0.3.4-dev (confirmed via git
+history on the material file, zero changes since the original NPC visual
+import), unrelated to anything from this session, just never actually
+manifested as full invisibility until now. Fixed by swapping to
+`Universal Render Pipeline/Unlit`.
+
+That fix introduced a second bug in the same edit: `Unlit/Texture` never
+actually exposed a `_Color` property, so migrating it via
+`Material.GetColor("_Color")` silently returned transparent black instead
+of throwing, written straight into the new shader's `_BaseColor` — right
+shader, right texture, wrong tint, same invisible-model symptom. Caught
+by grepping the saved `.mat` YAML for the actual color value, not by
+trusting a clean batch-script log. Corrected to white (matching the
+shader's own default, confirmed by Unity omitting the now-redundant
+property from the saved file entirely).
+
+**Confirmed fixed live by Ben** after this second pass — not just a
+clean compile. Two new `CLAUDE.md` gotchas written up: the corrected
+record on the `GraphicsSettings` red herring (don't stop investigating
+once you've found *a* plausible suspect — verify the actual symptom is
+gone), and the real one (a legacy Built-in shader can render fully
+invisible under URP instead of the usual pink "shader missing"
+indicator, and `GetColor` on a nonexistent property fails silently).
 
 ## 2026-08-14 (9)
 
