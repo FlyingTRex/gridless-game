@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
+  m_Name: RudimentaryShovel
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  itemName: Rudimentary Shovel
+  maxStack: 1
+  weight: 5
+  tier: 1
+  worldPickupPrefab: {fileID: 3808633123406909378, guid: 54cac0b2323760045b4b7a5f1ad4c939, type: 3}
+  icon: {fileID: 21300000, guid: d5b2df63eb498994cbb0210d2548d1c4, type: 3}
+  previewIcon: {fileID: 21300000, guid: 000cc3a81acb22d44bc918f77dede4ff, type: 3}
+  baseItem: {fileID: 0}

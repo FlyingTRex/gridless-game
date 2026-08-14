@@ -3226,3 +3226,29 @@ scene wiring).
 - [ ] **Icons render correctly**: confirm all four ingots show a real
   baked icon (not a blank/placeholder) in both the small inventory slot
   and any larger preview box.
+
+## 35. Rudimentary Shovel, v1
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep of the new assets and scene
+wiring).
+
+- [ ] **Recipe gating**: confirm the Rudimentary Shovel recipe is hidden
+  in the Crafting tab until Metalworking reaches Rudimentary level, and
+  appears once that threshold is crossed.
+- [ ] **Anvil requirement**: confirm the recipe is blocked (with the
+  correct warning) when not within range of an Anvil surface, and craftable
+  once near one — same as Nail/other `requiresAnvilSurface` recipes.
+- [ ] **Ingredients**: confirm crafting consumes exactly 1 Iron Ingot + 1
+  Rudimentary Trimmed Stick, and that a plain (untrimmed) Stick or a
+  different Trimmed Stick tier does NOT satisfy the recipe.
+- [ ] **Real model, correct scale/orientation**: pick up the crafted
+  Shovel, confirm it looks like a real shovel (wood handle, metal blade)
+  at a believable size next to the player, not oversized/undersized or
+  sunk into the ground when dropped.
+- [ ] **Icon renders correctly**: confirm a real baked icon shows in the
+  inventory slot (not blank), matching the in-world model's colors.
+- [ ] **Equip/hold works**: confirm the Shovel can be picked up and held
+  in hand like other Tools (Pickaxe/Axe/Hammer/Knife) — no functional
+  digging use yet, since that mechanic doesn't exist, but the basic
+  equip/carry/drop loop should work identically to every other Tool.

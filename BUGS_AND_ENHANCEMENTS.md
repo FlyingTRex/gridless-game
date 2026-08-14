@@ -120,12 +120,21 @@ Original digging plan (Shovel + dig sites + new raw material) unchanged from
 the first pass — see below — plus a new tie-in Ben asked to fold into the same
 session:
 
-- [ ] **Shovel — 5-tier item + recipe**, same pattern as Pickaxe/Knife/
-  Hammer/Axe (Crude/Rudimentary/Normal/Fine/Masterwork). Stonework
-  discipline — same "stone head/edge defines the tool" rule the other
-  stone tools already follow, no new discipline needed. Needs a real
-  model (Blender tier-shape family or a Poly Pizza source, session
-  execution detail, not decided here).
+- [ ] **Shovel — Rudimentary tier built (2026-08-14, v0.3.59-dev); 4 tiers
+  still open.** Deviated from this entry's original sketch in two ways,
+  both Ben's explicit call: **Metalworking discipline, not Stonework**
+  (1 Iron Ingot + 1 Rudimentary Trimmed Stick, requires the Anvil, gated
+  at Rudimentary-level Metalworking) — not the stone-tool pattern
+  originally floated here. **Tier-matched materials, not Pickaxe's
+  same-ingredients-every-tier convention**: each future tier needs its
+  matching Trimmed Stick tier (Crude Shovel → Crude Trimmed Stick, Normal
+  → Normal, ...), not one fixed ingredient with quality decided by a
+  skill-margin roll. Real Blender-generated model (`Tools/Blender/
+  GenerateShovelModel.py`, kept as a permanent script for the future tiers
+  to reuse/extend) — wood handle + tapered metal blade, ~0.97m, pivot at
+  base. Crude/Normal/Fine/Masterwork Shovel still need their own item +
+  recipe (presumably non-Iron materials for Crude, per the tier-matched-
+  materials rule — not yet decided what).
 - [ ] **Dig sites, not free-form digging (Ben's pick, session 1)** — a
   `ResourceNode` instance dressed as a loose dirt/clay/sand patch,
   `requiredTools` = the Shovel tiers, same hold-to-break shape every

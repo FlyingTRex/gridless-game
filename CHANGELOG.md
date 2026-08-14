@@ -5,10 +5,46 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.58-dev` — must always match `GameVersion` in
+**Current version:** `0.3.59-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (6)
+
+### v0.3.59-dev — Rudimentary Shovel: new item, recipe, and real Blender model
+
+First tier of a future full Shovel ladder (`BUGS_AND_ENHANCEMENTS.md`'s
+digging/water-scarcity section) — Ben's call, deviating from that entry's
+original sketch in two ways: **Metalworking discipline, not Stonework**
+(1 Iron Ingot + 1 Rudimentary Trimmed Stick, requires the Anvil, gated at
+Rudimentary-level Metalworking via the existing `outputItem.tier`-driven
+skill gate — no new gating code needed), and a new **tier-matched-materials
+rule** for the whole future ladder: each tier needs its matching Trimmed
+Stick tier, not Pickaxe's "same ingredients every tier, quality from a
+skill-margin roll" convention.
+
+Real model via the headless-Blender pipeline (Ben: "let's try a blender
+model first"), new `Tools/Blender/GenerateShovelModel.py` (kept
+permanently, like `GenerateCampfireModel.py`/`GenerateSkillBookModels.py`,
+for the future tiers to reuse) — a bmesh-built tapered blade + cylinder
+handle + sphere grip, built directly at real-world meter scale rather than
+needing a post-import rescale. Measured bounds confirmed a good size
+(0.97m total) and correct base pivot before wiring anything up, per
+`CLAUDE.md`'s mandatory checklist.
+
+**Real bug caught and fixed the same session, benefiting this model too**:
+`IconBaker`'s near-black-metallic bug (v0.3.58-dev, same day) — the
+Shovel's blade is a metallic material, so this model's icon would have hit
+the identical problem if the fix hadn't already landed first. Icon baked
+clean on the first attempt as a result.
+
+New `RudimentaryShovel.asset`, `RudimentaryShovelPickup.prefab` (Rigidbody
++ BoxCollider + `Tool` component, same shape every other tool uses),
+`RudimentaryShovelRecipe.asset`, wired into `PlayerCrafting.recipes` in
+`TestScene.unity`. Verified via batch-mode compile (0 CS errors) + direct
+YAML grep of every new asset and the scene wiring. **Not yet tested in
+Play mode.**
 
 ## 2026-08-14 (5)
 
