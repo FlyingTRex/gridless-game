@@ -3129,9 +3129,12 @@ design/build detail in `WEATHER_MAKER_PLANNING.md`.
   unprompted — confirms the "sky + weather only" scope decision needed no
   active deactivation work.
 - [ ] **Actual precipitation** (rain/snow/sleet/hail) — not yet seen live.
-  The `GlobalWeatherZone` profile controls this; needs an actual rain/snow
-  weather profile assigned (temporarily, for testing) to confirm
-  precipitation renders and sounds correctly.
+  `RandomWeatherController` (v0.3.56-dev) now provides a way to test this
+  without hand-assigning a profile: watch a few of its 5-real-minute
+  change cycles and confirm each weather type (including None/clear)
+  actually renders and sounds correctly, and that the transition between
+  types is smooth (tweened by Weather Maker's own
+  `PrecipitationChangeDuration`, not an instant pop).
 - [ ] **Gameplay bridge — `PlayerWeatherEffects`**: with precipitation
   actually falling, confirm `PlayerVitals.bodyTemperature` visibly drops
   while standing in it, and recovers when it stops (or via a Campfire /

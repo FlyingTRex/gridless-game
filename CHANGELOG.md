@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.55-dev` — must always match `GameVersion` in
+**Current version:** `0.3.56-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (3)
+
+### v0.3.56-dev — Random weather (Weather Maker)
+
+New `RandomWeatherController.cs` — Ben's ask: "let's add some random
+weather... change every 5 real minutes." Deliberately simple: every 300
+real seconds, picks a random `WeatherMakerPrecipitationType` (None/Rain/
+Snow/Sleet/Hail) and a random intensity (0.3-0.8, or 0 for None), and sets
+`WeatherMakerPrecipitationManagerScript.Instance.Precipitation`/
+`.PrecipitationIntensity` directly — no need to touch Weather Maker's own
+WeatherZone/Profile system, since the manager already smoothly tweens
+between precipitation types on its own (`PrecipitationChangeDuration`, a
+few seconds by default). Feeds straight into the already-shipped
+`PlayerWeatherEffects` cooling bridge with zero changes needed there.
+New standalone `RandomWeatherController` GameObject added to
+`TestScene.unity`. Verified via batch-mode compile (0 CS errors) + direct
+YAML grep of the scene addition. **Not yet tested in Play mode** — Ben
+plans to watch a few real-time change cycles once this lands.
 
 ## 2026-08-14 (2)
 
