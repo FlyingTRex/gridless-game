@@ -19,7 +19,7 @@ specced yet.
 5. **Sky and weather.** — ✅ Built and live-tested (Weather Maker, `WEATHER_MAKER_PLANNING.md`, 2026-08-13).
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
 7. **Skill books.** — 🟡 Built (v0.3.53-dev, `SKILL_BOOKS_PLANNING.md` — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode. Phase 4 (NPC training) correctly blocked on item 2's bench-crafting.
-8. **Expand hunting** — diverse animals, and the ability to use a weapon against them.
+8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev) — a Knife now deals real tier-scaled bonus damage, and any future melee weapon plugs in for free. Ranged (Archery/Gun) and animal diversity are both still fully open.
 9. **Cooking** — supplements healing (better foods give health/healing); teas and drinks.
 10. **"Prefab" buildings** — drop a full premade building into a scene, rather than piece-by-piece.
 
@@ -212,12 +212,14 @@ Verified via 10+ rounds of batch-mode compile + direct YAML grep —
 **not yet live-tested in Play mode.**
 
 ### 8 — Expand hunting
-Today: one huntable animal (Wolf, via `HostileCreature`), and only
-"Bare-handed" of five originally-named combat skills actually exists. This
-item is really three bundled together: new animal types, real ranged/melee
-weapon skills, and the animation to make weapon use readable (ties back to
-item 4). Worth deciding whether MVP 2 wants all three or just animal
-variety first.
+Today: one huntable animal (Wolf, via `HostileCreature`). Melee weapon
+skills got a real framework (v0.3.61-dev, superseding the original
+five-weapon-skill plan with one shared Melee skill) — a Knife now deals
+tier-scaled bonus damage on top of the base Bare-handed punch, and any
+future melee weapon (Spear, Sword) plugs in via one `ItemDefinition` flag,
+no new combat code needed. Still open: ranged combat (Archery/Gun) has
+nothing built at all, and neither does the animation to make weapon use
+readable (ties back to item 4), or any animal variety beyond the Wolf.
 
 ### 9 — Cooking
 Natural extension of the existing `EdibleItem`/skill-tied-quality pattern
