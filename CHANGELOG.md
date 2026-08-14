@@ -5,10 +5,32 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.51-dev` — must always match `GameVersion` in
+**Current version:** `0.3.52-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-13 (26)
+
+### v0.3.52-dev — Save/load live-tested; Settler's Shirt worn-offset tune
+
+**Save/load persistence, live-tested for real** (v0.3.51-dev's build,
+confirmed the same day): Ben ran an actual Editor-restart round trip
+(exit and relaunch, not just re-entering Play mode) — worn equipment
+(Backpack, and a Settler's Belt with a Canteen clipped to it, from
+starting gear) and nested equipment contents (11 Sticks placed inside the
+worn Backpack) both came back exactly. Confirms the recursive
+nested-equipment capture (`EquipmentSaveUtility`/`InventorySaveUtility`,
+the plan's hardest piece) actually works, not just compiles. Marked done
+in `MVP2_PLANNING.md` item 6 and `BUGS_AND_ENHANCEMENTS.md`'s matching
+entry; `TEST_FEATURE_PLAN.md` section 30 updated with what's confirmed
+vs. still open (full vitals round-trip, Canteen liquid specifically,
+StorageBox, ResourceNode respawn timing, Hireable NPC state).
+
+**`PlayerShirt` worn offset live-tweaked**, same Play-mode-Inspector
+workflow established for Boot/Backpack: `wornPositionOffset` from
+`(0, 0, 0)` to `(0, -0.33, 0)`, `wornEulerOffset` from `(0, 0, 0)` to
+`(0, 89, 0)`.
 
 ## 2026-08-13 (25)
 

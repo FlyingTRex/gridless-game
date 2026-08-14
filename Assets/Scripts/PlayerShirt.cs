@@ -20,10 +20,12 @@ public class PlayerShirt : MonoBehaviour
     [SerializeField] private float despawnDelay = 120f;
 
     // Root-relative worn offset (2026-08-13, same EquipmentAttach math as
-    // Tool/Backpack) — a body-conforming garment, no offset needed as a
-    // first guess (unlike Backpack, this isn't a floating prop).
-    [SerializeField] private Vector3 wornPositionOffset = Vector3.zero;
-    [SerializeField] private Vector3 wornEulerOffset = Vector3.zero;
+    // Tool/Backpack) — started at Vector3.zero (a body-conforming garment,
+    // no offset expected as a first guess), then live-tweaked by Ben
+    // directly in the Play-mode Inspector to these values, same workflow
+    // established for Boot/Backpack.
+    [SerializeField] private Vector3 wornPositionOffset = new Vector3(0f, -0.33f, 0f);
+    [SerializeField] private Vector3 wornEulerOffset = new Vector3(0f, 89f, 0f);
 
     // The player starts the game already wearing one — no generic
     // "starting gear" system exists anywhere else in the project (checked;

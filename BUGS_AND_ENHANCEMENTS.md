@@ -103,44 +103,16 @@ for digging/water plus whatever Phase 2 work follows.
   Ben's own use case: presort mined resources into a box near the Anvil by
   assigning specific NPCs to it. Full story in `CHANGELOG.md` v0.2.9-dev.
 
-### 2. Save/load persistence (v1, deliberately narrow scope)
+### 2. Save/load persistence (v1) — ✅ DONE, shipped v0.3.51-dev
 
-Ben's framing: "we'll need to do a 'save state' so that the game can continue
-where we're at, instead of restarting at every test." Nothing in this project
-persists anything today — confirmed by grepping the whole codebase, zero
-`DateTime`/save-file/serialization code exists anywhere. This is the biggest
-of the three pieces and the one most worth getting the shape right on before
-building more content on top of it. Real design problems to solve, not just a
-file format choice:
-
-- **Reference resolution** — `Inventory` slots store direct `ItemDefinition`
-  references (a ScriptableObject asset), and `PlayerSkills`/`NPCSkills` key
-  off `SkillDefinition` the same way. Neither serializes cleanly to
-  JSON/binary as-is; needs a stable string ID per asset (name or a assigned
-  key) plus a runtime lookup registry to resolve back to the real asset on
-  load.
-- **Stable identity for world objects** — nothing in this project has a
-  persistent identity today; everything is "whatever object happens to sit at
-  this spot in the hand-edited scene file." Saved data (a Storage Box's
-  contents, an ore node's broken/respawning state, the NPC's hired/job/cargo
-  state) needs some way to reattach to the *same* object when the scene loads
-  fresh next time — likely a small `SaveId`-style component/GUID tag on each
-  persistent object, mirroring how small single-purpose interfaces
-  (`IWaterSource`, `IRenameable`) are already this project's convention for
-  "mark an object as having this capability."
-- **Proposed shape** (not committed, discuss before building): a central
-  `SaveManager` writing/reading one JSON file
-  (`Application.persistentDataPath`), plus a small interface (e.g.
-  `ISaveable` — `CaptureState()`/`RestoreState()`) that relevant components
-  implement, same convention as everything else in this codebase.
-- **Deliberately narrow v1 scope** — same "ship the real useful slice,
-  document the gaps" discipline as every other system this session. Covers:
-  Player (inventory, vitals, skills, currency, equipment, position),
-  Storage Boxes, ore/resource nodes, and the Hireable NPC (hired state, job,
-  tools, cargo, stats, position). **Explicitly deferred, not a v1 gap to
-  silently fix:** loose dropped/spawned world pickups, built structures
-  (`BuildPiece` placements), Lockbox/Bank contents — revisit once v1's
-  actually proven.
+Real implementation plan filled out and built same day (2026-08-13) — full
+design in `SAVE_LOAD_PLANNING.md`, build detail in `CHANGELOG.md`'s
+v0.3.51-dev entry. Live-tested by Ben with a real Editor-restart round
+trip: worn equipment and nested equipment contents (items inside a worn
+Backpack) both survived exactly. Same narrow v1 scope this entry
+originally proposed — Player, Storage Boxes, ore/resource nodes, Hireable
+NPCs — with loose world pickups/built structures/Lockbox/Bank contents
+still explicitly deferred, not silently dropped.
 
 ### 3. Digging + water scarcity, built into the new space from day one
 

@@ -17,7 +17,7 @@ specced yet.
 3. **Finish basic starting gear** for a new player.
 4. **Player and NPC animation.**
 5. **Sky and weather.**
-6. **Save/load persistence.**
+6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
 7. **Skill books.**
 8. **Expand hunting** — diverse animals, and the ability to use a weapon against them.
 9. **Cooking** — supplements healing (better foods give health/healing); teas and drinks.
@@ -124,12 +124,24 @@ become one coherent survival mini-system instead of three unrelated
 features.
 
 ### 6 — Save/load persistence
-Also has an existing narrow-scope v1 draft in `BUGS_AND_ENHANCEMENTS.md`,
-never built. Several other systems already work around its absence today —
-e.g. hireable NPCs' "5-minute stand-in for 5 real days" job-shift length
-exists only because there's no persistence layer to make the real duration
-meaningful. Building this earlier could let items 1 and 2's pacing be
-designed properly instead of around a limitation.
+**Built (v0.3.51-dev, 2026-08-13).** Full implementation plan in
+`SAVE_LOAD_PLANNING.md`, build detail in `CHANGELOG.md`'s v0.3.51-dev
+entry. Manual Save button (` menu, Player tab), loads automatically on
+game start if a save file exists. Live-tested by Ben with a real
+Editor-restart round trip (not just re-entering Play mode): worn
+equipment (Backpack, Belt with a clipped Canteen) and nested equipment
+contents (11 Sticks inside the worn Backpack) both survived exactly.
+Remaining untested per `TEST_FEATURE_PLAN.md` section 30: full vitals
+round-trip, Canteen liquid specifically, StorageBox, ResourceNode respawn
+timing, Hireable NPC state — architecturally covered, just not yet
+walked through live.
+
+Several other systems already worked around its absence — e.g. hireable
+NPCs' "5-minute stand-in for 5 real days" job-shift length exists only
+because there was no persistence layer to make the real duration
+meaningful. Revisiting that stand-in with a real multi-day timer is a
+natural follow-up now that persistence exists, but is its own separate
+piece of work, not bundled into this build.
 
 ### 7 — Skill books
 Directly the unlock vehicle for Intelligence's proposed training trigger

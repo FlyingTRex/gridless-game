@@ -3008,24 +3008,28 @@ plus all 9 newly bone-attached types.
 
 ## 30. Save/load persistence, v1 (v0.3.51-dev)
 
-New — not yet walked through in Play mode at all (verified so far only
-via batch-mode compile + direct YAML grep of the saved scene/database
-assets). Needs a real save → close the Editor (not just re-enter Play
-mode — has to survive an actual process restart to prove anything) →
-reopen → load pass.
+Live-tested 2026-08-13 (Ben, real Editor-restart round trip, not just
+re-entering Play mode). First pass confirmed:
 
-- [ ] **Basic round-trip**: change a few vitals (take damage, eat/drink),
-  pick up some inventory items, save (` menu, Player tab, Save button),
-  fully close and reopen the Editor, enter Play mode — confirm everything
-  comes back exactly (health/hunger/thirst/stamina, inventory contents,
-  position).
-- [ ] **Worn equipment, plain**: equip a Backpack (nothing inside it yet),
-  save/reload — confirm it's still worn and visually bone-attached
-  correctly (not sitting invisible/unattached).
-- [ ] **The hard case — nested equipment state**: put items inside a worn
-  Backpack, clip a filled Canteen onto a worn Belt, save/reload — confirm
-  the Backpack's contents survive, the Canteen is still clipped to the
-  Belt (not lost or duplicated), and its liquid type/amount are intact.
+- [x] **Worn equipment, plain**: Backpack equipped, saved, exited and
+  relaunched — still worn and correctly bone-attached (visible on the
+  back, not floating/detached).
+- [x] **Nested equipment state, the hard case — partial**: a worn Settler's
+  Belt with a Canteen clipped to it also survived the same round trip
+  unprompted (it was already equipped from starting gear). Then
+  specifically tested: 11 Sticks placed in the worn Backpack's contents
+  grid, saved, exited, relaunched — stack (and exact quantity) intact in
+  the same slot. **Still not directly confirmed**: the Canteen's liquid
+  type/amount specifically (it just happened to still be clipped to the
+  Belt; wasn't checked whether it was filled or what happened to the fill
+  state).
+- [ ] **Basic round-trip, full**: change a few vitals (take damage,
+  eat/drink), confirm health/hunger/thirst/stamina/position all come back
+  exactly, not just inventory contents (inventory contents alone already
+  confirmed above).
+- [ ] **Canteen liquid specifically**: fill a Canteen with Water, clip it
+  to a worn Belt (or hold it), save/reload — confirm it's still full of
+  Water, not reset to empty.
 - [ ] **StorageBox**: store some items in a box, rename it, save/reload —
   confirm the name and contents both persist.
 - [ ] **ResourceNode mid-respawn**: break an ore node so it's mid-respawn-
