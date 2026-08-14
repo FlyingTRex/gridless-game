@@ -183,6 +183,25 @@ profile with `Speed`/`NightSpeed` both frozen at `0` — found live when
 asked "how long until night" and the honest answer required reading the
 binary asset directly, not guessing.
 
+**Dexterity & Constitution are built — see
+`DEXTERITY_CONSTITUTION_PLANNING.md`.** Follow-up to Strength/Intelligence,
+designed and built same session (2026-08-14, v0.3.55-dev). Constitution grows Max
+Health/Max Stamina via an additive front-loaded curve (`100 + k ×
+(Constitution-2)^1.5` — a pure power law couldn't hit both a sane low
+anchor and a front-loaded shape at once, worked out live in the doc),
+trained by exercise (sprinting, plus a secret bonus on soccer kicks) rather
+than the originally-sketched adversity triggers. Dexterity drives movement
+speed as one more multiplier in `FirstPersonController`'s existing
+`speed = baseSpeed * staminaMultiplier * encumbranceMultiplier` chain,
+trained by sprinting/sneaking/jumping plus completing any `CraftingRecipe`
+— the manual-vs-machine distinction Ben wanted (hand-crafting trains it,
+Furnace/Campfire automation doesn't) turned out to need no new field at
+all, since `CraftingRecipe` vs. `SmeltableItem`/`CookableItem` already is
+that exact boundary in the data model. Also folds in a small refinement to
+the already-shipped Intelligence system: a small (+5% at cap) global XP
+multiplier on every *other* skill's gains, superseding the original
+`BUGS_AND_ENHANCEMENTS.md` sketch's much bigger (+50%) version.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:

@@ -41818,6 +41818,8 @@ GameObject:
   - component: {fileID: 1681626288}
   - component: {fileID: 1681626290}
   - component: {fileID: 1681626291}
+  - component: {fileID: 1681626293}
+  - component: {fileID: 1681626292}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -41946,6 +41948,7 @@ MonoBehaviour:
     level: 20
   - skill: {fileID: 11400000, guid: 0a07867101084164ca570ddefe76cda0, type: 2}
     level: 20
+  intelligenceSkill: {fileID: 11400000, guid: 0a07867101084164ca570ddefe76cda0, type: 2}
 --- !u!114 &1681626235
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -41965,6 +41968,8 @@ MonoBehaviour:
   bodyTemperature: 50
   will: 100
   maxWill: 100
+  maxHealth: 100
+  maxStamina: 100
   hungerDrainPerSecond: 0.083333336
   thirstDrainPerSecond: 0.1388889
   starvationDamagePerSecond: 2
@@ -42908,6 +42913,32 @@ MonoBehaviour:
   snowColdTarget: 10
   hailColdTarget: 10
   maxCoolingRatePerSecond: 3
+--- !u!114 &1681626292
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7ebd378b03d045841b9a24978378d239, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerConstitution
+  constitutionSkill: {fileID: 11400000, guid: 7ba00d07aae8bc34ca076c0a09a0bef2, type: 2}
+--- !u!114 &1681626293
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5f5ff84705d0a0845bb50308c2523c6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerDexterity
+  dexteritySkill: {fileID: 11400000, guid: 7bc8b6051aa4fe7468a79381cfff10da, type: 2}
 --- !u!1001 &1689588954
 PrefabInstance:
   m_ObjectHideFlags: 0

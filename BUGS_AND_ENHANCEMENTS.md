@@ -626,36 +626,6 @@ signs off on scope and order.
   Combat work. Bare-handed's own numbers (9 dmg, 0.7s cooldown) were
   picked to fit a first-pass placeholder Wolf, not vetted against a real
   weapon-tier progression.
-- [ ] **Dexterity / Constitution / Intelligence — display-only, no growth
-  hooks or mechanical effects yet (2026-08-10).** Strength shipped fully
-  (see `CHANGELOG.md` v0.1.189-dev); the other three core stats exist as
-  real `SkillDefinition`s (`SkillCategory.Attribute`) with a Player-tab
-  tile and a "Growth" bar each, but nothing ever calls `GainExperience`
-  on them and they have no mechanical effect on anything. Ben's explicit
-  scope call: build these later, following Strength's exact established
-  pattern for consistency. Planned shape for each, from the original
-  ideation conversation (not yet built, not yet confirmed final):
-  - **Dexterity** — grows from sprinting, jumping, sneaking, ranged
-    combat. Drives movement efficiency under load — though note
-    Encumbrance's own movement-efficiency question was explicitly
-    closed as *not wanted* (Ben, 2026-08-10: "I think that the relative
-    amounts apply nicely. no change to that") — worth confirming
-    Dexterity's hook still makes sense before building it, rather than
-    assuming the original ideation note still holds.
-  - **Constitution** — grows from surviving damage, repeatedly hitting 0
-    Stamina, environmental exposure. Drives max Health/Stamina growth
-    over time (both vitals are currently a fixed 100 cap in
-    `PlayerVitals` — would need the same "grows through use" treatment
-    `Will`/`GrowMaxWill` already has).
-  - **Intelligence** — grows from completing wishes (magic discovery).
-    Drives `PlayerVitals.GrowMaxWill` growth, *and* a proposed global
-    multiplier on XP gained by every other skill (smart characters learn
-    faster) — rough shape floated: `xpGained *= 1 + (intLevel / 200)`,
-    capping at +50% at Intelligence 100. Not vetted against real numbers
-    the way Strength's capacity/gain-rate curves were (comparison
-    artifacts, calibrated pacing) — treat as a starting point, not a
-    locked formula.
-  *(Reported by Ben.)*
 - [ ] **Fame / Faction — placeholder tiles only, no backing system
   (2026-08-10).** Added to the Player tab alongside the 4 core stats
   purely so the full tab layout could be seen and judged together; both

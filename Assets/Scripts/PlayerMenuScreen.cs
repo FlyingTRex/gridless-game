@@ -17,6 +17,9 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerGuilds))]
 [RequireComponent(typeof(PlayerEncumbrance))]
+[RequireComponent(typeof(PlayerDexterity))]
+[RequireComponent(typeof(PlayerConstitution))]
+[RequireComponent(typeof(PlayerVitals))]
 public class PlayerMenuScreen : MonoBehaviour
 {
     private enum Tab { Player, Inventory, Skills, Crafting, Magic, Build, Writing }
@@ -77,6 +80,9 @@ public class PlayerMenuScreen : MonoBehaviour
     private PlayerSkills skills;
     private PlayerGuilds guilds;
     private PlayerEncumbrance encumbrance;
+    private PlayerDexterity dexterity;
+    private PlayerConstitution constitution;
+    private PlayerVitals vitals;
     private PlayerInventory playerInventory;
 
     private bool isOpen;
@@ -96,6 +102,9 @@ public class PlayerMenuScreen : MonoBehaviour
         skills = GetComponent<PlayerSkills>();
         guilds = GetComponent<PlayerGuilds>();
         encumbrance = GetComponent<PlayerEncumbrance>();
+        dexterity = GetComponent<PlayerDexterity>();
+        constitution = GetComponent<PlayerConstitution>();
+        vitals = GetComponent<PlayerVitals>();
         playerInventory = GetComponent<PlayerInventory>();
     }
 
@@ -201,8 +210,8 @@ public class PlayerMenuScreen : MonoBehaviour
         DrawTileRows(new Action[]
         {
             DrawStrengthTile,
-            () => DrawStatTile("Dexterity", dexteritySkill),
-            () => DrawStatTile("Constitution", constitutionSkill),
+            DrawDexterityTile,
+            DrawConstitutionTile,
             DrawIntelligenceTile,
             // Fame/Faction — reputation-style stats, conceptually
             // different from the skill-via-use core stats above (would be
@@ -251,12 +260,6 @@ public class PlayerMenuScreen : MonoBehaviour
         }
     }
 
-    private void DrawStatTile(string label, SkillDefinition skill)
-    {
-        float value = skills != null ? skills.GetAttributeValue(skill) : 0.25f;
-        DrawTile(label, value.ToString("F2"), TileWidth, null, GrowthProgress(skill));
-    }
-
     // The one stat tile with a derived sub-line — Encumbrance, per Ben's
     // original spec for this tab ("Strength: 3. under that stat...
     // Encumbrance: 120/300 lbs"). Formula finalized 2026-08-10 (small
@@ -283,6 +286,30 @@ public class PlayerMenuScreen : MonoBehaviour
             ? $"Reading & Writing — Paper: {playerInventory.Inventory.GetCount(paperItem)}, Ink: {playerInventory.Inventory.GetCount(inkItem)}"
             : null;
         DrawTile("Intelligence", value.ToString("F2"), TileWidth, sub, GrowthProgress(intelligenceSkill));
+    }
+
+    // Dexterity's own derived sub-line (2026-08-14,
+    // DEXTERITY_CONSTITUTION_PLANNING.md) — the live speed bonus its
+    // PlayerDexterity.SpeedMultiplier grants, same "show the concrete
+    // mechanic under the raw number" spirit as Strength/Intelligence above.
+    private void DrawDexterityTile()
+    {
+        float value = skills != null ? skills.GetAttributeValue(dexteritySkill) : 0.25f;
+        string sub = dexterity != null
+            ? $"Speed: +{(dexterity.SpeedMultiplier - 1f) * 100f:F0}%"
+            : null;
+        DrawTile("Dexterity", value.ToString("F2"), TileWidth, sub, GrowthProgress(dexteritySkill));
+    }
+
+    // Constitution's own derived sub-line (2026-08-14,
+    // DEXTERITY_CONSTITUTION_PLANNING.md) — its two growable vital caps.
+    private void DrawConstitutionTile()
+    {
+        float value = skills != null ? skills.GetAttributeValue(constitutionSkill) : 0.25f;
+        string sub = vitals != null
+            ? $"Max Health: {vitals.MaxHealth:F0}  Max Stamina: {vitals.MaxStamina:F0}"
+            : null;
+        DrawTile("Constitution", value.ToString("F2"), TileWidth, sub, GrowthProgress(constitutionSkill));
     }
 
     private void DrawPlaceholderTile(string label, string value) => DrawTile(label, value, TileWidth);

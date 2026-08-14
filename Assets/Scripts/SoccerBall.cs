@@ -81,5 +81,11 @@ public class SoccerBall : MonoBehaviour
 
         rb.linearVelocity = launchDir * speed;
         nextKickTime = Time.time + kickCooldown;
+
+        // Constitution's secret exercise-based bonus
+        // (DEXTERITY_CONSTITUTION_PLANNING.md, 2026-08-14) — scaled by kick
+        // distance so a hard sprint-kick grants more than a light tap. Not
+        // shown anywhere in UI/tooltips.
+        other.GetComponent<PlayerConstitution>()?.GrantSoccerKickGain(distance);
     }
 }

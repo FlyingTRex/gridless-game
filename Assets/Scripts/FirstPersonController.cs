@@ -12,6 +12,7 @@ public enum MovementStance
 [RequireComponent(typeof(CharacterController))]
 [RequireComponent(typeof(PlayerVitals))]
 [RequireComponent(typeof(PlayerEncumbrance))]
+[RequireComponent(typeof(PlayerDexterity))]
 public class FirstPersonController : MonoBehaviour
 {
     // Stamina tiers below SprintStaminaThreshold (see PlayerVitals) that
@@ -52,6 +53,7 @@ public class FirstPersonController : MonoBehaviour
     private CharacterController controller;
     private PlayerVitals vitals;
     private PlayerEncumbrance encumbrance;
+    private PlayerDexterity dexterity;
     private PlayerRenaming renaming;
     private PlayerMenuScreen playerMenuScreen;
     private BankScreen bankScreen;
@@ -90,6 +92,7 @@ public class FirstPersonController : MonoBehaviour
         controller = GetComponent<CharacterController>();
         vitals = GetComponent<PlayerVitals>();
         encumbrance = GetComponent<PlayerEncumbrance>();
+        dexterity = GetComponent<PlayerDexterity>();
         renaming = GetComponent<PlayerRenaming>();
         playerMenuScreen = GetComponent<PlayerMenuScreen>();
         bankScreen = GetComponent<BankScreen>();
@@ -223,6 +226,10 @@ public class FirstPersonController : MonoBehaviour
         // it flat or drains it instead.
         vitals.CanRegenStamina = !isMoving || stance != MovementStance.Standing;
 
+        // Dexterity's "sneaking" input (DEXTERITY_CONSTITUTION_PLANNING.md)
+        // — moving in any of the three non-Standing stances.
+        dexterity.IsSneaking = isMoving && stance != MovementStance.Standing;
+
         float baseSpeed = stance switch
         {
             MovementStance.Kneeling => moveSpeed * kneelSpeedMultiplier,
@@ -250,7 +257,7 @@ public class FirstPersonController : MonoBehaviour
         if (isMoving && loadRatio > PlayerEncumbrance.OverloadThreshold)
             vitals.ConsumeStamina(OverloadedExtraStaminaDrainPerSecond * Time.deltaTime);
 
-        float speed = baseSpeed * staminaMultiplier * encumbranceMultiplier;
+        float speed = baseSpeed * dexterity.SpeedMultiplier * staminaMultiplier * encumbranceMultiplier;
         Vector3 move = (transform.right * input.x + transform.forward * input.y) * speed;
 
         if (controller.isGrounded)
@@ -260,6 +267,7 @@ public class FirstPersonController : MonoBehaviour
             {
                 velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
                 vitals.ConsumeStamina(jumpStaminaCost);
+                dexterity.GrantJumpGain();
             }
         }
         else
@@ -287,7 +295,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.54-dev";
+    private const string GameVersion = "0.3.55-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

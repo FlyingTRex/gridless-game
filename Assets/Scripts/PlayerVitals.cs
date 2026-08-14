@@ -31,6 +31,16 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float will = 100f;
     [SerializeField] private float maxWill = 100f;
 
+    // Health/Stamina ceilings, added 2026-08-14 for Constitution
+    // (DEXTERITY_CONSTITUTION_PLANNING.md) — unlike maxWill's discrete
+    // per-event GrowMaxWill increments, these are pushed every frame by
+    // PlayerConstitution as a pure function of the current Constitution
+    // value (same "continuously recomputed" shape as PlayerEncumbrance
+    // .Capacity), via SetMaxHealth/SetMaxStamina below rather than a
+    // Grow-style additive call.
+    [SerializeField] private float maxHealth = 100f;
+    [SerializeField] private float maxStamina = 100f;
+
     [SerializeField] private float hungerDrainPerSecond = 100f / (20f * 60f);
     [SerializeField] private float thirstDrainPerSecond = 100f / (12f * 60f);
     [SerializeField] private float starvationDamagePerSecond = 2f;
@@ -70,6 +80,8 @@ public class PlayerVitals : MonoBehaviour
     public float BodyTemperature => bodyTemperature;
     public float Will => will;
     public float MaxWill => maxWill;
+    public float MaxHealth => maxHealth;
+    public float MaxStamina => maxStamina;
     public bool IsOverdrunkSick => isOverdrunkSick;
 
     public bool IsSprinting { get; set; }
@@ -111,14 +123,14 @@ public class PlayerVitals : MonoBehaviour
         else if (hunger <= 0f || thirst <= 0f)
             health = Mathf.Max(0f, health - starvationDamagePerSecond * dt);
         else if (hunger > 50f && thirst > 50f)
-            health = Mathf.Min(100f, health + healthRegenPerSecond * dt);
+            health = Mathf.Min(maxHealth, health + healthRegenPerSecond * dt);
 
         if (IsSprinting)
             stamina = Mathf.Max(0f, stamina - staminaDrainPerSecond * dt);
         else if (IsWalking)
             stamina = Mathf.Max(0f, stamina - walkStaminaDrainPerSecond * dt);
         else if (CanRegenStamina)
-            stamina = Mathf.Min(100f, stamina + staminaRegenPerSecond * dt);
+            stamina = Mathf.Min(maxStamina, stamina + staminaRegenPerSecond * dt);
 
         bodyTemperature = Mathf.MoveTowards(bodyTemperature, bodyTemperatureNeutral,
             bodyTemperatureDriftPerSecond * dt);
@@ -127,14 +139,32 @@ public class PlayerVitals : MonoBehaviour
 
         if (healOverTimeSecondsLeft > 0f)
         {
-            health = Mathf.Min(100f, health + healOverTimeRatePerSecond * dt);
+            health = Mathf.Min(maxHealth, health + healOverTimeRatePerSecond * dt);
             healOverTimeSecondsLeft -= dt;
         }
     }
 
     public void ConsumeStamina(float amount)
     {
-        stamina = Mathf.Clamp(stamina - amount, 0f, 100f);
+        stamina = Mathf.Clamp(stamina - amount, 0f, maxStamina);
+    }
+
+    // Called every frame by PlayerConstitution — Max Health/Max Stamina are
+    // a pure function of the current Constitution value, recomputed
+    // continuously rather than accumulated, so this replaces the value
+    // outright rather than adding to it. Clamps current health/stamina down
+    // too, defensively — never actually triggers in practice since
+    // Constitution has no decay mechanism, so these caps only ever rise.
+    public void SetMaxHealth(float value)
+    {
+        maxHealth = value;
+        health = Mathf.Min(health, maxHealth);
+    }
+
+    public void SetMaxStamina(float value)
+    {
+        maxStamina = value;
+        stamina = Mathf.Min(stamina, maxStamina);
     }
 
     // False (no state change) if the player doesn't have enough Will —
@@ -198,7 +228,7 @@ public class PlayerVitals : MonoBehaviour
     // semantics, since a save file's stored value is already the correct
     // final number, not a delta to add.
     public void RestoreVitals(float health, float hunger, float thirst, float stamina,
-        float bodyTemperature, float will, float maxWill)
+        float bodyTemperature, float will, float maxWill, float maxHealth, float maxStamina)
     {
         this.health = health;
         this.hunger = hunger;
@@ -207,20 +237,22 @@ public class PlayerVitals : MonoBehaviour
         this.bodyTemperature = bodyTemperature;
         this.will = will;
         this.maxWill = maxWill;
+        this.maxHealth = maxHealth;
+        this.maxStamina = maxStamina;
     }
 
     public void Restore(VitalType vital, float amount)
     {
         switch (vital)
         {
-            case VitalType.Health: health = Mathf.Min(100f, health + amount); break;
+            case VitalType.Health: health = Mathf.Min(maxHealth, health + amount); break;
             case VitalType.Hunger: hunger = Mathf.Min(100f, hunger + amount); break;
             // 125 is the safe ceiling; the extra headroom to 150 is what
             // lets a drink past 125 register as overdrinking at all —
             // without it, thirst could never actually cross
             // overdrinkSicknessThreshold through drinking.
             case VitalType.Thirst: thirst = Mathf.Min(150f, thirst + amount); break;
-            case VitalType.Stamina: stamina = Mathf.Min(100f, stamina + amount); break;
+            case VitalType.Stamina: stamina = Mathf.Min(maxStamina, stamina + amount); break;
         }
     }
 }

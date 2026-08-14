@@ -29,6 +29,7 @@ public class PlayerCrafting : MonoBehaviour
     private PlayerBackpack backpackCarrier;
     private PlayerEquipment equipment;
     private PlayerVitals vitals;
+    private PlayerDexterity dexterity;
     private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
     // Recipes a skill book has specifically granted, bypassing the normal
@@ -70,6 +71,7 @@ public class PlayerCrafting : MonoBehaviour
         backpackCarrier = GetComponent<PlayerBackpack>();
         equipment = GetComponent<PlayerEquipment>();
         vitals = GetComponent<PlayerVitals>();
+        dexterity = GetComponent<PlayerDexterity>();
     }
 
     // Every Inventory a recipe is allowed to draw materials from: the main
@@ -341,6 +343,12 @@ public class PlayerCrafting : MonoBehaviour
         var recipe = activeRecipe;
         ResolveOutcome(recipe);
         skills?.GainExperience(recipe.trainedSkill, recipe.skillGain);
+        // Dexterity's manual-crafting input (DEXTERITY_CONSTITUTION_PLANNING.md)
+        // — fires on any completed CraftingRecipe, any outcome. Furnace/
+        // Campfire automation (SmeltableItem/CookableItem) never reaches
+        // this method at all, which is exactly the manual-vs-machine line
+        // Ben wanted.
+        dexterity?.GrantCraftGain();
         activeCompleted++;
 
         if (activeCompleted >= activeTotal)

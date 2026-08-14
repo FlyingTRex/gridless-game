@@ -3145,3 +3145,53 @@ design/build detail in `WEATHER_MAKER_PLANNING.md`.
 - [ ] **Full session soak test**: leave the game running through several
   full day/night cycles, confirm no drift, memory growth, or visual
   degradation over time.
+
+## 33. Dexterity & Constitution, v1
+
+New — not yet walked through in Play mode at all (verified so far only via
+batch-mode compile + direct YAML grep of the new scene wiring). Full
+design in `DEXTERITY_CONSTITUTION_PLANNING.md`.
+
+- [ ] **Constitution tile shows Health/Stamina caps**: open the Player tab
+  (Tab menu), confirm the Constitution tile's sub-line reads "Max Health:
+  100  Max Stamina: 100" at the starting Constitution value (2.00), not a
+  blank/placeholder line.
+- [ ] **Dexterity tile shows a live speed bonus**: confirm the Dexterity
+  tile's sub-line reads "Speed: +X%" and the percentage visibly changes as
+  Dexterity trains up.
+- [ ] **Sprinting trains both Constitution and Dexterity**: sprint for a
+  sustained stretch, confirm both stats' raw levels (Skills tab) tick up
+  over time — same action, two payoffs.
+- [ ] **Sneaking trains Dexterity only**: hold Kneeling/Crawling/Prone and
+  move around for a sustained stretch, confirm Dexterity increases but
+  Constitution does not.
+- [ ] **Jump grants Dexterity**: jump repeatedly (note Stamina drains
+  too — the existing per-jump cost, unchanged), confirm Dexterity ticks up
+  a small amount each time.
+- [ ] **Crafting grants Dexterity**: complete a few crafts of any recipe in
+  the Crafting tab, confirm Dexterity ticks up a small flat amount per
+  completed item, regardless of what was crafted or the outcome.
+- [ ] **Furnace/Campfire automation does NOT grant Dexterity**: queue a
+  Furnace smelt or let Campfire cooking auto-cook to completion, confirm
+  Dexterity does *not* increase from either — only direct Crafting-tab
+  crafts should count.
+- [ ] **Soccer's secret Constitution bonus**: kick the soccer ball
+  (normal and sprint-kicks), confirm Constitution ticks up afterward —
+  nothing in the UI should call this out explicitly, it's meant to be
+  found, not announced.
+- [ ] **Max Health/Max Stamina actually raise the real caps**: after
+  training Constitution up noticeably, confirm the vitals bars (top-left
+  HUD) actually show a higher ceiling — not just the Player-tab number
+  changing.
+- [ ] **Movement speed actually changes with Dexterity**: after training
+  Dexterity up noticeably, confirm the player visibly moves faster at the
+  same input/stance/load than at the start (compare against the
+  `FirstPersonController` debug panel's `Speed:` readout).
+- [ ] **Intelligence's small global multiplier**: with a trained-up
+  Intelligence, compare XP gain in another skill (e.g. crafting) against
+  what it was at low Intelligence — the difference should be small
+  (~5% max at Intelligence 100), not dramatic. Confirm Intelligence's own
+  XP gain is unaffected by its own multiplier.
+- [ ] **Save/load round-trip**: train Health/Stamina caps up via
+  Constitution, save, reload — confirm the raised caps persist (not reset
+  to a flat 100).

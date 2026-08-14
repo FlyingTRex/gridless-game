@@ -112,6 +112,8 @@ public class SaveManager : MonoBehaviour
             ["bodyTemperature"] = vitals.BodyTemperature,
             ["will"] = vitals.Will,
             ["maxWill"] = vitals.MaxWill,
+            ["maxHealth"] = vitals.MaxHealth,
+            ["maxStamina"] = vitals.MaxStamina,
             ["isMale"] = bodyModel == null || bodyModel.IsMale,
             ["position"] = CaptureVector3(transform.position),
             ["yaw"] = transform.eulerAngles.y,
@@ -131,7 +133,9 @@ public class SaveManager : MonoBehaviour
             (float)(data["stamina"] ?? 100f),
             (float)(data["bodyTemperature"] ?? 50f),
             (float)(data["will"] ?? 100f),
-            (float)(data["maxWill"] ?? 100f));
+            (float)(data["maxWill"] ?? 100f),
+            (float)(data["maxHealth"] ?? 100f),
+            (float)(data["maxStamina"] ?? 100f));
 
         if (bodyModel != null && data["isMale"] != null)
             bodyModel.SetGender((bool)data["isMale"]);

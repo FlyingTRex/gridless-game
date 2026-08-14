@@ -5,10 +5,65 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.54-dev` — must always match `GameVersion` in
+**Current version:** `0.3.55-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (2)
+
+### v0.3.55-dev — Dexterity & Constitution shipped, Intelligence gets a small global XP multiplier
+
+Full design in `DEXTERITY_CONSTITUTION_PLANNING.md` — designed and built
+same day. Constitution and Dexterity join Strength/Intelligence as fully
+mechanical core stats; both previously sat display-only with a growth bar
+that never moved.
+
+**Constitution** grows Max Health (`100 + 4.42×(Con-2)^1.5`, cap 200) and
+Max Stamina (`100 + 8.84×(Con-2)^1.5`, cap 300) — both were hardcoded flat
+100 everywhere in `PlayerVitals.cs` until now. A pure power law couldn't
+hit both a sane low anchor (no regression for a fresh character) and a
+front-loaded curve at once — worked out live in the planning doc, resolved
+with an additive bonus on top of a fixed 100 baseline instead. Trained by
+exercise, not adversity: continuous while sprinting (~4 real days per
++0.25), plus a secret bonus scaled by kick distance on `SoccerBall`
+contact (not shown anywhere in UI — a deliberate easter egg).
+
+**Dexterity** adds one more multiplicative term to `FirstPersonController`'s
+existing speed chain (`speed = baseSpeed × dexterityMultiplier ×
+staminaMultiplier × encumbranceMultiplier`), linear from 0% at the display
+floor to +30% at the cap. Trained by sprinting (shared with Constitution —
+same action, two payoffs), sneaking (Kneeling/Crawling/Prone + moving),
+jumping (flat 0.1 per jump), and completing any `CraftingRecipe` (flat 0.1,
+any outcome). The manual-vs-machine distinction Ben wanted (hand-crafting
+trains it, Furnace/Campfire automation doesn't) needed no new field —
+`CraftingRecipe` is already the "player actively did it" type in this
+codebase, while Furnace/Campfire automation already lives in the separate
+`SmeltableItem`/`CookableItem` types.
+
+**Intelligence** (already shipped) gets a refinement: a small global XP
+multiplier on every *other* skill's gains, `xpGained *= 1 + intLevel/2000`
+(+5% at Intelligence 100), applied inside `PlayerSkills.GainExperience`
+via an internal check so none of its many existing call sites needed to
+change. Supersedes a much bigger (+50%-at-cap) version that lived in
+`BUGS_AND_ENHANCEMENTS.md`, explicitly too big for "very small" (Ben,
+2026-08-14).
+
+New `PlayerConstitution.cs`/`PlayerDexterity.cs` components on Player,
+wired to the `Constitution.asset`/`Dexterity.asset` `SkillDefinition`s;
+`PlayerSkills` gained an `intelligenceSkill` reference wired to
+`Intelligence.asset`. `PlayerMenuScreen` gained
+`DrawDexterityTile`/`DrawConstitutionTile` (replacing the generic
+`DrawStatTile`, now dead and removed), matching `DrawStrengthTile`/
+`DrawIntelligenceTile`'s sub-line pattern — Dexterity shows its live speed
+bonus, Constitution its two vital caps. `PlayerVitals` gained growable
+`maxHealth`/`maxStamina` fields (`SetMaxHealth`/`SetMaxStamina`, pushed
+every frame by `PlayerConstitution` — a continuously-recomputed pattern
+like `PlayerEncumbrance.Capacity`, not `GrowMaxWill`'s discrete-increment
+one) plumbed through every existing `Mathf.Min(100f, ...)` clamp and
+`SaveManager`'s capture/restore. Verified via batch-mode compile (0 CS
+errors) + direct YAML grep of the new scene wiring. **Not yet tested in
+Play mode.**
 
 ## 2026-08-14 (1)
 

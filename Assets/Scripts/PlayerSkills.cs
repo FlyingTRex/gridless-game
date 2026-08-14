@@ -70,6 +70,19 @@ public class PlayerSkills : MonoBehaviour
     // skills need no entry here; they're meant to start at true zero.
     [SerializeField] private StartingLevel[] startingLevels;
 
+    // Small global XP multiplier, added 2026-08-14
+    // (DEXTERITY_CONSTITUTION_PLANNING.md) — smarter characters learn
+    // everything else a little faster. Deliberately small (+5% at
+    // Intelligence 100, i.e. intLevel/2000) — an earlier, much bigger
+    // version of this idea (intLevel/200, +50% at cap) lived in
+    // BUGS_AND_ENHANCEMENTS.md and was explicitly too big for "very
+    // small" (Ben, 2026-08-14). Never applies to Intelligence's own
+    // gains — checked inline in GainExperience below, not via a call-site
+    // parameter, so none of this method's many existing callers need to
+    // change.
+    [SerializeField] private SkillDefinition intelligenceSkill;
+    private const float IntelligenceXpBonusDivisor = 2000f;
+
     private readonly Dictionary<SkillDefinition, float> levels = new Dictionary<SkillDefinition, float>();
 
     private string message;
@@ -119,6 +132,9 @@ public class PlayerSkills : MonoBehaviour
     public void GainExperience(SkillDefinition skill, float amount)
     {
         if (skill == null || amount <= 0f) return;
+
+        if (intelligenceSkill != null && skill != intelligenceSkill)
+            amount *= 1f + GetLevel(intelligenceSkill) / IntelligenceXpBonusDivisor;
 
         float current = GetLevel(skill);
         float diminish = 1f - current / MaxLevel;
