@@ -12,6 +12,37 @@ entry is still active, ask before trusting it.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-14 — Ben — Weather Maker integration, MVP2 item 5 (design +
+  full build + live testing, same session). Full design/build detail in
+  `WEATHER_MAKER_PLANNING.md`. Digital Ruby's Weather Maker (v8.1.0)
+  replaced the old procedural sky (`Sky.mat`/`SkyTexture.png`, deleted —
+  resolves the `Mathf.SmoothStep` gotcha in `CLAUDE.md` by replacement,
+  not by fixing the math in place) with real sky/clouds/day-night/
+  precipitation. Two genuinely project-wide changes — URP Render Pipeline
+  Asset replaced with `WeatherMakerURPProfile`, color space switched
+  Gamma → Linear — each explicitly confirmed with Ben before running, not
+  assumed safe just because they were technically scriptable. New
+  `PlayerWeatherEffects.cs` bridges live precipitation intensity into
+  `PlayerVitals.bodyTemperature` via the existing `WarmNear` (delivers
+  the real Constitution/warm-food tie-in, not just visuals).
+  **Live-tested more thoroughly than almost anything else this
+  session**: Ben watched a full day/night cycle end to end in the Editor
+  (day → dusk → a genuinely striking sunset → full night with a textured
+  moon), confirming HUD/UI stayed intact through both project-wide
+  changes. Three real bugs hit and fixed along the way: two missing
+  built-in Unity modules (`com.unity.modules.wind`/`screencapture`), a
+  Mirror API version mismatch in Weather Maker's own optional (and
+  out-of-scope) network-sync script, and a shipped day/night profile
+  with `Speed`/`NightSpeed` both frozen at `0` — found live when Ben
+  asked how long until night and the honest answer, read directly from
+  the binary asset via a throwaway script, was "never, at this setting."
+  Fixed by duplicating the profile and tuning to a ~3 real-minute day for
+  fast testing (Ben's explicit call — will want slowing down before real
+  play, see `TEST_FEATURE_PLAN.md` section 32). **Not yet committed.**
+  Still open: actual precipitation hasn't been seen live yet (needs a
+  temporary rain/snow weather-zone profile to test), so the gameplay
+  bridge's actual cooling effect is unverified so far, and the current
+  fast day/night pace is a testing stand-in, not the real pacing.
 - 2026-08-13 — Ben — Skill books, MVP2 item 7 (design + build starting
   same day). Full design in `SKILL_BOOKS_PLANNING.md` — reading grants a
   bounded head start (a specific `CraftingRecipe`/`WishRecipe` exception,

@@ -24,20 +24,20 @@ RenderSettings:
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 1
-  m_AmbientMode: 0
+  m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 2100000, guid: 3bef6ce4dc0b52941a8941fcd70351c5, type: 2}
+  m_SkyboxMaterial: {fileID: 2100000, guid: e4dc109382c6b184b93d16deadf82698, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
   m_HaloTexture: {fileID: 0}
   m_SpotCookie: {fileID: 10001, guid: 0000000000000000e000000000000000, type: 0}
-  m_DefaultReflectionMode: 0
+  m_DefaultReflectionMode: 1
   m_DefaultReflectionResolution: 128
   m_ReflectionBounces: 1
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
-  m_Sun: {fileID: 0}
+  m_Sun: {fileID: 939119103}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -16941,6 +16941,9 @@ GameObject:
   - component: {fileID: 724364632}
   - component: {fileID: 724364631}
   - component: {fileID: 724364630}
+  - component: {fileID: 724364635}
+  - component: {fileID: 724364634}
+  - component: {fileID: 724364633}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -17001,8 +17004,8 @@ Camera:
   m_GameObject: {fileID: 724364629}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
-  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -17058,6 +17061,62 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1681626230}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!135 &724364633
+SphereCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 724364629}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Radius: 0.001
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!54 &724364634
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 724364629}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!81 &724364635
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 724364629}
+  m_Enabled: 1
 --- !u!1001 &725460049
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -22667,6 +22726,84 @@ PrefabInstance:
 Transform:
   m_CorrespondingSourceObject: {fileID: 6085367803992150901, guid: f51949e31ed4bcc4991eb625c38b1fa4, type: 3}
   m_PrefabInstance: {fileID: 938546313}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &939119102
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1289281111498416, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_Name
+      value: WeatherMakerPrefab
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4424888995834786, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 114189907102477492, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: _PerformanceProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: fe04d290cbe247c40b0e9f12df6d8754, type: 2}
+    - target: {fileID: 114439030903958290, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: DayNightProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: 63a0c4c06958ea747b630a8f99e5ca58, type: 2}
+    - target: {fileID: 114515445234937670, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: _CloudProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: b09304c2c20baa24c88f1e96e4f0c0ce, type: 2}
+    - target: {fileID: 114962901692534914, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+      propertyPath: SkySphereProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: 07f28861a80347a46af0d38008a4cbb8, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+--- !u!108 &939119103 stripped
+Light:
+  m_CorrespondingSourceObject: {fileID: 108505579623923364, guid: 66bd18e21212b8c4ab51a96f918b3197, type: 3}
+  m_PrefabInstance: {fileID: 939119102}
   m_PrefabAsset: {fileID: 0}
 --- !u!1001 &943781428
 PrefabInstance:
@@ -41680,6 +41817,7 @@ GameObject:
   - component: {fileID: 1681626289}
   - component: {fileID: 1681626288}
   - component: {fileID: 1681626290}
+  - component: {fileID: 1681626291}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -42753,6 +42891,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerReading
   intelligenceSkill: {fileID: 11400000, guid: 0a07867101084164ca570ddefe76cda0, type: 2}
+--- !u!114 &1681626291
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 581dacfa102357b4cac798dc3cbb208b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerWeatherEffects
+  rainColdTarget: 20
+  sleetColdTarget: 15
+  snowColdTarget: 10
+  hailColdTarget: 10
+  maxCoolingRatePerSecond: 3
 --- !u!1001 &1689588954
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -55516,3 +55671,4 @@ SceneRoots:
   - {fileID: 1989773158}
   - {fileID: 159746896}
   - {fileID: 200326505}
+  - {fileID: 939119102}

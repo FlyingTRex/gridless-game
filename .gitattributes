@@ -32,3 +32,8 @@
 *.hdr filter=lfs diff=lfs merge=lfs -text
 *.glb filter=lfs diff=lfs merge=lfs -text
 *.gltf filter=lfs diff=lfs merge=lfs -text
+# Weather Maker's own .asset files are binary-serialized (3D noise
+# textures, profiles) — scoped LFS rule rather than a blanket *.asset
+# rule, which would also turn this project's own small, human-readable
+# ItemDefinition/CraftingRecipe .asset diffs into opaque LFS pointers.
+Assets/WeatherMaker/**/*.asset filter=lfs diff=lfs merge=lfs -text

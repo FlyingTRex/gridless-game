@@ -3103,3 +3103,45 @@ writing anything.
   either is at 0.
 - [ ] **Not testable yet, by design**: NPC training (Phase 4) is blocked
   on NPC bench-crafting, which doesn't exist — skip until that ships.
+
+## 32. Weather Maker (sky, clouds, day/night, weather), v1
+
+Live-tested 2026-08-13 (Ben, a full day/night cycle watched start to
+finish in the Editor — the most thorough live confirmation of anything
+shipped this session, well beyond a clean-compile-only check). Full
+design/build detail in `WEATHER_MAKER_PLANNING.md`.
+
+- [x] **Day sky + clouds**: clear blue sky with visible sun and clouds,
+  no shader corruption, existing low-poly trees/rocks/foliage rendering
+  normally against it.
+- [x] **HUD/UI regression**: vitals bars, debug panel, and other IMGUI
+  screens all confirmed rendering normally after the URP Render Pipeline
+  Asset swap and the Gamma → Linear color space switch — both genuinely
+  project-wide changes, not scoped to just the sky.
+- [x] **Day → dusk → sunset → night transition**: watched live end to
+  end — dusk (purple gradient sky), a strikingly vivid orange/red sunset,
+  full night with a dark sky and a real textured, cloud-occluded moon.
+  Day/night cycle confirmed actually progressing (was frozen at
+  `Speed=0`/`NightSpeed=0` in the shipped profile until caught and fixed
+  — see `WEATHER_MAKER_PLANNING.md` section 8).
+- [x] **Scope stayed correct on its own**: across the full cycle, nothing
+  extra (rain, snow, lightning, water, meteor showers, aurora) appeared
+  unprompted — confirms the "sky + weather only" scope decision needed no
+  active deactivation work.
+- [ ] **Actual precipitation** (rain/snow/sleet/hail) — not yet seen live.
+  The `GlobalWeatherZone` profile controls this; needs an actual rain/snow
+  weather profile assigned (temporarily, for testing) to confirm
+  precipitation renders and sounds correctly.
+- [ ] **Gameplay bridge — `PlayerWeatherEffects`**: with precipitation
+  actually falling, confirm `PlayerVitals.bodyTemperature` visibly drops
+  while standing in it, and recovers when it stops (or via a Campfire /
+  warm food) — the real payoff behind this whole integration, not yet
+  observed since no precipitation has been seen yet.
+- [ ] **Day/night pacing for real gameplay**: currently tuned to ~3 real
+  minutes per full day for fast testing (Ben's explicit call). Revisit
+  before this is considered "done" for real play — likely wants slowing
+  down to the ~20-30 real minute range discussed but not chosen this
+  round.
+- [ ] **Full session soak test**: leave the game running through several
+  full day/night cycles, confirm no drift, memory growth, or visual
+  degradation over time.

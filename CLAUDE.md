@@ -159,6 +159,27 @@ deferred to a later MVP; a hired NPC being *taught* from a book has to be
 handed it and reads it itself. Planning only, not yet built. Rendered
 summary: https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115
 
+**Weather Maker is built and live-tested — see `WEATHER_MAKER_PLANNING.md`.**
+MVP2 item 5, built 2026-08-13. Digital Ruby's Weather Maker (v8.1.0,
+`Assets/WeatherMaker/`) replaced the old procedural sky texture (deleted —
+see the `Mathf.SmoothStep` gotcha above, now resolved by replacement, not
+by fixing the math in place). URP Render Pipeline Asset now points at
+`WeatherMakerURPProfile`; color space switched Gamma → Linear (both
+project-wide, both explicitly confirmed with Ben first). Player object
+gained an `AudioListener` + kinematic `Rigidbody` + tiny trigger
+`SphereCollider` (Weather Maker uses this to identify the local player).
+New `PlayerWeatherEffects.cs` bridges live precipitation intensity to
+`PlayerVitals.bodyTemperature` via the existing `WarmNear` (no separate
+"cool" method needed — it's already symmetric). Ben watched a full
+day/night cycle live end to end (day → sunset → night → moon) — real
+confirmation, not just a clean compile. Three real bugs hit and fixed
+along the way: two missing built-in Unity modules (`com.unity.modules
+.wind`/`screencapture`), a Mirror API version mismatch in Weather Maker's
+optional (and out-of-scope) network-sync script, and a shipped day/night
+profile with `Speed`/`NightSpeed` both frozen at `0` — found live when
+asked "how long until night" and the honest answer required reading the
+binary asset directly, not guessing.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:
@@ -382,14 +403,19 @@ private static float SmoothThreshold(float x, float edge0, float edge1)
 Call as `SmoothThreshold(rawNoiseValue, low, high)`, not
 `Mathf.SmoothStep(low, high, rawNoiseValue)`.
 
-**Known to be affected, not yet fixed:** the sky texture's cloud coverage
+**Was affected, now moot:** the sky texture's cloud coverage
 (`GenerateSkyTexture.cs`, deleted after running, shipped v0.1.55-dev through
 v0.1.57-dev) used the exact same `Mathf.SmoothStep(low, high, cloudNoise)`
 pattern for both the cloud-coverage mask and the vertical fade band. The clouds
 being persistently faint/hard-to-see across three tuning rounds that night — see
 `BUGS_AND_ENHANCEMENTS.md`'s sky-texture entry — was very likely this exact bug,
-not (only) a frequency/contrast problem as diagnosed at the time. Worth revisiting
-with the corrected math before trying anything else on that backlog item.
+not (only) a frequency/contrast problem as diagnosed at the time. **Resolved
+2026-08-13 by replacement, not by fixing the math in place**: the whole
+procedural sky system (`Assets/Data/Sky.mat`/`Assets/Textures/SkyTexture.png`)
+was deleted once Weather Maker's own sky/cloud system was live-confirmed
+working — see `WEATHER_MAKER_PLANNING.md`. The `SmoothThreshold` pattern above
+is still the right fix for any *future* procedural-texture code that hits this
+same trap; it just no longer applies to this specific instance.
 
 ## Gotcha: an imported model's pivot is not reliably at its base — check actual mesh bounds before placing it at `y = 0`
 

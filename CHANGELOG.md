@@ -5,10 +5,65 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.53-dev` — must always match `GameVersion` in
+**Current version:** `0.3.54-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (1)
+
+### v0.3.54-dev — Weather Maker integration, MVP2 item 5 (design + full build + live testing)
+
+Full design/build detail in `WEATHER_MAKER_PLANNING.md`. Digital Ruby's
+Weather Maker (v8.1.0) replaced the old procedural sky texture
+(`Assets/Data/Sky.mat`/`Assets/Textures/SkyTexture.png`, deleted — this
+resolves `CLAUDE.md`'s `Mathf.SmoothStep` cloud-coverage gotcha by
+replacing the system it was found in, not by fixing the math in place)
+with a real sky, cloud, day/night, and precipitation system.
+
+**Two genuinely project-wide changes, each explicitly confirmed with Ben
+before running** rather than assumed safe just because they were
+technically scriptable: the URP Render Pipeline Asset now points at
+`WeatherMakerURPProfile` (was `Assets/Data/URP-Asset.asset`), and color
+space switched from Gamma to Linear (URP is designed/tested for Linear,
+so this arguably fixes a pre-existing mismatch rather than introducing a
+new one).
+
+**New `PlayerWeatherEffects.cs`** bridges Weather Maker's live
+precipitation intensity (rain/sleet/snow/hail, whichever is currently
+strongest) into `PlayerVitals.bodyTemperature`, reusing the existing
+`WarmNear` method directly — its `MoveTowards`-based implementation is
+already symmetric, so a colder target cools instead of warms with no
+separate method needed. This is the actual gameplay payoff MVP2 item 5
+was chasing (the Constitution/warm-food tie-in), not just visuals.
+
+**Live-tested more thoroughly than almost anything else this session**:
+Ben watched a complete day/night cycle end to end in the Editor — clear
+day sky with clouds, a purple dusk gradient, a genuinely striking
+orange/red sunset, and full night with a real textured, cloud-occluded
+moon — confirming HUD/UI stayed intact through both project-wide render
+changes, not just a clean-compile assumption.
+
+**Three real bugs hit and fixed live, now documented for future
+sessions**: two missing built-in Unity modules
+(`com.unity.modules.wind`/`screencapture`, needed by Weather Maker's own
+wind-zone and screenshot scripts); a Mirror API version mismatch in
+Weather Maker's optional network-sync script (`NetworkConnection
+.connectionId` doesn't exist on this project's installed Mirror version
+— patched with an explicitly-commented `GetHashCode()` stand-in, since
+the whole method is unreachable in the current single-player-only scope
+anyway); and a shipped day/night profile with `Speed`/`NightSpeed` both
+frozen at `0` — found live when Ben asked how long until night and the
+honest answer, read directly from the binary-serialized asset via a
+throwaway batch script (grep can't parse it), was "never, at this
+setting." Duplicated the profile and tuned to a ~3 real-minute day for
+fast testing (Ben's explicit call) — will want slowing down before real
+play.
+
+New `TEST_FEATURE_PLAN.md` section 32. Still open: actual precipitation
+hasn't been observed live yet (needs a temporary rain/snow weather-zone
+profile), so `PlayerWeatherEffects`'s real cooling effect is unverified,
+and the current fast day/night pace is a testing stand-in, not final.
 
 ## 2026-08-13 (27)
 

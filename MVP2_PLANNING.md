@@ -16,7 +16,7 @@ specced yet.
 2. **Expand NPC hiring** beyond stonework (Mining is the only job family today). — 🟡 Woodcutting + Gathering shipped (v0.3.32-dev); Guarding and bench-crafting still open.
 3. **Finish basic starting gear** for a new player. — ✅ Done (2026-08-12).
 4. **Player and NPC animation.** — ✅ Shipped (v0.3.33-dev/v0.3.34-dev, 2026-08-13); not yet live-tested in Play mode.
-5. **Sky and weather.**
+5. **Sky and weather.** — ✅ Built and live-tested (Weather Maker, `WEATHER_MAKER_PLANNING.md`, 2026-08-13).
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
 7. **Skill books.** — 🟡 Design fully worked out (`SKILL_BOOKS_PLANNING.md`, 2026-08-13 — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)); not yet built.
 8. **Expand hunting** — diverse animals, and the ability to use a weapon against them.
@@ -127,13 +127,23 @@ Worth a real pass before calling this fully closed, same caveat save/load
 carried until today's confirmation.
 
 ### 5 — Sky and weather
-The procedural sky texture already exists but has a known unresolved bug
-(the `Mathf.SmoothStep` vs. GLSL `smoothstep` mismatch documented in
-`CLAUDE.md`, affecting cloud coverage). Weather (temperature swings, rain)
-would be new. Strong natural tie to item 1 (Constitution resisting
-cold/heat) and item 9 (warm food/tea countering cold) — these three could
-become one coherent survival mini-system instead of three unrelated
-features.
+**Built and live-tested 2026-08-13** — see `WEATHER_MAKER_PLANNING.md`.
+Weather Maker (Digital Ruby, v8.1.0) fully replaced the old procedural
+sky texture (deleted, along with the `Mathf.SmoothStep` cloud bug it
+carried) with a real sky/cloud/day-night/precipitation system. `Player
+WeatherEffects.cs` bridges live precipitation intensity into
+`PlayerVitals.bodyTemperature` via the existing `WarmNear`, delivering
+the actual item 1 (Constitution)/item 9 (warm food/tea) tie-in, not just
+visuals. Ben watched a complete day/night cycle live end to end (day →
+dusk → a genuinely striking sunset → full night with a textured moon) —
+real confirmation, not a clean-compile assumption. Two project-wide
+changes (URP Render Pipeline Asset replacement, Gamma → Linear color
+space) were each explicitly confirmed with Ben before running. Three real
+bugs hit and fixed along the way: two missing built-in Unity modules, a
+Mirror API version mismatch in an out-of-scope optional script, and a
+shipped day/night profile with `Speed`/`NightSpeed` both frozen at `0`
+(found live when asked how long until night, fixed by tuning to a ~3
+real-minute day for testing pace).
 
 ### 6 — Save/load persistence
 **Built (v0.3.51-dev, 2026-08-13).** Full implementation plan in
