@@ -119,6 +119,34 @@ nothing in this project currently has any stat-decay mechanism at all.
 Ben's explicit call: use the one-time tier-unlock credit instead, same
 mechanism as every other skill.
 
+### Guild membership
+
+Ben's framing: "let's have a flat and equal gain and loss for joining a
+guild. it would stand to logic that being part of a guild makes you
+known to more people. starting a guild would give you a bigger addition,
+and closing the guild would cause you to lose double the join."
+
+- **Join a guild**: **+1**. Hooks `PlayerGuilds.Join` (already exists and
+  works today — the only current entry point is admin-only per that
+  script's own comment, but the Fame hook attaches to the method itself,
+  so it fires the same way once a real in-world join UI ships too).
+- **Leave a guild**: **-1** — flat and equal to Join, deliberately
+  symmetric (unlike Hire/Fire's asymmetric +1/-0.5). Hooks
+  `PlayerGuilds.Leave` (also already exists).
+- **Start (found) a guild**: **+3** — bigger than joining an existing
+  one, first-pass number (no exact figure was specified beyond "bigger").
+  **Blocked**: `GuildDefinition` is a plain pre-authored `ScriptableObject`
+  asset (`[CreateAssetMenu]`, hand-built in the Editor like
+  `SkillDefinition`) — there's no player-driven guild-creation mechanic
+  at all today. A player "starting a guild" doesn't exist as a concept
+  yet, only joining/leaving a developer-authored one does.
+- **Close a guild you started**: **-6**. Landed at 2x the Start amount
+  (3), not 2x Join as the original framing suggested — Ben's final given
+  number (-6) is what's recorded here; noting the discrepancy from the
+  initial "double the join" wording rather than silently reconciling it.
+  Same blocker as Start — needs the same not-yet-existing guild-creation
+  mechanic.
+
 ### Business/commerce reach (Inn, Trader)
 
 Ben's framing: "if you run an inn... or you run a trader, it stands to

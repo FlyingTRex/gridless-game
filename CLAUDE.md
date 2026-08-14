@@ -212,7 +212,12 @@ skill-tier mastery in any discipline including the core stats (Rudimentary
 +1 through Masterwork +5, reusing `PlayerSkills`' existing tier-unlock
 detection for free — the "everyone knows the Hulk for his strength" case
 needed no new component, just confirming the hook isn't scoped to exclude
-the `Attribute` skill category). Business-reach Fame (Inn/Trader,
+the `Attribute` skill category). Guild membership adds Join +1/Leave -1
+(flat and symmetric, hooking `PlayerGuilds.Join`/`Leave`, which already
+work today) plus Start-a-guild +3/Close -6, both blocked on a
+player-driven guild-creation mechanic that doesn't exist yet
+(`GuildDefinition` is a plain pre-authored asset, not player-creatable).
+Business-reach Fame (Inn/Trader,
 scaling with customers served) is designed but blocked on an entire
 commerce/vendor system that doesn't exist anywhere in this project yet —
 the biggest prerequisite gap in the doc. Output side has two real effects

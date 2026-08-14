@@ -416,8 +416,10 @@ signs off on scope and order.
   `FAME_PLANNING.md`.** A single -1000 to 1000 Fame float, fed by NPC
   treatment (hire/fire/unpaid wages/killing), player death, skill-tier
   mastery (any discipline, including core stats — the "everyone knows the
-  Hulk for his strength" case), and business reach (Inn/Trader, once those
-  exist). Output side has two real effects designed too: negative Fame
+  Hulk for his strength" case), guild membership (join/leave already
+  work; starting/closing your own guild is blocked — no player-driven
+  guild-creation mechanic exists), and business reach (Inn/Trader, once
+  those exist). Output side has two real effects designed too: negative Fame
   makes every NPC flee within ~10m (pausing their job until you leave),
   and a 5-band Fame system (mirroring `CraftTier`'s shape) scales a
   Traveling Trader's visit frequency/pricing, with item quality improving
