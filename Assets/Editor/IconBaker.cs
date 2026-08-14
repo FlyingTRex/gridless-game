@@ -156,7 +156,20 @@ public static class IconBaker
         RenderSettings.ambientLight = Color.white;
         RenderSettings.ambientIntensity = 1f;
         RenderSettings.defaultReflectionMode = UnityEngine.Rendering.DefaultReflectionMode.Custom;
-        RenderSettings.customReflectionTexture = null;
+
+        // A fully metallic material (metallicFactor near 1, e.g. the Ingot
+        // family's imported glTF material) has almost no diffuse response
+        // to the ambient/directional lights above — physically, metals
+        // only reflect, they don't diffuse-scatter color — so with no
+        // environment reflection to sample at all (customReflectionTexture
+        // was null), every metallic item baked near-black regardless of
+        // its actual tint (found 2026-08-14 comparing five near-identical
+        // Ingot icons side by side). A flat neutral-gray cubemap gives
+        // metals a legible, hue-neutral reflection to show their base
+        // color through, without reintroducing the wrong-color-cast
+        // problem the default procedural skybox caused (the reason
+        // defaultReflectionMode was set to Custom in the first place).
+        RenderSettings.customReflectionTexture = NeutralReflectionCubemap();
 
         var instance = (GameObject)PrefabUtility.InstantiatePrefab(modelAsset, tempScene);
         instance.transform.position = Vector3.zero;
@@ -278,6 +291,24 @@ public static class IconBaker
             Debug.Log($"IconBaker: baked {iconPath} ({resolution}x{resolution}) from bounds center={bounds.center} size={bounds.size}");
 
         return sprite;
+    }
+
+    // Built fresh each bake, not cached — cheap (4x4 per face) and this
+    // is a batch-mode Editor tool run once per item, not a hot path.
+    private static Cubemap NeutralReflectionCubemap()
+    {
+        const int size = 4;
+        var cubemap = new Cubemap(size, TextureFormat.RGBA32, false);
+        var fill = new Color[size * size];
+        for (int i = 0; i < fill.Length; i++) fill[i] = new Color(0.5f, 0.5f, 0.5f, 1f);
+
+        foreach (CubemapFace face in Enum.GetValues(typeof(CubemapFace)))
+        {
+            if (face == CubemapFace.Unknown) continue;
+            cubemap.SetPixels(fill, face);
+        }
+        cubemap.Apply();
+        return cubemap;
     }
 
     private static string GetArg(string name, string defaultValue = null)

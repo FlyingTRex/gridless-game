@@ -467,6 +467,13 @@ signs off on scope and order.
 
 ## Bugs
 
+- [ ] **`WovenGrassCloth.mat` also has `metallicFactor: 1` (2026-08-14).**
+  Found while checking whether the `IconBaker` near-black-metallic bug
+  (fixed same day, see `CHANGELOG.md`'s v0.3.58-dev entry) affected
+  anything besides the new Ingot family — this material shares the same
+  property but hasn't been checked for the same near-black icon problem.
+  Not investigated further this session; worth a quick look if its icon
+  ever looks suspiciously dark/flat.
 - [x] **Hireable, autonomous NPCs — v1 COMPLETE (2026-08-10), all 6 chunks
   shipped same day (v0.1.192-dev through v0.1.198-dev).** This closes out
   the last of Phase 1's 11 MVP items — see `docs/design-brief.md`'s MVP

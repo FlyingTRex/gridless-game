@@ -5,10 +5,45 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.57-dev` — must always match `GameVersion` in
+**Current version:** `0.3.58-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-14 (5)
+
+### v0.3.58-dev — IconBaker fix: metallic materials no longer bake near-black
+
+Real bug found by actually looking at the five new Ingot icons side by
+side (Ben: "let's look at them and decide") rather than trusting the
+material YAML's color values — every one, including Iron's pre-existing
+icon, baked as a near-flat-black silhouette with only a faint edge
+highlight, indistinguishable from each other regardless of their actual
+tint. Root cause: `IconBaker`'s render rig set
+`RenderSettings.customReflectionTexture = null` (with
+`defaultReflectionMode = Custom`) — a fully metallic material
+(`metallicFactor: 1`, the Ingot family's imported glTF material) has
+almost no diffuse response to direct/ambient light at all, so with zero
+environment reflection to sample, it renders essentially black regardless
+of its base color. Fixed with a small neutral-gray reflection cubemap
+generated at bake time, giving metals a legible, hue-neutral reflection
+without reintroducing the wrong-color skybox cast `Custom + null` was
+originally chosen to avoid. Benefits every metallic item baked through
+this tool going forward, not just the new Ingots.
+
+Also re-tuned Silver and Platinum's tints after the lighting fix made a
+second problem visible: Silver's original tint (`0.75, 0.75, 0.78`) was
+too close to Iron's own existing color to read as distinct even once
+properly lit, and pure brightness increases (`0.92`, then `0.97`) barely
+moved the perceived difference — this render pipeline compresses
+brightness-only separation on metallic materials far more than expected.
+A hue shift (Platinum's cool blue-gray, then the same trick applied to
+Silver) reads far more clearly than brightness alone. Final tints: Silver
+`(0.82, 0.90, 0.98)`, Platinum `(0.80, 0.83, 0.90)` — both cool-toned but
+distinguishable from each other and from Iron's neutral gray. All five
+Ingot icons re-baked. Verified by directly viewing each rendered PNG, not
+just checking the underlying color values — the exact discipline this bug
+slipped through the first time.
 
 ## 2026-08-14 (4)
 
