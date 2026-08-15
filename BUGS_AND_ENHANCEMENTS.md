@@ -422,13 +422,21 @@ signs off on scope and order.
   building.
 - [ ] **Universal degradation** — nothing lasts forever; gear, buildings, and
   vehicles decay if left unmaintained.
-- [ ] **Gardening — planned, not yet built, see `COOKING_AND_GARDENING_PLANNING.md`
-  (2026-08-14).** A 4×4 `GardenPlot` (16 independent seed cells, reusing
-  `CampfireScreen`'s drag-and-drop grid pattern), passive real-time
-  growth (Carrot/Potato/Corn at 5/10/15 real minutes), manual harvest
-  with auto-replant from the remaining seed stack, gated by a new
-  Cooking skill. Seeds sourced from new wild forage nodes (reusing
-  `BerrySeed`'s existing 2% bonus-drop precedent).
+- [x] **Gardening — 16-cell grid built, v0.3.79-dev (2026-08-15).** See
+  `COOKING_AND_GARDENING_PLANNING.md` section 3/6. `GardenPlot4x4`, 3
+  crops (Carrot/Potato/Corn, 5/10/15 real minutes), click-based UI instead
+  of drag-and-drop (lower-risk, same mechanic). Two deliberate gaps left
+  open, tracked below.
+- [ ] **Garden Plot crop visuals are placeholder primitives (2026-08-15).**
+  `CarrotGrowingVisual`/`PotatoGrowingVisual`/`CornGrowingVisual` are
+  plain colored cylinder/sphere/cube shapes, not real crop models —
+  ships mechanically complete rather than blocking on the still-open
+  Asset-Store-pack-vs-Blender question in `COOKING_AND_GARDENING_PLANNING.md`
+  section 3. Revisit once that's decided.
+- [ ] **Garden Plot seeds are Admin-Spawn-only (2026-08-15).** `CarrotSeed`/
+  `PotatoSeed`/`CornSeed` exist as real items but have no in-world source —
+  the wild forage nodes (`WildCarrotPatch` etc.) from
+  `COOKING_AND_GARDENING_PLANNING.md` section 4 aren't built yet.
 - [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
   extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather
   than replacing it.

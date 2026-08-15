@@ -20,7 +20,7 @@ specced yet.
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
 7. **Skill books.** — 🟡 Built (v0.3.53-dev, `SKILL_BOOKS_PLANNING.md` — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode. Phase 4 (NPC training) correctly blocked on item 2's bench-crafting.
 8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev) — a Knife now deals real tier-scaled bonus damage, and any future melee weapon plugs in for free. Ranged (Archery/Gun) and animal diversity are both still fully open.
-9. **Cooking** — 🟡 Planned (`COOKING_AND_GARDENING_PLANNING.md`, 2026-08-14) — Cooking skill + quality tiers, plus a new Gardening system. Single-plant Garden Plot proof of concept built (v0.3.71-dev); the full Cooking-quality/16-cell-grid design still not built.
+9. **Cooking** — 🟡 Gardening's 16-cell grid built (v0.3.79-dev, 2026-08-15) — 3 crops (Carrot/Potato/Corn), placeholder primitive visuals, Admin-Spawn-only seed sourcing (wild forage nodes not built). Cooking's own skill/quality-tier system (`CookableItem` gaining `trainedSkill`/`CraftOutcomeRoll`) still not built.
 10. **"Prefab" buildings** — ✅ Built and placed in `TestScene.unity` (v0.3.69-dev/v0.3.70-dev) — a dev-facing Editor menu tool, 4 composite buildings (Small Hut/Rectangular House × Twig/Plank). Rectangular House has a known gable-end roof gap, logged.
 
 ## First ideation pass (2026-08-12)
@@ -243,9 +243,19 @@ see `COOKING_AND_GARDENING_PLANNING.md` section 5. A scoped-down single
 `GardenPlot` (Berry Bush only, reusing the existing model, a real small
 Blender-built raised bed, 3-stage growth, Cooking-gated `BuildPiece`)
 proves the "plant a seed stack, harvest auto-replants until exhausted"
-mechanic before building the full 16-cell grid. The Cooking skill now
-exists as a real asset, though nothing trains it yet — the quality-roll
-work and Carrot/Potato/Corn content are still unbuilt.
+mechanic before building the full 16-cell grid.
+
+**Full 4x4 (16-cell) grid built (v0.3.79-dev, 2026-08-15)** — see
+`COOKING_AND_GARDENING_PLANNING.md` section 3/6. `GardenPlot4x4`
+generalizes the single-plot mechanic to 16 independent cells and any
+number of `CropDefinition`s (Carrot/Potato/Corn shipped). Deliberately
+deviates from the plain-`Inventory`-per-cell idea in the original
+planning (index instability risk) and skips a second drag-and-drop UI
+(a click-based context panel covers the same mechanic). Visuals are
+placeholder primitives — the Asset-Store-pack-vs-Blender question is
+still open. Seed sourcing is Admin-Spawn-only; wild forage nodes aren't
+built. The Cooking skill/quality-tier system itself (`CookableItem`
+gaining a real tier ladder) is still unbuilt — see section 2.
 
 ### 10 — "Prefab" buildings
 **Scope resolved (2026-08-14): dev-facing level-design tool**, not the

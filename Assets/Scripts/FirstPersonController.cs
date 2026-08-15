@@ -59,6 +59,7 @@ public class FirstPersonController : MonoBehaviour
     private BankScreen bankScreen;
     private LockboxScreen lockboxScreen;
     private CampfireScreen campfireScreen;
+    private GardenPlotScreen4x4 gardenPlotScreen4x4;
     private FurnaceScreen furnaceScreen;
     private GameMenuScreen gameMenuScreen;
     private NPCHiringScreen npcHiringScreen;
@@ -98,6 +99,7 @@ public class FirstPersonController : MonoBehaviour
         bankScreen = GetComponent<BankScreen>();
         lockboxScreen = GetComponent<LockboxScreen>();
         campfireScreen = GetComponent<CampfireScreen>();
+        gardenPlotScreen4x4 = GetComponent<GardenPlotScreen4x4>();
         furnaceScreen = GetComponent<FurnaceScreen>();
         gameMenuScreen = GetComponent<GameMenuScreen>();
         npcHiringScreen = GetComponent<NPCHiringScreen>();
@@ -150,6 +152,7 @@ public class FirstPersonController : MonoBehaviour
                 bankScreen?.Close();
                 lockboxScreen?.Close();
                 campfireScreen?.Close();
+                gardenPlotScreen4x4?.Close();
                 furnaceScreen?.Close();
                 gameMenuScreen?.Close();
                 npcHiringScreen?.Close();
@@ -295,7 +298,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.78-dev";
+    private const string GameVersion = "0.3.79-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

@@ -5,10 +5,56 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.78-dev` — must always match `GameVersion` in
+**Current version:** `0.3.79-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (2)
+
+### v0.3.79-dev — 4x4 Garden Plot mechanic built
+
+`COOKING_AND_GARDENING_PLANNING.md` section 3's full 16-cell Garden Plot,
+built on top of the resized single-plot model from earlier tonight. New
+`GardenPlot4x4Piece` recipe (8 Plank + 6 Stick, Crude tier, trains Cooking,
+`groundReach = 5` since it's Foundation-tile-sized) placeable via the
+Build tab, registered into `TestScene.unity`'s `PlayerBuilding.allPieces`.
+
+`GardenPlot4x4.cs` runs 16 independent cells, each the exact same
+"plant a whole seed stack, harvest one plant, auto-replant the next from
+the stack" mechanic `GardenPlot.cs` (the single-plot POC) already proved
+out — generalized to any number of `CropDefinition`s instead of one
+hardcoded Berry Bush. **Deliberately doesn't reuse `Inventory` for the
+cells** despite the planning doc's original "plain Inventory.Slot per
+cell" framing — `Inventory`'s slot list compacts via `RemoveAt` whenever a
+stack empties, so a per-cell index into it isn't stable, which would have
+silently scrambled which cell is which after any harvest. Cells are a
+fixed `CellCount` array instead, sidestepping the mismatch entirely.
+
+New `GardenPlotScreen4x4` (E opens it, same popup family as
+`CampfireScreen`) shows all 16 cells as buttons; clicking one selects it
+and a context panel below offers whatever that cell's state allows
+(plant one of the registered crops, watch progress, or harvest).
+Deliberately skips a second drag-and-drop implementation — nothing here
+needs a quantity or a specific slot, so a click-based context panel
+covers the whole mechanic with much less state to get wrong.
+
+Three real crops built: Carrot (5 min), Potato (10 min), Corn (15 min) —
+new seed + crop `ItemDefinition`s (6 total), `EdibleItem`s (raw crops are
+eatable, same as Berry), and `CropDefinition` assets tying each together.
+**Visuals are plain colored primitives (cylinder/sphere/cube), not real
+crop models** — the Asset-Store-pack-vs-Blender question from the
+planning doc is still unresolved, so this ships mechanically complete
+with placeholder art rather than blocking on that decision. Seed sourcing
+is Admin-Spawn-only for now too — the wild forage nodes
+(`WildCarrotPatch` etc.) from planning doc section 4 aren't built, so
+there's no in-world way to obtain seeds yet; logged as a follow-up in
+`BUGS_AND_ENHANCEMENTS.md`.
+
+Verified via compile + direct YAML grep (all 16 anchors, both array
+wirings, the scene component addition) after every batch step, each step
+its own separate Unity invocation specifically to avoid the project's own
+stale-prefab-reference gotcha. **Not yet live-tested in Play mode.**
 
 ## 2026-08-15 (1)
 

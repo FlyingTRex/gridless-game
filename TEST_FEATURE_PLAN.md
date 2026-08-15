@@ -3433,3 +3433,52 @@ trains the new Cooking skill).
   tile (blank spacer), no ready-state highlight/glow (full size is the
   only "ready" signal), and only Berry Bush is plantable — Carrot/
   Potato/Corn and the full 16-cell grid don't exist yet.
+
+## 41. 4x4 Garden Plot grid, v1
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep of the new asset/prefab/scene
+wiring). Full design in `COOKING_AND_GARDENING_PLANNING.md` sections 3
+and 6. No instance is pre-placed — craft one via the Build tab (`Garden
+Plot (4x4)`, 8 Plank + 6 Stick, trains Cooking). Seeds
+(`CarrotSeed`/`PotatoSeed`/`CornSeed`) have no in-world source yet — use
+Admin Spawn.
+
+- [ ] **Open the grid**: place a 4x4 Garden Plot, press E — confirm a
+  16-cell popup opens (not the single-plot's direct plant/harvest), all
+  cells show empty ("-").
+- [ ] **Plant a cell**: admin-spawn a stack of Carrot Seed, click an
+  empty cell — confirm a "Plant Carrot (N seeds)" button appears in the
+  context panel below the grid, and clicking it consumes the entire
+  stack and starts that one cell growing (other 15 cells stay empty).
+- [ ] **Independent cells**: plant a second, different crop (e.g. Potato
+  Seed) into a different cell — confirm both cells progress
+  independently (different durations, different labels), and the other
+  14 remain empty/unaffected.
+- [ ] **3-stage growth + progress readout**: watch a growing cell —
+  confirm its grid label shows a rising percentage, and the context
+  panel (when that cell is selected) shows the same percentage; confirm
+  the growing-plant visual (a colored primitive shape) appears at the
+  cell's anchor point and jumps size at roughly 1/3 and 2/3 of the way
+  through.
+- [ ] **Harvest and auto-replant**: once a cell reads "Ready!", select it
+  and click "Harvest" — confirm you receive 1 of the crop item, and if
+  the original seed stack had more than 1, the cell immediately restarts
+  growing (still showing a small/starting-stage plant) instead of going
+  empty. Repeat until exhausted — confirm the cell then returns to empty
+  ("-") and its plant visual is gone.
+- [ ] **Cell independence under harvest**: with two+ cells growing at
+  once, harvest one that's ready — confirm the other cells' state/timers
+  are completely unaffected (this is the main regression risk flagged in
+  `COOKING_AND_GARDENING_PLANNING.md` section 6 — cells are a fixed array,
+  not an `Inventory`, specifically to avoid index drift after a harvest).
+- [ ] **Eat a raw crop**: with a harvested Carrot/Potato/Corn in
+  inventory, right-click Eat — confirm it's edible (Snack-tier hunger
+  restore, same as Berry).
+- [ ] **Escape closes it cleanly**: with the grid open, press Escape —
+  confirm the popup closes and the cursor re-locks, same as every other
+  screen (Campfire, Lockbox, etc.).
+- [ ] **Not built yet, by design**: real crop visuals (placeholder
+  colored primitives only), wild forage seed sourcing (Admin Spawn only),
+  and Cooking's own skill/quality-tier system (no quality roll on harvest
+  yet — every harvest is just 1 plain crop item).

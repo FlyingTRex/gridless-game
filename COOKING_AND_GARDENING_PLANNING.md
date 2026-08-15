@@ -215,6 +215,46 @@ mechanic first, on one plant, before investing in the full 16-cell grid:
   describe (the plant reaching full scale is today's only "it's ready"
   signal); Carrot/Potato/Corn and the full 16-cell grid itself.
 
+## 6. Full 4x4 grid — built (v0.3.79-dev, 2026-08-15)
+
+Section 3's design, built on top of section 5's proof of concept:
+
+- **New `GardenPlot4x4.cs`** — 16 independent cells, each running the exact
+  same "plant a whole seed stack, harvest one plant, auto-replant the next
+  from the stack" mechanic `GardenPlot.cs` already proved out, generalized
+  to any number of `CropDefinition`s instead of one hardcoded Berry Bush.
+- **Deviation from this doc's original design: no `Inventory`-per-cell.**
+  `Inventory`'s slot list compacts via `RemoveAt` whenever a stack empties,
+  so a per-cell index into it isn't stable — the exact kind of bug this
+  project's own `GameObject.Find` name-collision gotcha (`CLAUDE.md`) warns
+  about avoiding by construction rather than discovering live. Cells are a
+  fixed `CellCount` array instead, each tracking its own seed count
+  directly.
+- **Deviation: no drag-and-drop.** `GardenPlotScreen4x4` shows all 16
+  cells as buttons; clicking one selects it, and a context panel below
+  offers whatever that cell's state allows (plant/harvest/progress).
+  Nothing here needs a quantity or a specific slot, so this covers the
+  whole mechanic without a second self-contained drag implementation
+  (`CampfireScreen`'s own comment flags its drag system as exactly that —
+  self-contained, not shared — each one built is more state that can
+  drift out of sync).
+- **New `CropDefinition`** ScriptableObject (seed item, crop item, grow
+  duration, growing-visual prefab) — 3 real crops: Carrot (5 min), Potato
+  (10 min), Corn (15 min), matching this doc's original numbers.
+- **Visuals are placeholder** — plain colored primitives
+  (cylinder/sphere/cube), not real crop models. The Asset-Store-pack-vs-
+  Blender question above is still unresolved; this ships mechanically
+  complete rather than blocking on it.
+- **Seed sourcing is Admin-Spawn-only.** The wild forage nodes from
+  section 4 aren't built yet — logged in `BUGS_AND_ENHANCEMENTS.md`.
+- **New `GardenPlot4x4Piece` recipe** — 8 Plank + 6 Stick, Crude tier,
+  trains Cooking, `groundReach = 5` (Foundation-tile-sized, unlike the
+  single plot's free-placement `groundReach = 0`).
+- Verified via compile + direct YAML grep after every batch step (each
+  step its own separate Unity invocation, specifically to avoid a stale
+  reference across the prefab-content-editing cycle). **Not yet
+  live-tested in Play mode.**
+
 ## Cross-references
 
 - `CAMPFIRE_PLANNING.md` — the `Campfire`/`CookableItem` mechanism this

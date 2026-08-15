@@ -42122,6 +42122,7 @@ GameObject:
   - component: {fileID: 1681626293}
   - component: {fileID: 1681626292}
   - component: {fileID: 1681626294}
+  - component: {fileID: 1681626295}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -42857,6 +42858,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: e01316cb731b22545b237604e1b7b749, type: 2}
   - {fileID: 11400000, guid: eb0dab5ed56fcb048a284bf5858e29bd, type: 2}
   - {fileID: 11400000, guid: 4ab44b5c4ca385b43923d02cab4b28f8, type: 2}
+  - {fileID: 11400000, guid: 065b49d4d8d0436397292c3d46b212b2, type: 2}
   interactRange: 10
   snapRadius: 1.5
   panelHalfSize: 2.5
@@ -43261,6 +43263,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerFame
   fame: 0
+--- !u!114 &1681626295
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 36a798d4e7a30ea4297ccac087e514f0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GardenPlotScreen4x4
 --- !u!1001 &1689588954
 PrefabInstance:
   m_ObjectHideFlags: 0

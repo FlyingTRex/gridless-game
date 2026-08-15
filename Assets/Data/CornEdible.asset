@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f6db3c6bd9c6164a81fb83e087ce32d, type: 3}
+  m_Name: CornEdible
+  m_EditorClassIdentifier: Assembly-CSharp::EdibleItem
+  item: {fileID: 11400000, guid: f6fabef492963c644a4a3b1461ac2754, type: 2}
+  consumeCount: 1
+  foodTier: 0
+  vital: 0
+  restoreAmount: 0
+  verb: Eat
+  healOverTimeAmount: 0
+  healOverTimeDuration: 0
+  returnItem: {fileID: 0}

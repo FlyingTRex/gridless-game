@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 485e12698346d604eb63c48ae33bf1e6, type: 3}
+  m_Name: CornCrop
+  m_EditorClassIdentifier: Assembly-CSharp::CropDefinition
+  cropName: Corn
+  seedItem: {fileID: 11400000, guid: 76f8187d312ad9e4681babed3d13ead8, type: 2}
+  cropItem: {fileID: 11400000, guid: f6fabef492963c644a4a3b1461ac2754, type: 2}
+  growDurationSeconds: 900
+  growingVisualPrefab: {fileID: 3242576804674864161, guid: a9a6c99085e0bdd499c04138b7203710, type: 3}
