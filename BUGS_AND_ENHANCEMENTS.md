@@ -441,6 +441,17 @@ signs off on scope and order.
   items exist as real items with real packet art but have no in-world
   source — the wild forage nodes (`WildCarrotPatch` etc.) from
   `COOKING_AND_GARDENING_PLANNING.md` section 4 aren't built yet.
+- [ ] **Planting/harvesting a Garden Plot cell grants no skill XP at all
+  (2026-08-15, Ben's question: "is cooking and planting rolled up under
+  gathering?").** Checked live — no, and there's no "Planting" skill
+  either. `GardenPlot4x4.cs`/`GardenPlot.cs` have zero `PlayerSkills`
+  references; Cooking is only ever trained by the one-time act of
+  *building* a Garden Plot piece (same as any other `BuildPiece`), never
+  by the ongoing plant/harvest actions themselves. Open design question,
+  not decided: should harvesting grant Cooking XP (reinforcing "growing
+  your own ingredients" as part of the Cooking discipline, the original
+  design rationale in `COOKING_AND_GARDENING_PLANNING.md`), a dedicated
+  new skill, or stay structure-building-only as-is?
 - [x] **Harvested-crop world-pickup visuals — built, v0.3.83-dev
   (2026-08-15).** All 6 crops (Carrot/Potato/Ginger/Turnip/Onion/Sweet
   Potato) now have a real, correctly-scaled `worldPickupPrefab` built
