@@ -20,7 +20,7 @@ specced yet.
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
 7. **Skill books.** — 🟡 Built (v0.3.53-dev, `SKILL_BOOKS_PLANNING.md` — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode. Phase 4 (NPC training) correctly blocked on item 2's bench-crafting.
 8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev) — a Knife now deals real tier-scaled bonus damage, and any future melee weapon plugs in for free. Ranged (Archery/Gun) and animal diversity are both still fully open.
-9. **Cooking** — supplements healing (better foods give health/healing); teas and drinks.
+9. **Cooking** — 🟡 Fully planned (`COOKING_AND_GARDENING_PLANNING.md`, 2026-08-14) — Cooking skill + quality tiers, plus a new Gardening system. Not yet built.
 10. **"Prefab" buildings** — drop a full premade building into a scene, rather than piece-by-piece.
 
 ## First ideation pass (2026-08-12)
@@ -222,12 +222,21 @@ nothing built at all, and neither does the animation to make weapon use
 readable (ties back to item 4), or any animal variety beyond the Wolf.
 
 ### 9 — Cooking
-Natural extension of the existing `EdibleItem`/skill-tied-quality pattern
-(a "Cooked" tier, same five-tier convention crafting already uses) rather
-than a new system from scratch. Supplementing healing via food quality
-closes a nice loop with Phase 1's basic first aid. Teas/drinks would reuse
-the Canteen liquid mechanic. Strong tie to item 5 (weather-driven demand
-for warm food/drink) and item 1 (Constitution).
+**Planned in full, 2026-08-14 — see `COOKING_AND_GARDENING_PLANNING.md`.**
+The Campfire's cooking mechanism already shipped (`CAMPFIRE_PLANNING.md`,
+v0.3.26-dev through v0.3.30-dev) but has no skill/quality concept at all.
+Design now covers: a new Cooking skill + a real 5-tier Cooked Meat ladder
+reusing crafting's existing `CraftOutcomeRoll`/`lowerTierItem`/
+`higherTierItem` quality mechanic (near-zero new code, just new data),
+quality scaling `EdibleItem`'s secondary Health-boost field (not
+`FoodTier`/hunger — that axis is deliberately protected from crafting-
+quality scaling, see `FoodTier.cs`). Also grew into a full new Gardening
+system (Carrot/Potato/Corn via a 4×4 `GardenPlot`, wild-forage seed
+sourcing) once seed availability came up mid-conversation. New
+recipes (Soup, Tea, fried dishes) deliberately left unenumerated — Ben's
+call, add them incrementally once the mechanism is built. Not yet built.
+Strong tie to item 5 (weather-driven demand for warm food/drink) and item
+1 (Constitution).
 
 ### 10 — "Prefab" buildings
 **Needs a scope decision before further ideation:** is this a

@@ -422,7 +422,13 @@ signs off on scope and order.
   building.
 - [ ] **Universal degradation** — nothing lasts forever; gear, buildings, and
   vehicles decay if left unmaintained.
-- [ ] **Gardening** — harvest seeds, plant and grow crops.
+- [ ] **Gardening — planned, not yet built, see `COOKING_AND_GARDENING_PLANNING.md`
+  (2026-08-14).** A 4×4 `GardenPlot` (16 independent seed cells, reusing
+  `CampfireScreen`'s drag-and-drop grid pattern), passive real-time
+  growth (Carrot/Potato/Corn at 5/10/15 real minutes), manual harvest
+  with auto-replant from the remaining seed stack, gated by a new
+  Cooking skill. Seeds sourced from new wild forage nodes (reusing
+  `BerrySeed`'s existing 2% bonus-drop precedent).
 - [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
   extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather
   than replacing it.
