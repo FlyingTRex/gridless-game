@@ -54,7 +54,7 @@ SphereCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Radius: 0.007
+  m_Radius: 0.025
   m_Center: {x: 0, y: 0, z: 0}
 --- !u!54 &2610295748185770956
 Rigidbody:
@@ -113,6 +113,18 @@ PrefabInstance:
     - target: {fileID: 3883632459255457618, guid: 780bb50a65349c5418518c41db642df7, type: 3}
       propertyPath: m_Name
       value: BerrySeed
+      objectReference: {fileID: 0}
+    - target: {fileID: 9018152844922926121, guid: 780bb50a65349c5418518c41db642df7, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 3.5714285
+      objectReference: {fileID: 0}
+    - target: {fileID: 9018152844922926121, guid: 780bb50a65349c5418518c41db642df7, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 3.5714285
+      objectReference: {fileID: 0}
+    - target: {fileID: 9018152844922926121, guid: 780bb50a65349c5418518c41db642df7, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 3.5714285
       objectReference: {fileID: 0}
     - target: {fileID: 9018152844922926121, guid: 780bb50a65349c5418518c41db642df7, type: 3}
       propertyPath: m_LocalPosition.x

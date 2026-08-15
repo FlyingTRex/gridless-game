@@ -5,12 +5,27 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.74-dev` — must always match `GameVersion` in
+**Current version:** `0.3.75-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (21)
+## 2026-08-14 (22)
+
+### v0.3.75-dev — Scale up Berry Seed's pickup model
+
+Found live (Ben: still couldn't find spawned Berry Seeds even after the
+visibility and rolling fixes). Measured cause: the model's actual bounds
+were 1.4cm across — the collider (radius 0.007) matched, but that's over
+10x smaller than Berry's own working pickup (radius 0.09). Scaled the
+model + collider up together (×3.57) to a 5cm bounds size, measured
+against real `Renderer.bounds` rather than guessed, and confirmed
+visually via a render screenshot — still reads as a small seed, just
+actually spottable on the ground now.
+
+Also manually seeded Ben's save file (`save.json`, backed up first) with
+10 Berry Seed directly in his worn backpack's saved inventory, so testing
+doesn't depend on Admin Spawn at all going forward.
 
 ### v0.3.74-dev — Stop Berry Seed pickups rolling downhill
 
