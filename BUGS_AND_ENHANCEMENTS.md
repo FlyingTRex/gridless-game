@@ -441,6 +441,18 @@ signs off on scope and order.
   items exist as real items with real packet art but have no in-world
   source — the wild forage nodes (`WildCarrotPatch` etc.) from
   `COOKING_AND_GARDENING_PLANNING.md` section 4 aren't built yet.
+- [ ] **Garden Plot growth state isn't saved/loaded at all (2026-08-15).**
+  Confirmed via grep — zero `GardenPlot`/`GardenPlot4x4` references in
+  `SaveManager.cs`, neither prefab has a `SaveId`, and the save file has
+  no section for placed-structure internal state. Every cell's crop/seed
+  count/elapsed grow time is pure in-memory runtime state — a save+reload
+  silently resets every planted cell to whatever it was on scene load,
+  with no warning. Matches the broader known gap that built structures
+  were explicitly deferred out of `SAVE_LOAD_PLANNING.md`'s v1 scope,
+  not a new miss, but Ben's explicit call: "we're going to need to fix
+  that." Needs a `SaveId`-style registry for placed Garden Plot instances
+  (same pattern `StorageBox` already uses) plus per-cell state capture
+  for all 16 cells.
 - [ ] **Planting/harvesting a Garden Plot cell grants no skill XP at all
   (2026-08-15, Ben's question: "is cooking and planting rolled up under
   gathering?").** Checked live — no, and there's no "Planting" skill

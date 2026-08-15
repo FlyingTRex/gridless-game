@@ -5,10 +5,40 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.83-dev` — must always match `GameVersion` in
+**Current version:** `0.3.84-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (7)
+
+### v0.3.84-dev — Garden Plot live-test follow-ups: seed-count display, Admin Spawn quantity, real icons
+
+Four small fixes/additions from Ben's live Garden Plot testing session:
+
+- **Garden Plot save/load gap logged as backlog** (`BUGS_AND_ENHANCEMENTS.md`)
+  — confirmed via grep that growth state isn't persisted anywhere;
+  Ben's explicit call: "we're going to need to fix that." Not built this
+  pass, just tracked.
+- **Remaining-seed-count now shown in `GardenPlotScreen4x4`'s context
+  panel** for a Growing/Ready cell — root cause of live confusion
+  ("I put a pack of 10 in, it just vanished"): planting silently
+  consumes the whole stack upfront and tracks the remainder purely
+  internally (`GardenPlot4x4.GetSeedCount` existed but was never
+  actually displayed anywhere). Turned out to be expected behavior once
+  investigated, not a bug — the real issue was Admin Spawn only ever
+  granting 1 unit per click (see below), so the "packet" being tested
+  only ever had 1 seed in it to begin with.
+- **Admin Spawn gained a Quantity field** (`AdminSpawnScreen.cs`) —
+  previously every Spawn click granted exactly 1 unit with no way to
+  request more, forcing 10 separate clicks to test a real 10-seed
+  packet. Garbage/empty/non-positive input falls back to 1.
+- **Real icons baked for all 13 new items** (7 seed packets + 6 crop
+  pickups) via the existing `IconBaker` tool — both the small inline
+  icon and a 128x128 preview, wired directly onto each `ItemDefinition`.
+  Verified by actually opening the generated PNGs, not just trusting the
+  batch log (`IconBaker`'s own doc flags `-nographics` as a silent-
+  failure trap for exactly this kind of run).
 
 ## 2026-08-15 (6)
 

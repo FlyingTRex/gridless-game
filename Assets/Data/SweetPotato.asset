@@ -17,7 +17,7 @@ MonoBehaviour:
   weight: 0.3
   tier: 2
   worldPickupPrefab: {fileID: 7297716024648934336, guid: 8c02b91e208d8b84f89c6b933c201416, type: 3}
-  icon: {fileID: 0}
-  previewIcon: {fileID: 0}
+  icon: {fileID: 21300000, guid: 92217f382ba86ee4489c03ea6d9a706a, type: 3}
+  previewIcon: {fileID: 21300000, guid: 78fa606dbf3efd848b20583f048d6b2d, type: 3}
   baseItem: {fileID: 0}
   isMeleeWeapon: 0

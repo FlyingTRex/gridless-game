@@ -34,6 +34,13 @@ public class AdminSpawnScreen : MonoBehaviour
     // filters the Item section only, by itemName substring match.
     private string searchQuery = "";
 
+    // Quantity field (2026-08-15, Ben's ask — testing a stackable item
+    // like a 10-seed packet meant clicking Spawn 10 times). Shared across
+    // every item in the list below, same as the search box. Parsed on
+    // each Spawn click rather than kept as an int field, so a partially-
+    // typed value (or garbage) never blocks typing — falls back to 1.
+    private string spawnQuantityText = "1";
+
     private void Awake()
     {
         dropping = GetComponent<PlayerDropping>();
@@ -110,6 +117,11 @@ public class AdminSpawnScreen : MonoBehaviour
         Array.Sort(allGuilds, (a, b) => string.Compare(a?.guildName, b?.guildName, StringComparison.OrdinalIgnoreCase));
     }
 
+    // Garbage/empty/zero/negative input all fall back to 1 rather than
+    // blocking the Spawn button or spawning nothing.
+    private int ParsedSpawnQuantity() =>
+        int.TryParse(spawnQuantityText, out int qty) && qty > 0 ? qty : 1;
+
     // Called by GameMenuScreen while its Admin tab is active.
     public void DrawContent()
     {
@@ -129,6 +141,9 @@ public class AdminSpawnScreen : MonoBehaviour
         searchQuery = GUILayout.TextField(searchQuery, GUILayout.Width(220));
         if (!string.IsNullOrEmpty(searchQuery) && GUILayout.Button("Clear", GUILayout.Width(50)))
             searchQuery = "";
+        GUILayout.Space(12);
+        GUILayout.Label("Quantity:", DebugGUI.Label, GUILayout.Width(65));
+        spawnQuantityText = GUILayout.TextField(spawnQuantityText, GUILayout.Width(50));
         GUILayout.EndHorizontal();
         GUILayout.Space(6);
 
@@ -148,7 +163,7 @@ public class AdminSpawnScreen : MonoBehaviour
             GUILayout.BeginHorizontal();
             GUILayout.Label(item.itemName, DebugGUI.Label, GUILayout.Width(240));
             if (GUILayout.Button("Spawn", GUILayout.Width(70)))
-                dropping.SpawnPickup(item);
+                dropping.SpawnPickup(item, ParsedSpawnQuantity());
             GUILayout.EndHorizontal();
         }
         if (!anyItemShown)

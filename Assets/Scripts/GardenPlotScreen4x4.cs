@@ -138,10 +138,12 @@ public class GardenPlotScreen4x4 : MonoBehaviour
                 var crop = current.GetCrop(selectedCell);
                 string cropName = crop != null ? crop.cropName : "Crop";
                 GUILayout.Label($"Growing {cropName} — {Mathf.RoundToInt(current.GetProgress01(selectedCell) * 100f)}%", DebugGUI.Label);
+                GUILayout.Label($"Seeds remaining in this cell (after this plant): {current.GetSeedCount(selectedCell) - 1}", DebugGUI.Label);
                 break;
             case GardenPlot4x4.CellState.Ready:
                 var readyCrop = current.GetCrop(selectedCell);
                 string readyName = readyCrop != null ? readyCrop.cropName : "Crop";
+                GUILayout.Label($"Seeds remaining in this cell (after this plant): {current.GetSeedCount(selectedCell) - 1}", DebugGUI.Label);
                 if (GUILayout.Button($"Harvest {readyName}"))
                     current.TryHarvest(selectedCell, playerInventory, backpackCarrier);
                 break;
