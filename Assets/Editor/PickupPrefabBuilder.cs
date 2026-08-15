@@ -63,6 +63,11 @@ public static class PickupPrefabBuilder
     // IconBaker.Bake()/BakeAndWire().
     public static GameObject BuildAndWire(GameObject modelAsset, ItemDefinition itemAsset, string outputPath, bool wireItem = true)
     {
+        // Captured up front — itemAsset itself goes stale after
+        // SaveAsPrefabAsset below (see CLAUDE.md's stale-reference gotcha),
+        // so AssetDatabase.GetAssetPath(itemAsset) can't be trusted later.
+        string itemAssetPath = wireItem ? AssetDatabase.GetAssetPath(itemAsset) : null;
+
         var tempScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         var instance = (GameObject)PrefabUtility.InstantiatePrefab(modelAsset, tempScene);
@@ -116,8 +121,7 @@ public static class PickupPrefabBuilder
             // SaveAsPrefabAsset boundary — see CLAUDE.md's stale-reference
             // gotcha (asset references can go stale across a
             // LoadPrefabContents/SaveAsPrefabAsset-style operation).
-            var itemPath = AssetDatabase.GetAssetPath(itemAsset);
-            var freshItem = AssetDatabase.LoadAssetAtPath<ItemDefinition>(itemPath);
+            var freshItem = AssetDatabase.LoadAssetAtPath<ItemDefinition>(itemAssetPath);
             var itemSO = new SerializedObject(freshItem);
             itemSO.FindProperty("worldPickupPrefab").objectReferenceValue = savedPrefab;
             itemSO.ApplyModifiedPropertiesWithoutUndo();
@@ -127,7 +131,7 @@ public static class PickupPrefabBuilder
         AssetDatabase.SaveAssets();
 
         Debug.Log($"PickupPrefabBuilder: DONE — {outputPath} (bounds center={bounds.center} size={bounds.size})" +
-            (wireItem ? $", wired to {AssetDatabase.GetAssetPath(itemAsset)}.worldPickupPrefab" : ""));
+            (wireItem ? $", wired to {itemAssetPath}.worldPickupPrefab" : ""));
 
         return savedPrefab;
     }

@@ -42459,7 +42459,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 42cd76270f1d8954498e347a70966269, type: 2}
   - {fileID: 11400000, guid: 02e1fe2822315354fb0fa7042412d8d5, type: 2}
   - {fileID: 11400000, guid: c7d805e06465477469b7d3d2ddc32773, type: 2}
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 6b086b9448bada34b82f05c819ebffb6, type: 2}
+  - {fileID: 11400000, guid: 9cd109f36e4a56941ab5b73a8d48feb6, type: 2}
+  - {fileID: 11400000, guid: 549436244ea772c48aa7118b634636a1, type: 2}
+  - {fileID: 11400000, guid: ab2202da91087d045aa91ddc0bfcb965, type: 2}
   storageRange: 10
 --- !u!114 &1681626240
 MonoBehaviour:

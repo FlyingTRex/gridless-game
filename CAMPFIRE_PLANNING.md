@@ -11,8 +11,21 @@ all shipped — see `CHANGELOG.md` for the full writeup and
 (not yet walked through, and the cooking-rework steps below need writing
 into it). **Cooking rebuilt again (v0.3.30-dev)** — the 4 accessory
 slots are now built (see section 4 below, updated in place); still
-open/deferred: models/icons for the 4 utensil items, Wood Stove, and the
-water-safety mechanic.
+open/deferred: Wood Stove and the water-safety mechanic.
+
+**Accessory models/icons/recipes — built (v0.3.90-dev, 2026-08-15).**
+The one open gap from the v0.3.30-dev rebuild is closed: all 4 accessory
+`ItemDefinition`s now have a real Blender model (`Tools/Blender/
+GenerateCookwareModels.py`), a baked icon+preview, and a Forging-skill
+crafting recipe (Grill 2x Iron Ingot, Cooking Pot 3x Iron Ingot, Kettle
+2x Copper Ingot, Frying Pan 2x Iron Ingot — all `requiresAnvilSurface`,
+same pattern as `NailRecipe`/`RudimentaryShovelRecipe`). Forging was an
+existing `SkillDefinition`/`CraftingScreen` discipline tab with zero
+recipes using it until now — the natural home for these, not a new
+skill. Still no accessory-gated recipe actually exists beyond the
+baseline Raw Meat → Cooked Meat (open-flame, no accessory) —
+`RawMeatToCookedMeatCookable.asset` is still the only `CookableItem` in
+the game. See `CHANGELOG.md` for the full build writeup.
 
 **UI redesign — built (v0.3.28-dev, then substantially reworked
 v0.3.30-dev, both 2026-08-13).** Loading fuel/food used to only work via
@@ -104,10 +117,9 @@ Confirmed directly against the codebase before designing anything new:
   possible** — `CookableItem.requiredAccessory`, checked via
   `Campfire.GetAvailableRecipes()`, same `CraftingRecipe.requiredTools`-
   style gating shape as planned. Each accessory is a real, plain (non-
-  equippable) `ItemDefinition` — no crafting recipe yet, admin-spawnable
-  only. **Still the one open gap: each needs its own model + icon** —
-  the slot/recipe-gating structure is fully built and functional, just
-  visually a blank placeholder until those exist.
+  equippable) `ItemDefinition`. **Models/icons/recipes built v0.3.90-dev**
+  (see the status note above) — no longer a blank placeholder or
+  admin-spawn-only.
 - **Water is explicitly out of scope for now.** There's no dirty/unsafe-
   water mechanic anywhere in the game today — `Canteen`/`WaterSource`
   don't distinguish water quality at all, and the only water-related

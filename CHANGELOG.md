@@ -5,10 +5,65 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.89-dev` — must always match `GameVersion` in
+**Current version:** `0.3.90-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (13)
+
+### v0.3.90-dev — Campfire cooking accessories: Grill/Cooking Pot/Kettle/Frying Pan get real models, icons, and recipes
+
+Closes the one open gap `CAMPFIRE_PLANNING.md` flagged after the
+v0.3.30-dev cooking rebuild — the 4 accessory `ItemDefinition`s
+(`grillSlot`/`cookingPotSlot`/`kettleSlot`/`fryingPanSlot`) had a fully
+working slot/recipe-gating structure but no model, icon, or recipe.
+
+**New Blender models** (`Tools/Blender/GenerateCookwareModels.py`) — a
+grate-on-legs Grill, a two-handled Cooking Pot, a spouted/handled
+Kettle, and a long-handled Frying Pan, all built from primitives (no
+bezier work needed this time) and sized against the 1.8m player
+reference (Grill ~0.32m across, Cooking Pot ~0.23m diameter, Kettle
+~0.17m, Frying Pan ~0.37m tip-to-tip). All 4 read correctly on the
+first render pass, no fix-up bugs this time.
+
+**`PickupPrefabBuilder.cs`'s first real use — caught and fixed a real
+bug in it.** Built last commit but never exercised end-to-end until
+now: `BuildAndWire`'s `wireItem` step computed the `ItemDefinition`'s
+asset path via `AssetDatabase.GetAssetPath(itemAsset)` *after*
+`PrefabUtility.SaveAsPrefabAsset` had already run — another instance of
+CLAUDE.md's stale-reference gotcha (asset references can go stale
+across a prefab-content-saving operation, same family as the
+`LoadPrefabContents`/`UnloadPrefabContents` case already documented
+there), so `itemAsset` was already stale by that point and
+`GetAssetPath` silently returned an empty string, throwing on the
+re-fetch. Fixed by capturing the path up front, before any prefab
+operations run. All 4 pickup prefabs + icons (via `IconBaker`, reused
+unmodified) built cleanly once fixed.
+
+**Recipes — proposed for approval before building, per Ben's explicit
+ask, not built unilaterally.** Approved as proposed: Grill 2x Iron
+Ingot, Cooking Pot 3x Iron Ingot, Kettle 2x Copper Ingot, Frying Pan 2x
+Iron Ingot, all `requiresAnvilSurface` (same pattern as
+`NailRecipe`/`RudimentaryShovelRecipe`). **Building them caught a second
+real bug, this time a wrong assumption of my own**: the first attempt
+set `trainedSkill` to `Assets/Data/Smithing.asset`, which — despite the
+name — is actually a `GuildDefinition`, not a `SkillDefinition` (its
+`m_EditorClassIdentifier` reads `GuildDefinition`, not
+`SkillDefinition`), so `AssetDatabase.LoadAssetAtPath<SkillDefinition>`
+silently returned null and every recipe's `trainedSkill` landed as
+`{fileID: 0}` with no compile error. Caught by grepping the saved
+recipe YAML directly rather than trusting the batch log's "DONE"
+message — same discipline as every other silent-failure gotcha in
+`CLAUDE.md`. The real skill is **Forging** (`Assets/Data/Forging.asset`)
+— an existing `SkillDefinition` and `CraftingScreen` discipline tab
+that had zero recipes using it until now, the correct home for
+forged-metal cookware as distinct from `Metalworking` (ore→ingot
+smelting) or `Stonework` (stone tools). Fixed by deleting the 4
+misconfigured recipe assets, stripping the resulting null slots out of
+`PlayerCrafting.recipes`, and rebuilding against Forging — verified via
+direct YAML grep of both the recipe assets' `trainedSkill` field and
+the scene's `recipes` array tail (exactly 4 new guids, no stray nulls).
 
 ## 2026-08-15 (12)
 

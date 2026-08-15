@@ -2621,10 +2621,11 @@ than usual given how much changed.**
   design) for a few seconds. Confirm it lights as an alternate path.
   Confirm Spark offers nothing (R does nothing) on a Campfire with no
   fuel loaded.
-- [ ] **Cooking Utensils**: drag a Grill (Admin Spawn it — no recipe
-  exists yet) into the Grill box — confirm it only accepts a Grill,
-  rejecting anything else. Confirm all 4 utensil boxes work
-  independently and can all hold an item simultaneously.
+- [ ] **Cooking Utensils**: craft a Grill (Forging skill, 2x Iron Ingot,
+  near an Anvil surface — Admin Spawn also still works if you'd rather
+  skip crafting it) and drag it into the Grill box — confirm it only
+  accepts a Grill, rejecting anything else. Confirm all 4 utensil boxes
+  work independently and can all hold an item simultaneously.
 - [ ] **Ingredients + Recipe list**: with the Campfire lit, drag 1 Raw
   Meat into an Ingredients box — confirm the Recipe section now shows a
   "Cook Cooked Meat x1" button (Raw Meat → Cooked Meat needs no
@@ -2647,9 +2648,15 @@ than usual given how much changed.**
   cooking is required).
 - [ ] **Cooked Meat's icon/model** — expected to look identical to Raw
   Meat (a known placeholder simplification, not a bug) — confirm it's at
-  least not blank/missing. Same for the 4 utensil items (Grill/Cooking
-  Pot/Kettle/Frying Pan) — expect a blank/generic box, not broken.
-  Confirm all 4 are findable via Admin Spawn's item search.
+  least not blank/missing. **The 4 utensil items now have real
+  models/icons (v0.3.90-dev)** — confirm each shows its own distinct
+  baked icon (not blank/generic) in both the Crafting tab and the
+  Campfire popup's utensil boxes, and confirm each has a distinct,
+  correctly-scaled 3D model when dropped/viewed in-world (Grill a grate
+  on short legs, Cooking Pot two-handled, Kettle spouted with an arched
+  handle, Frying Pan long-handled). Confirm all 4 are findable via
+  Admin Spawn's item search, and via the Forging tab in the Crafting
+  screen (a previously-empty discipline tab).
   Also try dragging a Left/Right Hand-held item into the Transfer
   section's boxes and back — confirm nothing gets orphaned (the
   equipment-reference gotcha this project has hit before).
