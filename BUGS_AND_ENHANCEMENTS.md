@@ -515,6 +515,23 @@ signs off on scope and order.
 
 ## Bugs
 
+- [ ] **Unconfirmed: a Combat-category skill tier-unlock (killing a Wolf,
+  Rudimentary) may not have granted Fame (2026-08-14/15).** Ben reported
+  a "Rudimentary skill notice" after a Wolf kill, then checked the Player
+  tab's Fame tile and found it unchanged (still 1.0, matching only the
+  earlier Hire grant). Code review found nothing wrong —
+  `PlayerSkills.GainExperience` fires `TierUnlocked` on any genuine tier
+  crossing for any skill/category, `PlayerFame` is present, enabled, and
+  correctly subscribed in `TestScene.unity`, and `CraftTierScale
+  .FameOnTierUnlock(Rudimentary)` = 1. Couldn't confirm whether the
+  message he saw was a genuine "tier unlocked!" banner (which should
+  grant Fame) versus a plain level-up message that just happened to show
+  a number near the Rudimentary threshold without actually crossing it
+  (which correctly wouldn't) — the message had already expired by the
+  time this was raised, so the exact wording is lost. **Next step**: the
+  next time a tier-unlock banner appears, check the Fame tile
+  immediately afterward, before the message expires, to confirm either a
+  real bug or a false alarm.
 - [ ] **`RectangularHouseTwig`/`RectangularHousePlank` prefab buildings have
   broken roof geometry at both gable ends (2026-08-14).** The existing
   `RoofPanel`/`Roof` build piece is designed for a square footprint where

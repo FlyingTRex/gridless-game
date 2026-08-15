@@ -5,12 +5,34 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.77-dev` — must always match `GameVersion` in
+**Current version:** `0.3.78-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (24)
+## 2026-08-15 (1)
+
+### v0.3.78-dev — Fix Fame never being saved/loaded
+
+Real bug, found live investigating "I got a Rudimentary skill notice but
+no Fame increase" (Ben, after a Wolf kill): `PlayerFame`'s `fame` field
+was never wired into `SaveManager` at all when Fame shipped (v0.3.64-dev)
+— confirmed via grep, zero references anywhere in `SaveManager.cs`. Every
+Fame gain (Hire/Fire, guild join/leave, and skill-tier-unlock grants) was
+silently wiped on every reload, resetting to the scene's default 0 —
+across a session with as many Editor restarts as tonight had, extremely
+plausible as the actual explanation, though not confirmed for this
+specific grant (logged as an open follow-up, see
+`BUGS_AND_ENHANCEMENTS.md`). His save data did independently confirm the
+underlying tier-unlock was real (`Bare-handed` skill level 10.55, crossed
+the Rudimentary threshold of 10).
+
+New `PlayerFame.RestoreFame(float)` (sets the absolute value, same
+"restore vs. earn" distinction `PlayerSkills.RestoreLevel` already draws
+against `GainExperience`), wired into `SaveManager.CapturePlayer`/
+`RestorePlayer`. Also directly patched Ben's live save file with his
+current known Fame value so tonight's session isn't lost by this exact
+bug on the very next load.
 
 ### v0.3.77-dev — Fix Garden Plot's visible model and real collider being in two different places
 

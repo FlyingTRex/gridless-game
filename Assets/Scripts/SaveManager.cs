@@ -19,6 +19,7 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerCurrency))]
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerEquipment))]
+[RequireComponent(typeof(PlayerFame))]
 public class SaveManager : MonoBehaviour
 {
     private const string FileName = "save.json";
@@ -34,6 +35,7 @@ public class SaveManager : MonoBehaviour
     private PlayerInventory playerInventory;
     private PlayerEquipment equipment;
     private PlayerBodyModel bodyModel;
+    private PlayerFame fame;
 
     // Set by Load() so a fresh scene's starting-gear auto-equip (Shirt/
     // Jeans/Belt/Canteen, each guarded on "nothing equipped yet") doesn't
@@ -54,6 +56,7 @@ public class SaveManager : MonoBehaviour
         playerInventory = GetComponent<PlayerInventory>();
         equipment = GetComponent<PlayerEquipment>();
         bodyModel = GetComponent<PlayerBodyModel>();
+        fame = GetComponent<PlayerFame>();
     }
 
     private void Start()
@@ -118,6 +121,7 @@ public class SaveManager : MonoBehaviour
             ["position"] = CaptureVector3(transform.position),
             ["yaw"] = transform.eulerAngles.y,
             ["skills"] = CaptureSkills(skills.Levels),
+            ["fame"] = fame.Fame,
             ["currency"] = CaptureCurrency(),
             ["inventory"] = InventorySaveUtility.Capture(playerInventory.Inventory),
             ["equipment"] = CaptureEquipmentSlots(),
@@ -145,6 +149,9 @@ public class SaveManager : MonoBehaviour
 
         if (data["skills"] is JArray skillArray)
             RestoreSkills(skillArray, skills.RestoreLevel);
+
+        if (data["fame"] != null)
+            fame.RestoreFame((float)data["fame"]);
 
         if (data["currency"] is JObject currencyObj)
             foreach (CoinType type in Enum.GetValues(typeof(CoinType)))

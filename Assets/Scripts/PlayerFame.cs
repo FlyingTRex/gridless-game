@@ -48,5 +48,10 @@ public class PlayerFame : MonoBehaviour
     public void GrantGuildJoin() => Grant(GuildJoinAmount);
     public void GrantGuildLeave() => Grant(GuildLeaveAmount);
 
+    // Called by SaveManager on load — sets the absolute value directly,
+    // unlike Grant's relative add, same "restore vs. earn" distinction
+    // PlayerSkills.RestoreLevel already draws against GainExperience.
+    public void RestoreFame(float value) => fame = Mathf.Clamp(value, MinFame, MaxFame);
+
     private void Grant(float amount) => fame = Mathf.Clamp(fame + amount, MinFame, MaxFame);
 }
