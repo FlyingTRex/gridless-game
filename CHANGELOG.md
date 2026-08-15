@@ -5,10 +5,53 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.86-dev` — must always match `GameVersion` in
+**Current version:** `0.3.87-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (10)
+
+### v0.3.87-dev — Chicken is now actually killable: Feather/Egg loot + first Prey Creature
+
+Ben's ask: "let's add [Feather/Egg] to the chicken loot table... when we
+kill a chicken, we get crafting materials." The Chicken placed earlier
+tonight was purely decorative — no combat/death behavior existed for it
+at all — so this needed a real component, not just items.
+
+Two new from-scratch Blender models (Feather, Egg), both player-scale-
+checked. One real modeling bug hit along the way: the Feather's initial
+two-piece vane+quill assembly had a placement bug (the quill ended up
+disconnected and misaligned from the vane) — fixed by simplifying to a
+single tapered blade shape instead of fighting the alignment, a better
+trade for an item this small anyway.
+
+**New `PreyCreature.cs`** — killable and lootable via the same tool-
+gated hold-to-skin/respawn shape `HostileCreature` already proved out
+for the Wolf, deliberately stripped of every aggressive behavior (no
+detection/chase/attack state machine). Built generic/reusable, not
+Chicken-specific, so Pig/Deer/Rabbit can use the same component later —
+this is explicitly *not* yet the full Prey Creature archetype the
+Hunting Expansion design calls for (idle/wander until approached, then
+flee); that movement behavior still doesn't exist. The existing Chicken
+instance in `TestScene.unity` was deleted and re-placed fresh with
+`PreyCreature` configured in the same batch run, rather than adding the
+component to the already-saved instance — that exact pattern (new
+component on an existing PrefabInstance, added in a later separate run)
+already failed twice tonight for the old GardenPlot's SaveId migration.
+Also caught a real `GameObject.Find` name-collision risk before it could
+bite: `Chicken_001.prefab` has 3 objects sharing that exact name (root +
+child), so locating the existing instance used a parent-null Transform
+scan instead of `GameObject.Find`, per this project's own established
+gotcha.
+
+Chicken now drops 1-3 Feather + 1 Egg (both guaranteed) when killed and
+skinned with a Knife, training Gathering — matching Wolf's own skill
+convention (confirmed via its prefab, not assumed). Verified via
+compile + direct YAML grep, including confirming the loot-item guids
+match Feather/Egg exactly and that exactly one Chicken instance exists
+in the scene (no duplicate left behind from the delete-and-replace).
+**Not yet live-tested in Play mode.**
 
 ## 2026-08-15 (9)
 

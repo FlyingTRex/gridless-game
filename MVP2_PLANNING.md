@@ -19,7 +19,7 @@ specced yet.
 5. **Sky and weather.** — ✅ Built and live-tested (Weather Maker, `WEATHER_MAKER_PLANNING.md`, 2026-08-13).
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
 7. **Skill books.** — 🟡 Built (v0.3.53-dev, `SKILL_BOOKS_PLANNING.md` — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode. Phase 4 (NPC training) correctly blocked on item 2's bench-crafting.
-8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev). Ranged combat built (v0.3.86-dev, 2026-08-15) — Bow (5-tier) + Stone Arrow (5-tier, gated by Trimmed Stick tier not skill) + Stone Arrowhead, `PlayerRangedCombat.cs` (draw/fire, Strength/Dexterity-scaled), new Archery skill. Gun explicitly pinned for later. Animal diversity still open — 4 new animals designed (Chicken/Pig/Deer/Rabbit, see `HUNTING_EXPANSION` design artifact) but not built; a Chicken model is placed in `TestScene.unity` with no AI behavior yet (Prey Creature archetype unbuilt). Taming explicitly pinned for a later MVP.
+8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev). Ranged combat built (v0.3.86-dev, 2026-08-15) — Bow (5-tier) + Stone Arrow (5-tier, gated by Trimmed Stick tier not skill) + Stone Arrowhead, `PlayerRangedCombat.cs` (draw/fire, Strength/Dexterity-scaled), new Archery skill. Gun explicitly pinned for later. Animal diversity still open — 4 new animals designed (Chicken/Pig/Deer/Rabbit, see `HUNTING_EXPANSION` design artifact); Chicken is the first to actually go live (v0.3.87-dev) — killable/lootable via new generic `PreyCreature.cs` (Feather ×1-3 + Egg ×1, skinned with Knife, trains Gathering), still standing still with no wander/flee AI (Prey Creature's movement half unbuilt). Pig/Deer/Rabbit not built. Taming explicitly pinned for a later MVP.
 9. **Cooking** — 🟡 Gardening's 16-cell grid built (v0.3.79-dev), 7 crops with real seed-packet models (v0.3.80-dev), 6 of 7 crops grow through real Wild Harvest growth-stage art (v0.3.81-dev), and now have real harvested-pickup visuals too (v0.3.83-dev, 2026-08-15) — only Corn's visuals stay placeholder throughout (not in the pack). Admin-Spawn-only seed sourcing still open (wild forage nodes not built). Cooking's own skill/quality-tier system (`CookableItem` gaining `trainedSkill`/`CraftOutcomeRoll`) still not built.
 10. **"Prefab" buildings** — ✅ Built and placed in `TestScene.unity` (v0.3.69-dev/v0.3.70-dev) — a dev-facing Editor menu tool, 4 composite buildings (Small Hut/Rectangular House × Twig/Plank). Rectangular House has a known gable-end roof gap, logged.
 
@@ -245,22 +245,29 @@ type, different sourcing), and the whole Taming half of the original
 "tame, hunt, harvest, skin" backlog vision (a real companion-AI system,
 wholly separate) — both Ben's call.
 
-**Animal diversity — designed, not built.** Same design session picked
-4 new animals (Chicken, Pig, Deer, Rabbit) to round the roster to 5 with
-Wolf. Needs a genuinely new "Prey Creature" behavior archetype (passive/
-fleeing, not aggressive — `HostileCreature` only knows how to attack).
-Real asset win found mid-session: `ithappy Animals_FREE` (a second new
-pack Ben added) includes fully animated Chicken and Deer prefabs with
-walk/run/idle clips — a real upgrade over Wolf's own zero-animation
-`transform.MoveTowards` movement. A `Chicken_001` is placed in
-`TestScene.unity` already (its `MovePlayerInput` component disabled —
-drives via the legacy Input Manager, which this project doesn't support
-— `CreatureMover`, the actual movement/animation engine, is untouched
-and ready to be driven by a future AI script instead). Pig and Rabbit
-still need their own model source. Deer's Hide closes a real, separately
-long-flagged gap: no raw Leather/Hide material has existed in this
-project at all, and the Leather Backpack recipe has been sitting on a
-placeholder Rock ingredient waiting for exactly this.
+**Animal diversity — Chicken's "hunt" half built, movement still
+open.** Same design session picked 4 new animals (Chicken, Pig, Deer,
+Rabbit) to round the roster to 5 with Wolf. Real asset win found
+mid-session: `ithappy Animals_FREE` (a second new pack Ben added)
+includes fully animated Chicken and Deer prefabs with walk/run/idle
+clips — a real upgrade over Wolf's own zero-animation
+`transform.MoveTowards` movement.
+
+**Chicken built (v0.3.87-dev, 2026-08-15)** — new generic
+`PreyCreature.cs` (killable/lootable, same tool-gated hold-to-skin/
+respawn shape `HostileCreature` proved out for Wolf, deliberately no
+attack/chase state machine) plus two new Blender models, Feather and
+Egg. Killing and skinning a Chicken now drops 1-3 Feather + 1 Egg
+(both guaranteed), trains Gathering. Built generic/reusable, not
+Chicken-specific, so Pig/Deer/Rabbit can reuse the same component. What
+it's still missing is movement — no wander/flee AI exists yet, so the
+Chicken just stands still until killed (`CreatureMover`, the pack's
+own movement/animation engine, is untouched and ready to be driven by
+a future AI script). Pig and Rabbit still need their own model source.
+Deer's Hide closes a real, separately long-flagged gap: no raw
+Leather/Hide material has existed in this project at all, and the
+Leather Backpack recipe has been sitting on a placeholder Rock
+ingredient waiting for exactly this.
 
 The animation gap that used to block weapon-use readability (item 4) is
 now resolved for animation *in general* (item 4 shipped), but neither

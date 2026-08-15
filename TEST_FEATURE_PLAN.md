@@ -3575,11 +3575,12 @@ Spawn both directly for faster testing.
   same as the punch), no Gun, no Quiver item (ammo tier is just
   whichever's physically equipped), Iron Arrowhead/Feathers not built.
 
-## 43. Chicken (ithappy Animals_FREE), placement only
+## 43. Chicken (ithappy Animals_FREE) — killable/lootable, v1
 
-Purely cosmetic right now — a `Chicken_001` sits in `TestScene.unity`
-near (6, 0.34, -6) with no AI behavior at all (the Prey Creature
-archetype it's meant to demonstrate isn't built yet).
+A `Chicken_001` sits in `TestScene.unity` near (6, 0.34, -6). Stands
+still (no wander/flee AI yet — that half of the Prey Creature archetype
+still isn't built), but is now genuinely killable and lootable via the
+new generic `PreyCreature.cs`.
 
 - [ ] **Visual check**: walk up to it in Play mode — confirm it renders
   correctly (not pink/invisible) and looks proportionally right next to
@@ -3589,5 +3590,18 @@ archetype it's meant to demonstrate isn't built yet).
   Manager, which this project doesn't support — check the Console for
   any input-related exceptions during a normal play session just in
   case something re-enables it unexpectedly.
-- [ ] **Not built yet, by design**: no movement, no flee behavior, no
-  interaction prompt, not huntable/skinnable.
+- [ ] **Kill and skin it**: punch/shoot it until it dies (15 HP, should
+  die quickly) — confirm it visibly "falls over" (same crude tip-onto-
+  side pose Wolf uses), then hold E with a Knife equipped — confirm the
+  hold-to-skin prompt appears and completes.
+- [ ] **Loot drop**: after skinning — confirm you receive 1-3 Feather
+  AND 1 Egg (both should always drop, no chance roll on either).
+- [ ] **Skill gain**: check the Gathering skill's XP before/after
+  skinning — confirm it increased (same skill Wolf's own skinning
+  trains, not a new one).
+- [ ] **Tool gate**: try skinning without a Knife equipped — confirm the
+  hold either doesn't start or doesn't complete (same gate Wolf uses).
+- [ ] **Respawn**: wait out the 180s respawn delay (or check back later)
+  — confirm the Chicken reappears alive at the same spot.
+- [ ] **Not built yet, by design**: no movement, no flee behavior when
+  approached (it doesn't react to the player at all until damaged).
