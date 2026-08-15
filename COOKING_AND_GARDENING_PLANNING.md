@@ -123,6 +123,19 @@ built yet.
   materials), reusing the established Blender-from-scratch pipeline
   (`Tools/Blender/`) rather than Tripo3D, same as Campfire/Trimmed
   Stick/Shovel.
+- **Open, pinned (2026-08-14): whether to use a paid Asset Store pack for
+  the crop plant models instead of custom Blender work.** [Wild Harvest:
+  Root Vegetables](https://assetstore.unity.com/packages/3d/vegetation/plants/wild-harvest-root-vegetables-295553)
+  ($24.99, NV3D) covers Potato/Carrot/Turnip/Sweet Potato/Onion with
+  growth-stage variants and URP support — Corn isn't included and would
+  still need a custom model either way. Visually reviewed (screenshots,
+  not just the spec sheet): the pack's plants are noticeably leafier/more
+  detailed/"painterly-shaded" than this project's established low-poly
+  from-scratch look (Campfire, Trimmed Stick, the Ingots, the Shovel) —
+  a real, visible style gap, not a subtle one, though arguably less
+  jarring on a small contained bed than it would be on a larger prop.
+  Not decided either way — revisit before building the Garden Plot's
+  visuals.
 - **Recipe/skill gate — ties to the new Cooking skill** (Ben's call,
   2026-08-14: "maybe we tie this to a 'cooking' tier?"), not Woodworking
   despite the wood-frame material — same "early, low-`SkillRequirement`
