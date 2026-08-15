@@ -515,6 +515,19 @@ signs off on scope and order.
 
 ## Bugs
 
+- [ ] **`RectangularHouseTwig`/`RectangularHousePlank` prefab buildings have
+  broken roof geometry at both gable ends (2026-08-14).** The existing
+  `RoofPanel`/`Roof` build piece is designed for a square footprint where
+  4 equal panels meet at one center point (confirmed correct on the
+  square `SmallHutTwig`/`SmallHutPlank` prefab buildings) — on the
+  elongated 2-Foundation Rectangular House, the ridge is a *line*, not a
+  point, and the short end walls' roof panels visibly poke through past
+  the ridge instead of closing off a proper gable end. Not a placement-
+  math bug (confirmed via render screenshot, verified against
+  `PlayerBuilding`'s own socket-snap formulas) — a real content gap, no
+  gable-end roof piece exists yet. Ben's call: ship as-is for now, revisit
+  once a real gable-end/hip-roof piece exists. See `MVP2_PLANNING.md`
+  item 10.
 - [ ] **`WovenGrassCloth.mat` also has `metallicFactor: 1` (2026-08-14).**
   Found while checking whether the `IconBaker` near-black-metallic bug
   (fixed same day, see `CHANGELOG.md`'s v0.3.58-dev entry) affected

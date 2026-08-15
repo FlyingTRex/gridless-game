@@ -3349,3 +3349,36 @@ on real prerequisites — see `FAME_PLANNING.md`/`BUGS_AND_ENHANCEMENTS.md`
 - [ ] **Fleeing resumes normal behavior**: back away until outside ~10m
   (or restore Fame to non-negative), confirm the NPC stops fleeing and
   resumes wandering/working normally, not stuck in a fleeing state.
+
+## 39. "Prefab" buildings dev tool, v1
+
+Editor-only (no in-game/Play-mode UI) — verified so far only via
+batch-mode compile + a render screenshot of each of the 4 buildings, not
+opened in the live Editor yet. Full design in `MVP2_PLANNING.md` item 10.
+
+- [ ] **Menu items appear**: in the Unity Editor, confirm
+  `Gridless/Place Prefab Building/` shows all 4 entries (Small Hut -
+  Twig, Small Hut - Plank, Rectangular House - Twig, Rectangular House -
+  Plank).
+- [ ] **Placement lands near the Scene view pivot**: position/orbit the
+  Scene view over a specific spot in `TestScene.unity`, click one of the
+  4 menu items — confirm the building appears at that XZ position,
+  sitting correctly on the terrain (not floating or sunk in).
+- [ ] **Undo removes it cleanly**: after placing, press Ctrl+Z — confirm
+  the building is fully removed with no leftover empty GameObject.
+- [ ] **Small Hut roof looks correct**: visually confirm all 4 roof
+  panels meet cleanly at a center peak, no gaps or clipping (matches the
+  verification screenshot taken during the build).
+- [ ] **Regression — Rectangular House gable ends**: confirm the known,
+  logged issue is actually there (both short ends show roof panels
+  poking through past the ridge instead of a clean gable) — this is
+  expected/already-known, not a new bug, but worth confirming it still
+  matches what was logged rather than having silently gotten worse.
+- [ ] **Placed pieces don't behave like player-built ones**: interact
+  with a wall/door on a placed prefab building the normal way a player
+  would (e.g. try to upgrade a piece) — confirm this is a decorative/
+  dev-tool structure only (no `PlacedPiece` component was attached during
+  assembly, deliberately, since its `BuildPiece` reference isn't
+  `[SerializeField]` and wouldn't survive being saved into the prefab
+  anyway) — not a bug if upgrade/interaction doesn't work the same as a
+  normally-placed piece, just a documented scope limit of this dev tool.

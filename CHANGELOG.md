@@ -5,12 +5,43 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.68-dev` — must always match `GameVersion` in
+**Current version:** `0.3.69-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (15)
+## 2026-08-14 (16)
+
+### v0.3.69-dev — "Prefab" buildings dev tool (MVP2 item 10)
+
+A dev-facing level-design tool for fast world population, per the scope
+decision resolved this session (not the bigger, deferred player-facing
+blueprint feature). Full design in `MVP2_PLANNING.md` item 10.
+
+Four composite building prefabs (`Assets/Prefabs/Buildings/`) assembled
+by replicating `PlayerBuilding`'s own socket-snap placement math
+(`ResolveFollowing`/`Confirm`) directly in a batch-mode Editor script,
+instead of live Play-mode piece-by-piece placement: `SmallHutTwig`/
+`SmallHutPlank` (1 Foundation, 4 Walls, 4 Roof panels meeting at a
+center pyramid ridge — confirmed correct via render screenshot) and
+`RectangularHouseTwig`/`RectangularHousePlank` (2 tiled Foundations, 6
+perimeter Walls, 6 Roof panels — ships with a known gable-end roof
+geometry gap, see `BUGS_AND_ENHANCEMENTS.md`, since no gable-end/hip-roof
+piece exists yet). Real geometry hit along the way: Twig's Foundation
+prefab is irregularly named `Foundation.prefab` with no "Twig" prefix,
+unlike every other Twig piece — caught by the loader's own missing-
+prefab error, not silently.
+
+New permanent `Assets/Editor/PrefabBuildingPlacer.cs` (same "keep,
+don't delete" category as `IconBaker.cs`, not one-off setup code) adds
+four `Gridless/Place Prefab Building/...` Editor menu items — drops the
+chosen building at the current Scene view's pivot XZ, sampling real
+terrain height via the existing `GroundHeight.Sample`, with full Undo
+support and auto-selecting the new instance for immediate fine-tuning.
+Editor-only (menu item, not a runtime Admin Spawn button) — Ben's call,
+matches this project's existing world-population workflow (Trees/
+Boulders/Bushes were all placed via batch-mode Editor scripts, not
+in-Play-mode tools).
 
 ### v0.3.68-dev — Fix Intelligence double-dip reading a self-written book
 

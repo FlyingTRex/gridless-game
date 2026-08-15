@@ -21,7 +21,7 @@ specced yet.
 7. **Skill books.** — 🟡 Built (v0.3.53-dev, `SKILL_BOOKS_PLANNING.md` — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode. Phase 4 (NPC training) correctly blocked on item 2's bench-crafting.
 8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev) — a Knife now deals real tier-scaled bonus damage, and any future melee weapon plugs in for free. Ranged (Archery/Gun) and animal diversity are both still fully open.
 9. **Cooking** — 🟡 Fully planned (`COOKING_AND_GARDENING_PLANNING.md`, 2026-08-14) — Cooking skill + quality tiers, plus a new Gardening system. Not yet built.
-10. **"Prefab" buildings** — drop a full premade building into a scene, rather than piece-by-piece.
+10. **"Prefab" buildings** — ✅ Built (v0.3.69-dev) — a dev-facing Editor menu tool, 4 composite buildings (Small Hut/Rectangular House × Twig/Plank). Rectangular House has a known gable-end roof gap, logged.
 
 ## First ideation pass (2026-08-12)
 
@@ -239,13 +239,24 @@ Strong tie to item 5 (weather-driven demand for warm food/drink) and item
 1 (Constitution).
 
 ### 10 — "Prefab" buildings
-**Needs a scope decision before further ideation:** is this a
-**dev-facing level-design tool** (drop a finished structure into the scene
-fast, to populate the world for testing/design purposes) or a
-**player-facing feature** (players save/stamp their own building layout as
-a reusable blueprint, in-game)? Very different builds — one's an Editor
-script, the other's real gameplay UI plus a save format (and would lean on
-item 6). Not yet decided which Ben meant.
+**Scope resolved (2026-08-14): dev-facing level-design tool**, not the
+bigger player-facing blueprint feature (players saving their own builds
+as reusable stamps) — that stays a distinct, undesigned future item if
+ever picked up, since it needs real gameplay UI plus a save format
+(leaning on item 6) rather than just an Editor script.
+
+**Built (v0.3.69-dev).** Four composite building prefabs (Small Hut /
+Rectangular House, each Twig and Plank) hand-assembled via a batch-mode
+Editor script that replicates `PlayerBuilding`'s own socket-snap math,
+plus a permanent `PrefabBuildingPlacer.cs` with four
+`Gridless/Place Prefab Building/...` Editor menu items (drops at the
+Scene view's pivot, samples real terrain height, full Undo support).
+Small Hut's roof (a true square footprint) came out correct on the
+first pass, confirmed via a render screenshot. Rectangular House ships
+with a known, logged issue — its two gable ends have broken roof
+geometry, since the existing `RoofPanel` piece is built for a
+point-meeting pyramid roof, not a ridge-line gable roof; no gable-end
+piece exists yet. See `BUGS_AND_ENHANCEMENTS.md`.
 
 ## How the list clusters
 
