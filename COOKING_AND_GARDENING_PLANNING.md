@@ -278,6 +278,39 @@ question without waiting on the full plant-model decision:
   for all 7 crops — that's the bigger, still-undecided piece (section 3's
   Asset-Store-pack-vs-Blender question).
 
+## 8. Real growth-stage art via Wild Harvest — built (v0.3.81-dev, 2026-08-15)
+
+Resolves section 3's open Asset-Store-pack-vs-Blender question for the
+growing-plant visuals (not the seed packet item, which stays custom
+Blender art regardless — see section 7): Ben purchased and imported
+Wild Harvest: Root Vegetables (`Assets/NV3D/Wild Harvest/`).
+
+- Confirmed genuinely URP-native before use (`WH_Foliage.shader` targets
+  `UniversalPipeline` directly) — none of this project's legacy-shader
+  invisibility gotchas applied.
+- The pack's own `PatchController.cs` confirmed the numbered
+  `Plant_1`–`_12` prefabs are real sequential growth stages, not random
+  variety — verified further via actual measured bounds across stages.
+- **Ben's call: use the pack's full stage list as-is, on our own
+  mechanic** — not collapsed to 3 fixed stops, and not the pack's own
+  standalone demo mini-game (which would've meant abandoning the seed-
+  packet/inventory/cell system already built). `CropDefinition` now
+  holds an ordered `growthStagePrefabs` array instead of one scaled
+  mesh; `GardenPlot4x4` swaps between real stage prefabs as each cell's
+  timer progresses, only touching the instance when the target stage
+  index actually changes.
+- Covers 6 of 7 crops. Corn keeps its placeholder cube (not in the pack,
+  and not actually a root vegetable).
+- **Not yet built**: harvested-crop world-pickup visuals (the pack's own
+  "Bunch" prefabs could fill this — Carrot/Potato/Turnip/Ginger/Sweet
+  Potato have them, Onion doesn't) — checked their sizes and some are
+  clearly scaled for a different use case (e.g. `CarrotBunch_1` measures
+  0.73m tall, obviously wrong for a held/dropped item at this project's
+  1-unit-=-1-meter scale) and would need real per-model scale correction
+  before use, same "scale against the player, not the raw import size"
+  rule as every other imported model in this project. Left as a
+  follow-up rather than wired in with wrong scale.
+
 ## Cross-references
 
 - `CAMPFIRE_PLANNING.md` — the `Campfire`/`CookableItem` mechanism this

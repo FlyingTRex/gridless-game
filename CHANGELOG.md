@@ -5,10 +5,50 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.80-dev` — must always match `GameVersion` in
+**Current version:** `0.3.81-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (4)
+
+### v0.3.81-dev — Real growth-stage art via Wild Harvest: Root Vegetables
+
+Ben purchased and imported the Wild Harvest: Root Vegetables Asset Store
+pack (`Assets/NV3D/Wild Harvest/`), resolving `COOKING_AND_GARDENING_PLANNING.md`
+section 3's open Asset-Store-pack-vs-Blender question in favor of the
+pack — for the growing-plant visuals specifically (the seed *packet*
+model from the last entry stays custom Blender art either way). Confirmed
+genuinely URP-native (`WH_Foliage.shader` targets `UniversalPipeline`
+directly) before touching anything, so none of this project's prior
+legacy-shader-invisibility gotchas applied.
+
+Real finding from the pack's own source (`PatchController.cs`), not
+assumed: the numbered `Plant_1`–`_12` prefabs per crop are genuine
+sequential growth stages (the pack's own demo controller cycles through
+them as a `List<GameObject>`), not just random variety — confirmed
+further by measuring actual `Renderer.bounds` across all 12 stages for
+several crops (small→medium→large trend, not perfectly monotonic but
+real). Covers 6 of 7 crops (all but Corn, which isn't a root vegetable
+and keeps its placeholder cube).
+
+**Ben's call: use the pack's full stage list as-is, on our own existing
+mechanic** — not collapsed to a fixed 3 stages, and not the pack's own
+standalone click/timer demo mini-game (which would have meant abandoning
+the seed-packet/inventory/cell system built earlier tonight).
+`CropDefinition.growingVisualPrefab` (single mesh, scaled) became
+`growthStagePrefabs` (ordered `GameObject[]`); `GardenPlot4x4` no longer
+scales one mesh through 3 fixed multipliers — it now swaps between
+whichever stage prefab the cell's real-time progress currently falls
+into (`Mathf.FloorToInt(progress * stageCount)`), only destroying/
+instantiating when the target stage index actually changes. Corn's
+single placeholder became a 1-element `growthStagePrefabs` array, so the
+same code path covers it with no special-casing.
+
+Verified via direct YAML grep of all 6 crops' 12-entry arrays plus
+Corn's 1-entry array. **Not yet live-tested in Play mode** — worth a
+close look given the growth-stage swap is genuinely new logic, not a
+straight reuse of the single-plot POC's proven scale-based approach.
 
 ## 2026-08-15 (3)
 

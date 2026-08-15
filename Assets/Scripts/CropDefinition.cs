@@ -13,11 +13,17 @@ public class CropDefinition : ScriptableObject
     public ItemDefinition cropItem;
     public float growDurationSeconds = 300f;
 
-    // Instantiated per-cell as the growing-plant visual, scaled through the
-    // same 3-stage progression GardenPlot.cs (the single-plot POC) already
-    // uses. Null falls back to no visual at all — a cell can still function
-    // (state/timer/harvest all work), it just shows nothing growing, same
+    // Ordered growth-stage visuals — index 0 is the earliest stage, the
+    // last entry is the fully-grown plant. GardenPlot4x4 swaps between
+    // these directly as a cell's grow timer progresses (no scaling — each
+    // stage is real, differently-shaped geometry, e.g. Wild Harvest: Root
+    // Vegetables' own numbered growth-stage prefabs), picking whichever
+    // stage index the current progress falls into. A single-entry array
+    // still works fine (one static visual, e.g. this project's own
+    // placeholder primitives for Corn) — GardenPlot4x4 clamps to whatever
+    // length is actually provided. Empty/null means no visual at all — a
+    // cell still functions (state/timer/harvest all work), same
     // "missing visual isn't a functional blocker" convention as a
     // blank-tile icon.
-    public GameObject growingVisualPrefab;
+    public GameObject[] growthStagePrefabs;
 }

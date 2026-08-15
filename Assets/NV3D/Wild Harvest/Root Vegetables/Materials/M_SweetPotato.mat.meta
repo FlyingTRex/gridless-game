@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 7c4f0b1f9f5d5a345b81bc9b774049ee
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 295553
+  packageName: 'Wild Harvest: Root Vegetables'
+  packageVersion: 2.2
+  assetPath: Assets/NV3D/Wild Harvest/Root Vegetables/Materials/M_SweetPotato.mat
+  uploadId: 887062

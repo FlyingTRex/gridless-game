@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: eb835e5477c0f984abf1786aa36a5e68
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 11400000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 295553
+  packageName: 'Wild Harvest: Root Vegetables'
+  packageVersion: 2.2
+  assetPath: Assets/NV3D/Wild Harvest/Shared/Script Graphs/SG_BunchAnim.asset
+  uploadId: 887062

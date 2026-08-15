@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: f23b55b069be47d4fa1eac4108b83de4
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 295553
+  packageName: 'Wild Harvest: Root Vegetables'
+  packageVersion: 2.2
+  assetPath: Assets/NV3D/Wild Harvest/Shared/Materials/Cube.mat
+  uploadId: 887062

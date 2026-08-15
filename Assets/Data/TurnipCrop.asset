@@ -16,4 +16,16 @@ MonoBehaviour:
   seedItem: {fileID: 11400000, guid: 575601e8639568f43856ce5703f40267, type: 2}
   cropItem: {fileID: 11400000, guid: 9db80c699549ea846b722120a67bc593, type: 2}
   growDurationSeconds: 480
-  growingVisualPrefab: {fileID: 3688624034781225331, guid: 45ab72631959f6649bc1868649a942ad, type: 3}
+  growthStagePrefabs:
+  - {fileID: 7845723731829299730, guid: 801063955f7d8cb45b19879594041f89, type: 3}
+  - {fileID: 7940064783176659162, guid: 0da0d28ad60c0ae419de4aaa561ff100, type: 3}
+  - {fileID: 7763859840319658750, guid: 04b93e14a618c9e42a641f4acab2819e, type: 3}
+  - {fileID: 7763125874045795514, guid: d16646640127e314e8d7f67a212f3b8a, type: 3}
+  - {fileID: 3075961726938674319, guid: 51cae71e316944143b04a5eda95f2b59, type: 3}
+  - {fileID: 3604557113208699812, guid: 198bbf1c5583ff24a9f29d5a954f3315, type: 3}
+  - {fileID: 4758908826896080755, guid: 63a24bf89da0cf54691423612a0dd57d, type: 3}
+  - {fileID: 2105244373679218183, guid: cc87c724d7fbab845a38d9dda999d876, type: 3}
+  - {fileID: 6249254363072576648, guid: 8f9060a75bd535745a21dc05c6d6298a, type: 3}
+  - {fileID: 3745604428292961843, guid: 7fdc6c78acb929f4884cb28e7b8ab126, type: 3}
+  - {fileID: 5020263574903514987, guid: 0347b55f8e4e2f24fa288c3a1ad478ab, type: 3}
+  - {fileID: 8216646976825555231, guid: 13b94ca647e7b714b8e80ab922af01e3, type: 3}

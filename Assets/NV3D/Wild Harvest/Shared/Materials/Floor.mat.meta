@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: 947588b39ea9cf04ca6c46824aa98107
+NativeFormatImporter:
+  externalObjects: {}
+  mainObjectFileID: 2100000
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 295553
+  packageName: 'Wild Harvest: Root Vegetables'
+  packageVersion: 2.2
+  assetPath: Assets/NV3D/Wild Harvest/Shared/Materials/Floor.mat
+  uploadId: 887062

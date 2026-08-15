@@ -431,18 +431,24 @@ signs off on scope and order.
   (2026-08-15).** Seed *items* now have real art (a shared Blender
   packet model, 7 crop-color materials) — closes the "seed items have no
   visual" gap. All 7 crops now stock 10 seeds/packet (`maxStack = 10`).
-- [ ] **Garden Plot GROWING-plant visuals are still placeholder
-  primitives (2026-08-15, updated).** All 7 crops' growing-plant models
-  (`CarrotGrowingVisual` etc.) are plain colored cylinder/sphere/cube
-  shapes, not real mature-plant models — the seed *packet* now has real
-  art (see above), but the plant it grows into still doesn't. Ships
-  mechanically complete rather than blocking on the still-open
-  Asset-Store-pack-vs-Blender question in `COOKING_AND_GARDENING_PLANNING.md`
-  section 3. Revisit once that's decided.
+- [x] **Garden Plot growing-plant visuals — real art via Wild Harvest:
+  Root Vegetables, v0.3.81-dev (2026-08-15).** 6 of 7 crops (all but
+  Corn) now grow through their real 12-stage pack models instead of
+  placeholder primitives — `GardenPlot4x4` swaps stage prefabs directly
+  as the cell's real-time timer progresses. Corn keeps its placeholder
+  cube (pack doesn't include it, and it's not a root vegetable anyway).
 - [ ] **Garden Plot seeds are Admin-Spawn-only (2026-08-15).** All 7 seed
   items exist as real items with real packet art but have no in-world
   source — the wild forage nodes (`WildCarrotPatch` etc.) from
   `COOKING_AND_GARDENING_PLANNING.md` section 4 aren't built yet.
+- [ ] **Harvested-crop items still have no world-pickup visual
+  (2026-08-15).** Carrot/Potato/Ginger/Turnip/Onion/Sweet Potato fall
+  back to the generic gray dropped-item cube. Wild Harvest: Root
+  Vegetables ships "Bunch" prefabs that could fill this (Onion has none),
+  but their raw scale doesn't match this project's 1-unit-=-1-meter
+  convention (`CarrotBunch_1` measures 0.73m tall) — needs real
+  per-model scale correction first, see
+  `COOKING_AND_GARDENING_PLANNING.md` section 8.
 - [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
   extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather
   than replacing it.

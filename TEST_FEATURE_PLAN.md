@@ -3463,12 +3463,20 @@ yet; use Admin Spawn.
   each crop — confirm Carrot (orange), Potato (tan), Ginger (pale gold),
   Turnip (violet), Onion (dusty yellow-brown), Sweet Potato (rust-red),
   and Corn (bright yellow) are all visually distinct when dropped/held.
-- [ ] **3-stage growth + progress readout**: watch a growing cell —
-  confirm its grid label shows a rising percentage, and the context
-  panel (when that cell is selected) shows the same percentage; confirm
-  the growing-plant visual (a colored primitive shape) appears at the
-  cell's anchor point and jumps size at roughly 1/3 and 2/3 of the way
-  through.
+- [ ] **12-stage growth + progress readout (real Wild Harvest art, for
+  Carrot/Potato/Ginger/Turnip/Onion/Sweet Potato)**: watch a growing
+  cell — confirm its grid label shows a rising percentage, the context
+  panel (when that cell is selected) shows the same percentage, and the
+  growing-plant visual at the cell's anchor point visibly changes shape
+  (not just size) roughly 12 times over the full grow duration as it
+  progresses through the pack's real growth-stage models, ending on the
+  largest/most mature stage exactly at "Ready!". Confirm no visible pop/
+  gap when the plant is missing between stage swaps (should destroy the
+  old stage and instantiate the new one in the same frame).
+- [ ] **Corn's single placeholder stage**: plant a Corn Seed Packet —
+  confirm the placeholder cube appears immediately and stays static (no
+  stage-swap logic needed/expected since Corn only has 1 registered
+  stage) through to harvest.
 - [ ] **Harvest and auto-replant**: once a cell reads "Ready!", select it
   and click "Harvest" — confirm you receive 1 of the crop item, and if
   the original seed stack had more than 1, the cell immediately restarts

@@ -22,13 +22,6 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
     public const int GridSize = 4;
     public const int CellCount = GridSize * GridSize;
 
-    // Same 3-discrete-stage growth presentation as GardenPlot.cs.
-    private const float Stage1Fraction = 1f / 3f;
-    private const float Stage2Fraction = 2f / 3f;
-    private const float Stage1Scale = 0.35f;
-    private const float Stage2Scale = 0.65f;
-    private const float FullScale = 1f;
-
     public enum CellState { Empty, Growing, Ready }
 
     private struct Cell
@@ -38,6 +31,7 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
         public CellState state;
         public float growStartedAt;
         public GameObject visualInstance;
+        public int visualStageIndex;
     }
 
     [SerializeField] private CropDefinition[] registeredCrops;
@@ -66,7 +60,7 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
             var crop = cells[i].crop;
             float duration = crop != null ? crop.growDurationSeconds : 1f;
             float elapsed = Time.time - cells[i].growStartedAt;
-            UpdateVisualScale(i, Mathf.Clamp01(elapsed / duration));
+            UpdateVisualStage(i, Mathf.Clamp01(elapsed / duration));
 
             if (elapsed >= duration)
                 cells[i].state = CellState.Ready;
@@ -154,30 +148,45 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
     {
         cells[index].state = CellState.Growing;
         cells[index].growStartedAt = Time.time;
+        cells[index].visualStageIndex = -1; // forces UpdateVisualStage to instantiate stage 0 below
 
+        UpdateVisualStage(index, 0f);
+    }
+
+    // Swaps the cell's visual to whichever growth-stage prefab the given
+    // progress (0-1) falls into — real, differently-shaped geometry per
+    // stage (e.g. Wild Harvest's own numbered growth-stage models), not a
+    // single mesh scaled up. Only actually destroys/instantiates when the
+    // target stage index changes, so this is cheap to call every frame.
+    private void UpdateVisualStage(int index, float progress)
+    {
         var crop = cells[index].crop;
-        var anchor = plantAnchors != null && index < plantAnchors.Length ? plantAnchors[index] : null;
+        var stages = crop != null ? crop.growthStagePrefabs : null;
+        int stageCount = stages != null ? stages.Length : 0;
+        if (stageCount == 0) return;
 
-        if (cells[index].visualInstance == null && crop != null && crop.growingVisualPrefab != null && anchor != null)
+        int targetStage = Mathf.Clamp(Mathf.FloorToInt(progress * stageCount), 0, stageCount - 1);
+        if (targetStage == cells[index].visualStageIndex) return;
+
+        var anchor = plantAnchors != null && index < plantAnchors.Length ? plantAnchors[index] : null;
+        if (anchor == null) return;
+
+        if (cells[index].visualInstance != null) Destroy(cells[index].visualInstance);
+
+        var prefab = stages[targetStage];
+        if (prefab != null)
         {
-            var instance = Instantiate(crop.growingVisualPrefab, anchor);
+            var instance = Instantiate(prefab, anchor);
             instance.transform.localPosition = Vector3.zero;
             instance.transform.localRotation = Quaternion.identity;
             cells[index].visualInstance = instance;
         }
+        else
+        {
+            cells[index].visualInstance = null;
+        }
 
-        UpdateVisualScale(index, 0f);
-    }
-
-    private void UpdateVisualScale(int index, float progress)
-    {
-        var instance = cells[index].visualInstance;
-        if (instance == null) return;
-
-        float scale = progress < Stage1Fraction ? Stage1Scale
-            : progress < Stage2Fraction ? Stage2Scale
-            : FullScale;
-        instance.transform.localScale = Vector3.one * scale;
+        cells[index].visualStageIndex = targetStage;
     }
 
     private void ClearCell(int index)
@@ -186,5 +195,6 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
         cells[index].crop = null;
         if (cells[index].visualInstance != null) Destroy(cells[index].visualInstance);
         cells[index].visualInstance = null;
+        cells[index].visualStageIndex = -1;
     }
 }

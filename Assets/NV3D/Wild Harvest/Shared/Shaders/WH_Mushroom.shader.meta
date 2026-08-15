@@ -1,0 +1,16 @@
+fileFormatVersion: 2
+guid: b7e871796933af741841b525383d5803
+ShaderImporter:
+  externalObjects: {}
+  defaultTextures: []
+  nonModifiableTextures: []
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 295553
+  packageName: 'Wild Harvest: Root Vegetables'
+  packageVersion: 2.2
+  assetPath: Assets/NV3D/Wild Harvest/Shared/Shaders/WH_Mushroom.shader
+  uploadId: 887062
