@@ -5,12 +5,33 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.72-dev` — must always match `GameVersion` in
+**Current version:** `0.3.73-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (19)
+## 2026-08-14 (20)
+
+### v0.3.73-dev — Fix invisible Berry Seed world pickup
+
+Found live (Ben: Admin Spawn "isn't working" for Berry Seed, while Berry
+itself spawned fine through the identical code path). Real cause:
+`BerrySeed.glb`'s embedded material was never extracted into a real
+`Universal Render Pipeline/Lit` `.mat` asset the way every other working
+model's material already is — it rendered fully invisible under URP via
+the raw glTFast-import shader, same failure shape as the HumanDummy
+legacy-shader bug earlier this session, different mechanism. Fixed with a
+new `Assets/Data/BerrySeedPickup.mat` remapped onto the model's importer
+via `AssetImporter.AddRemap` (glTFast's importer is
+`GLTFast.Editor.GltfImporter`, not Unity's built-in `ModelImporter` —
+`AddRemap`/`SaveAndReimport` are on the base `AssetImporter` class either
+way). Verified via the model's own `.meta` file (not the prefab/scene —
+the remap lives on the model's own import settings) and a render
+screenshot, since this bug class's whole signature is "looks fine
+structurally, renders invisible." Checked every other imported model for
+the same issue (grepped every `.glb.meta` for an existing material remap)
+— found none, confirmed this was specific to Berry Seed's own generation,
+not a project-wide pattern worth a wider fix pass. New `CLAUDE.md` gotcha.
 
 ### v0.3.72-dev — Fix Garden Plot spawning inside a Boulder
 

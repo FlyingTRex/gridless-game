@@ -2,7 +2,12 @@ fileFormatVersion: 2
 guid: 780bb50a65349c5418518c41db642df7
 ScriptedImporter:
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: BerrySeedMat
+    second: {fileID: 2100000, guid: 7123ff3b5a5671d42821aa5409c72d41, type: 2}
   serializedVersion: 2
   userData: 
   assetBundleName: 
