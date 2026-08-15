@@ -3352,14 +3352,24 @@ on real prerequisites — see `FAME_PLANNING.md`/`BUGS_AND_ENHANCEMENTS.md`
 
 ## 39. "Prefab" buildings dev tool, v1
 
-Editor-only (no in-game/Play-mode UI) — verified so far only via
-batch-mode compile + a render screenshot of each of the 4 buildings, not
-opened in the live Editor yet. Full design in `MVP2_PLANNING.md` item 10.
+Editor-only (no in-game/Play-mode UI) — verified so far via batch-mode
+compile, a render screenshot of each of the 4 buildings, and direct YAML
+grep confirming all 4 are now placed in `TestScene.unity` (near ±20/25,
+±20/25 around player spawn) — not yet opened in the live Editor to
+actually look at them. Full design in `MVP2_PLANNING.md` item 10.
 
+- [ ] **The 4 already-placed buildings look right in the Editor/Play
+  mode**: open `TestScene.unity` (or enter Play mode) and walk to each of
+  the 4 buildings placed near the player's spawn point — confirm they
+  render correctly, sit properly on the terrain (not floating or sunk
+  in), and aren't overlapping each other or other scattered scene
+  content (Trees/Boulders/Bushes/NPCs) that happened to already be near
+  those coordinates.
 - [ ] **Menu items appear**: in the Unity Editor, confirm
   `Gridless/Place Prefab Building/` shows all 4 entries (Small Hut -
   Twig, Small Hut - Plank, Rectangular House - Twig, Rectangular House -
-  Plank).
+  Plank) — for placing *additional* copies beyond the 4 already seeded
+  into the scene.
 - [ ] **Placement lands near the Scene view pivot**: position/orbit the
   Scene view over a specific spot in `TestScene.unity`, click one of the
   4 menu items — confirm the building appears at that XZ position,

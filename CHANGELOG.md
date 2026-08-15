@@ -5,12 +5,31 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.69-dev` — must always match `GameVersion` in
+**Current version:** `0.3.70-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (16)
+## 2026-08-14 (17)
+
+### v0.3.70-dev — Place the 4 prefab buildings into TestScene.unity
+
+Populates the world with the 4 buildings built in v0.3.69-dev: `SmallHutTwig`
+and `SmallHutPlank` near (±20, 20), `RectangularHouseTwig` and
+`RectangularHousePlank` near (±20/25, -25) — a loose square around the
+player's (0,0,0) spawn point, each Y sampled from real terrain height via
+`GroundHeight.Sample`.
+
+Real gotcha hit and fixed along the way — logged in `CLAUDE.md`:
+`EditorSceneManager.OpenScene(path)` (no explicit `OpenSceneMode`) +
+`SaveOpenScenes()` silently no-op'd in batch mode — every placement logged
+real success (correct positions, no errors), but the `.unity` file on disk
+was never actually written, caught only by checking the file's own modified
+timestamp against wall-clock time. Fixed by threading an explicit `Scene`
+handle through every step (`OpenSceneMode.Single`,
+`PrefabUtility.InstantiatePrefab(prefab, scene)`,
+`EditorSceneManager.SaveScene(scene)` with its `bool` return value logged)
+instead of relying on the ambient "currently open scene."
 
 ### v0.3.69-dev — "Prefab" buildings dev tool (MVP2 item 10)
 

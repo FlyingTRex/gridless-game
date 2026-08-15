@@ -21,7 +21,7 @@ specced yet.
 7. **Skill books.** — 🟡 Built (v0.3.53-dev, `SKILL_BOOKS_PLANNING.md` — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode. Phase 4 (NPC training) correctly blocked on item 2's bench-crafting.
 8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev) — a Knife now deals real tier-scaled bonus damage, and any future melee weapon plugs in for free. Ranged (Archery/Gun) and animal diversity are both still fully open.
 9. **Cooking** — 🟡 Fully planned (`COOKING_AND_GARDENING_PLANNING.md`, 2026-08-14) — Cooking skill + quality tiers, plus a new Gardening system. Not yet built.
-10. **"Prefab" buildings** — ✅ Built (v0.3.69-dev) — a dev-facing Editor menu tool, 4 composite buildings (Small Hut/Rectangular House × Twig/Plank). Rectangular House has a known gable-end roof gap, logged.
+10. **"Prefab" buildings** — ✅ Built and placed in `TestScene.unity` (v0.3.69-dev/v0.3.70-dev) — a dev-facing Editor menu tool, 4 composite buildings (Small Hut/Rectangular House × Twig/Plank). Rectangular House has a known gable-end roof gap, logged.
 
 ## First ideation pass (2026-08-12)
 
@@ -256,7 +256,16 @@ first pass, confirmed via a render screenshot. Rectangular House ships
 with a known, logged issue — its two gable ends have broken roof
 geometry, since the existing `RoofPanel` piece is built for a
 point-meeting pyramid roof, not a ridge-line gable roof; no gable-end
-piece exists yet. See `BUGS_AND_ENHANCEMENTS.md`.
+piece exists yet.
+
+**All 4 placed into `TestScene.unity` (v0.3.70-dev)** — a loose square
+around the player's spawn point, so the world is actually populated with
+them now, not just sitting as unused prefab assets. Placed via a
+throwaway batch script (not the live Editor menu, since a headless
+session can't drive `SceneView.lastActiveSceneView`) — hit and fixed a
+real `EditorSceneManager` silent-save gotcha along the way (see
+`CLAUDE.md`). See `BUGS_AND_ENHANCEMENTS.md` for the Rectangular House
+gable-end roof issue.
 
 ## How the list clusters
 

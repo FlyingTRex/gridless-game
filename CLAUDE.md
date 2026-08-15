@@ -711,3 +711,49 @@ default that will silently corrupt the new value). Verify the migrated
 material's actual saved color/texture values in the YAML afterward, the same
 "don't trust a clean log" discipline as every other asset-creation gotcha in
 this file.
+
+## Gotcha: `EditorSceneManager.OpenScene(path)` + `SaveOpenScenes()` can
+silently no-op in batch mode, even with a clean log and no exception
+
+Hit live (2026-08-14, placing the 4 "Prefab" buildings into `TestScene.unity`
+via a batch-mode script): `EditorSceneManager.OpenScene("Assets/Scenes/
+TestScene.unity")` (no explicit `OpenSceneMode`), followed by instantiating
+several `GameObject`s via `PrefabUtility.InstantiatePrefab(prefab)` (no
+explicit destination scene) and finally `EditorSceneManager.SaveOpenScenes()`
+— every line logged success (`Debug.Log` calls for each placed object, no
+`error CS`, no exception, no warning), but the actual `.unity` file on disk
+was never touched. Caught only by checking the file's own modified timestamp
+against wall-clock time and grepping for the newly-placed object names — both
+came back showing the file hadn't changed since a much earlier session,
+despite the batch run's log claiming 4 successful placements and a final
+"done."
+
+**Root cause, not fully diagnosed, but the pattern that fixed it**: this
+project's `SceneAutoOpen.cs` already auto-opens `TestScene.unity` at Editor
+startup when nothing else is loaded (see this file's own "Single scene
+today" bullet) — a second, redundant `OpenScene()` call with no explicit
+`OpenSceneMode` may return a `Scene` handle that doesn't line up with
+whatever `SaveOpenScenes()` considers "open" in batch mode, so instantiated
+objects landed in a scene that never actually got saved. Not confirmed via
+Unity source, just the mechanism that matches every symptom observed.
+
+**The fix:** be fully explicit at every step instead of relying on
+"currently active scene" implicitly — `EditorSceneManager.OpenScene(path,
+OpenSceneMode.Single)`, keep the returned `Scene` handle, pass it directly to
+`PrefabUtility.InstantiatePrefab(prefab, scene)` for every object placed,
+then `EditorSceneManager.SaveScene(scene)` (capturing and logging its `bool`
+return value) instead of the ambient `SaveOpenScenes()`. This is also a
+reminder to actually check that return value and log it — `SaveScene`
+returning `false` would have been a much faster diagnostic than discovering
+the mismatch via file timestamps.
+
+**How to apply:** for any batch-mode script that opens a scene, places
+objects, and saves it, prefer the explicit `Scene`-handle-threaded-through
+version over the ambient/ambiguous one from the start — and regardless of
+which version is used, verify the saved `.unity` file directly afterward
+(grep for the new object names, or compare the file's modified timestamp
+against wall-clock time) rather than trusting a clean batch-mode log. This
+is the same "don't trust the log" discipline as every other stale-reference/
+silent-failure gotcha in this file, just a new failure shape: total silent
+no-op on the save step itself, with every earlier step logging real,
+accurate success.
