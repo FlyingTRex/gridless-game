@@ -5,12 +5,23 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.73-dev` — must always match `GameVersion` in
+**Current version:** `0.3.74-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (20)
+## 2026-08-14 (21)
+
+### v0.3.74-dev — Stop Berry Seed pickups rolling downhill
+
+Found live (Ben, immediately after the invisibility fix made them
+visible enough to notice): a tiny `SphereCollider` (radius 0.007) with a
+`Rigidbody` and no rotation constraints just rolls indefinitely on any
+slope — physically correct for an unconstrained sphere, not a bug in any
+game-specific code. Fixed by freezing all three rotation axes on
+`BerrySeedPickup.prefab`'s `Rigidbody` (`m_Constraints: 0` → `112`,
+i.e. `FreezeRotationX|Y|Z`) — it still falls and settles via gravity
+normally, it just doesn't spin/roll away anymore.
 
 ### v0.3.73-dev — Fix invisible Berry Seed world pickup
 
