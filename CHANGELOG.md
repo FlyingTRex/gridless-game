@@ -5,10 +5,27 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.81-dev` — must always match `GameVersion` in
+**Current version:** `0.3.82-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (5)
+
+### v0.3.82-dev — Fix: 7 crop EdibleItems never registered
+
+Real bug, caught by Ben asking "do the new crops have the 'eat'
+mechanism?" — creating an `EdibleItem` asset isn't enough on its own;
+`PlayerEating.edibles` is a manually-curated array on the scene's Player
+GameObject (same pattern as `PlayerBuilding.allPieces`), not something
+that auto-discovers new assets. `CarrotEdible`/`PotatoEdible`/
+`CornEdible`/`GingerEdible`/`TurnipEdible`/`OnionEdible`/
+`SweetPotatoEdible` all existed correctly (verified via YAML) but were
+never added to that list, so none of the 7 crops were actually eatable
+in-game despite the asset wiring looking complete. Same class of gap as
+the Fame save/load bug from earlier this session — an asset/field exists
+and looks right in isolation, but nothing actually reads it. Fixed by
+appending all 7 guids to `PlayerEating.edibles` in `TestScene.unity`.
 
 ## 2026-08-15 (4)
 
