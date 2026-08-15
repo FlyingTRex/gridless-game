@@ -5,12 +5,25 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.75-dev` — must always match `GameVersion` in
+**Current version:** `0.3.76-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (22)
+## 2026-08-14 (23)
+
+### v0.3.76-dev — Fix Garden Plot not seeing seeds carried in a worn Backpack
+
+Real bug, found live (Ben: seeds in hand, planter box in front of him,
+no way to plant). `GardenPlot.Complete()` only ever checked the
+player's main `PlayerInventory` — it had no idea a worn Backpack has its
+own separate nested `Inventory`. Since Berry Seed (a stackable item)
+routes into an equipped Backpack first on pickup (`PlayerLoot`'s
+existing priority), seeds carried the normal way were invisible to the
+plot's own count check, silently no-oping on every E-key press with no
+error or feedback. `TryPlant`/`Harvest` now check and pull from both the
+main inventory and a worn Backpack's contents (harvest deposits into the
+Backpack first too, same priority `PlayerLoot` already uses).
 
 ### v0.3.75-dev — Scale up Berry Seed's pickup model
 

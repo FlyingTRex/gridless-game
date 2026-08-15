@@ -71,13 +71,15 @@ public class GardenPlot : MonoBehaviour, IInteractable
         var playerInventory = player.GetComponent<PlayerInventory>();
         if (playerInventory == null) return;
 
+        var backpackCarrier = player.GetComponent<PlayerBackpack>();
+
         switch (state)
         {
             case PlotState.Empty:
-                TryPlant(playerInventory);
+                TryPlant(playerInventory, backpackCarrier);
                 break;
             case PlotState.Ready:
-                Harvest(playerInventory);
+                Harvest(playerInventory, backpackCarrier);
                 break;
             // Growing: nothing to do yet, E is a no-op.
         }
@@ -85,19 +87,38 @@ public class GardenPlot : MonoBehaviour, IInteractable
 
     // Plants the player's ENTIRE current Berry Seed stack at once — the
     // mechanic being proven out, not a one-seed-at-a-time interaction.
-    private void TryPlant(PlayerInventory playerInventory)
+    // Checks the main inventory AND a worn Backpack's own nested
+    // inventory — Berry Seed is a stackable item that routes into an
+    // equipped Backpack first on pickup (PlayerLoot), so a naive
+    // main-inventory-only check would silently see 0 seeds despite the
+    // player visibly carrying some.
+    private void TryPlant(PlayerInventory playerInventory, PlayerBackpack backpackCarrier)
     {
-        int available = playerInventory.GetCount(berrySeedItem);
-        if (available <= 0) return;
+        var backpackInventory = backpackCarrier?.Equipped?.Inventory;
 
-        playerInventory.RemoveItem(berrySeedItem, available);
-        seedsRemaining = available;
+        int mainCount = playerInventory.GetCount(berrySeedItem);
+        int backpackCount = backpackInventory?.GetCount(berrySeedItem) ?? 0;
+        int total = mainCount + backpackCount;
+        if (total <= 0) return;
+
+        if (mainCount > 0) playerInventory.RemoveItem(berrySeedItem, mainCount);
+        if (backpackCount > 0) backpackInventory.RemoveItem(berrySeedItem, backpackCount);
+
+        seedsRemaining = total;
         StartGrowing();
     }
 
-    private void Harvest(PlayerInventory playerInventory)
+    // Deposits into a worn Backpack first if there's room (same priority
+    // PlayerLoot already uses for picked-up items), falling back to the
+    // main inventory for whatever didn't fit.
+    private void Harvest(PlayerInventory playerInventory, PlayerBackpack backpackCarrier)
     {
-        playerInventory.AddItem(berryItem, harvestYield);
+        var backpackInventory = backpackCarrier?.Equipped?.Inventory;
+        int leftover = backpackInventory != null
+            ? backpackInventory.AddItem(berryItem, harvestYield)
+            : harvestYield;
+        if (leftover > 0)
+            playerInventory.AddItem(berryItem, leftover);
 
         seedsRemaining--;
         if (seedsRemaining > 0)
