@@ -26,7 +26,7 @@ public class PlayerRangedCombat : MonoBehaviour
     private const float BaseDamageMax = 4f;
     private const float ArrowFlightSpeed = 40f;
 
-    private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
+    private static readonly string[] HandSlots = PlayerEquipSlots.Hands;
     private static readonly int IsDrawingBowParam = Animator.StringToHash("IsDrawingBow");
     private static readonly int ReleaseBowParam = Animator.StringToHash("ReleaseBow");
 

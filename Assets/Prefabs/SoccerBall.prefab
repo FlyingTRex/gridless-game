@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6431518277669763920}
   - component: {fileID: 7752568813640718753}
   - component: {fileID: 756405039833467588}
+  - component: {fileID: 3069785260461804898}
   m_Layer: 0
   m_Name: SoccerBall
   m_TagString: Untagged
@@ -103,6 +104,25 @@ MonoBehaviour:
   sprintMaxAngle: 45
   minAngle: 5
   kickCooldown: 0.4
+--- !u!114 &3069785260461804898
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7875036920835802489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9f8654f1074c5cf46a102f59b6b914fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Pickup
+  item: {fileID: 11400000, guid: fdf093418a7758948b52f499b4b51fb4, type: 2}
+  quantity: 1
+  trainedSkill: {fileID: 0}
+  skillGain: 0.05
+  canRespawn: 0
+  respawnDelay: 180
+  respawnScatter: 0.5
 --- !u!1001 &3366855571902623427
 PrefabInstance:
   m_ObjectHideFlags: 0

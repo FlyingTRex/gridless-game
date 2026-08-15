@@ -9,7 +9,7 @@ using UnityEngine;
 public class PlayerLoot : MonoBehaviour
 {
     // Tried in order; Left Hand is evicted first if both are occupied.
-    private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
+    private static readonly string[] HandSlots = PlayerEquipSlots.Hands;
 
     private PlayerEquipment equipment;
     private PlayerBackpack backpackCarrier;

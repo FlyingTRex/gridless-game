@@ -10,7 +10,7 @@ public class PlayerCanteen : MonoBehaviour
     // occupies the body's actual Waist slot, so a bare Canteen without one
     // only ever has the two hands to fall back to.
     private const string BeltSlot = "Belt";
-    private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
+    private static readonly string[] HandSlots = PlayerEquipSlots.Hands;
 
     [SerializeField] private ItemDefinition canteenItem;
     // Fallback only, used when PlayerBodyModel/the relevant bone isn't

@@ -22103,14 +22103,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PreyCreature
   maxHealth: 15
-  lootItemA: {fileID: 11400000, guid: b48f59c696e55084292376b45e61a10c, type: 2}
-  lootAMinCount: 1
-  lootAMaxCount: 3
-  lootADropChance: 1
-  lootItemB: {fileID: 11400000, guid: f4cd88da7aa59ed4faaa473c8a8f1ddb, type: 2}
-  lootBMinCount: 1
-  lootBMaxCount: 1
-  lootBDropChance: 1
   requiredTools:
   - {fileID: 11400000, guid: b770c40f049e6c548d471825e1df0ada, type: 2}
   - {fileID: 11400000, guid: cab50ab63360c6a4980d65ff4194a603, type: 2}
@@ -22122,6 +22114,14 @@ MonoBehaviour:
   skinningSkillGain: 0.3
   skinHoldDuration: 1.5
   respawnDelay: 180
+  lootItemA: {fileID: 11400000, guid: b48f59c696e55084292376b45e61a10c, type: 2}
+  lootAMinCount: 1
+  lootAMaxCount: 3
+  lootADropChance: 1
+  lootItemB: {fileID: 11400000, guid: f4cd88da7aa59ed4faaa473c8a8f1ddb, type: 2}
+  lootBMinCount: 1
+  lootBMaxCount: 1
+  lootBDropChance: 1
 --- !u!1001 &909427433
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -42459,6 +42459,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 42cd76270f1d8954498e347a70966269, type: 2}
   - {fileID: 11400000, guid: 02e1fe2822315354fb0fa7042412d8d5, type: 2}
   - {fileID: 11400000, guid: c7d805e06465477469b7d3d2ddc32773, type: 2}
+  - {fileID: 0}
   storageRange: 10
 --- !u!114 &1681626240
 MonoBehaviour:

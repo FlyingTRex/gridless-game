@@ -5,10 +5,62 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.88-dev` — must always match `GameVersion` in
+**Current version:** `0.3.89-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (12)
+
+### v0.3.89-dev — Efficiency audit: SkinnableCreature base class, PickupPrefabBuilder tool, orphaned items resolved
+
+Ben asked for a full codebase efficiency pass ("look for opportunities
+for making efficiencies"); this works through the resulting
+`EFFICIENCY_AUDIT.md` priority list (items 1–2, database auto-populate
+and `HandSlots` consolidation, already landed in the prior two commits).
+
+**`SkinnableCreature.cs`** — new shared base class extracted from
+`HostileCreature.cs`/`PreyCreature.cs`, which had grown ~90 near-
+identical lines between them (Awake/TakeDamage/Die/Complete's tool-
+gate-skill-XP-respawn flow/HasAnyRequiredToolInHand/Respawn/
+SetVisible) since being built four hours apart the same night. The
+base owns health, the dead/alive lifecycle, the tool-gated hold-to-
+skin interaction, and respawn; each subclass only supplies its own
+`DropLoot()` shape (`HostileCreature`'s Pelt+Meat chance-based drop vs.
+`PreyCreature`'s two independent loot slots) plus, for `HostileCreature`
+only, its own `AIState{Idle,Chasing,Attacking}` state machine (renamed
+from the old conflated `State{Idle,Chasing,Attacking,Dead}` enum — the
+Dead half is now the base's `isDead` bool). Every `[SerializeField]`
+config field kept its exact original name, so Wolf.prefab's and the
+placed Chicken's already-serialized values needed no migration —
+confirmed by grepping both directly for the actual field values
+post-refactor, not by trusting a clean compile.
+
+**`PickupPrefabBuilder.cs`** (new permanent `Assets/Editor/` tool,
+alongside `IconBaker.cs`/`SceneAutoOpen.cs`/`PrefabBuildingPlacer.cs`)
+— every one of the project's 83 `*Pickup.prefab` files so far was built
+by a bespoke throwaway script re-deriving the same instantiate-measure-
+ground-add-BoxCollider-add-Rigidbody-add-Pickup-save sequence from
+scratch, which is also where several real bugs originated this session
+(the Stone Arrowhead's arbitrary 2.4x oversizing, a crop pickup's VFX-
+rig bounds contamination). This consolidates that logic into one
+reusable batch-mode tool.
+
+**Orphaned items resolved** — `MediumRock.asset` (dead since
+`MediumRockChunk.prefab` switched `Pickup`→`ResourceNode` in
+v0.1.90-dev, no other references anywhere) deleted outright, per Ben's
+call. `SoccerBall.asset` (registered in `ItemDatabase` with an icon and
+a `worldPickupPrefab` reference, but genuinely unreachable — its target
+prefab, the existing kickable-toy `SoccerBall.prefab`, had no `Pickup`
+component at all, so it could never actually enter inventory) wired in
+for real: added a `Pickup` component to the existing `SoccerBall.prefab`
+(coexists fine with its `SoccerBall.cs` kick behavior — pick it up if
+you want it in inventory, kick it if you don't) plus a new
+`SoccerBallRecipe.asset` (Cloth ×3, Sewing skill) appended to
+`PlayerCrafting.recipes`.
+
+`DatabaseRepopulator` re-run after both changes: `ItemDatabase` Items
+120→119 (MediumRock dropped).
 
 ## 2026-08-15 (11)
 

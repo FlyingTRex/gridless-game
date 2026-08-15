@@ -5,7 +5,7 @@ using UnityEngine;
 public class PlayerBoot : MonoBehaviour
 {
     private const string FeetSlot = "Feet";
-    private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
+    private static readonly string[] HandSlots = PlayerEquipSlots.Hands;
 
     // Fallback only, used when PlayerBodyModel/the Hips bone isn't
     // available for some reason — the scene's pre-existing fixed anchor

@@ -10,7 +10,7 @@ using UnityEngine;
 public class PlayerMiningFaceShield : MonoBehaviour
 {
     private const string FaceSlot = "Face";
-    private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
+    private static readonly string[] HandSlots = PlayerEquipSlots.Hands;
 
     [SerializeField] private ItemDefinition shieldItem;
     // Fallback only, used when PlayerBodyModel/the Head bone isn't

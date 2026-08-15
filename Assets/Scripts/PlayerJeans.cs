@@ -8,7 +8,7 @@ public class PlayerJeans : MonoBehaviour
     // Where PlayerLoot might have placed a picked-up pair that hasn't
     // been (or can't be) worn — checked by Unequip/Drop so they find it
     // regardless of which of these it landed in.
-    private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
+    private static readonly string[] HandSlots = PlayerEquipSlots.Hands;
 
     // Fallback only, used when PlayerBodyModel/the Hips bone isn't
     // available for some reason.

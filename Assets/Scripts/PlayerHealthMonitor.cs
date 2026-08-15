@@ -10,7 +10,7 @@ public class PlayerHealthMonitor : MonoBehaviour
     // Where PlayerLoot might have placed a picked-up monitor that hasn't
     // been (or can't be) worn — checked by Unequip/Drop/FindSlot so they
     // find it regardless of which of these it landed in.
-    private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
+    private static readonly string[] HandSlots = PlayerEquipSlots.Hands;
 
     [SerializeField] private ItemDefinition monitorItem;
     // Fallback only, used when PlayerBodyModel/the wrist bone isn't

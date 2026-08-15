@@ -11,7 +11,7 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerEquipment))]
 public class PlayerTool : MonoBehaviour
 {
-    private static readonly string[] HandSlots = { "Left Hand", "Right Hand" };
+    private static readonly string[] HandSlots = PlayerEquipSlots.Hands;
 
     // Fallback only, used when PlayerBodyModel/the RightHand bone isn't
     // available for some reason — the scene's pre-existing fixed
