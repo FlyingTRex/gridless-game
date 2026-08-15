@@ -5,10 +5,47 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.82-dev` — must always match `GameVersion` in
+**Current version:** `0.3.83-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (6)
+
+### v0.3.83-dev — Real crop pickup visuals (Carrot/Potato/Turnip/Ginger/Sweet Potato/Onion)
+
+Closes the gap flagged in the previous Wild Harvest entry: all 6 crops
+covered by the pack now have a real `worldPickupPrefab` instead of the
+generic gray dropped-item cube, built from each crop's own `Bunch`
+model (Onion's is `P_OnionBunch.prefab`, which lives outside the
+`Plants/` folder where the numbered ones are — missed on first pass,
+found by Ben asking to look at it directly).
+
+Real bug hit and fixed mid-build: every Bunch source model ships with a
+hidden "harvest spawn" VFX rig (`TrailRenderer` + `ParticleSystem`,
+driven by the pack's own `BunchAnim.cs` demo-scene script) whose bounds
+don't shrink proportionally with the rest of the mesh under scaling —
+harmless at the milder scale factors most crops needed, but it
+completely dominated Onion's collider size at its much steeper 0.128×
+scale-down (a correctly-scaled ~0.07m onion ended up wrapped in bounds
+still reporting ~0.39m tall). Caught by actually rendering the result,
+not just trusting the measured numbers — same "don't trust a passing
+check alone" discipline as this project's other embedded-asset gotchas.
+Fixed by stripping the VFX rig (a demo-scene flourish a static inventory
+pickup doesn't need anyway) before measuring or building the final
+prefab. A follow-up fix was needed too: the first strip attempt deleted
+the VFX rig's *parent* GameObject, which turned out to also be the real
+mesh's parent — took the mesh down with it. Corrected to remove only the
+actual `TrailRenderer`/`ParticleSystem` GameObjects and just the
+`BunchAnim` component, leaving the mesh's real parent intact.
+
+Each crop scaled independently to a real-world-ish target height (Carrot
+0.30m with greens, Potato 0.10m, Turnip 0.28m, Ginger 0.14m, Sweet Potato
+0.18m, Onion 0.07m) — same player-relative-scale discipline as every
+other imported model in this project, not assumed from the source pack.
+Verified via a side-by-side render of all 6 (correct silhouettes, no
+stray VFX, Onion correctly reads much smaller than the rest) plus direct
+YAML grep of each `ItemDefinition.worldPickupPrefab` reference.
 
 ## 2026-08-15 (5)
 

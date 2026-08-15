@@ -441,14 +441,12 @@ signs off on scope and order.
   items exist as real items with real packet art but have no in-world
   source — the wild forage nodes (`WildCarrotPatch` etc.) from
   `COOKING_AND_GARDENING_PLANNING.md` section 4 aren't built yet.
-- [ ] **Harvested-crop items still have no world-pickup visual
-  (2026-08-15).** Carrot/Potato/Ginger/Turnip/Onion/Sweet Potato fall
-  back to the generic gray dropped-item cube. Wild Harvest: Root
-  Vegetables ships "Bunch" prefabs that could fill this (Onion has none),
-  but their raw scale doesn't match this project's 1-unit-=-1-meter
-  convention (`CarrotBunch_1` measures 0.73m tall) — needs real
-  per-model scale correction first, see
-  `COOKING_AND_GARDENING_PLANNING.md` section 8.
+- [x] **Harvested-crop world-pickup visuals — built, v0.3.83-dev
+  (2026-08-15).** All 6 crops (Carrot/Potato/Ginger/Turnip/Onion/Sweet
+  Potato) now have a real, correctly-scaled `worldPickupPrefab` built
+  from Wild Harvest's own Bunch models — no more gray-cube fallback.
+  Onion's model lives at `Prefabs/P_OnionBunch.prefab`, not
+  `Prefabs/Plants/` like the numbered ones.
 - [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
   extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather
   than replacing it.

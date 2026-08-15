@@ -301,15 +301,25 @@ Wild Harvest: Root Vegetables (`Assets/NV3D/Wild Harvest/`).
   index actually changes.
 - Covers 6 of 7 crops. Corn keeps its placeholder cube (not in the pack,
   and not actually a root vegetable).
-- **Not yet built**: harvested-crop world-pickup visuals (the pack's own
-  "Bunch" prefabs could fill this — Carrot/Potato/Turnip/Ginger/Sweet
-  Potato have them, Onion doesn't) — checked their sizes and some are
-  clearly scaled for a different use case (e.g. `CarrotBunch_1` measures
-  0.73m tall, obviously wrong for a held/dropped item at this project's
-  1-unit-=-1-meter scale) and would need real per-model scale correction
-  before use, same "scale against the player, not the raw import size"
-  rule as every other imported model in this project. Left as a
-  follow-up rather than wired in with wrong scale.
+## 9. Harvested-crop pickup visuals — built (v0.3.83-dev, 2026-08-15)
+
+All 6 crops' `worldPickupPrefab` now use Wild Harvest's own Bunch models
+(Onion's — `P_OnionBunch.prefab` — actually does exist, just outside
+`Prefabs/Plants/` where the numbered ones live; missed on first check).
+Each scaled independently to a real-world-ish target height rather than
+trusting the pack's native scale (Carrot 0.30m, Potato 0.10m, Turnip
+0.28m, Ginger 0.14m, Sweet Potato 0.18m, Onion 0.07m).
+
+**Real gotcha hit and fixed**: every Bunch model carries a hidden
+"harvest spawn" VFX rig (`TrailRenderer` + `ParticleSystem`, from the
+pack's own `BunchAnim.cs`) whose bounds don't scale down proportionally
+with the mesh — negligible at gentler scale factors, but it completely
+dominated Onion's collider at its much steeper 0.128× factor. Stripped
+before measuring/building; a first attempt at the strip also deleted the
+real mesh (it was nested under the same "Spawn Controller" parent as the
+VFX), corrected to remove only the VFX leaf objects and the `BunchAnim`
+component specifically. Caught by actually rendering the result and
+looking at it, not just trusting the measured numbers.
 
 ## Cross-references
 
