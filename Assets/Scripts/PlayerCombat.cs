@@ -50,8 +50,20 @@ public class PlayerCombat : MonoBehaviour
         // (placing it) — building takes priority, punching stays silent.
         if (building.ArmedPiece != null) return;
         if (cooldownRemaining > 0f) return;
+        // A held Bow means left-click is PlayerRangedCombat's draw/fire
+        // gesture instead — you can't punch while holding a bow. Checked
+        // fresh per click, same "gate evaluated at the moment it
+        // matters" spirit as ResolveAttack's own melee-weapon check.
+        if (IsHoldingRangedWeapon()) return;
 
         TryPunch();
+    }
+
+    private bool IsHoldingRangedWeapon()
+    {
+        foreach (var item in equipment.GetHandItems())
+            if (item != null && item.isRangedWeapon) return true;
+        return false;
     }
 
     private void TryPunch()

@@ -57,4 +57,18 @@ public class ItemDefinition : ScriptableObject
     // (2026-08-14), deliberately reusable by any future melee weapon
     // (Sword, Spear, ...) without touching PlayerCombat again.
     public bool isMeleeWeapon;
+
+    // Marks this item as a bow for PlayerRangedCombat — mirrors
+    // isMeleeWeapon's shape exactly (2026-08-15, Hunting Expansion
+    // design). Held in one hand slot like any other tool (no two-handed
+    // equip system exists or is needed — see the design doc's "what if
+    // we were lazy" pivot: the OTHER hand holds whichever Arrow tier the
+    // player wants to fire, which doubles as ammo selection with no
+    // separate Quiver item required).
+    public bool isRangedWeapon;
+
+    // Marks this item as arrow ammo for PlayerRangedCombat — checked
+    // when scanning the off-hand slot so a plain Stick or other non-ammo
+    // item can't accidentally get fired/consumed as if it were an arrow.
+    public bool isArrow;
 }

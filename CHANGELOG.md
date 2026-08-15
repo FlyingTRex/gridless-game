@@ -5,10 +5,73 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.85-dev` — must always match `GameVersion` in
+**Current version:** `0.3.86-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (9)
+
+### v0.3.86-dev — Bow & Arrow built (MVP2 item 8, ranged combat)
+
+The full "Hunting Expansion" design doc turned into real, working content
+in one pass: 3 new from-scratch Blender models (Bow — a bezier-curve
+stave + string, 1.31m; Stone Arrow — shaft/tip/fletching, 0.66m; Stone
+Arrowhead, 5cm standalone), all player-scale-checked and grounded before
+use. Two real modeling bugs hit and fixed along the way: a group-rotation
+step that spun each arrow piece around its own individual origin instead
+of a shared pivot (the arrowhead and fletching flew apart from the
+shaft — fixed by recognizing the arrow was already built lying flat from
+construction, no extra rotation needed at all), and a hand-authored
+bezier bow curve whose alternating handle directions produced an S-wiggle
+instead of a single outward bow arc (fixed by switching to Blender's
+`AUTO` handle type across 5 co-curving points). The standalone Arrowhead
+was also initially scaled 2.4x too large (11cm vs. a real 3-5cm knapped
+flake) from an arbitrary "make it visible" guess rather than a checked
+reference — caught and corrected to 5cm.
+
+**New items/recipes**: Stone Arrowhead (2 Rock → 1, Stonework). Bow —
+full 5-tier ladder exactly mirroring Knife's shape (2 Stick + 1 Rope per
+tier, same cost at every tier, `lowerTierItem`/`higherTierItem`
+cross-linked for `CraftOutcomeRoll`), Woodworking, one hand slot (no
+two-handed equip system — Ben's "what if we were lazy" pivot: the OTHER
+hand holds whichever Arrow tier you want, doubling as ammo selection
+with zero new equip plumbing). Stone Arrow — 5 *parallel* recipes gated
+by which Trimmed Stick tier you feed in (not skill), deterministic
+output (no roll) — 1 Arrowhead + matching-tier Trimmed Stick → 5 arrows,
+Woodworking. `ItemDefinition` gained `isRangedWeapon`/`isArrow` flags,
+mirroring `isMeleeWeapon`'s exact shape.
+
+**New `PlayerRangedCombat.cs`** — hold-left-click-to-draw, release-to-
+fire, sibling to `PlayerCombat` rather than folded into it (charge-and-
+release is a fundamentally different shape from melee's instant tap).
+`PlayerCombat` now bails out of punching whenever a Bow is held, so the
+two scripts never both react to the same click. Full formula: draw
+ramps over 1.2s, Strength caps max draw (`0.5 + 0.5×Str/100`), damage is
+`(Random(2,4) + arrowBonus + bowBonus) × drawFraction`, range is
+`25m × drawFraction`, accuracy is a random angular spread cone
+(`±8°` Crude down to `±0.3°` Masterwork) further tightened by Dexterity,
+cooldown is `0.5s × (1 − Dex/100×0.5)`. Arrow/Bow damage bonus tables are
+deliberately their own dedicated scales, not reused from melee's
+`WeaponDamageBonus` — same "a ratio tuned for one quantity doesn't
+transfer to another" reasoning as Encumbrance vs. capacity.
+
+**New `Archery` skill** (Combat category, matching Melee/Bare-handed),
+trained per shot.
+
+Also placed a `Chicken_001` (ithappy Animals_FREE, Ben's new asset pack)
+into `TestScene.unity` — real animated model, `MovePlayerInput`
+component disabled (drives via the legacy Input Manager, which this
+project's `activeInputHandler: 1` doesn't support). No AI behavior yet;
+the Prey Creature archetype it's meant to demonstrate isn't built.
+
+Verified via compile + direct YAML grep of every cross-reference
+(recipe tier cross-links, material overrides confirmed genuinely
+distinct per Bow tier, skill wiring) plus two real renders (5-tier Bow
+wood-color progression, and the full Bow/Arrow/Arrowhead set together).
+**Not yet live-tested in Play mode** — the actual draw/fire feel,
+Strength/Dexterity scaling, and hitting a real target are all still
+unconfirmed live.
 
 ## 2026-08-15 (8)
 

@@ -19,7 +19,7 @@ specced yet.
 5. **Sky and weather.** — ✅ Built and live-tested (Weather Maker, `WEATHER_MAKER_PLANNING.md`, 2026-08-13).
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
 7. **Skill books.** — 🟡 Built (v0.3.53-dev, `SKILL_BOOKS_PLANNING.md` — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode. Phase 4 (NPC training) correctly blocked on item 2's bench-crafting.
-8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev) — a Knife now deals real tier-scaled bonus damage, and any future melee weapon plugs in for free. Ranged (Archery/Gun) and animal diversity are both still fully open.
+8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev). Ranged combat built (v0.3.86-dev, 2026-08-15) — Bow (5-tier) + Stone Arrow (5-tier, gated by Trimmed Stick tier not skill) + Stone Arrowhead, `PlayerRangedCombat.cs` (draw/fire, Strength/Dexterity-scaled), new Archery skill. Gun explicitly pinned for later. Animal diversity still open — 4 new animals designed (Chicken/Pig/Deer/Rabbit, see `HUNTING_EXPANSION` design artifact) but not built; a Chicken model is placed in `TestScene.unity` with no AI behavior yet (Prey Creature archetype unbuilt). Taming explicitly pinned for a later MVP.
 9. **Cooking** — 🟡 Gardening's 16-cell grid built (v0.3.79-dev), 7 crops with real seed-packet models (v0.3.80-dev), 6 of 7 crops grow through real Wild Harvest growth-stage art (v0.3.81-dev), and now have real harvested-pickup visuals too (v0.3.83-dev, 2026-08-15) — only Corn's visuals stay placeholder throughout (not in the pack). Admin-Spawn-only seed sourcing still open (wild forage nodes not built). Cooking's own skill/quality-tier system (`CookableItem` gaining `trainedSkill`/`CraftOutcomeRoll`) still not built.
 10. **"Prefab" buildings** — ✅ Built and placed in `TestScene.unity` (v0.3.69-dev/v0.3.70-dev) — a dev-facing Editor menu tool, 4 composite buildings (Small Hut/Rectangular House × Twig/Plank). Rectangular House has a known gable-end roof gap, logged.
 
@@ -212,14 +212,60 @@ Verified via 10+ rounds of batch-mode compile + direct YAML grep —
 **not yet live-tested in Play mode.**
 
 ### 8 — Expand hunting
-Today: one huntable animal (Wolf, via `HostileCreature`). Melee weapon
-skills got a real framework (v0.3.61-dev, superseding the original
-five-weapon-skill plan with one shared Melee skill) — a Knife now deals
-tier-scaled bonus damage on top of the base Bare-handed punch, and any
-future melee weapon (Spear, Sword) plugs in via one `ItemDefinition` flag,
-no new combat code needed. Still open: ranged combat (Archery/Gun) has
-nothing built at all, and neither does the animation to make weapon use
-readable (ties back to item 4), or any animal variety beyond the Wolf.
+Melee weapon skills got a real framework first (v0.3.61-dev) — a Knife
+deals tier-scaled bonus damage on top of the base Bare-handed punch, and
+any future melee weapon plugs in via one `ItemDefinition` flag.
+
+**Ranged combat built (v0.3.86-dev, 2026-08-14/15)** — designed live
+with Ben across a long propose-confirm-adjust session (see the published
+"Hunting Expansion" design artifact), then built the same session. New
+`PlayerRangedCombat.cs`: hold-left-click to draw, release to fire, a
+sibling script to `PlayerCombat` (charge-and-release is a different
+shape from melee's instant tap) — `PlayerCombat` itself now bails out of
+punching whenever a Bow is held so the two never fight over one click.
+Bow is a full 5-tier ladder mirroring Knife's exact shape (2 Stick + 1
+Rope every tier, `CraftOutcomeRoll`-linked), held in one hand slot — no
+two-handed equip system needed, since the *other* hand holds whichever
+Arrow tier the player wants to fire, doubling as ammo selection with
+zero new plumbing (Ben's "what if we were lazy" pivot). Stone Arrow is
+also 5-tier, but gated by which Trimmed Stick tier feeds the recipe
+(deterministic, no roll) rather than by skill — "the quality of the
+stick determines the result." Damage stacks Arrow's tier bonus
+(primary, +0 to +6) with Bow's (secondary, +0 to +1.5) on a small
+`Random(2,4)` base, all scaled by how far the shot was drawn; accuracy
+is a random spread cone driven by Arrow tier and tightened further by
+Dexterity, which also speeds up the reload cooldown — filling a gap
+flagged when Dexterity was originally built ("ranged accuracy/attack
+speed" was one of its cut candidate effects). New Archery skill, Combat
+category, trained per shot. 3 new from-scratch Blender models (Bow,
+Stone Arrow, Stone Arrowhead), all player-scale-checked.
+
+**Explicitly pinned out of this pass**: a Gun (second ranged weapon
+type, different sourcing), and the whole Taming half of the original
+"tame, hunt, harvest, skin" backlog vision (a real companion-AI system,
+wholly separate) — both Ben's call.
+
+**Animal diversity — designed, not built.** Same design session picked
+4 new animals (Chicken, Pig, Deer, Rabbit) to round the roster to 5 with
+Wolf. Needs a genuinely new "Prey Creature" behavior archetype (passive/
+fleeing, not aggressive — `HostileCreature` only knows how to attack).
+Real asset win found mid-session: `ithappy Animals_FREE` (a second new
+pack Ben added) includes fully animated Chicken and Deer prefabs with
+walk/run/idle clips — a real upgrade over Wolf's own zero-animation
+`transform.MoveTowards` movement. A `Chicken_001` is placed in
+`TestScene.unity` already (its `MovePlayerInput` component disabled —
+drives via the legacy Input Manager, which this project doesn't support
+— `CreatureMover`, the actual movement/animation engine, is untouched
+and ready to be driven by a future AI script instead). Pig and Rabbit
+still need their own model source. Deer's Hide closes a real, separately
+long-flagged gap: no raw Leather/Hide material has existed in this
+project at all, and the Leather Backpack recipe has been sitting on a
+placeholder Rock ingredient waiting for exactly this.
+
+The animation gap that used to block weapon-use readability (item 4) is
+now resolved for animation *in general* (item 4 shipped), but neither
+the Bow's own draw animation nor the new animals' AI-driven movement
+actually exist yet — both still read as instant/static in-game.
 
 ### 9 — Cooking
 **Planned in full, 2026-08-14 — see `COOKING_AND_GARDENING_PLANNING.md`.**

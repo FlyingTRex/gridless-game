@@ -500,9 +500,13 @@ signs off on scope and order.
   from Wild Harvest's own Bunch models — no more gray-cube fallback.
   Onion's model lives at `Prefabs/P_OnionBunch.prefab`, not
   `Prefabs/Plants/` like the numbered ones.
-- [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
-  extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather
-  than replacing it.
+- [ ] **Animal & hunting module — "hunt" half built (v0.3.86-dev,
+  2026-08-15), "tame"/"harvest diversity" still open.** Ranged combat
+  (Bow/Arrow) built, directly extending Phase 1's Combat/wolf-skinning
+  loop (`HostileCreature`) rather than replacing it. 4 new animals
+  (Chicken/Pig/Deer/Rabbit) designed but not built — needs a new Prey
+  Creature behavior archetype (passive/fleeing; `HostileCreature` is
+  aggressive-only). Taming explicitly pinned for a later MVP.
 - [x] **Fame/reputation system — built 2026-08-14, see
   `FAME_PLANNING.md`.** A real `PlayerFame` component, single -1000 to
   1000 float. Built: Hire +1/Fire -0.5/unpaid-wages -0.5-per-cycle (all
@@ -797,9 +801,12 @@ signs off on scope and order.
   and trains Melee instead of Bare-handed when one's held. First applied
   to the Knife (all 5 tiers flagged); any future melee weapon (Spear,
   Sword) just needs the same flag, no `PlayerCombat` changes required.
-  **Ranged combat (Archery/Gun) is a separate, still-fully-open gap** —
-  this framework only covers melee. Bare-handed's own numbers (9 dmg,
-  0.7s cooldown) are still first-pass, not vetted against a real
+  **Ranged combat (Archery) — built, v0.3.86-dev (2026-08-15), see
+  `PlayerRangedCombat.cs`.** Bow/Stone Arrow (both 5-tier), draw/fire
+  mechanic, new Archery skill. Not yet live-tested in Play mode — see
+  `TEST_FEATURE_PLAN.md` section 42. Gun is still a separate, explicitly
+  pinned gap. Bare-handed's own numbers (9 dmg, 0.7s cooldown) are still
+  first-pass, not vetted against a real
   weapon-tier progression.
 - [ ] **32 `ItemDefinition` items still need a deliberate `weight` value —
   all currently sitting at the untuned 1 lb default (2026-08-10).**

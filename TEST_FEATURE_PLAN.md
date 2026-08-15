@@ -3524,3 +3524,70 @@ yet; use Admin Spawn.
   **both** structures restore their own correct cell states, not just
   one (same underlying bug class as the StorageBox regression in section
   30, fixed at the `SaveId` root but unconfirmed live).
+
+## 42. Bow & Arrow (ranged combat), v1
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep + two static renders). Full
+design in the "Hunting Expansion" artifact (published 2026-08-15). Craft
+a Crude Bow (2 Stick + 1 Rope, Woodworking) and Crude Arrows (2 Rock →
+Stone Arrowhead via Stonework, then 1 Arrowhead + 1 Crude Trimmed Stick
+→ 5 Crude Arrows via Woodworking) via the Build/Crafting tab, or Admin
+Spawn both directly for faster testing.
+
+- [ ] **Equip shape**: put the Bow in one hand, an Arrow stack in the
+  other — confirm both show as held/equipped normally (same as any
+  other one-hand tool), and confirm you can freely swap which Arrow
+  tier is in that hand.
+- [ ] **Punching is blocked while armed**: with Bow+Arrow both equipped,
+  left-click — confirm no bare-handed punch happens (should draw the
+  bow instead, not both).
+- [ ] **Draw and fire**: hold left-click near a Wolf — confirm nothing
+  fires immediately; release after roughly a full second — confirm an
+  arrow-hit registers (Wolf takes damage) at a reasonable range, and one
+  Arrow is consumed from the equipped stack.
+- [ ] **Draw scales damage/range**: tap-and-immediately-release very
+  early in the draw — confirm the shot is noticeably weaker/shorter-
+  ranged than a full draw (or misses/fails to reach a target a full draw
+  would hit).
+- [ ] **Strength caps max draw**: compare a low-Strength vs. a
+  higher-Strength character's max effective range/damage at a full
+  draw — confirm the higher-Strength one reaches further and hits
+  harder, per `maxDraw = 0.5 + 0.5×(Strength/100)`.
+- [ ] **Accuracy by Arrow tier**: fire several Crude Arrows at a
+  stationary distant target vs. several Masterwork Arrows — confirm
+  Crude visibly misses more often (wider spread cone) than Masterwork.
+- [ ] **Cooldown**: try to fire again immediately after a shot — confirm
+  it's blocked until the cooldown elapses (~0.5s minus Dexterity's
+  reduction).
+- [ ] **Archery skill trains on fire**: check the Skills tab before/
+  after a few shots — confirm Archery gains XP and (once high enough)
+  appears with a real level, same auto-populate behavior every other
+  skill already has.
+- [ ] **Bow tier ladder**: confirm all 5 Bow tiers are craftable/
+  visually distinct (wood color progressively darker Crude→Masterwork)
+  and that skill-gating matches Knife's pattern (can't jump straight to
+  Masterwork without Woodworking skill).
+- [ ] **Arrow tier gate**: confirm you can't craft, say, a Fine Arrow
+  using a Crude Trimmed Stick — the recipe should only accept the
+  matching tier, not any Trimmed Stick.
+- [ ] **Not built yet, by design**: no draw/fire animation (instant,
+  same as the punch), no Gun, no Quiver item (ammo tier is just
+  whichever's physically equipped), Iron Arrowhead/Feathers not built.
+
+## 43. Chicken (ithappy Animals_FREE), placement only
+
+Purely cosmetic right now — a `Chicken_001` sits in `TestScene.unity`
+near (6, 0.34, -6) with no AI behavior at all (the Prey Creature
+archetype it's meant to demonstrate isn't built yet).
+
+- [ ] **Visual check**: walk up to it in Play mode — confirm it renders
+  correctly (not pink/invisible) and looks proportionally right next to
+  the player.
+- [ ] **Confirm it doesn't throw errors**: `MovePlayerInput` is disabled
+  on this instance specifically because it uses the legacy Input
+  Manager, which this project doesn't support — check the Console for
+  any input-related exceptions during a normal play session just in
+  case something re-enables it unexpectedly.
+- [ ] **Not built yet, by design**: no movement, no flee behavior, no
+  interaction prompt, not huntable/skinnable.

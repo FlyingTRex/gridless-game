@@ -139,6 +139,52 @@ public static class CraftTierScale
         _ => 0f,
     };
 
+    // Arrow tier -> flat damage bonus, on top of a much smaller base roll
+    // (Random 2-4) than melee's punch (9) — deliberately its own table,
+    // not WeaponDamageBonus, per the same "a ratio tuned for one quantity
+    // doesn't transfer to another" reasoning as above: reusing melee's
+    // scale here would nearly triple a Crude arrow's damage at Masterwork
+    // instead of the intended ~3x-top-to-bottom progression. Hunting
+    // Expansion design, 2026-08-15 — the primary damage driver, Bow's own
+    // bonus below stays deliberately secondary.
+    public static float ArrowDamageBonus(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => 0f,
+        CraftTier.Rudimentary => 1f,
+        CraftTier.Normal => 2f,
+        CraftTier.Fine => 4f,
+        CraftTier.Masterwork => 6f,
+        _ => 0f,
+    };
+
+    // Bow tier -> flat damage bonus, stacking with ArrowDamageBonus above.
+    // Ceiling deliberately kept well below Arrow's (+1.5 vs +6) — a great
+    // arrow should matter more than a great bow.
+    public static float BowDamageBonus(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => 0f,
+        CraftTier.Rudimentary => 0f,
+        CraftTier.Normal => 0.5f,
+        CraftTier.Fine => 1f,
+        CraftTier.Masterwork => 1.5f,
+        _ => 0f,
+    };
+
+    // Arrow tier -> accuracy spread cone, in degrees, applied as a random
+    // deviation to the fire direction before the shot raycasts — not a
+    // flat miss-chance roll. Ties accuracy to range naturally (the same
+    // cone misses by more at 25m than at 10m). Dexterity shrinks this
+    // further at fire time (PlayerRangedCombat), not baked in here.
+    public static float ArrowAccuracySpreadDegrees(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => 8f,
+        CraftTier.Rudimentary => 5f,
+        CraftTier.Normal => 3f,
+        CraftTier.Fine => 1.5f,
+        CraftTier.Masterwork => 0.3f,
+        _ => 8f,
+    };
+
     // Seconds a skill-gated hold interaction (gathering, chopping, and
     // eventually crafting) takes at each tier — replaces the old
     // punch-N-times/hitsToBreak model. Low tier takes longest (still
