@@ -17,6 +17,7 @@ using UnityEngine;
 // instead, each tracking its own seed count directly, sidestepping that
 // mismatch entirely rather than working around it.
 [RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(SaveId))]
 public class GardenPlot4x4 : MonoBehaviour, IInteractable
 {
     public const int GridSize = 4;
@@ -76,6 +77,38 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
         var cell = cells[index];
         if (cell.state != CellState.Growing || cell.crop == null) return 0f;
         return Mathf.Clamp01((Time.time - cell.growStartedAt) / cell.crop.growDurationSeconds);
+    }
+
+    // ---- Save/load support (SaveManager.CaptureGardenPlot4x4/RestoreGardenPlot4x4) ----
+
+    public ItemDefinition GetSeedItem(int index) => cells[index].crop != null ? cells[index].crop.seedItem : null;
+
+    public float GetElapsedSeconds(int index) =>
+        cells[index].state == CellState.Growing ? Time.time - cells[index].growStartedAt : 0f;
+
+    // Restores a single cell directly into the given state, bypassing
+    // TryPlant/TryHarvest entirely — no inventory interaction, nothing
+    // consumed twice. elapsedSeconds is only meaningful for Growing
+    // (reconstructs growStartedAt against the new session's Time.time,
+    // which doesn't carry over from the save).
+    public void RestoreCell(int index, ItemDefinition seed, int count, CellState state, float elapsedSeconds)
+    {
+        if (index < 0 || index >= CellCount) return;
+
+        var crop = FindCrop(seed);
+        cells[index].crop = crop;
+        cells[index].count = count;
+        cells[index].state = state;
+        cells[index].visualStageIndex = -1;
+
+        if (state == CellState.Empty || crop == null) return;
+
+        cells[index].growStartedAt = state == CellState.Ready
+            ? Time.time - crop.growDurationSeconds
+            : Time.time - elapsedSeconds;
+
+        float progress = state == CellState.Ready ? 1f : Mathf.Clamp01(elapsedSeconds / crop.growDurationSeconds);
+        UpdateVisualStage(index, progress);
     }
 
     private CropDefinition FindCrop(ItemDefinition seed)

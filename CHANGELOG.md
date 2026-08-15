@@ -5,10 +5,62 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.84-dev` — must always match `GameVersion` in
+**Current version:** `0.3.85-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (8)
+
+### v0.3.85-dev — Garden Plot save/load persistence + a real SaveId collision bug fixed
+
+Ben's explicit ask from earlier tonight: "we're going to need to fix
+that" (Garden Plot growth state resetting on every reload). Both
+`GardenPlot` (single-plot POC) and `GardenPlot4x4` now capture/restore
+via the exact same `SaveId` + `CaptureWorldObjects<T>`/
+`RestoreWorldObjects<T>` generic pattern `SaveManager.cs` already uses
+for `StorageBox`/`ResourceNode`/`NPCHiring` — full per-cell state (crop,
+seed count, elapsed grow time) for all 16 cells, reconstructing each
+cell's timer against the new session's `Time.time` on load.
+
+**Also rebuilt `ItemDatabase.asset` from a stale 85 items to 107** —
+confirmed via guid grep that none of last night's 13 new crop/seed items
+were registered in it (a manually-curated list, not auto-discovered),
+which would have silently broken `ItemDatabase.Find()` on Garden Plot
+restore despite `IdFor()` working fine on capture. The extra 22 beyond
+just tonight's 13 means other items were already missing before this —
+this fixes NPC tool save/restore too, not just Garden Plot.
+
+**Real, pre-existing bug found and fixed at the root while building
+this — needs live verification.** `RequireComponent(typeof(SaveId))`'s
+auto-add only runs `Reset()` once per loaded prefab *template* per
+session, not once per placement: confirmed live via two freshly-
+instantiated `GardenPlot4x4` clones reporting the identical GUID.
+`SaveIdRegistry.Register` silently overwrites on collision, so **every
+instance of the same placeable built in one session likely shared one
+SaveId** — only the last-registered one would ever restore correctly;
+every earlier one (2nd StorageBox, 2nd Garden Plot, ...) silently comes
+back empty on load, no error at all. Not new to Garden Plot — affects
+`StorageBox` too, and may have already cost saved data before tonight.
+Fixed in `SaveId.cs` itself: `OnEnable` now detects if its current id is
+already claimed by a different live instance and regenerates before
+registering — self-healing, protects every current and future `SaveId`
+user without touching each placement call site individually. Could not
+be confirmed in batch mode (`OnEnable` doesn't fire for `Instantiate()`
+calls from pure edit-mode batch scripting — spent real time chasing this
+before recognizing it as an edit-mode-only quirk, not representative of
+real Play-mode gameplay) — architecturally sound, but needs a real
+Play-mode test: build 2+ of the same placeable, save, reload, confirm
+both restore their own contents.
+
+One loose end, low-stakes: the single pre-existing single-plot
+`GardenPlot` already sitting in `TestScene.unity` (near 4,-4, from an
+earlier session) couldn't get a `SaveId` retrofitted via batch script —
+two different approaches both failed to persist the added component to
+the saved scene file. Not investigated further since it's a leftover
+test object from the now-superseded single-plot POC; `CaptureWorldObjects`
+just silently skips it, same as before this fix. Every *new* Garden Plot
+built from now on gets a working `SaveId` automatically.
 
 ## 2026-08-15 (7)
 

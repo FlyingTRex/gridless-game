@@ -26,6 +26,28 @@ public class SaveId : MonoBehaviour
             id = System.Guid.NewGuid().ToString("N");
     }
 
-    private void OnEnable() => SaveIdRegistry.Register(this);
+    // Self-healing collision guard (2026-08-15) — RequireComponent's
+    // auto-add only runs Reset() once per loaded prefab *template* within
+    // a session, not once per Instantiate() call: every runtime clone
+    // just copies whatever id the template already has at that point, so
+    // every instance placed from the same prefab in one session ends up
+    // sharing the identical id (confirmed live — two freshly instantiated
+    // GardenPlot4x4 clones both reported the same GUID). Registry.Register
+    // silently overwrites on collision, so only the last-registered
+    // instance would ever restore correctly — every earlier one built
+    // from the same prefab would silently come back empty on load, no
+    // error. Detecting the collision here, at registration time, fixes
+    // every current and future SaveId user (StorageBox, GardenPlot,
+    // GardenPlot4x4, ...) without needing each placement call site to
+    // know about the problem.
+    private void OnEnable()
+    {
+        var existing = SaveIdRegistry.Find(id);
+        if (existing != null && existing != this)
+            id = System.Guid.NewGuid().ToString("N");
+
+        SaveIdRegistry.Register(this);
+    }
+
     private void OnDisable() => SaveIdRegistry.Unregister(this);
 }

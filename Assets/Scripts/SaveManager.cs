@@ -72,6 +72,8 @@ public class SaveManager : MonoBehaviour
             ["storageBoxes"] = CaptureWorldObjects<StorageBox>(CaptureStorageBox),
             ["resourceNodes"] = CaptureWorldObjects<ResourceNode>(CaptureResourceNode),
             ["npcs"] = CaptureWorldObjects<NPCHiring>(CaptureNpc),
+            ["gardenPlots"] = CaptureWorldObjects<GardenPlot>(CaptureGardenPlot),
+            ["gardenPlots4x4"] = CaptureWorldObjects<GardenPlot4x4>(CaptureGardenPlot4x4),
         };
 
         File.WriteAllText(FilePath, data.ToString());
@@ -100,6 +102,8 @@ public class SaveManager : MonoBehaviour
         RestoreWorldObjects<StorageBox>(data["storageBoxes"] as JArray, RestoreStorageBox);
         RestoreWorldObjects<ResourceNode>(data["resourceNodes"] as JArray, RestoreResourceNode);
         RestoreWorldObjects<NPCHiring>(data["npcs"] as JArray, RestoreNpc);
+        RestoreWorldObjects<GardenPlot>(data["gardenPlots"] as JArray, RestoreGardenPlot);
+        RestoreWorldObjects<GardenPlot4x4>(data["gardenPlots4x4"] as JArray, RestoreGardenPlot4x4);
     }
 
     // ---- Player ----
@@ -349,5 +353,77 @@ public class SaveManager : MonoBehaviour
 
         if (state["position"] is JObject pos)
             npc.transform.position = ParseVector3(pos);
+    }
+
+    // ---- Garden Plot (single-cell POC) ----
+
+    private static JObject CaptureGardenPlot(GardenPlot plot, SaveId saveId) => new JObject
+    {
+        ["saveId"] = saveId.Id,
+        ["state"] = new JObject
+        {
+            ["plotState"] = plot.State.ToString(),
+            ["seedsRemaining"] = plot.SeedsRemaining,
+            ["elapsed"] = plot.GetElapsedSeconds(),
+        },
+    };
+
+    private static void RestoreGardenPlot(GardenPlot plot, JObject state)
+    {
+        if (state == null) return;
+
+        var plotState = Enum.TryParse((string)state["plotState"], out GardenPlot.PlotState parsed)
+            ? parsed
+            : GardenPlot.PlotState.Empty;
+
+        plot.RestoreState((int)(state["seedsRemaining"] ?? 0), plotState, (float)(state["elapsed"] ?? 0f));
+    }
+
+    // ---- Garden Plot 4x4 (16-cell grid) ----
+
+    private static JObject CaptureGardenPlot4x4(GardenPlot4x4 plot, SaveId saveId)
+    {
+        var cells = new JArray();
+        for (int i = 0; i < GardenPlot4x4.CellCount; i++)
+        {
+            var cellState = plot.GetState(i);
+            var cellObj = new JObject { ["cellState"] = cellState.ToString() };
+
+            if (cellState != GardenPlot4x4.CellState.Empty)
+            {
+                var seed = plot.GetSeedItem(i);
+                cellObj["seed"] = ItemDatabase.Instance != null ? ItemDatabase.Instance.IdFor(seed) : null;
+                cellObj["count"] = plot.GetSeedCount(i);
+                cellObj["elapsed"] = plot.GetElapsedSeconds(i);
+            }
+
+            cells.Add(cellObj);
+        }
+
+        return new JObject
+        {
+            ["saveId"] = saveId.Id,
+            ["state"] = new JObject { ["cells"] = cells },
+        };
+    }
+
+    private static void RestoreGardenPlot4x4(GardenPlot4x4 plot, JObject state)
+    {
+        if (state == null || !(state["cells"] is JArray cells)) return;
+
+        for (int i = 0; i < cells.Count && i < GardenPlot4x4.CellCount; i++)
+        {
+            if (!(cells[i] is JObject cellObj)) continue;
+
+            var cellState = Enum.TryParse((string)cellObj["cellState"], out GardenPlot4x4.CellState parsed)
+                ? parsed
+                : GardenPlot4x4.CellState.Empty;
+            if (cellState == GardenPlot4x4.CellState.Empty) continue; // cell already starts Empty
+
+            var seed = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find((string)cellObj["seed"]) : null;
+            int count = (int)(cellObj["count"] ?? 0);
+            float elapsed = (float)(cellObj["elapsed"] ?? 0f);
+            plot.RestoreCell(i, seed, count, cellState, elapsed);
+        }
     }
 }

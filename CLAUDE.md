@@ -876,3 +876,70 @@ you actually expect (cross-check against the specific component's own
 known fileID, not just "a `m_LocalPosition` entry with a reasonable-
 looking number exists somewhere in this PrefabInstance's modification
 list").
+
+## Gotcha: `RequireComponent`'s auto-add only runs `Reset()` once per
+loaded prefab *template* per session — every clone shares one id
+
+Hit live (2026-08-15, Garden Plot save/load): `SaveId.cs` generates a
+GUID via `Reset()` (`GenerateIfMissing()`), and every real placeable
+(`StorageBox`, `GardenPlot`, `GardenPlot4x4`, ...) declares
+`[RequireComponent(typeof(SaveId))]` rather than baking a `SaveId` onto
+the prefab asset itself — relying on Unity to auto-add the required
+component the moment each instance is created. This is NOT the same as
+each instance getting its own fresh `Reset()` call. Confirmed live via a
+direct diagnostic: two separately `Instantiate()`d clones of the same
+prefab, in the same session, both reported the exact identical
+`SaveId.Id` — genuinely different GameObjects and different component
+instances (different `GetInstanceID()`s), but the same GUID string.
+Whatever internal caching Unity does for a loaded prefab's in-memory
+template only triggers the auto-add-and-`Reset()` path once per prefab
+per session; every subsequent `Instantiate()` is a plain data clone of
+that already-populated template, copying the same id forward instead of
+generating a new one.
+
+**Real consequence, not theoretical**: `SaveIdRegistry.Register` is a
+plain `Dictionary<string, SaveId>[id] = this` — a straight overwrite on
+collision, no error, no warning. Building 2+ of the same placeable in
+one session (2 StorageBoxes, 2 Garden Plots) means only the
+last-registered instance's `SaveId` actually resolves via
+`SaveIdRegistry.Find` on a later load; every earlier instance built from
+the same prefab silently restores empty/default, with nothing in the
+log to suggest anything went wrong. This is a real, currently-live risk
+for any project save made before this was found, not just a future
+concern.
+
+**The fix — self-healing at registration time, not at generation time**:
+don't try to make `Reset()`/auto-add generate correctly per instance
+(fighting Unity's caching behavior directly). Instead, detect the
+collision in `SaveId.OnEnable()` itself — if the current `id` is already
+claimed by a *different* live, registered instance, regenerate a fresh
+GUID before registering:
+```csharp
+private void OnEnable()
+{
+    var existing = SaveIdRegistry.Find(id);
+    if (existing != null && existing != this)
+        id = System.Guid.NewGuid().ToString("N");
+    SaveIdRegistry.Register(this);
+}
+```
+This fixes every current and future `SaveId` user in one place, with no
+change needed at any individual placement call site (`PlayerBuilding.cs`,
+Admin Spawn, etc.).
+
+**Could not be verified in batch mode — this matters.** A batch-mode
+diagnostic script calling `Object.Instantiate()` from pure edit-mode
+scripting (no Play mode entered) never actually fires `OnEnable()` at
+all for the resulting clone — confirmed by adding a temporary
+`Debug.Log` directly inside `SaveId.OnEnable` and seeing zero output
+across multiple instantiations that otherwise clearly had the component
+present with a real (collided) id. Don't trust an edit-mode batch
+script's `Instantiate()` behavior as representative of real Play-mode
+component lifecycle — `Awake`/`OnEnable`/`Start` timing and even whether
+they fire at all can differ from actual gameplay. A fix built and
+reasoned about correctly against Unity's documented, standard
+`OnEnable` behavior still needs a real Play-mode test before being
+trusted, the same "don't claim done off a clean compile" discipline as
+every other verification step in this file — the difference here is
+that batch mode itself couldn't provide that live confirmation, only a
+real Play session can.

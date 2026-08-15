@@ -441,18 +441,48 @@ signs off on scope and order.
   items exist as real items with real packet art but have no in-world
   source — the wild forage nodes (`WildCarrotPatch` etc.) from
   `COOKING_AND_GARDENING_PLANNING.md` section 4 aren't built yet.
-- [ ] **Garden Plot growth state isn't saved/loaded at all (2026-08-15).**
-  Confirmed via grep — zero `GardenPlot`/`GardenPlot4x4` references in
-  `SaveManager.cs`, neither prefab has a `SaveId`, and the save file has
-  no section for placed-structure internal state. Every cell's crop/seed
-  count/elapsed grow time is pure in-memory runtime state — a save+reload
-  silently resets every planted cell to whatever it was on scene load,
-  with no warning. Matches the broader known gap that built structures
-  were explicitly deferred out of `SAVE_LOAD_PLANNING.md`'s v1 scope,
-  not a new miss, but Ben's explicit call: "we're going to need to fix
-  that." Needs a `SaveId`-style registry for placed Garden Plot instances
-  (same pattern `StorageBox` already uses) plus per-cell state capture
-  for all 16 cells.
+- [x] **Garden Plot growth state save/load — built, v0.3.85-dev
+  (2026-08-15).** Both `GardenPlot` (single-plot POC) and `GardenPlot4x4`
+  now capture/restore via the same `SaveId` + `CaptureWorldObjects<T>`
+  pattern `StorageBox`/`ResourceNode`/`NPCHiring` already use — full
+  per-cell state (crop, seed count, elapsed grow time) for all 16 cells.
+  **Not yet live-tested** — needs a real Play-mode save/load round trip,
+  including the multi-instance scenario the fix below exists for.
+- [ ] **Found and fixed a real, pre-existing SaveId collision bug while
+  building the above (2026-08-15) — needs live multi-instance
+  verification.** `RequireComponent(typeof(SaveId))`'s auto-add only
+  runs `Reset()` once per loaded prefab *template* in a session, not
+  once per placement — confirmed live via two freshly-instantiated
+  `GardenPlot4x4` clones reporting the identical GUID. Since
+  `SaveIdRegistry.Register` silently overwrites on collision, this means
+  **every instance of the same placeable built in one session (2+
+  StorageBoxes, 2+ Garden Plots, etc.) very likely shared one SaveId**,
+  so only the last-registered one would restore correctly on load —
+  every earlier one silently comes back empty, no error. This is not
+  new to Garden Plot; it affects `StorageBox` too and may already have
+  cost saved data before tonight. Fixed at the root in `SaveId.cs`
+  itself (self-healing collision detection in `OnEnable` — regenerates
+  a fresh id if the current one's already claimed by a different live
+  instance), so it protects every current and future `SaveId` user
+  without touching each placement call site. **Could not be verified in
+  batch mode** — `OnEnable` doesn't fire for `Instantiate()` calls made
+  from pure edit-mode batch scripting, so the fix is architecturally
+  sound (standard `OnEnable` behavior, reliable in real Play mode) but
+  unconfirmed live. Test: build 2+ StorageBoxes (or Garden Plots) in one
+  session, save, reload, confirm both restore their own contents
+  correctly, not just one of them.
+- [ ] **One pre-existing single-plot `GardenPlot` scene instance (near
+  4,-4 in `TestScene.unity`, from an earlier session) never got a
+  `SaveId` retrofitted (2026-08-15).** Adding a component to an
+  already-placed `PrefabInstance` via batch script didn't persist to the
+  saved scene file after two different attempts (including the
+  `PrefabUtility.RecordPrefabInstancePropertyModifications` fix that
+  normally solves this class of problem) — not investigated further
+  since it's a leftover test object from the now-superseded single-plot
+  proof of concept, not something actively used. Harmless either way —
+  `CaptureWorldObjects` just silently skips anything without a
+  `SaveId`, same as before this fix. Any *new* single-plot or 4x4 Garden
+  Plot built from now on gets one automatically.
 - [ ] **Planting/harvesting a Garden Plot cell grants no skill XP at all
   (2026-08-15, Ben's question: "is cooking and planting rolled up under
   gathering?").** Checked live — no, and there's no "Planting" skill

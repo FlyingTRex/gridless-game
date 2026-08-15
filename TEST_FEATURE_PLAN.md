@@ -3046,6 +3046,14 @@ re-entering Play mode). First pass confirmed:
   Water, not reset to empty.
 - [ ] **StorageBox**: store some items in a box, rename it, save/reload —
   confirm the name and contents both persist.
+- [ ] **Regression — multiple StorageBoxes in one session (2026-08-15,
+  see CLAUDE.md's SaveId-collision gotcha)**: build 2+ StorageBoxes in
+  the same session, put *different* items in each, save/reload — confirm
+  **both** boxes restore their own correct contents, not just one
+  (a real pre-existing bug meant only the last-built one of any given
+  placeable type would ever restore correctly; fixed in `SaveId.cs`
+  v0.3.85-dev but unconfirmed live, since the fix couldn't be verified
+  in batch mode).
 - [ ] **ResourceNode mid-respawn**: break an ore node so it's mid-respawn-
   timer, save/reload — confirm it's still unavailable and comes back at
   roughly the right time (not instantly available, not stuck forever).
@@ -3433,6 +3441,11 @@ trains the new Cooking skill).
   tile (blank spacer), no ready-state highlight/glow (full size is the
   only "ready" signal), and only Berry Bush is plantable — Carrot/
   Potato/Corn and the full 16-cell grid don't exist yet.
+- [ ] **Save/load (new, v0.3.85-dev)**: plant a seed stack so the plot is
+  mid-growth, save, exit, relaunch — confirm the plot is still Growing
+  (not reset to Empty) and the plant visual jumps to roughly the correct
+  size for elapsed time, not back to the smallest stage. Also test
+  saving a Ready plot — confirm it comes back Ready, not Growing/Empty.
 
 ## 41. 4x4 Garden Plot grid, v1
 
@@ -3498,3 +3511,16 @@ yet; use Admin Spawn.
   colored primitives only), wild forage seed sourcing (Admin Spawn only),
   and Cooking's own skill/quality-tier system (no quality roll on harvest
   yet — every harvest is just 1 plain crop item).
+- [ ] **Save/load (new, v0.3.85-dev)**: plant 2-3 different crops into
+  different cells (mix of Growing and, if you wait long enough, Ready),
+  save, exit, relaunch — confirm every cell comes back with the correct
+  crop, correct remaining seed count, and roughly correct elapsed
+  progress (Growing cells should show a sensible % continuing from where
+  they left off, not reset to 0%; Ready cells should still read Ready).
+  Empty cells should stay Empty.
+- [ ] **Regression — multiple Garden Plots in one session (see
+  CLAUDE.md's SaveId-collision gotcha)**: build 2+ Garden Plot (4x4)
+  structures, plant different crops in each, save/reload — confirm
+  **both** structures restore their own correct cell states, not just
+  one (same underlying bug class as the StorageBox regression in section
+  30, fixed at the `SaveId` root but unconfirmed live).

@@ -16,9 +16,13 @@ using UnityEngine;
 // since this is a purely decorative reuse, not a second independently-
 // searchable bush living inside the plot.
 [RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(SaveId))]
 public class GardenPlot : MonoBehaviour, IInteractable
 {
-    private enum PlotState { Empty, Growing, Ready }
+    // Public so SaveManager can capture/restore it directly (SaveId +
+    // CaptureWorldObjects<T> pattern — see SaveManager.cs's
+    // CaptureGardenPlot/RestoreGardenPlot).
+    public enum PlotState { Empty, Growing, Ready }
 
     // 5 real minutes — matches the Carrot number floated in
     // COOKING_AND_GARDENING_PLANNING.md's grow-duration discussion.
@@ -54,6 +58,48 @@ public class GardenPlot : MonoBehaviour, IInteractable
 
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
+
+    // ---- Save/load support (SaveManager.CaptureGardenPlot/RestoreGardenPlot) ----
+
+    public PlotState State => state;
+    public int SeedsRemaining => seedsRemaining;
+    public float GetElapsedSeconds() => state == PlotState.Growing ? Time.time - growStartedAt : 0f;
+
+    // Restores directly into the given state, bypassing TryPlant/Harvest
+    // entirely — no inventory interaction, nothing consumed twice.
+    // elapsedSeconds is only meaningful for Growing (reconstructs
+    // growStartedAt against the new session's Time.time, which doesn't
+    // carry over from the save).
+    public void RestoreState(int seeds, PlotState newState, float elapsedSeconds)
+    {
+        seedsRemaining = seeds;
+        state = newState;
+
+        if (newState == PlotState.Empty)
+        {
+            ClearPlant();
+            return;
+        }
+
+        growStartedAt = newState == PlotState.Ready
+            ? Time.time - GrowDurationSeconds
+            : Time.time - elapsedSeconds;
+
+        if (plantInstance == null && plantVisualPrefab != null && plantAnchor != null)
+        {
+            plantInstance = Instantiate(plantVisualPrefab, plantAnchor);
+            plantInstance.transform.localPosition = Vector3.zero;
+            plantInstance.transform.localRotation = Quaternion.identity;
+
+            foreach (var collider in plantInstance.GetComponentsInChildren<Collider>())
+                Destroy(collider);
+            var bush = plantInstance.GetComponent<BerryBush>();
+            if (bush != null) Destroy(bush);
+        }
+
+        float progress = newState == PlotState.Ready ? 1f : Mathf.Clamp01(elapsedSeconds / GrowDurationSeconds);
+        UpdatePlantScale(progress);
+    }
 
     private void Update()
     {
