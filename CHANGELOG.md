@@ -5,12 +5,41 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.76-dev` — must always match `GameVersion` in
+**Current version:** `0.3.77-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (23)
+## 2026-08-14 (24)
+
+### v0.3.77-dev — Fix Garden Plot's visible model and real collider being in two different places
+
+The real root cause behind "no E menu" even standing right on the box.
+`GardenPlotRelocate.cs` (v0.3.72-dev, the Boulder-overlap fix) used
+`GameObject.Find("GardenPlot")` to relocate the plot — but the imported
+model's own nested node is *also* named "GardenPlot" (glTFast names
+imported roots after the source file), so `Find` grabbed the visual
+child instead of the actual root. It moved the visible mesh to the new
+spot while the real `Collider`/`GardenPlot` script silently stayed
+behind at the original, still-Boulder-adjacent position — no error, a
+plausible "moved to X" log, and even a YAML check that looked fine (the
+position values were real, just applied to the wrong object).
+
+Diagnosed live with Ben via a `FindObjectsByType<GardenPlot>()`-based
+probe (component type instead of name, sidestepping the ambiguity) that
+printed the real component's transform vs. the player's actual distance
+to it — confirmed a straightforward but real `interactRange` miss
+first (a `GameObject.Find` name collision one level up, same mechanism,
+different symptom — `MissingComponentException` from an earlier
+diagnostic script grabbing the same wrong object), then this deeper one
+once the numbers didn't add up. Fixed by finding the real `GardenPlot`
+component directly, resetting the model child's stray offset back to
+identity, restoring `PlantAnchor`'s intentionally-nonzero offset (briefly
+zeroed by the first fix pass), and moving the actual root — each step
+using `PrefabUtility.RecordPrefabInstancePropertyModifications`, matching
+`CLAUDE.md`'s own "per-instance runtime data" gotcha. New `CLAUDE.md`
+gotcha on the `GameObject.Find`-vs-imported-model-node-name collision
+itself.
 
 ### v0.3.76-dev — Fix Garden Plot not seeing seeds carried in a worn Backpack
 

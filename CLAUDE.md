@@ -825,3 +825,54 @@ embedded material before the surrounding game code — check the Inspector
 for a `Shader Graphs/glTF...` (or similarly importer-generated) shader
 name, and compare against a working model's own material asset to see
 what "correctly converted" looks like for this project.
+
+## Gotcha: `GameObject.Find(name)` can silently match a nested imported
+model's own internal node, not the top-level object you meant
+
+Hit live twice in the same session (2026-08-14, Garden Plot): an imported
+`.glb`'s root node frequently gets named after the source file itself by
+the glTFast importer — so a composite prefab built as `root` (with the
+real script/`Collider`) → child (the imported model instance) can end up
+with **both** the root and the nested model literally named the same
+thing, if the root was itself named to match (e.g. `new GameObject
+("GardenPlot")` for the outer root, with `GardenPlot.glb`'s own imported
+node also called "GardenPlot"). `GameObject.Find("GardenPlot")` then
+returns whichever one Unity's internal object list happens to return
+first — not necessarily the one with the actual gameplay component,
+silently.
+
+**First bite**: an Editor diagnostic script (`GameObject.Find("GardenPlot")`
++ `.GetComponent<Collider>()`) threw `MissingComponentException` — it had
+grabbed the collider-less visual child instead of the real root.
+
+**Second, much worse bite**: `GardenPlotRelocate.cs` (v0.3.72-dev, the
+Boulder-overlap fix) used the same `GameObject.Find("GardenPlot")`
+pattern to move the object away from a Boulder. It moved the **visual
+model child** instead of the real root — the visible mesh relocated to
+the new spot, but the actual `Collider`/gameplay script never moved,
+silently leaving the *real* interactive object sitting at the original,
+still-Boulder-adjacent position. This produced no error, logged a
+plausible-looking "moved to X" success message, and even passed a YAML
+verification of the *position values* (they were real, they just applied
+to the wrong object) — the closest call yet to CLAUDE.md's whole "don't
+trust the log" lineage of gotchas, because this one *also* survived a
+naive YAML check. Only caught because the visible box and the actual
+E-interactable point had drifted apart, reported live as "I'm standing on
+it, no E menu" — diagnosed via a `FindObjectsByType<GardenPlot>()`-based
+probe (component type, not name) that printed the real component's own
+transform position vs. where the player was standing.
+
+**How to apply:** never use `GameObject.Find(string)` (or any name-based
+lookup) to locate a specific GameObject in a composite prefab/hierarchy
+that includes an imported model as a child — imported models are exactly
+the case where a name collision is likely, silently, without any naming
+convention violation on your part. Use `FindObjectsByType<YourComponent>()`
+or `GetComponent<T>()`/`GetComponentInChildren<T>()` from a known-good
+reference instead — type-based lookup can't accidentally match the wrong
+object the way string names can. When verifying a batch script's
+position/transform edit via YAML afterward, don't just confirm the
+*values* landed somewhere plausible — confirm they landed on the fileID
+you actually expect (cross-check against the specific component's own
+known fileID, not just "a `m_LocalPosition` entry with a reasonable-
+looking number exists somewhere in this PrefabInstance's modification
+list").
