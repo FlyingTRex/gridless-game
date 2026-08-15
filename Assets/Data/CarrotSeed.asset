@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
   m_Name: CarrotSeed
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Carrot Seed
-  maxStack: 20
+  itemName: Carrot Seed Packet
+  maxStack: 10
   weight: 0.05
   tier: 2
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 3201778011432805036, guid: f94c35b387c564a4d8266266e45f6f03, type: 3}
   icon: {fileID: 0}
   previewIcon: {fileID: 0}
   baseItem: {fileID: 0}

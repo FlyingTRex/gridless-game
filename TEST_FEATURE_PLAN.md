@@ -3438,23 +3438,31 @@ trains the new Cooking skill).
 
 New — not yet walked through in Play mode at all (verified so far only
 via batch-mode compile + direct YAML grep of the new asset/prefab/scene
-wiring). Full design in `COOKING_AND_GARDENING_PLANNING.md` sections 3
-and 6. No instance is pre-placed — craft one via the Build tab (`Garden
-Plot (4x4)`, 8 Plank + 6 Stick, trains Cooking). Seeds
-(`CarrotSeed`/`PotatoSeed`/`CornSeed`) have no in-world source yet — use
-Admin Spawn.
+wiring, plus one standalone render check for the seed packet material).
+Full design in `COOKING_AND_GARDENING_PLANNING.md` sections 3, 6, and 7.
+No instance is pre-placed — craft one via the Build tab (`Garden Plot
+(4x4)`, 8 Plank + 6 Stick, trains Cooking). All 7 crops (Carrot/Potato/
+Ginger/Turnip/Onion/Sweet Potato/Corn) — now "Seed Packet" items, 10 per
+packet, with a real color-coded packet model — have no in-world source
+yet; use Admin Spawn.
 
 - [ ] **Open the grid**: place a 4x4 Garden Plot, press E — confirm a
   16-cell popup opens (not the single-plot's direct plant/harvest), all
   cells show empty ("-").
-- [ ] **Plant a cell**: admin-spawn a stack of Carrot Seed, click an
-  empty cell — confirm a "Plant Carrot (N seeds)" button appears in the
-  context panel below the grid, and clicking it consumes the entire
-  stack and starts that one cell growing (other 15 cells stay empty).
-- [ ] **Independent cells**: plant a second, different crop (e.g. Potato
-  Seed) into a different cell — confirm both cells progress
+- [ ] **Plant a cell**: admin-spawn a Carrot Seed Packet (confirm it
+  spawns as a stack of 10 and shows the real orange packet model, not a
+  gray placeholder cube), click an empty cell — confirm a "Plant Carrot
+  (10 seeds)" button appears in the context panel below the grid, and
+  clicking it consumes the entire stack and starts that one cell growing
+  (other 15 cells stay empty).
+- [ ] **Independent cells**: plant a second, different crop (e.g. a
+  Potato Seed Packet) into a different cell — confirm both cells progress
   independently (different durations, different labels), and the other
   14 remain empty/unaffected.
+- [ ] **All 7 packet colors distinguishable**: admin-spawn one packet of
+  each crop — confirm Carrot (orange), Potato (tan), Ginger (pale gold),
+  Turnip (violet), Onion (dusty yellow-brown), Sweet Potato (rust-red),
+  and Corn (bright yellow) are all visually distinct when dropped/held.
 - [ ] **3-stage growth + progress readout**: watch a growing cell —
   confirm its grid label shows a rising percentage, and the context
   panel (when that cell is selected) shows the same percentage; confirm

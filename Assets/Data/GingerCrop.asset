@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 485e12698346d604eb63c48ae33bf1e6, type: 3}
+  m_Name: GingerCrop
+  m_EditorClassIdentifier: Assembly-CSharp::CropDefinition
+  cropName: Ginger
+  seedItem: {fileID: 11400000, guid: 8f7f4a2cba45a29479749e1abd2e3959, type: 2}
+  cropItem: {fileID: 11400000, guid: 71de159ac2ce2db43ab67e3a99486e6b, type: 2}
+  growDurationSeconds: 420
+  growingVisualPrefab: {fileID: 2176908748653823894, guid: 3144a704833ff234f9d28828813da29d, type: 3}

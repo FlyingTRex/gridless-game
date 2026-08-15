@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
   m_Name: CornSeed
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Corn Seed
-  maxStack: 20
+  itemName: Corn Seed Packet
+  maxStack: 10
   weight: 0.05
   tier: 2
-  worldPickupPrefab: {fileID: 0}
+  worldPickupPrefab: {fileID: 2051935603413134713, guid: a9bfcf1a62a2d724ea7fc86198cb9d76, type: 3}
   icon: {fileID: 0}
   previewIcon: {fileID: 0}
   baseItem: {fileID: 0}

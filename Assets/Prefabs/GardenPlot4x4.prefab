@@ -242,6 +242,10 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d43bbca933cd64946914512743b14dd5, type: 2}
   - {fileID: 11400000, guid: cac46f0f49c08cc479959c9afc1d4a12, type: 2}
   - {fileID: 11400000, guid: a4604bd66f2f51141bc00387b3fe2577, type: 2}
+  - {fileID: 11400000, guid: dec29050671df6947b50532b1fdbe6df, type: 2}
+  - {fileID: 11400000, guid: 6a2db56007493454585cdc9d9c5d51bd, type: 2}
+  - {fileID: 11400000, guid: 08c3f660083e7ab4dbc92115453eabb5, type: 2}
+  - {fileID: 11400000, guid: f5ac49b539284b44fa355a76585f3204, type: 2}
   plantAnchors:
   - {fileID: 2193032500729581599}
   - {fileID: 2045877099108322970}

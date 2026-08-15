@@ -427,15 +427,21 @@ signs off on scope and order.
   crops (Carrot/Potato/Corn, 5/10/15 real minutes), click-based UI instead
   of drag-and-drop (lower-risk, same mechanic). Two deliberate gaps left
   open, tracked below.
-- [ ] **Garden Plot crop visuals are placeholder primitives (2026-08-15).**
-  `CarrotGrowingVisual`/`PotatoGrowingVisual`/`CornGrowingVisual` are
-  plain colored cylinder/sphere/cube shapes, not real crop models —
-  ships mechanically complete rather than blocking on the still-open
+- [x] **Seed Packets — real shared model + 7 color variants, v0.3.80-dev
+  (2026-08-15).** Seed *items* now have real art (a shared Blender
+  packet model, 7 crop-color materials) — closes the "seed items have no
+  visual" gap. All 7 crops now stock 10 seeds/packet (`maxStack = 10`).
+- [ ] **Garden Plot GROWING-plant visuals are still placeholder
+  primitives (2026-08-15, updated).** All 7 crops' growing-plant models
+  (`CarrotGrowingVisual` etc.) are plain colored cylinder/sphere/cube
+  shapes, not real mature-plant models — the seed *packet* now has real
+  art (see above), but the plant it grows into still doesn't. Ships
+  mechanically complete rather than blocking on the still-open
   Asset-Store-pack-vs-Blender question in `COOKING_AND_GARDENING_PLANNING.md`
   section 3. Revisit once that's decided.
-- [ ] **Garden Plot seeds are Admin-Spawn-only (2026-08-15).** `CarrotSeed`/
-  `PotatoSeed`/`CornSeed` exist as real items but have no in-world source —
-  the wild forage nodes (`WildCarrotPatch` etc.) from
+- [ ] **Garden Plot seeds are Admin-Spawn-only (2026-08-15).** All 7 seed
+  items exist as real items with real packet art but have no in-world
+  source — the wild forage nodes (`WildCarrotPatch` etc.) from
   `COOKING_AND_GARDENING_PLANNING.md` section 4 aren't built yet.
 - [ ] **Animal & hunting module** — tame, hunt, harvest, skin. Directly
   extends Phase 1's Combat/wolf-skinning loop (`HostileCreature`) rather

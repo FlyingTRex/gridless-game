@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
-  m_Name: PotatoSeed
+  m_Name: Ginger
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
-  itemName: Potato Seed Packet
-  maxStack: 10
-  weight: 0.05
+  itemName: Ginger
+  maxStack: 20
+  weight: 0.3
   tier: 2
-  worldPickupPrefab: {fileID: 4231586181917525097, guid: 107efc2410902db46be5dcf5c09616b8, type: 3}
+  worldPickupPrefab: {fileID: 0}
   icon: {fileID: 0}
   previewIcon: {fileID: 0}
   baseItem: {fileID: 0}

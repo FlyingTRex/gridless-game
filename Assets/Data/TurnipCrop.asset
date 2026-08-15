@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 485e12698346d604eb63c48ae33bf1e6, type: 3}
+  m_Name: TurnipCrop
+  m_EditorClassIdentifier: Assembly-CSharp::CropDefinition
+  cropName: Turnip
+  seedItem: {fileID: 11400000, guid: 575601e8639568f43856ce5703f40267, type: 2}
+  cropItem: {fileID: 11400000, guid: 9db80c699549ea846b722120a67bc593, type: 2}
+  growDurationSeconds: 480
+  growingVisualPrefab: {fileID: 3688624034781225331, guid: 45ab72631959f6649bc1868649a942ad, type: 3}

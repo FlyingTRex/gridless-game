@@ -5,10 +5,50 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.79-dev` — must always match `GameVersion` in
+**Current version:** `0.3.80-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (3)
+
+### v0.3.80-dev — Seed Packets (7 crops) + 4 new crops (Ginger/Turnip/Onion/Sweet Potato)
+
+Ideated live with Ben: a shared Blender seed-packet model
+(`Tools/Blender/GenerateSeedPacketModel.py` — a small folded paper
+envelope, ~8x9cm), reused across all 7 Garden Plot crops via 7 color-
+coded material variants (Carrot orange, Potato tan, Ginger pale gold,
+Turnip violet, Onion dusty yellow-brown, Sweet Potato rust-red, Corn
+bright yellow) instead of 7 separate models — no per-crop lettering
+baked in (unreliable on an imported model, per this file's own
+text-on-model precedent), color plus the item's own 2D icon does the
+disambiguating job. Embedded glTFast material extracted and remapped to
+a real `Universal Render Pipeline/Lit` asset first, same fix as the
+Berry Seed invisibility bug earlier this project — confirmed visually
+via an actual render (orange, visible, correctly shaped), not just a
+clean YAML check, given this exact failure mode's history in this repo.
+
+**"10 seeds per packet" (Ben's design call):** all 7 seed items got
+`maxStack` dropped from 20 to 10 and renamed `"X Seed Packet"` — a full
+stack now literally *is* one packet. No mechanic change was needed:
+`GardenPlot4x4.TryPlant` already consumes the whole stack on planting and
+tracks the remaining count per-cell, decrementing on each auto-replant —
+exactly "plant straight out of the packet, decrease the quantity" with
+zero new code.
+
+**4 new crops** (Ginger 7 min, Turnip 8 min, Onion 9 min, Sweet Potato 10
+min) — same seed/crop `ItemDefinition` + `EdibleItem` + placeholder
+growing-visual + `CropDefinition` pattern as Carrot/Potato/Corn.
+`GardenPlot4x4.prefab`'s `registeredCrops` now lists all 7. Growing-plant
+visuals are still placeholder primitives for all 7 (unchanged from last
+entry) — only the seed-packet *item* model is real art now, not the
+mature plant.
+
+Built across 2 separate batch-mode Editor script invocations (content
+creation, then the existing-prefab crop-array expansion) specifically to
+avoid this project's own stale-prefab-reference gotcha. Verified via
+direct YAML grep of every cross-reference plus one actual render.
+**Not yet live-tested in Play mode.**
 
 ## 2026-08-15 (2)
 

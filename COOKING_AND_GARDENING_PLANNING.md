@@ -255,6 +255,29 @@ Section 3's design, built on top of section 5's proof of concept:
   reference across the prefab-content-editing cycle). **Not yet
   live-tested in Play mode.**
 
+## 7. Seed Packets + 4 more crops — built (v0.3.80-dev, 2026-08-15)
+
+Ideated live with Ben, resolving one slice of section 3's open art
+question without waiting on the full plant-model decision:
+
+- **Shared seed-packet model** (`Tools/Blender/GenerateSeedPacketModel.py`)
+  — one small folded-paper-envelope mesh, reused across all 7 crops via 7
+  color-coded material variants instead of 7 separate models. No
+  lettering on the model itself (this project's established "AI/imported
+  text is unreliable" precedent) — color plus the item's own 2D icon
+  disambiguates in UI.
+- **"10 seeds per packet"** — `maxStack` dropped to 10 on every seed item,
+  renamed `"X Seed Packet"`. No mechanic change needed: `TryPlant`
+  already consumed the whole stack and tracked remaining count per-cell,
+  which is already exactly "plant from the packet, quantity decreases."
+- **4 new crops**: Ginger (7 min), Turnip (8 min), Onion (9 min), Sweet
+  Potato (10 min) — same item/edible/`CropDefinition` pattern as Carrot/
+  Potato/Corn. `GardenPlot4x4` now registers all 7.
+- **Scope boundary, explicit**: this only gave the seed *packet item* real
+  art. The *growing plant* inside a cell is still a placeholder primitive
+  for all 7 crops — that's the bigger, still-undecided piece (section 3's
+  Asset-Store-pack-vs-Blender question).
+
 ## Cross-references
 
 - `CAMPFIRE_PLANNING.md` — the `Campfire`/`CookableItem` mechanism this

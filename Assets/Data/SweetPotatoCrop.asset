@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 485e12698346d604eb63c48ae33bf1e6, type: 3}
+  m_Name: SweetPotatoCrop
+  m_EditorClassIdentifier: Assembly-CSharp::CropDefinition
+  cropName: Sweet Potato
+  seedItem: {fileID: 11400000, guid: 83256b3247f4e5348977681464cbd5e3, type: 2}
+  cropItem: {fileID: 11400000, guid: f768b4efc98124145912df975ee8ded7, type: 2}
+  growDurationSeconds: 600
+  growingVisualPrefab: {fileID: 3000403991412930631, guid: 5886ea6bd09233d47849bfbc0204a220, type: 3}
