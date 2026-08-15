@@ -5,10 +5,33 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.90-dev` — must always match `GameVersion` in
+**Current version:** `0.3.91-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (14)
+
+### v0.3.91-dev — Grilled Meat: the first Grill-accessory-gated Campfire recipe
+
+Ben's ask: a recipe requiring 1 Herb + 1 Meat. New `GrilledMeat.asset`
+(reuses Cooked Meat's model/icon as a placeholder, same convention
+already documented for Cooked Meat itself) + `GrilledMeatEdible.asset`
+(HeartyMeal tier, 60 Hunger — one step up from Cooked Meat's Meal/40,
+reflecting the extra ingredient/accessory) + `GrilledMeatCookable.asset`
+(Herb x1 + Raw Meat x1, 40s, `requiredAccessory` = Grill).
+
+This is the first `CookableItem` to actually exercise the accessory-
+gating path built back in v0.3.30-dev — `RawMeatToCookedMeatCookable`
+was the only other one, and it's open-flame/no-accessory. Appended
+directly to `Campfire.prefab`'s `cookableItems` array (that field lives
+on the prefab asset itself, not a per-instance scene override, so
+every Campfire placed from here on picks it up for free) and to
+`PlayerEating.edibles` — a second, separate manually-curated array
+(`EFFICIENCY_AUDIT.md` item 1, not yet covered by `DatabaseRepopulator`)
+that would have left the new item silently uneatable if skipped, same
+class of gap the audit already flagged. Verified via direct YAML grep
+of both arrays' tails, not batch-log trust.
 
 ## 2026-08-15 (13)
 

@@ -2631,6 +2631,13 @@ than usual given how much changed.**
   "Cook Cooked Meat x1" button (Raw Meat → Cooked Meat needs no
   accessory). Confirm the Recipe section reads "No recipes available..."
   when the ingredients/utensils don't satisfy anything.
+- [ ] **Grilled Meat (v0.3.91-dev, the first accessory-gated recipe)**:
+  with a Grill seated in the Grill utensil box, drag in 1 Herb + 1 Raw
+  Meat — confirm "Cook Grilled Meat x1" appears. Remove the Grill (or
+  don't seat one) with the same ingredients loaded — confirm the recipe
+  disappears from the list (the accessory gate is actually enforced, not
+  cosmetic). Cook it, confirm ~40s completion, and confirm eating it
+  restores more Hunger than Cooked Meat (HeartyMeal/60 vs. Meal/40).
 - [ ] **Start cooking**: click the Recipe button — confirm the Raw Meat
   is immediately consumed from the Ingredients box, the Recipe section
   now shows "Cooking Cooked Meat — N%" counting up, and after ~30

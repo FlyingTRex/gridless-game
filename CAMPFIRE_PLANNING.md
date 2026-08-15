@@ -22,10 +22,24 @@ crafting recipe (Grill 2x Iron Ingot, Cooking Pot 3x Iron Ingot, Kettle
 same pattern as `NailRecipe`/`RudimentaryShovelRecipe`). Forging was an
 existing `SkillDefinition`/`CraftingScreen` discipline tab with zero
 recipes using it until now — the natural home for these, not a new
-skill. Still no accessory-gated recipe actually exists beyond the
-baseline Raw Meat → Cooked Meat (open-flame, no accessory) —
-`RawMeatToCookedMeatCookable.asset` is still the only `CookableItem` in
-the game. See `CHANGELOG.md` for the full build writeup.
+skill. See `CHANGELOG.md` for the full build writeup.
+
+**Grilled Meat — the first Grill-accessory-gated `CookableItem`
+(v0.3.91-dev, 2026-08-15), Ben's direct ask.** Herb x1 + Raw Meat x1,
+40s cook time, `requiredAccessory` = Grill — the first recipe to
+actually exercise the accessory-gating path
+(`RawMeatToCookedMeatCookable`, the only other `CookableItem`, is
+open-flame/no-accessory). `GrilledMeat.asset`/`GrilledMeatEdible.asset`
+reuse Cooked Meat's model/icon as a placeholder, same convention
+`TEST_FEATURE_PLAN.md` already documents for Cooked Meat itself — one
+step up on `FoodTier` (HeartyMeal, 60 Hunger, vs. Cooked Meat's
+Meal/40). Appended directly to `Campfire.prefab`'s `cookableItems`
+array (the field lives on the prefab asset, not a per-instance scene
+override, so every placed Campfire — current and future — picks it up
+automatically) and to `PlayerEating.edibles` (a separate manually-
+curated array, `EFFICIENCY_AUDIT.md` item 1, not yet covered by
+`DatabaseRepopulator` — skipping this step would have left Grilled
+Meat silently uneatable).
 
 **UI redesign — built (v0.3.28-dev, then substantially reworked
 v0.3.30-dev, both 2026-08-13).** Loading fuel/food used to only work via

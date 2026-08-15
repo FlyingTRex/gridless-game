@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
+  m_Name: GrilledMeat
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  itemName: Grilled Meat
+  maxStack: 20
+  weight: 1
+  tier: 2
+  worldPickupPrefab: {fileID: 4139243270917401588, guid: c603fe3ea680fa8419cc7c54b9d33058, type: 3}
+  icon: {fileID: 21300000, guid: 7dd08f293fc80fe47ac3f547cfa672e5, type: 3}
+  previewIcon: {fileID: 21300000, guid: 5948ae866400c7b49883ef81001a5fda, type: 3}
+  baseItem: {fileID: 0}
+  isMeleeWeapon: 0
+  isRangedWeapon: 0
+  isArrow: 0
