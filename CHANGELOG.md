@@ -5,10 +5,67 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.87-dev` — must always match `GameVersion` in
+**Current version:** `0.3.88-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (11)
+
+### v0.3.88-dev — Closing the archery gaps: icons, flying arrow, draw UI, aim zoom, real draw animation
+
+Ben asked what was still missing from Bow & Arrow; this closes every
+gap that was actually buildable tonight.
+
+**Icons** — baked for all 11 new items (Stone Arrowhead, 5 Bow tiers, 5
+Arrow tiers) via the existing `IconBaker` tool, same as every other
+icon pass this session.
+
+**New `FlyingArrow.cs`** — the fired shot now has a visible flight
+instead of a silent invisible hit. Purely cosmetic (the hitscan raycast
+already resolved the hit instantly, same as `PlayerCombat`'s punch) —
+one shared visual reused for every Arrow tier, matching the existing
+choice not to give arrows per-tier visual variation. Verified via
+render that its orientation lines up with the travel direction.
+
+**Draw-progress UI + aim zoom** — added directly to
+`PlayerRangedCombat.cs`: a simple `OnGUI` progress bar while drawing,
+and a camera FOV lerp toward `zoomFOV` (45°) while drawing, back to
+normal on release.
+
+**Real draw animation — corrected after Ben caught a wrong assumption.**
+Said outright that no archery animation existed; Ben pushed back
+("I thought our animation pack had archery animations") and was right —
+a full `HumanF@BowShot01`/`HumanM@BowShot01` Load/Hold/Release set
+(plus Idle/Damage/Death/Parry variants) was sitting in the existing
+Human Animations pack the whole time, just not searched for specifically
+enough. Wired a full-body Load→Hold→Release state swap into both
+`PlayerAnimatorFemale.controller` and `PlayerAnimatorMale.controller`
+(Ben's call over a masked upper-body layer — much lower risk to build
+blind via batch scripting, reasonable since drawing-while-sprinting
+isn't a real case here). New `PlayerBodyModel.ActiveAnimator` property
+exposes the currently-active gendered Visual's Animator so
+`PlayerRangedCombat` can drive `IsDrawingBow`/`ReleaseBow` directly.
+**Known limitation, not hidden**: the Release state always exits back
+to `StandingIdle` specifically, not whatever stance the player was
+actually in before drawing (Kneeling, say) — a masked layer wouldn't
+have this problem, but per-stance return transitions needed more
+Animator complexity than felt justified for a first pass built with
+zero visual preview available.
+
+**Explicitly still not built, and correctly so** — checked before
+claiming anything: this project has zero audio infrastructure anywhere
+(`AudioSource`/`AudioClip` are used nowhere in `Assets/Scripts`), so
+sound effects would mean inventing a whole new system from scratch, not
+closing a bow-specific gap. NPC archery is really the unstarted
+"Guarding" NPC job family, a separate feature. Neither was faked.
+
+Verified via compile + direct YAML grep of every new state/parameter/
+transition/motion-clip reference. **The Animator wiring specifically
+still needs a real Play-mode look** — transition timing (`exitTime`
+values) are reasonable guesses against clip length, not tuned by eye,
+and batch mode fundamentally can't preview whether a state machine
+actually reads right in motion.
 
 ## 2026-08-15 (10)
 

@@ -3571,9 +3571,30 @@ Spawn both directly for faster testing.
 - [ ] **Arrow tier gate**: confirm you can't craft, say, a Fine Arrow
   using a Crude Trimmed Stick — the recipe should only accept the
   matching tier, not any Trimmed Stick.
-- [ ] **Not built yet, by design**: no draw/fire animation (instant,
-  same as the punch), no Gun, no Quiver item (ammo tier is just
-  whichever's physically equipped), Iron Arrowhead/Feathers not built.
+- [ ] **Icons**: check the Crafting tab and inventory — confirm all 11
+  new items (Stone Arrowhead, 5 Bow tiers, 5 Arrow tiers) show real
+  icons, not blank tiles.
+- [ ] **Flying arrow visual**: fire a shot — confirm a visible arrow
+  actually flies from the camera toward the target/impact point (not a
+  silent instant hit), oriented correctly along its direction of
+  travel, and disappears a couple seconds after landing.
+- [ ] **Draw-progress bar**: hold to draw — confirm a small progress
+  bar appears on screen and fills up over roughly 1.2s, disappearing on
+  release/fire.
+- [ ] **Aim zoom**: hold to draw — confirm the camera FOV narrows
+  (zooms in) smoothly, and returns to normal smoothly after releasing.
+- [ ] **Draw/hold/release animation**: hold to draw — confirm the
+  player's own body visibly plays a bow-draw animation (not just idle/
+  walk), holds a drawn pose while still held, and plays a release
+  animation on firing, returning to normal locomotion afterward.
+  **This is the piece most likely to need a follow-up fix** — transition
+  timing was set from guessed values, not tuned by eye, and the
+  Release state always returns to standing idle specifically even if
+  you were kneeling/crawling before drawing.
+- [ ] **Not built yet, by design**: no Gun, no Quiver item (ammo tier is
+  just whichever's physically equipped), Iron Arrowhead/Feathers not
+  built, no sound (this project has no audio system anywhere yet), no
+  NPC archery (that's the separate, unstarted "Guarding" NPC job).
 
 ## 43. Chicken (ithappy Animals_FREE) — killable/lootable, v1
 

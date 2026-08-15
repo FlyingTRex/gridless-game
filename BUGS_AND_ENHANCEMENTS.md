@@ -801,13 +801,28 @@ signs off on scope and order.
   and trains Melee instead of Bare-handed when one's held. First applied
   to the Knife (all 5 tiers flagged); any future melee weapon (Spear,
   Sword) just needs the same flag, no `PlayerCombat` changes required.
-  **Ranged combat (Archery) — built, v0.3.86-dev (2026-08-15), see
-  `PlayerRangedCombat.cs`.** Bow/Stone Arrow (both 5-tier), draw/fire
-  mechanic, new Archery skill. Not yet live-tested in Play mode — see
-  `TEST_FEATURE_PLAN.md` section 42. Gun is still a separate, explicitly
-  pinned gap. Bare-handed's own numbers (9 dmg, 0.7s cooldown) are still
+  **Ranged combat (Archery) — built, v0.3.86-dev through v0.3.88-dev
+  (2026-08-15), see `PlayerRangedCombat.cs`.** Bow/Stone Arrow (both
+  5-tier), draw/fire mechanic, new Archery skill, icons, a visible
+  flying-arrow effect, draw-progress UI, aim zoom, and a real full-body
+  draw/hold/release animation (both `PlayerAnimatorFemale`/`Male`
+  controllers — found and used the pack's own `HumanF/M@BowShot01`
+  clips after initially wrongly assuming no archery animation existed;
+  Ben caught it). Not yet live-tested in Play mode — see
+  `TEST_FEATURE_PLAN.md` section 42. Gun, Iron Arrowhead, sound (no
+  audio system exists anywhere in this project), and NPC archery (the
+  unstarted "Guarding" job) are all still separate, explicitly open
+  gaps. Bare-handed's own numbers (9 dmg, 0.7s cooldown) are still
   first-pass, not vetted against a real
   weapon-tier progression.
+- [ ] **Bow Release animation always returns to StandingIdle
+  specifically (2026-08-15), not whatever stance the player was
+  actually in before drawing.** Known limitation from choosing a
+  full-body state swap over a masked upper-body layer — fine for
+  standing, but drawing a bow while Kneeling/Crawling/Prone will snap
+  the player's visual stance back to standing after the shot. Fix would
+  mean either a masked layer (bigger rework) or per-stance return
+  transitions in both Animator Controllers.
 - [ ] **32 `ItemDefinition` items still need a deliberate `weight` value —
   all currently sitting at the untuned 1 lb default (2026-08-10).**
   `CraftTierScale.WeightModifier` (Backpack/Knife/Axe/Hammer/Pickaxe

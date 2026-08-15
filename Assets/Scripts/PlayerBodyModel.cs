@@ -69,6 +69,18 @@ public class PlayerBodyModel : MonoBehaviour
         return anim != null ? anim.GetBoneTransform(bone) : null;
     }
 
+    // Same "current gender's live Visual" lookup as GetBone, exposed
+    // directly for callers (PlayerRangedCombat, 2026-08-15) that need to
+    // set Animator parameters rather than just read a bone transform.
+    public Animator ActiveAnimator
+    {
+        get
+        {
+            var active = isMale ? maleVisual : femaleVisual;
+            return active != null ? active.GetComponent<Animator>() : null;
+        }
+    }
+
     // Re-anchors every equipped carrier onto the current gender's bones —
     // same sweep a gender toggle already runs. Also the correct way to
     // make a save-restored equipment slot's now-populated-but-still-hidden

@@ -43411,6 +43411,9 @@ MonoBehaviour:
   dexteritySkill: {fileID: 11400000, guid: 7bc8b6051aa4fe7468a79381cfff10da, type: 2}
   archerySkill: {fileID: 11400000, guid: 376e905b8b0c8e04e8f2ffe4c27739f8, type: 2}
   archerySkillGain: 1
+  zoomFOV: 45
+  zoomLerpSpeed: 8
+  arrowFlightVisualPrefab: {fileID: 1050687584955625398, guid: be7f8ac215852e14bb5ebca81744ee90, type: 3}
 --- !u!1001 &1689588954
 PrefabInstance:
   m_ObjectHideFlags: 0
