@@ -34317,6 +34317,63 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SaveId
   id: 02775b09fa0f485ba51e5adfdbfb820f
+--- !u!1001 &1420769989
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 97106590034404513, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_Name
+      value: GardenPlot
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.3481655
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -4
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 656488356085845852, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 30892498b64f1354b8d6c14ff83618c0, type: 3}
 --- !u!1001 &1423854714
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -42783,6 +42840,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a038c535398155946945a3639c189f3a, type: 2}
   - {fileID: 11400000, guid: e01316cb731b22545b237604e1b7b749, type: 2}
   - {fileID: 11400000, guid: eb0dab5ed56fcb048a284bf5858e29bd, type: 2}
+  - {fileID: 11400000, guid: 4ab44b5c4ca385b43923d02cab4b28f8, type: 2}
   interactRange: 10
   snapRadius: 1.5
   panelHalfSize: 2.5
@@ -56071,3 +56129,4 @@ SceneRoots:
   - {fileID: 417073129}
   - {fileID: 2056900882}
   - {fileID: 1207228636}
+  - {fileID: 1420769989}

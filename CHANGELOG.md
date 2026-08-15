@@ -5,12 +5,39 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.70-dev` — must always match `GameVersion` in
+**Current version:** `0.3.71-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (17)
+## 2026-08-14 (18)
+
+### v0.3.71-dev — Single-plant Garden Plot proof of concept (MVP2 item 9)
+
+Scoped-down first build of the Gardening system designed in
+`COOKING_AND_GARDENING_PLANNING.md` — one small raised bed, one plant
+(Berry Bush), proving the core "plant a seed stack, harvest auto-replants
+the next until the stack is exhausted" mechanic before investing in the
+full 4×4/16-cell grid design.
+
+New `GardenPlot.cs` (single-slot `IInteractable` — E plants your whole
+current Berry Seed stack at once, E harvests when ready and immediately
+starts the next seed if any remain), 3-stage growth (thresholds at 1/3
+and 2/3 of a 5-real-minute timer, `localScale` 0.35×/0.65×/1.0×) reusing
+the existing `BerryBush` model directly for the growing-plant visual (its
+own `BerryBush` component/colliders stripped at runtime — purely
+decorative reuse). New small raised-bed model
+(`Tools/Blender/GenerateGardenPlotModel.py`, ~0.8m wood-frame box with a
+soil interior). New `Cooking` `SkillDefinition` and `GardenPlotPiece`
+`BuildPiece` (2 Plank + 2 Stick, Crude tier, trains Cooking) — placed via
+the existing Build tab, same free-placement pattern `Campfire` already
+uses. One instance placed directly into `TestScene.unity` for immediate
+testing.
+
+Deliberately deferred: `GardenPlotPiece`'s icon (blank tile for now), the
+ready-state highlight material swap, and of course Carrot/Potato/Corn +
+the full 16-cell grid itself — see `COOKING_AND_GARDENING_PLANNING.md`
+section 5.
 
 ### v0.3.70-dev — Place the 4 prefab buildings into TestScene.unity
 

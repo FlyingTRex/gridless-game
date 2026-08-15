@@ -20,7 +20,7 @@ specced yet.
 6. **Save/load persistence.** — ✅ Built and live-tested (v0.3.51-dev, 2026-08-13).
 7. **Skill books.** — 🟡 Built (v0.3.53-dev, `SKILL_BOOKS_PLANNING.md` — [summary](https://claude.ai/code/artifact/2af217f7-450e-4e4b-9b09-6411a8b72115)), committed and pushed; verified via compile + YAML only, not yet live-tested in Play mode. Phase 4 (NPC training) correctly blocked on item 2's bench-crafting.
 8. **Expand hunting** — diverse animals, and the ability to use a weapon against them. — 🟡 Melee weapon damage framework built (v0.3.61-dev) — a Knife now deals real tier-scaled bonus damage, and any future melee weapon plugs in for free. Ranged (Archery/Gun) and animal diversity are both still fully open.
-9. **Cooking** — 🟡 Fully planned (`COOKING_AND_GARDENING_PLANNING.md`, 2026-08-14) — Cooking skill + quality tiers, plus a new Gardening system. Not yet built.
+9. **Cooking** — 🟡 Planned (`COOKING_AND_GARDENING_PLANNING.md`, 2026-08-14) — Cooking skill + quality tiers, plus a new Gardening system. Single-plant Garden Plot proof of concept built (v0.3.71-dev); the full Cooking-quality/16-cell-grid design still not built.
 10. **"Prefab" buildings** — ✅ Built and placed in `TestScene.unity` (v0.3.69-dev/v0.3.70-dev) — a dev-facing Editor menu tool, 4 composite buildings (Small Hut/Rectangular House × Twig/Plank). Rectangular House has a known gable-end roof gap, logged.
 
 ## First ideation pass (2026-08-12)
@@ -234,9 +234,18 @@ quality scaling, see `FoodTier.cs`). Also grew into a full new Gardening
 system (Carrot/Potato/Corn via a 4×4 `GardenPlot`, wild-forage seed
 sourcing) once seed availability came up mid-conversation. New
 recipes (Soup, Tea, fried dishes) deliberately left unenumerated — Ben's
-call, add them incrementally once the mechanism is built. Not yet built.
-Strong tie to item 5 (weather-driven demand for warm food/drink) and item
-1 (Constitution).
+call, add them incrementally once the mechanism is built. Strong tie to
+item 5 (weather-driven demand for warm food/drink) and item 1
+(Constitution).
+
+**Single-plant proof of concept built (v0.3.71-dev, 2026-08-14)** —
+see `COOKING_AND_GARDENING_PLANNING.md` section 5. A scoped-down single
+`GardenPlot` (Berry Bush only, reusing the existing model, a real small
+Blender-built raised bed, 3-stage growth, Cooking-gated `BuildPiece`)
+proves the "plant a seed stack, harvest auto-replants until exhausted"
+mechanic before building the full 16-cell grid. The Cooking skill now
+exists as a real asset, though nothing trains it yet — the quality-roll
+work and Carrot/Potato/Corn content are still unbuilt.
 
 ### 10 — "Prefab" buildings
 **Scope resolved (2026-08-14): dev-facing level-design tool**, not the

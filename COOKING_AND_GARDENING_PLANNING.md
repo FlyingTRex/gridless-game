@@ -3,8 +3,16 @@
 Planning doc for MVP2 item 9 (Cooking), expanded to include a new Gardening
 system once seed sourcing came up (2026-08-14). Decisions below are locked
 in via the same propose→confirm→adjust conversation this project's other
-planning docs used; open items are flagged as such. Nothing in this doc is
-built yet.
+planning docs used; open items are flagged as such.
+
+**Single-plant proof of concept built same day (v0.3.71-dev).** Before
+building the full 4×4/16-cell `GardenPlot` design in section 3, Ben asked
+for a scoped-down single-plot version to prove the core mechanic out —
+one small raised bed, one plant (Berry Bush, since Berry/`BerrySeed`
+already exist and are sourced), a real Blender model, placeable via the
+Build tab. See section 5 for the full build writeup; sections 2-4 below
+are still the target design for the eventual scaled-up version, not yet
+built.
 
 ## 1. Current state (audit, 2026-08-14)
 
@@ -159,6 +167,53 @@ built yet.
   there: no vendor/commerce system exists in this codebase in any form.
   Not a new blocker, just another consumer of the existing one. Revisit
   once that system gets built.
+
+## 5. Single-plant proof of concept — built (v0.3.71-dev, 2026-08-14)
+
+Deliberately simplified from sections 2-4's full design to prove the core
+mechanic first, on one plant, before investing in the full 16-cell grid:
+
+- **New `GardenPlot.cs`** (single-slot, not the eventual per-cell-of-16
+  version) — `IInteractable`, one growth cycle at a time. Press E on an
+  empty plot while carrying Berry Seed plants your *entire current stack*
+  at once (the mechanic actually being proven, not a UI test) and starts
+  growing the first one; press E on a ready plot to harvest one Berry
+  Bush's worth of Berries, which immediately starts the next seed growing
+  if any remain in the stack, or returns to empty once exhausted.
+  Deliberately skips the full design's drag-and-drop popup screen — a
+  real `Inventory`-slot-per-cell only makes sense once there's an actual
+  grid UI to drag into; this tracks the seed count as a plain int instead.
+- **Growth — 3 discrete stages** (Ben's call: not smooth continuous
+  scaling), thresholds at 1/3 and 2/3 of a 5-real-minute grow duration
+  (matching the Carrot number floated in section 3), scale multipliers
+  0.35× → 0.65× → 1.0×.
+- **Visual reuses the actual `BerryBush` model directly** (Ben's "we have
+  a berry bush" idea) — instantiated as a child, its own `BerryBush`
+  component and colliders stripped at runtime (purely decorative reuse,
+  not a second independently-searchable bush living inside the plot). No
+  new plant modeling work needed at all.
+- **New small raised-bed model** (`Tools/Blender/GenerateGardenPlotModel.py`,
+  kept in the repo like every other from-scratch Blender script) — a
+  simple ~0.8m wood-frame box with a soil interior, genuinely small-scale
+  (single-plant), distinct from the eventual 4×4/5m version sections 2-4
+  describe.
+- **New `Cooking` SkillDefinition** (`SkillCategory.CraftingDiscipline`) —
+  the skill itself now exists, though nothing trains it yet (that's
+  sections 2's quality-roll work, not built this pass).
+- **New `GardenPlotPiece` `BuildPiece`** (2 Plank + 2 Stick, Crude tier,
+  trains Cooking) — placed via the existing Build tab/`PlayerBuilding`
+  socket-free free-placement flow, same pattern `Campfire` already uses
+  (`groundReach: 0`, no `BuildSocket` children).
+  One instance placed directly into `TestScene.unity` near (4, -4) for
+  immediate testing, alongside registering the piece into the scene's
+  `PlayerBuilding.allPieces` array (the Build tab's manually-curated
+  list) so more can be crafted normally.
+- **Not built this pass, deliberately deferred**: icon/preview icon for
+  `GardenPlotPiece` (blank tile in the Build tab for now, same "null
+  means blank spacer" convention every other icon-less piece already
+  uses); the ready-state brightness/highlight material swap sections 2-4
+  describe (the plant reaching full scale is today's only "it's ready"
+  signal); Carrot/Potato/Corn and the full 16-cell grid itself.
 
 ## Cross-references
 

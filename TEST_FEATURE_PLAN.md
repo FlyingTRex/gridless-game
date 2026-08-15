@@ -3392,3 +3392,44 @@ actually look at them. Full design in `MVP2_PLANNING.md` item 10.
   `[SerializeField]` and wouldn't survive being saved into the prefab
   anyway) — not a bug if upgrade/interaction doesn't work the same as a
   normally-placed piece, just a documented scope limit of this dev tool.
+
+## 40. Garden Plot single-plant proof of concept, v1
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct YAML grep of the new scene/asset wiring).
+Full design in `COOKING_AND_GARDENING_PLANNING.md` section 5. One
+already-placed Garden Plot sits near (4, -4) in `TestScene.unity`; more
+can be crafted via the Build tab (`Garden Plot`, 2 Plank + 2 Stick,
+trains the new Cooking skill).
+
+- [ ] **Plant a seed stack**: gather/admin-spawn several Berry Seed
+  (stack of e.g. 3+), walk up to the pre-placed Garden Plot, press E —
+  confirm the prompt reads "Plant Berry Seed" beforehand, your entire
+  Berry Seed stack is consumed at once, and a small Berry Bush model
+  appears in the plot.
+- [ ] **3-stage growth**: watch the planted Garden Plot over its 5-minute
+  grow timer — confirm the plant visibly jumps to a bigger size at
+  roughly 1:40 and 3:20, reaching full size at 5:00, not a smooth
+  continuous scale-up.
+- [ ] **Harvest and auto-replant**: once ready (prompt reads "Harvest"),
+  press E — confirm you receive Berries, and if your original seed stack
+  had more than 1, the plot immediately starts growing the next one
+  (still showing a small/starting-stage plant) rather than going empty.
+  Repeat until the stack is exhausted — confirm the plot then returns to
+  "Plant Berry Seed" and the plant model is gone.
+- [ ] **Craft and place a second Garden Plot**: via the Build tab, find
+  "Garden Plot" (should be selectable immediately — Crude tier, no real
+  skill requirement), confirm it costs 2 Plank + 2 Stick, place it in the
+  world, and confirm placing it also grants Cooking skill XP (check the
+  Skills tab afterward — Cooking should now appear under Crafting
+  Disciplines with a nonzero level, confirming `PlayerSkills.Levels`
+  correctly auto-populates a brand-new skill on first XP).
+- [ ] **Regression — reused Berry Bush model behaves inertly**: confirm
+  the plant growing inside the Garden Plot is NOT independently
+  interactable (no "Search for berries" prompt of its own) — it's a
+  stripped, decorative-only reuse of the model, not a second live
+  BerryBush.
+- [ ] **Not built yet, by design**: no icon on the Garden Plot Build tab
+  tile (blank spacer), no ready-state highlight/glow (full size is the
+  only "ready" signal), and only Berry Bush is plantable — Carrot/
+  Potato/Corn and the full 16-cell grid don't exist yet.
