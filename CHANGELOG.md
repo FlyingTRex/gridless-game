@@ -5,12 +5,21 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.71-dev` — must always match `GameVersion` in
+**Current version:** `0.3.72-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-14 (18)
+## 2026-08-14 (19)
+
+### v0.3.72-dev — Fix Garden Plot spawning inside a Boulder
+
+Found live (Ben, screenshot): the single pre-placed `GardenPlot`
+(v0.3.71-dev) landed right on top of a Boulder at (4, -4) — that spot
+just hadn't been checked against the scene's existing scatter content.
+Moved to (8.62, 0.28, -2.09), confirmed clear (4m+) of every Boulder/
+Tree/Bush/structure in the scene via script rather than picking another
+coordinate blind.
 
 ### v0.3.71-dev — Single-plant Garden Plot proof of concept (MVP2 item 9)
 
