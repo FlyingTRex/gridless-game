@@ -3740,7 +3740,25 @@ wander/flee AI yet), Knife-gated skinning, trains Gathering.
 - [ ] **Not built yet, by design**: no movement, no flee behavior when
   approached, same limitation as Chicken.
 
-## 45. Player Map — fog-of-war core, v1 (v0.3.97-dev)
+## 45. Fried Egg (Frying Pan recipe), v1 (v0.3.97-dev)
+
+- [ ] **Recipe appears at the Frying Pan** with 1 Egg required, Cooking
+  level 5 gate, ~30s cook time.
+- [ ] **Cooking succeeds** with an Egg + Frying Pan installed on a
+  Campfire and Cooking ≥5 — produces 1 Fried Egg, trains Cooking.
+- [ ] **Visual check**: confirm the dropped/held Fried Egg model actually
+  reads as a fried egg (oval white + off-center yolk dome), not a blank
+  box — first time this model's been seen outside a flat batch-mode bake.
+- [ ] **Eating it**: confirm +5 Health and Hunger goes up by 25 (not the
+  originally-requested 20 — shipped on `FoodTier.LightMeal`, see
+  `CHANGELOG.md` v0.3.97-dev for why). Flag if 25 feels off in practice —
+  the fix is a one-line `foodTier` change to `Snack` (15) if 20 was meant
+  to round down instead.
+- [ ] **Cooking failure roll**: confirm a low-Cooking-skill attempt can
+  still fail per the existing `CraftOutcomeRoll` mechanic, same as other
+  Cooking recipes.
+
+## 46. Player Map — fog-of-war core, v1 (v0.3.98-dev)
 
 New — not yet walked through in Play mode at all (verified so far only
 via batch-mode compile + direct scene YAML grep). Full design in
