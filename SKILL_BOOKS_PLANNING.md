@@ -428,12 +428,30 @@ exist yet and need building first or scoped around:
 
 ### Phase 4 — NPC training
 
+**Superseded 2026-08-16 — see `NPC_TRAINING_PLANNING.md` for the real
+design.** The sketch below (items 11) was written 2026-08-13, before a
+full conversational design pass with Ben. It's kept here for history but
+is **no longer accurate**: the real design is a Desk/Bookshelf ritual
+(2 real minutes, not instant), reads from both a Bookshelf *and* the
+player's inventory (not just a direct hand-over), and **includes magic
+books** (banked inertly on the NPC for a future NPC-magic system,
+explicitly not excluded the way this stub originally said). Sequencing
+is unchanged — still correctly blocked on NPC bench-crafting
+(`NPC_JOB_GENERALIZATION_PLANNING.md` section 7, itself planned but not
+yet built as of this note) for the crafting/weapon-book half to have
+anything to attach to.
+
+<details>
+<summary>Original sketch (2026-08-13), kept for history, superseded above</summary>
+
 11. New "give NPC a book" interaction, mirroring `TryGiveTool`'s hand-
     over-an-item shape — the NPC reads it itself (its own small granted-
-    recipes set, parallel to the player's). **Crafting/weapon books only —
-    magic is fully excluded per the design.** Sequence this phase *after*
+    recipes set, parallel to the player's). Crafting/weapon books only —
+    magic is fully excluded per the design. Sequence this phase *after*
     NPC bench-crafting exists (a separate, already-deferred piece) —
     before that, this grant has nothing to attach to.
+
+</details>
 
 ### Phase 5 — Sourcing
 

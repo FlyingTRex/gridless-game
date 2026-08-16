@@ -256,7 +256,13 @@ the input side's "business/commerce reach" section above).
 | Renowned | ≥ 500 | 1.5x | -20% |
 
 - **Visit frequency** multiplier applies to however the Traveling
-  Trader's spawn/visit interval ends up being built (not designed yet).
+  Trader's spawn/visit interval ends up being built. **The mechanism
+  is now designed** (2026-08-16, see `VILLAGE_FLAG_PLANNING.md`) — a
+  craftable Village Flag beacon with its own spawn-interval timer that
+  reuses this exact band table, originally designed for settler-NPC
+  population growth (a separate, sooner-buildable half) but explicitly
+  built to be reusable for the Trader once the wider commerce
+  prerequisite below exists.
 - **Pricing** is symmetric (confirmed) — Renowned gets a real discount,
   not just "Infamous pays a markup, everyone else is flat." Applies
   broadly to "NPC traders/vendors (including food)," not just this one

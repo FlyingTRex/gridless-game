@@ -609,7 +609,11 @@ signs off on scope and order.
   anywhere in this codebase — not a missing hook, an entire unbuilt
   commerce layer. The biggest prerequisite in `FAME_PLANNING.md`, which
   has the full design ready (a 5-band frequency/pricing/quality table)
-  once the underlying system gets built.
+  once the underlying system gets built. **The Trader's spawn/visit
+  mechanism specifically is now designed** (2026-08-16,
+  `VILLAGE_FLAG_PLANNING.md`) as a reusable Village Flag beacon system —
+  still blocked on the rest of commerce (pricing/transactions/inventory),
+  but the "how does it show up at all" half has a real answer now.
 - [ ] **Basic transportation** — log raft/boat up through a cart; a tamed
   animal can pull a cart or carry loot.
 - [ ] **Larger/settlement-level storage** — distinct from Phase 1's personal

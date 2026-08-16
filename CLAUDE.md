@@ -146,6 +146,55 @@ needed, proves the walk-to-Furnace case). Other bench families (Sewing,
 Woodworking, etc.) are data-only follow-ups once `NPCCrafting` itself is
 proven — not built ahead of that.
 
+**NPC training via a Desk/Bookshelf ritual is planned in full — see
+`NPC_TRAINING_PLANNING.md`.** Designed conversationally with Ben the
+same session (2026-08-16), supersedes `SKILL_BOOKS_PLANNING.md`'s older
+Phase 4 stub (flagged there as corrected, not silently overwritten). Two
+new Build pieces: a Desk (the NPC physically walks there and waits 2
+real minutes once training starts — a real functional timer, not
+flavor) and a Bookshelf (a restricted storage box holding real
+`SkillBook` instances; needs an auto-populated allowed-items list via
+the same `DatabaseRepopulator`-style scan, not a hand-maintained one,
+per `EFFICIENCY_AUDIT.md`'s registration-array warning). The book picker
+reads from both the Bookshelf *and* the player's own inventory — shelving
+first isn't required. The chosen book is consumed immediately (upfront,
+matching every other consume-then-wait convention in this project), not
+on completion. Crafting/weapon books grant the recipe exception straight
+into `NPCCrafting`'s queue (bench-crafting, above) — `WishRecipe`-
+targeting magic books are explicitly included too, but banked inertly
+(mirrors `PlayerMagic.knownLineages`' shape) since NPCs have no
+spellcasting system yet to actually use one; Ben's framing: forward
+compatibility for whenever NPC magic abilities become real, not a stub
+to be embarrassed about. Not yet built.
+
+**A craftable Village Flag that draws new hireable NPCs (and, later, a
+Traveling Trader) is planned in full — see `VILLAGE_FLAG_PLANNING.md`.**
+Designed the same session (2026-08-16) — answers two separate open
+questions at once: this conversation's own "what should higher Fame
+unlock for finding NPCs," and a `FAME_PLANNING.md` question left
+explicitly unanswered since 2026-08-14 ("however the Traveling Trader's
+spawn/visit interval ends up being built — not designed yet"). New Build
+piece (1 Stick + 1 Cloth, trains Sewing — its first real crafted-item
+purpose beyond Rope/Cloth themselves), 5-tier ladder determined
+deterministically by which Stick tier feeds it, same shape Stone Arrow
+already established (Hunting Expansion, 2026-08-15) — no skill roll,
+ingredient quality decides output tier. A spawn timer (30 real minutes
+baseline) reduced by both Fame band (reuses `FAME_PLANNING.md`'s
+existing 5-band 0.5x–1.5x table directly, no new numbers) and Flag tier
+(a new dedicated scale — CLAUDE.md's own tier-scaling gotcha means Arrow/
+Bow's damage tables aren't the right numbers to reuse here). Spawned
+NPCs walk toward the nearest Flag (reuses `NPCFlee.cs`'s move-toward-a-
+fixed-point plumbing) and become an ordinary pre-placed-style hire once
+they arrive. **The elegant part, Ben's own framing**: the window before
+an unhired NPC wanders off again is the *inverse* of the current spawn
+interval (`stickAroundMinutes = baseInterval × baseStickAround ÷
+currentInterval`, proposed formula not yet fully confirmed) — so higher
+Fame means NPCs both show up sooner *and* stick around longer once they
+do, a real compounding effect. The Traveling Trader itself stays blocked
+on the wider commerce system (`BUGS_AND_ENHANCEMENTS.md`) — this doc
+only builds the reusable spawn-and-seek mechanism, not the Trader.
+Not yet built.
+
 **Save/load persistence real implementation plan lives in
 `SAVE_LOAD_PLANNING.md`.** Expands the narrow v1 draft in
 `BUGS_AND_ENHANCEMENTS.md` (and `MVP2_PLANNING.md` item 6) into a buildable
