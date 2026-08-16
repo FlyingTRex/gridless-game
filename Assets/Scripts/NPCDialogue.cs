@@ -22,6 +22,7 @@ public class NPCDialogue : MonoBehaviour
     private NPCWander wander;
     private NPCGathering gathering;
     private NPCCrafting crafting;
+    private NPCGuarding guarding;
     private bool isTalking;
     private float talkTimer;
 
@@ -34,9 +35,11 @@ public class NPCDialogue : MonoBehaviour
         // shouldn't hard-require one just to pause it. crafting added
         // 2026-08-16 alongside NPCCrafting itself -- Talk previously only
         // paused gathering, leaving a Metalworking-assigned NPC free to
-        // keep crafting mid-conversation.
+        // keep crafting mid-conversation. guarding added the same day
+        // alongside NPCGuarding -- same reasoning.
         gathering = GetComponent<NPCGathering>();
         crafting = GetComponent<NPCCrafting>();
+        guarding = GetComponent<NPCGuarding>();
     }
 
     private void Update()
@@ -58,6 +61,7 @@ public class NPCDialogue : MonoBehaviour
         wander.SetPaused(true);
         gathering?.SetPaused(true);
         crafting?.SetPaused(true);
+        guarding?.SetPaused(true);
     }
 
     private void EndDialogue()
@@ -66,6 +70,7 @@ public class NPCDialogue : MonoBehaviour
         wander.SetPaused(false);
         gathering?.SetPaused(false);
         crafting?.SetPaused(false);
+        guarding?.SetPaused(false);
     }
 
     private void OnGUI()

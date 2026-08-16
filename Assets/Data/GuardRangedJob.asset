@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26c729ec6f906524fb8578352178b810, type: 3}
+  m_Name: GuardRangedJob
+  m_EditorClassIdentifier: Assembly-CSharp::NPCJobDefinition
+  jobName: Guard (Ranged)
+  kind: 2
+  family: {fileID: 11400000, guid: 17c2b03afdf81054b915105324b47a65, type: 2}
+  tier: 1
+  toolRequirements:
+  - label: Weapon
+    acceptableItems:
+    - {fileID: 11400000, guid: 83a0a45b2ccc5834996766d2aa5f0a59, type: 2}
+    - {fileID: 11400000, guid: e10a524b145148146b24f7415dc13613, type: 2}
+    - {fileID: 11400000, guid: d9eef70e50e1c2d4fb990076a7dfe967, type: 2}
+    - {fileID: 11400000, guid: 17f02796c97241a43bf08fd865d8be98, type: 2}
+    - {fileID: 11400000, guid: 9976e75663dbaa247a7cc9a6ba351fea, type: 2}
+    attachBone: 18
+    attachPositionOffset: {x: 0, y: 0, z: 0}
+    attachEulerOffset: {x: 0, y: 0, z: 0}
+  - label: Arrow
+    acceptableItems:
+    - {fileID: 11400000, guid: 4cbbf151aa8292149bbfa33bf69e0b15, type: 2}
+    - {fileID: 11400000, guid: fa33f752ef93c1647b1584890c478e03, type: 2}
+    - {fileID: 11400000, guid: 6ceda30a2cf06a34fb8946390f7410cd, type: 2}
+    - {fileID: 11400000, guid: 89564ee1538961f4ba40029d91f8fcaf, type: 2}
+    - {fileID: 11400000, guid: 83a2d595ddf0dee41b73cb3c6047e8b2, type: 2}
+    attachBone: 17
+    attachPositionOffset: {x: 0, y: 0, z: 0}
+    attachEulerOffset: {x: 0, y: 0, z: 0}
+  workAnimation: 0
+  collectLoosePickups: 0

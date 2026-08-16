@@ -98,6 +98,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3597751508970687021}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2530475003157893886}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2770883557898908252}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
 --- !u!1 &384420937806375696 stripped
 GameObject:
@@ -322,4 +328,36 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCSeekFlag
   moveSpeed: 1.5
+  obstacleCheckDistance: 1.5
+--- !u!114 &2530475003157893886
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c7cec5bf4deda86409be1797a0c49000, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCVitals
+  maxHealth: 30
+  regenPerSecond: 1
+--- !u!114 &2770883557898908252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 856aea142ff6c854fbd083a8f95ddb01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCGuarding
+  detectionRadius: 15
+  giveUpRadius: 25
+  meleeAttackRange: 2.5
+  rangedAttackRange: 20
+  moveSpeed: 2.2
   obstacleCheckDistance: 1.5

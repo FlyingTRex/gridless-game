@@ -3131,29 +3131,42 @@ targeting `MasterworkKnifeRecipe`, one near (-4, 0, 6) targeting
 `SparkWish` — a quick way to test *reading* before ever writing
 anything.
 
-- [ ] **Basic crafting/weapon write → read loop**: get 1 Paper + 1 Ink
-  (Admin Spawn, or gather a Plank/2 Berries and craft them via the new
-  Paper/Ink recipes in the Crafting tab), open the Writing tab (Tab
-  menu), pick a recipe you already know, click Write — confirm Paper +
-  Ink are both consumed and a message shows the outcome. If it wasn't a
-  failure, confirm a new Skill Book appears in your inventory. Open its
-  action popup and click Read — confirm the book disappears and you can
-  now craft the targeted recipe even *without* the normal skill level
-  (test by writing/reading a recipe above your current tier).
-- [ ] **Scope check — one recipe only**: after reading a book for one
-  specific recipe (e.g. a Fine-tier item), confirm you still can't craft
-  *other* recipes at that same tier you haven't separately unlocked —
-  the grant should be scoped to exactly the one recipe, not the whole
-  tier.
-- [ ] **Basic magic write → read loop, unknown lineage**: as a character
-  who only knows their starting lineage, write a book targeting a wish
-  in a *different* lineage (only available if you already know that
-  lineage — if not, use the pre-placed `SparkWish` found book instead
-  to test the read half specifically). Reading it should grant both the
-  lineage itself (check the Magic tab — the new lineage's wishes should
-  now be listed under `KnownWishes`) *and* the specific wish, while a
-  different wish in that same lineage (if one exists) should still be
-  unusable.
+- [x] **Basic crafting/weapon write → read loop — confirmed live
+  (Ben, 2026-08-14, v0.3.68-dev)**: wrote a book, read it, materials
+  consumed and the book produced/consumed correctly. Surfaced a real bug
+  in the process (fixed same day) — reading a self-authored book always
+  paid the flat Intelligence gain even though the subject was already
+  known, since writing a recipe/wish requires already meeting its skill
+  gate. `PlayerReading.TryRead()` now only pays Intelligence when the
+  read teaches something genuinely new.
+- [x] **"Craft above your normal skill level" — already confirmed,
+  just not by this checklist line.** Structurally can't be tested via a
+  self-written book at all: `PlayerWriting.WritableRecipes` only ever
+  offers recipes you already meet `HasRequiredSkill` for, so writing-
+  then-reading your own book can never grant access to something new —
+  you'd have to already know it to write about it (this checklist item
+  was flawed as originally written). Admin Spawn doesn't help either —
+  it has no special handling for `SkillBook`, so a spawned one comes out
+  with `TargetRecipe`/`TargetWish` both null (only `PlayerWriting.
+  SpawnBook()` ever sets those). What actually confirms this is the
+  "Found books" line above: reading the pre-placed `MasterworkKnifeRecipe`
+  book (Masterwork requires skill level 100, far above a fresh
+  character) already proved a reader gains access above their own skill
+  level — confirmed live 2026-08-14 alongside that test.
+- [x] **Read half confirmed live (traskmi)**: reading a `SparkWish`
+  (Elemental lineage) book while only knowing Kinetic — confirmed both
+  the Elemental lineage itself and the Spark wish specifically became
+  known, exactly the "grants lineage + wish together when the lineage
+  wasn't known yet" behavior this item was checking for. Not confirmed
+  whether this was the pre-placed found book or a freshly written one —
+  doesn't matter for what this line verifies, since `PlayerReading.
+  TryRead` doesn't distinguish book provenance.
+- [x] **Write half confirmed live (Ben, 2026-08-16)**: wrote several
+  Spark (Elemental) wish books via the Writing tab — Paper/Ink consumed,
+  real `SkillBookPickup` instances produced (visible as stashed clones
+  in the Hierarchy). `PlayerWriting.TryWriteWishBook`'s production path
+  works. All rolls landed plain `Success` — see the `BUGS_AND_
+  ENHANCEMENTS.md` follow-up for the still-unconfirmed extreme outcomes.
 - [x] **Found books (no writing required)**: walk to each of the two
   pre-placed found books, pick them up, and Read each — confirm the
   Masterwork Knife recipe becomes craftable and the Spark wish becomes
@@ -3162,26 +3175,43 @@ anything.
   errors, each granting the Intelligence XP tick; the Spark book
   correctly no-op'd on the wish/lineage grant itself since it was
   already known (no duplicate grant, no relock).
-- [ ] **`SpectacularFailure` damage**: with low Intelligence and a
-  high-tier subject (a deeply negative margin), write repeatedly until a
-  `SpectacularFailure` lands — confirm it deals 2–10 damage and produces
-  no book, and that Paper/Ink were still consumed despite the failure.
-- [ ] **`BrilliantSuccess` lineage bonus**: with high Intelligence
-  relative to the subject's tier, write a wish book repeatedly until a
-  `BrilliantSuccess` lands — confirm the resulting book's read grants a
-  starting lineage level somewhere in the 1–10 range instead of exactly
-  0 (check the Skills tab or `SkillsScreen`'s lineage level display right
-  after reading).
-- [ ] **Intelligence actually trains**: note your Intelligence level
-  before a writing/reading session, confirm it visibly increases after a
-  few successful writes and reads (Player tab tile).
-- [ ] **UI regression — Writing tab**: confirm the Writing tab shows
-  "Nothing you currently know how to craft yet" / "You don't know any
-  wishes yet" correctly on a fresh character with nothing craftable yet,
-  and that the Paper/Ink count line turns into a warning color when
-  either is at 0.
-- [ ] **Not testable yet, by design**: NPC training (Phase 4) is blocked
-  on NPC bench-crafting, which doesn't exist — skip until that ships.
+- **Scope check, `SpectacularFailure` damage, and `BrilliantSuccess`
+  lineage bonus — moved to `BUGS_AND_ENHANCEMENTS.md` as a follow-up
+  (2026-08-16), not blocking this section.** Every write attempt
+  actually run landed a plain `Success`; the extreme rolls need a
+  deliberately mismatched margin to force, and the scope check wasn't
+  attempted at all. See that doc's "Skill books: extreme
+  `CraftOutcomeRoll` outcomes never confirmed live" entry.
+- [x] **Intelligence actually trains — confirmed live (Ben, 2026-08-16,
+  save-file diff)**: raw level went `23.1552734` → `38.1208458`
+  (displayed ≈2.32 → ≈3.81) across a session of writing several Spark
+  books plus reads — real, substantial growth, not a rounding artifact.
+- [x] **UI regression — Writing tab, warning color — confirmed live
+  (Ben, 2026-08-16, screenshot)**: "Cost per attempt: 1 Paper (have 0),
+  1 Ink (have 0)" rendered in red with both at 0, as expected. Same
+  screenshot also visually confirmed the empty-state unreachability
+  finding below — the recipe list was fully populated (Crude Knife,
+  Canteen, Rope, Cloth, ...) despite a low-skill character, matching the
+  "every Crude-tier recipe reads as known regardless of actual skill"
+  reasoning.
+- **Empty-state messages ("Nothing you currently know how to craft
+  yet" / "You don't know any wishes yet") are likely unreachable
+  through normal play, not just untested** — found while reviewing this
+  section, 2026-08-16. `PlayerWriting.WritableRecipes` treats every
+  Crude-tier recipe as known regardless of actual skill
+  (`CraftTierScale.SkillRequirement(Crude) = 0`), and several Crude
+  recipes always exist in `PlayerCrafting.recipes` — so that list can
+  never be empty on a real character. `PlayerMagic.KnownWishes` is only
+  gated by `IsLineageKnown`, and every character is handed a random
+  starting lineage in `Awake()` — so that list can't be empty either.
+  Both messages read as defensive UI for a state the game can't
+  currently produce, not a real gap to chase in a live test pass.
+- [ ] **No longer blocked, not yet tested**: NPC training (Phase 4) was
+  written here as blocked on NPC bench-crafting, which didn't exist at
+  the time — both bench-crafting (v0.3.101-dev) and NPC training itself
+  (v0.3.102-dev) have since shipped. See section 49 for NPC training's
+  own test checklist; this line is stale and should be removed once that
+  section's checks are confirmed, not treated as "skip."
 
 ## 32. Weather Maker (sky, clouds, day/night, weather), v1
 
@@ -3234,25 +3264,45 @@ New — not yet walked through in Play mode at all (verified so far only via
 batch-mode compile + direct YAML grep of the new scene wiring). Full
 design in `DEXTERITY_CONSTITUTION_PLANNING.md`.
 
-- [ ] **Constitution tile shows Health/Stamina caps**: open the Player tab
-  (Tab menu), confirm the Constitution tile's sub-line reads "Max Health:
-  100  Max Stamina: 100" at the starting Constitution value (2.00), not a
-  blank/placeholder line.
-- [ ] **Dexterity tile shows a live speed bonus**: confirm the Dexterity
-  tile's sub-line reads "Speed: +X%" and the percentage visibly changes as
-  Dexterity trains up.
+- [x] **Constitution tile shows Health/Stamina caps — confirmed live
+  (Ben, 2026-08-16, screenshot)**: Constitution tile read "Max Health:
+  100  Max Stamina: 100" correctly.
+- [x] **Dexterity tile shows a live speed bonus — confirmed live (Ben,
+  2026-08-16, screenshot)**: Dexterity tile read "Speed: +6%" at
+  Dexterity 2.06, matching the linear speed-bonus formula.
 - [ ] **Sprinting trains both Constitution and Dexterity**: sprint for a
   sustained stretch, confirm both stats' raw levels (Skills tab) tick up
-  over time — same action, two payoffs.
+  over time — same action, two payoffs. **Pacing note (2026-08-16)**: a
+  short sprint (a few seconds) genuinely won't show any movement — the
+  gain rate is calibrated for +0.25 displayed level over 4 real days,
+  which works out to ~110 seconds of continuous sprinting just to cross
+  the internal flush threshold once (`PlayerDexterity.pendingGain`,
+  unsaved between sessions below that). Confirmed via a real test: a
+  short sprint-only session showed zero raw-level movement, consistent
+  with this math, not a bug. Needs either 2+ minutes of continuous
+  sprinting or temporarily lowered calibration constants to test in a
+  reasonable window.
 - [ ] **Sneaking trains Dexterity only**: hold Kneeling/Crawling/Prone and
   move around for a sustained stretch, confirm Dexterity increases but
-  Constitution does not.
+  Constitution does not. Same pacing note as sprinting above applies.
 - [ ] **Jump grants Dexterity**: jump repeatedly (note Stamina drains
   too — the existing per-jump cost, unchanged), confirm Dexterity ticks up
-  a small amount each time.
-- [ ] **Crafting grants Dexterity**: complete a few crafts of any recipe in
-  the Crafting tab, confirm Dexterity ticks up a small flat amount per
-  completed item, regardless of what was crafted or the outcome.
+  a small amount each time. `JumpGain = 0.1` flat per jump (same
+  magnitude as a craft) — a handful of jumps should be enough to see
+  movement, unlike the sprint/sneak real-time pacing above.
+- [x] **Crafting grants Dexterity — confirmed live (Ben, 2026-08-16,
+  save-file diff)**: crafted a batch of Sticks — raw Dexterity went
+  `20.5642776` → `21.212656` (+0.648, consistent with ~8 completed
+  crafts at `CraftGain=0.1` through the diminishing-returns curve).
+  Constitution stayed flat in the same window, correctly unaffected. An
+  earlier sprint-only test showed zero movement and looked concerning,
+  but turned out to be explained by the sprint calibration's own slow
+  real-time pacing (~110s of continuous sprinting just to cross the
+  internal flush threshold) — not a bug, see that section's own note
+  below. Incidental confirmation: Fame ticked +1.0 in the same save,
+  matching `CraftTierScale.FameOnTierUnlock(Rudimentary)` — Woodworking
+  crossed the Rudimentary threshold mid-session and `PlayerFame`'s
+  skill-tier hook fired correctly.
 - [ ] **Furnace/Campfire automation does NOT grant Dexterity**: queue a
   Furnace smelt or let Campfire cooking auto-cook to completion, confirm
   Dexterity does *not* increase from either — only direct Crafting-tab
@@ -3360,9 +3410,12 @@ wiring). One `SandDigSite` is pre-placed in `TestScene.unity` near
 
 ## 37. Melee weapon damage framework, v1
 
-New — not yet walked through in Play mode at all (verified so far only
-via batch-mode compile + direct YAML grep of the new assets/scene
-wiring).
+**First real live evidence, 2026-08-16**: traskmi hunted a Chicken with a
+Knife — confirms the core framework actually functions against a live
+creature (equip, attack, deal damage, kill), not just a clean compile.
+Precise per-tier damage numbers and the Melee-vs-Bare-handed skill split
+below are still unconfirmed — not enough detail from a single kill to
+verify those specifically.
 
 - [ ] **Bare-handed unchanged**: with nothing in hand, confirm punching
   still deals exactly 9 damage and trains Bare-handed (not Melee).
@@ -3605,6 +3658,22 @@ way instead of only via Admin Spawn.
 
 ## 42. Bow & Arrow (ranged combat), v1
 
+**First real live evidence, 2026-08-16**: traskmi hunted a Chicken with a
+Bow and Arrow — confirms equip, draw/fire, and a real arrow-hit kill
+against a live creature, not just a clean compile + static renders. Draw
+scaling, Strength's max-draw effect, accuracy-by-tier, cooldown, and the
+Archery skill gain are still unconfirmed at that level of detail from a
+single kill.
+
+**Regression (2026-08-16)**: that same live test caught the flying arrow
+visual facing backwards — fletching led, arrowhead trailed. Root-caused
+to `FlyingArrow.Launch()`'s `LookRotation` conflicting with the nested
+Arrow model's own baked equip-context rotation; fixed in v0.3.110-dev
+with a corrective 180° yaw, confirmed via a diagnostic render with
+direction markers. **Not yet confirmed in an actual Play-mode shot** —
+the next live test of this section should specifically watch the arrow's
+orientation in flight, not just whether the hit registers.
+
 New — not yet walked through in Play mode at all (verified so far only
 via batch-mode compile + direct YAML grep + two static renders). Full
 design in the "Hunting Expansion" artifact (published 2026-08-15). Craft
@@ -3680,6 +3749,12 @@ A `Chicken_001` sits in `TestScene.unity` near (6, 0.34, -6). Stands
 still (no wander/flee AI yet — that half of the Prey Creature archetype
 still isn't built), but is now genuinely killable and lootable via the
 new generic `PreyCreature.cs`.
+
+**Live evidence, 2026-08-16**: traskmi hunted a Chicken twice — once with
+a Bow and Arrow, once with a Knife — confirming it renders, is targetable,
+takes damage from both weapon types, and dies (see sections 37/42 for what
+this confirms about the weapon frameworks themselves). Not confirmed from
+this alone: the actual skin/loot/skill-gain/respawn steps below.
 
 - [ ] **Visual check**: walk up to it in Play mode — confirm it renders
   correctly (not pink/invisible) and looks proportionally right next to
@@ -4025,3 +4100,154 @@ loop or Admin-spawned NPCs for the population).
 - [ ] **Not built yet, by design**: any actual `requiresCityStatus`-gated
   structure (Research Facility/Spaceport are illustrative only); the
   City Statue's real Blender model (placeholder primitives for now).
+
+## 52. NPC Guarding, v1 (v0.3.106-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct asset/prefab/scene YAML grep). Full
+design in `GUARDING_PLANNING.md`. **The riskiest untested feature this
+session** — real combat, real permanent NPC death, and a brand-new
+circular-patrol movement shape all at once. Needs a placed Village Flag
+and a live Wolf encounter to test meaningfully.
+
+- [ ] **Assign the job**: hire an NPC, open Assign Job, confirm a
+  "Guarding" family tab exists with two tiles — "Guard (Melee)" and
+  "Guard (Ranged)".
+- [ ] **Melee equip**: assign Guard (Melee), confirm it asks for a
+  Weapon and accepts any Knife tier; the NPC isn't `IsReady` until given
+  one.
+- [ ] **Ranged equip**: assign Guard (Ranged), confirm it asks for both
+  a Weapon (any Bow tier) and an Arrow (any Arrow tier) — not ready
+  until both are given.
+- [ ] **Patrol with a Flag placed**: with a Village Flag in the world,
+  confirm an assigned, fully-equipped Guard visibly circles it — roughly
+  the Flag's own reveal-radius distance away (35m Crude up to 75m
+  Masterwork), not standing still.
+- [ ] **Patrol with no Flag**: with no Village Flag placed anywhere,
+  confirm the Guard just stands at its current spot instead of erroring
+  or drifting somewhere unexpected.
+- [ ] **Detects and engages a Wolf**: get a `HostileCreature` within the
+  Guard's detection range — confirm it breaks patrol, closes in, and
+  starts attacking (melee: visibly closes to point-blank; ranged: fires
+  from range on a steady cooldown, no manual draw needed).
+- [ ] **The Wolf fights back**: confirm the Wolf actually damages the
+  Guard once engaged (not just the Guard damaging the Wolf one-way) —
+  this is `HostileCreature.RedirectAggro` actually working, the whole
+  reason "real health, can die" is meaningful.
+- [ ] **Guard can die**: let a Guard lose a fight — confirm it's
+  actually removed (job cleared, GameObject gone), not stuck in a broken
+  state, and doesn't respawn.
+- [ ] **Returns to patrol**: kill the Wolf (or let the Guard win) and
+  confirm the Guard resumes patrolling the Flag afterward, not frozen at
+  the fight location.
+- [ ] **Doesn't attack the player**: confirm a Guard never engages the
+  player regardless of the player's own Fame — the "negative Fame
+  players" targeting rule was explicitly not built against the single
+  local player (see `GUARDING_PLANNING.md` section 6).
+- [ ] **Talk still works**: confirm Talk pauses a Guard's patrol/combat
+  loop, same as it already does for Gathering/Crafting.
+- [ ] **Skill trains**: confirm the new Guarding skill (Combat category)
+  actually gains XP on a successful hit — check the NPC's stats in
+  `NPCHiringScreen`.
+- [ ] **Doesn't affect existing pre-placed NPCs**: confirm a Mining- or
+  Woodworking-assigned NPC is unaffected by `NPCVitals`/`NPCGuarding`
+  being present on the shared prefab (still gathers normally, never
+  patrols or fights).
+- [ ] **Not built yet, by design**: negative-Fame player targeting
+  (multiplayer-only future hook); arrow consumption for ranged Guards
+  (permanent equipped loadout, not consumed); a Fame consequence for a
+  Guard's death; any coordination between multiple Guards patrolling the
+  same Flag.
+
+## 53. Rabbit (individually-sourced), v1 (v0.3.107-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct material/prefab/scene YAML grep). Two
+instances pre-placed in `TestScene.unity`. Full design context in
+`MVP2_PLANNING.md` item 8 and `CHANGELOG.md`'s v0.3.107-dev entry.
+
+- [ ] **Renders correctly**: confirm the Rabbit is actually visible in
+  Play mode, not invisible — this is the exact failure mode the
+  Built-in-shader-under-URP gotcha causes (looks fine structurally,
+  renders nothing), so a passing YAML check on the material alone
+  doesn't prove this.
+- [ ] **Idle/wander**: watch a Rabbit from a distance — confirm it
+  alternates between standing still and walking to a nearby point,
+  looping indefinitely, with the Run animation actually playing while it
+  moves (not sliding).
+- [ ] **Flees on approach**: walk toward a Rabbit — confirm it breaks
+  off wandering and runs directly away once you're within range, faster
+  than its normal wander pace.
+- [ ] **Resumes wandering after fleeing**: back off and give it space —
+  confirm it settles back into the ordinary idle/wander cycle rather
+  than continuing to flee indefinitely or freezing.
+- [ ] **Kill and skin**: kill a Rabbit (any weapon), confirm it drops
+  into the same "hold to skin" state as Chicken/Deer, requires a Knife,
+  and drops 1-2 Raw Meat; confirm Gathering trains.
+- [ ] **Death stops the AI cleanly**: confirm a dead Rabbit doesn't
+  keep trying to wander/flee (no sliding corpse, no console errors).
+- [ ] **Scale/placement sanity check**: stand next to a placed Rabbit —
+  confirm it reads as a believable small-animal size next to the player,
+  matching the measured ~0.27m height.
+- [ ] **Not built yet, by design**: Pig (separate asset, not yet
+  purchased); retrofitting `PreyWander` onto Chicken/Deer (they still
+  stand still); taming.
+
+## 54. Chicken Meat — third Chicken loot drop, v1 (v0.3.108-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct instantiated-material/pixel inspection,
+not just a `.meta`/prefab YAML grep, given what this feature's own icon
+bug turned out to be). Full design context in `MVP2_PLANNING.md` item 8
+and `CHANGELOG.md`'s v0.3.108-dev entry.
+
+- [ ] **Renders correctly as a world pickup**: kill and skin a Chicken,
+  confirm the dropped Chicken Meat pickup is actually visible (drumstick
+  shape — meat mass + bone + knuckle), not invisible or a generic gray
+  cube fallback.
+- [ ] **Icon renders correctly**: confirm the inventory slot icon and
+  (if picked up) preview icon both show the full drumstick silhouette —
+  bone and knuckle visible, not just the meat ball. This is the exact
+  bug that was found and fixed this session (glTFast material-remap
+  silently not applying — see `CLAUDE.md`'s embedded-glTF-material
+  gotcha, 2026-08-16 update).
+- [ ] **Drop chance/count**: kill several Chickens, confirm Chicken Meat
+  drops alongside Feather/Egg (not replacing them) at a sane rate — no
+  drop-chance was specified beyond the field default, confirm it isn't
+  set to always/never unintentionally.
+- [ ] **Stacks/behaves as an ordinary item**: pick it up, confirm it
+  stacks normally in inventory and can be dropped/picked back up.
+- [ ] **Not built yet, by design**: no `EdibleItem`/cooking recipe for
+  Chicken Meat specifically — only the drop itself was in scope this
+  pass.
+
+## 55. Pig (Animal pack deluxe v2), v1 (v0.3.109-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + a rendered visual check + scene-guid grep, not
+a live look). Two instances pre-placed in `TestScene.unity`. Full design
+context in `MVP2_PLANNING.md` item 8 and `CHANGELOG.md`'s v0.3.109-dev
+entry.
+
+- [ ] **Renders correctly**: confirm the Pig is actually visible and
+  correctly textured in Play mode (pink skin, not white/invisible/pink-
+  missing-shader) — the rendered visual check during setup looked
+  correct, but that's not the same as a real in-Editor lighting pass.
+- [ ] **Idle/wander**: watch a Pig from a distance — confirm it
+  alternates between standing still and walking to a nearby point,
+  looping indefinitely, with the Run animation actually playing while it
+  moves (not sliding).
+- [ ] **Flees on approach**: walk toward a Pig — confirm it breaks off
+  wandering and runs directly away once you're within range.
+- [ ] **Resumes wandering after fleeing**: back off and give it space —
+  confirm it settles back into the ordinary idle/wander cycle.
+- [ ] **Kill and skin**: kill a Pig (any weapon), confirm it drops into
+  the "hold to skin" state, requires a Knife, and drops 2-3 Raw Meat;
+  confirm Gathering trains.
+- [ ] **Death stops the AI cleanly**: confirm a dead Pig doesn't keep
+  trying to wander/flee.
+- [ ] **Scale/placement sanity check**: stand next to a placed Pig —
+  confirm it reads as a believable pig size next to the player (should
+  read noticeably bigger than the Rabbit, smaller than the Deer).
+- [ ] **Not built yet, by design**: retrofitting `PreyWander` onto
+  Chicken/Deer (they still stand still); taming.

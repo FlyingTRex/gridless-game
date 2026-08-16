@@ -5,10 +5,254 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.105-dev` — must always match `GameVersion` in
+**Current version:** `0.3.110-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (17)
+
+### v0.3.110-dev — Fix: flying arrow faced backwards in flight
+
+Bug caught live by traskmi hunting a Chicken with a Bow and Arrow
+(2026-08-16) — the arrow visual flew fletching-first, arrowhead trailing.
+
+- **Root cause**: `FlyingArrow.Launch()` orients the object via
+  `Quaternion.LookRotation(end - start)`, which points local +Z toward
+  the flight direction — but `ArrowFlightVisual.prefab`'s nested Arrow
+  model carries its own baked rotation (authored for how the arrow looks
+  equipped/held, not in flight), which points the arrowhead toward local
+  -Z instead. The two combined backwards.
+- **Fix**: an extra `Quaternion.Euler(0, 180, 0)` in `Launch()`'s rotation
+  calculation, correcting for the mismatch without touching the model's
+  own equip-context rotation. Confirmed via a diagnostic render with
+  color-coded direction markers (red = fire direction, green = behind)
+  before and after — arrowhead now clearly leads toward the red marker.
+- Same root-cause family as CLAUDE.md's other "imported model's authored
+  forward axis doesn't match Unity's `LookRotation` convention" gotchas
+  (`NPCWander`'s `modelForwardOffsetY`, `PreyWander`'s equivalent) — worth
+  checking for if any other script combines a nested-prefab visual with
+  `LookRotation` the same way.
+- Verified via a rendered diagnostic (not just a compile check) — not yet
+  confirmed by an actual in-Play-mode shot, though the visual mechanism
+  is now provably correct.
+
+## 2026-08-16 (16)
+
+### v0.3.109-dev — Pig built, closes out item 8's animal roster
+
+Ben added `Assets/Animal pack deluxe v2/` (a full animal asset pack) and
+asked to implement the Domestic Pig from it, closing the last open animal
+in item 8's Chicken/Pig/Deer/Rabbit lineup.
+
+- **No Tripo3D scaling gotcha this time** — unlike every generated model
+  in this project, this pack's `Domestic_pig` measures a realistic 0.76m
+  tall × 1.44m long × 0.55m wide raw, already close to a real pig's
+  proportions next to the 1.8m player. Only needed the usual small
+  ground-offset correction (+0.04), no rescale.
+- **Same legacy-Built-in-shader-invisible-under-URP gotcha as HumanDummy/
+  Rabbit** — `Domestic_pig_mat.mat` used `fileID: 46` (Built-in Standard).
+  Converted to `Universal Render Pipeline/Lit`, carrying over the albedo
+  (`domestic_pig_col_unity`), normal map, and occlusion map this pack
+  actually ships (unlike Rabbit's simpler material, this one had all
+  three wired already, just on the wrong shader) — confirmed visually via
+  a render, not just a clean log.
+- **The pack's own shipped `Domestic_pig_anim_controller` wasn't usable
+  as-is** — every transition has empty conditions (a no-parameter random
+  idle-cycling demo setup, not driven by any Speed value). Built a fresh
+  `PigAnimator.controller` instead, same 2-state Idle/Run shape Rabbit's
+  own controller uses, driven by `PreyWander`'s existing `Speed` float —
+  confirms `PreyWander.cs` really was built generic (2026-08-16, same
+  session): adopted here with zero changes to that script.
+- **`Pig.prefab`** — `BoxCollider` sized to measured bounds, `PreyCreature`
+  (`maxHealth = 25`, same 5-tier Knife `requiredTools` + Gathering
+  `skinningSkill` Deer already uses, Raw Meat ×2-3 loot — between Rabbit's
+  1-2 and Deer's 2-4, no Leather since Deer already owns that drop), plus
+  `PreyWander` for real idle/wander/flee AI from the start (unlike
+  Chicken/Deer, which still need retrofitting). 2 instances placed in
+  `TestScene.unity`.
+- Verified via a rendered visual check (not just YAML) that the material
+  fix actually took, plus direct scene-guid grep for placement — not yet
+  live-tested in Play mode.
+
+## 2026-08-16 (15)
+
+### v0.3.108-dev — Chicken Meat, third Chicken loot drop
+
+Ben's ask: give Chicken a third loot drop ("Chicken Meat") alongside its
+existing Feather/Egg, needing a new model and icons.
+
+- **Model** — `Tools/Blender/GenerateChickenMeatModel.py` (new, follows the
+  established headless-Blender pipeline), a classic drumstick silhouette:
+  rounded meat mass (`ChickenMeat`, pinched teardrop sphere) plus a thin
+  bone cylinder (`Bone`) with a knuckle sphere (`Knuckle`) protruding from
+  it, distinct from Raw Meat's existing beef-slab look. Exported to
+  `Assets/Models/ChickenMeat.glb`.
+- **`PreyCreature.cs` gained a third loot slot** (`lootItemC`/min/max/
+  chance) as a plain mirror of the existing A/B fields rather than a
+  restructure into an array — the only creature that needs a third drop
+  right now, and this way Chicken/Deer's existing scene data needed zero
+  migration. Chicken's scene instance wired to drop it.
+- **New icon-rendering gotcha found and fixed, on top of the already-
+  documented "un-remapped embedded glTF material" one**: `ChickenMeat.glb`'s
+  `.meta` had a materially correct `externalObjects` remap (`ChickenBone_mat`/
+  `ChickenMeat_mat` → real extracted `Universal Render Pipeline/Lit` `.mat`
+  assets) — `AssetImporter.GetExternalObjectMap()` even reported it
+  correctly — but **glTFast's importer never actually substituted it on the
+  instantiated renderers**, at any reimport tried (`ImportAsset(ForceUpdate)`,
+  `importer.SaveAndReimport()`, even re-adding the remap fresh via
+  `AddRemap(new SourceAssetIdentifier(embeddedMat), ...)`, the exact
+  CLAUDE.md-documented pattern from the Berry Seed fix). Every instantiated
+  copy kept resolving to the original embedded `Shader Graphs/glTF-
+  pbrMetallicRoughness` material regardless — only caught by instantiating
+  and checking `AssetDatabase.GetAssetPath()` on the actual assigned
+  material, not by trusting the `.meta`/`GetExternalObjectMap()` alone (which
+  both looked correct throughout). Symptom was subtle, not the usual fully-
+  invisible case: that Shader Graph material happened to still render, just
+  fully overexposed to flat white — nearly invisible against a light
+  background, easy to misdiagnose as a camera-framing or material-color
+  problem instead (two framing-angle bake attempts were tried first and
+  both failed for this reason, not a framing reason). **The reliable fix
+  ended up bypassing the importer's remap entirely**: `PrefabUtility.
+  LoadPrefabContents` on the wrapper prefab, walk its renderers, assign
+  `sharedMaterial` directly to the real `.mat` assets, `SaveAsPrefabAsset`
+  — a real per-instance override on the wrapper prefab that doesn't depend
+  on the `.glb`'s own import-time material resolution at all. Not yet
+  confirmed whether this also silently affected the earlier Berry Seed fix
+  (that one was only ever verified via `.meta` guid grep, never an actual
+  instantiated-material check) — worth a follow-up look, logged in
+  `BUGS_AND_ENHANCEMENTS.md`.
+- Icons baked via `IconBaker.cs` at the default 3/4-from-above camera angle
+  (the two angle-override attempts before finding the real cause turned out
+  unnecessary once the material was actually correct).
+- Verified via direct instantiated-material inspection + rendered-pixel
+  read (not just a clean batch-mode log) and by reading the final baked
+  icon images directly — not yet live-tested in Play mode.
+
+## 2026-08-16 (14)
+
+### v0.3.107-dev — Rabbit built, first real Prey Creature wander/flee AI
+
+Ben sourced a Rabbit model individually (`Assets/Rabbits/`, not from the
+shared `ithappy` pack — it doesn't include one) and asked to build it in
+fully: material fix, gameplay wiring, and real movement, all in one pass.
+
+- **Hit the exact same legacy-Built-in-shader-invisible-under-URP gotcha
+  as the HumanDummy incident** — `Rabbit1.mat`/`Rabbit_Eyes.mat` used
+  `fileID: 46` (Built-in Standard, recognizable by the all-zeros-plus-`f`
+  guid convention). Converted to `Universal Render Pipeline/Lit`, reading
+  the old shader's `_MainTex`/`_Color`/`_BumpMap` values first and writing
+  them into `_BaseMap`/`_BaseColor`/`_BumpMap` explicitly rather than
+  trusting a blind shader swap (same discipline the HumanDummy fix
+  established — `GetColor`/`GetTexture` on a property the old shader
+  never had silently returns a zeroed default, not an error).
+- **New `RabbitAnimator.controller`** — built from the asset's own
+  `Rabbit@Idle.fbx`/`Rabbit@Run.fbx` clips via `UnityEditor.Animations`
+  (2-state Idle/Run blend on a `Speed` float, no exit-time so it reacts
+  instantly). The source prefab shipped with an `Animator` component but
+  no controller assigned at all.
+- **New `PreyWander.cs` — the first real Prey Creature movement**,
+  closing the "PreyCreature's movement half unbuilt" gap Chicken/Deer
+  have carried since they shipped (`MVP2_PLANNING.md` item 8). Combines
+  `NPCWander`'s flat-ground idle/wander shape and `NPCFlee`'s away-from-
+  player shape into one state machine (a single creature needs both
+  halves together, unlike those two components which live on different
+  object types). Built generic, not Rabbit-specific — Chicken/Deer (or
+  Pig, once sourced) can adopt the same component later once they have
+  Idle/Run clips to drive; not retrofitted onto them this pass.
+  `SkinnableCreature` gained a public `IsDead` accessor so this sibling
+  component (not a subclass) can stop driving movement/animation once
+  the creature dies, same check `HostileCreature` already does
+  internally.
+- **New `Rabbit.prefab`** — `PreyCreature` (maxHealth 10, Raw Meat ×1-2
+  @ 100%, Knife-gated skinning, trains Gathering, same shape Chicken/
+  Deer already use) + `PreyWander`. Model was already sensibly scaled by
+  its own author (0.3 uniform, real-world bounds ~0.23×0.27×0.32m) and
+  nearly grounded (3cm offset) — measured via the same "never guess an
+  imported model's scale/pivot" diagnostic pattern this project always
+  uses before placing one, confirmed no rescale was actually needed this
+  time. Two instances placed in `TestScene.unity`.
+- Pig is still the one open animal from the original 4 — Ben separately
+  picked the LowPoly Pigs Pack (Red Deer, $20) as the best Asset Store
+  candidate, not yet purchased; see `BUGS_AND_ENHANCEMENTS.md`.
+- Verified via batch-mode compile + direct YAML grep (material shader/
+  `_BaseMap` values, prefab component fields, Animator controller
+  override, scene placement) only so far — not yet live-tested in Play
+  mode.
+
+## 2026-08-16 (13)
+
+### v0.3.106-dev — NPC Guarding built, closing out MVP2 item 2
+
+`GUARDING_PLANNING.md`'s design, built same day — the last unstarted
+piece of MVP2 item 2 ("Expand NPC hiring"). Bigger than the other job
+families: this is the project's first real NPC health/death system and
+first NPC-initiated combat.
+
+- **New `NPCVitals.cs`** — `IDamageable`, real health, **permanent**
+  death (no respawn timer, unlike `SkinnableCreature`'s creature-kill
+  shape) — clears the NPC's job (`NPCJob.ClearJob()`, same tool-loss-for-
+  good convention `NPCHiring.Fire()` already uses) and destroys the
+  GameObject. Slow out-of-combat regen, paused while `NPCGuarding.
+  IsFighting`. Lives on every hired NPC (not just Guards), same
+  always-present convention `NPCCrafting`/`NPCTraining` already use.
+- **`HostileCreature` generalized to retaliate, not just chase the
+  player** — previously hardcoded to a single `player` target with no
+  way to redirect. New `RedirectAggro(Transform)` lets `NPCGuarding`
+  provoke a Wolf onto itself after landing a hit; without this, a Guard
+  could hit a Wolf forever and never take damage back, making "real
+  health, can die" (Ben's own call) true in name only. Player-facing
+  damage delivery (`PlayerVitals.Damage`) is byte-for-byte unchanged —
+  the generalization only added a fallback through `IDamageable.
+  TakeDamage` for a non-player target.
+- **`NPCJobDefinition.JobKind` gains `Guarding`** — third sibling
+  alongside `Gathering`/`Crafting`, same early-out-if-wrong-kind pattern.
+- **New `NPCGuarding.cs`** — reuses `HostileCreature`'s own `Idle`/
+  `Chasing`/`Attacking` state shape, retargeted at `HostileCreature`
+  instances instead of the player, with a patrol state on top: circles
+  the nearest placed Village Flag at that Flag's own `CraftTierScale.
+  VillageFlagRevealRadius` (Ben's framing: "simulate patrolling around
+  the village," direct reuse of the table built for the Player Map
+  earlier the same session). No Flag placed → stands at its current spot
+  instead (detection ring still active), same "nothing to do, don't
+  crash" fallback `NPCCrafting`/`NPCTraining` already use. Attack
+  resolution mirrors `PlayerCombat.ResolveAttack`/`PlayerRangedCombat.
+  Fire`'s damage math (`WeaponDamageBonus`/`ArrowDamageBonus`/
+  `BowDamageBonus`), just on a fixed cooldown instead of the player's
+  manual draw-and-hold — an NPC ranged attack doesn't consume Arrow
+  stock (the Arrow tool slot is a permanent equipped loadout, same as
+  every other `NPCJob` tool, not a stack the way the player's own hand
+  slot is).
+- **Two `NPCJobDefinition`s under one shared "Guarding" family/skill** —
+  `GuardMeleeJob` (Weapon: all 5 Knife tiers) and `GuardRangedJob`
+  (Weapon: all 5 Bow tiers, Arrow: all 5 Arrow tiers). Split into two
+  jobs rather than one, because `NPCJob.IsReady` requires *every*
+  `toolRequirements` entry filled — a static per-job list can't
+  conditionally drop the Arrow slot for a melee-only Guard. Both show
+  under one "Guarding" tab in `NPCJobScreen` — zero UI changes needed,
+  same family-tabs-then-job-tiles shape every other family already uses.
+- **New `Guarding` `SkillDefinition`** (Combat category, same as
+  Archery), trained per successful hit.
+- **"Negative Fame players" as a target — explicitly not built.** Ben's
+  own call: that targeting rule is about other players once multiplayer
+  exists, not the single local player today. `NPCGuarding`'s threat scan
+  is written generically enough (a dedicated `FindNearestThreat` pass
+  over one hostile type) that adding a second hostile-target type later
+  is an additive change, not a redesign.
+- Talk (`NPCDialogue.BeginDialogue`) now also pauses `NPCGuarding`, same
+  gap-closing fix already applied to `NPCCrafting`/`NPCTraining` when
+  each shipped.
+- **Real, not just theoretical, gap closed in passing**: `BUGS_AND_
+  ENHANCEMENTS.md`'s "Fame: Kill NPC blocked on hired-NPC death system"
+  entry is now half-true — the death system exists, but nothing yet
+  distinguishes "the player killed this NPC" from "a Wolf did," so the
+  actual Fame hook is still a separate follow-up, not built here.
+- Verified via batch-mode compile + direct YAML grep (skill/job asset
+  field values, prefab component wiring, `NPCJobScreen` family/job
+  registration) only so far — **not yet live-tested in Play mode.** This
+  is the riskiest untested feature of the whole session: real combat,
+  real death, and a brand-new movement shape (circular patrol) all at
+  once.
 
 ## 2026-08-16 (12)
 

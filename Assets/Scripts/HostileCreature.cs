@@ -40,23 +40,46 @@ public class HostileCreature : SkinnableCreature
 
     private AIState aiState = AIState.Idle;
     private float attackTimer;
-    private Transform player;
+    private Transform target;
 
     private void Start()
     {
         // Looked up once rather than per-frame — same reasoning as
         // ResourceNode's shieldWearer lookup: this object isn't parented
-        // under Player, so there's no cheap direct reference.
+        // under Player, so there's no cheap direct reference. Defaults to
+        // the player; a Guard that lands a hit redirects aggro onto itself
+        // via RedirectAggro below (2026-08-16, GUARDING_PLANNING.md).
         var vitals = FindFirstObjectByType<PlayerVitals>();
-        player = vitals != null ? vitals.transform : null;
+        target = vitals != null ? vitals.transform : null;
+    }
+
+    // Called by NPCGuarding after it damages this creature — without this,
+    // a Guard could hit a Wolf forever and never get hit back, since this
+    // AI only ever tracked the player. Re-provoking mid-fight (repeated
+    // calls while already Chasing/Attacking the same target) is a
+    // harmless no-op.
+    public void RedirectAggro(Transform newTarget)
+    {
+        if (isDead || newTarget == null) return;
+
+        // Logged only on a genuine retarget, not every repeated hit while
+        // already fighting the same thing -- proves the Guard-vs-Wolf
+        // retaliation mechanic actually fired, without spamming once per
+        // swing.
+        if (target != newTarget)
+            Debug.Log($"[HostileCreature] {name} aggro redirected onto {newTarget.name}.");
+
+        target = newTarget;
+        if (aiState == AIState.Idle)
+            aiState = AIState.Chasing;
     }
 
     private void Update()
     {
-        if (isDead || player == null) return;
+        if (isDead || target == null) return;
 
         attackTimer -= Time.deltaTime;
-        float distance = Vector3.Distance(transform.position, player.position);
+        float distance = Vector3.Distance(transform.position, target.position);
 
         switch (aiState)
         {
@@ -76,7 +99,7 @@ public class HostileCreature : SkinnableCreature
                     aiState = AIState.Attacking;
                     break;
                 }
-                MoveToward(player.position);
+                MoveToward(target.position);
                 break;
 
             case AIState.Attacking:
@@ -85,14 +108,32 @@ public class HostileCreature : SkinnableCreature
                     aiState = AIState.Chasing;
                     break;
                 }
-                FaceToward(player.position);
+                FaceToward(target.position);
                 if (attackTimer <= 0f)
                 {
-                    player.GetComponent<PlayerVitals>()?.Damage(attackDamage);
+                    DealDamageToTarget();
                     attackTimer = attackCooldown;
                 }
                 break;
         }
+    }
+
+    // PlayerVitals isn't IDamageable (it exposes Damage() directly, not
+    // TakeDamage()) — checked first so the player-facing path is
+    // byte-for-byte unchanged from before this generalization. Anything
+    // else (an NPCVitals-bearing Guard) goes through the normal
+    // IDamageable interface every other attack in this project already
+    // uses.
+    private void DealDamageToTarget()
+    {
+        var playerVitals = target.GetComponent<PlayerVitals>();
+        if (playerVitals != null)
+        {
+            playerVitals.Damage(attackDamage);
+            return;
+        }
+
+        target.GetComponentInParent<IDamageable>()?.TakeDamage(attackDamage);
     }
 
     private void MoveToward(Vector3 target)

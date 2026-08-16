@@ -45,11 +45,12 @@ public class NPCJobDefinition : ScriptableObject
     // job generalization section 7 -- bench-crafting). Default Gathering
     // keeps every existing job (Mine Ore/Chop Wood/Forage) behaving exactly
     // as before with no data migration needed -- they're all implicitly
-    // Gathering already. NPCGathering.Update()/NPCCrafting.Update() each
-    // bail out early if this doesn't match their own kind, so both
-    // components can sit on the same NPC prefab and only one is ever
-    // actually driving at a time.
-    public enum JobKind { Gathering, Crafting }
+    // Gathering already. NPCGathering.Update()/NPCCrafting.Update()/
+    // NPCGuarding.Update() each bail out early if this doesn't match their
+    // own kind, so all three components can sit on the same NPC prefab and
+    // only one is ever actually driving at a time. Guarding added
+    // 2026-08-16, GUARDING_PLANNING.md.
+    public enum JobKind { Gathering, Crafting, Guarding }
 
     public string jobName = "New Job";
     public JobKind kind = JobKind.Gathering;

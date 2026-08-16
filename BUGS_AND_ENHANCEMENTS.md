@@ -579,13 +579,26 @@ signs off on scope and order.
   from Wild Harvest's own Bunch models — no more gray-cube fallback.
   Onion's model lives at `Prefabs/P_OnionBunch.prefab`, not
   `Prefabs/Plants/` like the numbered ones.
-- [ ] **Animal & hunting module — "hunt" half built (v0.3.86-dev,
-  2026-08-15), "tame"/"harvest diversity" still open.** Ranged combat
-  (Bow/Arrow) built, directly extending Phase 1's Combat/wolf-skinning
-  loop (`HostileCreature`) rather than replacing it. 4 new animals
-  (Chicken/Pig/Deer/Rabbit) designed but not built — needs a new Prey
-  Creature behavior archetype (passive/fleeing; `HostileCreature` is
-  aggressive-only). Taming explicitly pinned for a later MVP.
+- [ ] **Animal & hunting module — "hunt" half built, "tame" still open,
+  "harvest diversity" mostly closed (updated 2026-08-16).** Ranged combat
+  (Bow/Arrow, v0.3.86-dev) built, directly extending Phase 1's Combat/
+  wolf-skinning loop (`HostileCreature`) rather than replacing it. Of the
+  4 new animals designed (Chicken/Pig/Deer/Rabbit), 3 are built: Chicken
+  (v0.3.87-dev), Deer (v0.3.95-dev), Rabbit (v0.3.107-dev) — all via the
+  shared generic `PreyCreature.cs`. **The Prey Creature behavior
+  archetype (passive, idle/wander until approached, then flee) now
+  exists too** — `PreyWander.cs` (2026-08-16), built for Rabbit first
+  (the only one of the three with real Idle/Run animation clips to
+  drive), generic enough for Chicken/Deer to adopt later without a
+  rewrite. **Pig is the one real remaining gap** — Ben picked the
+  [LowPoly Pigs Pack](https://assetstore.unity.com/packages/3d/characters/animals/mammals/lowpoly-pigs-pack-183313)
+  (Red Deer, $20) as the best fit among several Asset Store candidates
+  checked 2026-08-16, not yet purchased/imported. Flagged in advance:
+  it's built for Unity 2018.4.23, old enough it likely ships legacy
+  Built-in shaders — expect the same URP-conversion pass Rabbit's own
+  materials just needed (`WeatherMakerCloudProbeScript`/HumanDummy-style
+  gotcha), and its animation clips (walk/run/idle) weren't confirmed
+  from the store page alone. Taming explicitly pinned for a later MVP.
 - [x] **Fame/reputation system — built 2026-08-14, see
   `FAME_PLANNING.md`.** A real `PlayerFame` component, single -1000 to
   1000 float. Built: Hire +1/Fire -0.5/unpaid-wages -0.5-per-cycle (all
@@ -603,11 +616,16 @@ signs off on scope and order.
   way against this Phase 2 placement; doesn't change that it's now built.
   Verified via batch-mode compile + YAML grep only so far — not yet
   live-tested in Play mode.
-- [ ] **Fame: Kill NPC (-10) blocked on hired-NPC death system.** Hired
-  NPCs (`NPCFactoryWorker` and friends) don't implement `IDamageable` at
-  all — only `HostileCreature` does — so `PlayerCombat`'s attack raycast
-  can't even detect one as a target. Needs a real health/death system on
-  hired NPCs before this Fame hook can wire in. See `FAME_PLANNING.md`.
+- [ ] **Fame: Kill NPC (-10) — the blocking gap just closed, hook still not
+  built.** `NPCVitals.cs` (2026-08-16, `GUARDING_PLANNING.md`) gave hired
+  NPCs a real `IDamageable`/health/permanent-death system for the first
+  time, built for Guard NPCs fighting hostile creatures — so
+  `PlayerCombat`'s attack raycast actually can hit and kill a hired NPC
+  now (`NPCVitals.Die()` clears the job and destroys the GameObject, same
+  shape). What's still missing is the Fame hook itself: nothing currently
+  distinguishes "the player did this" from "a Wolf did this" before
+  awarding the -10 — `NPCVitals.Die()` has no attacker-source concept at
+  all yet. A real follow-up, not attempted as part of Guarding.
 - [ ] **Fame: Player death (-2) blocked on death detection not existing
   at all.** Found live while building the rest of Fame (2026-08-14):
   `PlayerVitals.health` just clamps at 0 via `Mathf.Max` — nothing ever
@@ -673,6 +691,24 @@ signs off on scope and order.
 
 ## Bugs
 
+- [ ] **Verify Berry Seed's embedded-material remap actually took (2026-08-16
+  follow-up).** Chicken Meat's icon bug (see `CHANGELOG.md` v0.3.108-dev,
+  and the "Update (2026-08-16, Chicken Meat)" addendum to CLAUDE.md's
+  embedded-glTF-material gotcha) turned out to be `AssetImporter.AddRemap`
+  silently not applying to the instantiated renderers, even though the
+  `.meta`'s `externalObjects` block and `GetExternalObjectMap()` both
+  looked correct. The original Berry Seed fix this pattern came from
+  (2026-08-14) was only ever verified via a `.meta` guid grep, the same
+  way Chicken Meat's initially looked fine too — never confirmed by
+  actually instantiating the model and checking the real assigned
+  material's `AssetDatabase.GetAssetPath()`. Worth a quick check: load
+  `BerrySeedPickup` (or whatever its world-pickup prefab is), instantiate,
+  and confirm its renderer's material actually resolves to the extracted
+  `.mat` asset and not back to the embedded `Shader Graphs/glTF...`
+  material. If it's also silently wrong, apply the same fix used for
+  Chicken Meat (`PrefabUtility.LoadPrefabContents` + direct
+  `sharedMaterial` assignment on the wrapper prefab, bypassing the
+  importer remap entirely).
 - [ ] **Unconfirmed: a Combat-category skill tier-unlock (killing a Wolf,
   Rudimentary) may not have granted Fame (2026-08-14/15).** Ben reported
   a "Rudimentary skill notice" after a Wolf kill, then checked the Player
@@ -690,6 +726,26 @@ signs off on scope and order.
   next time a tier-unlock banner appears, check the Fame tile
   immediately afterward, before the message expires, to confirm either a
   real bug or a false alarm.
+- [ ] **Skill books: extreme `CraftOutcomeRoll` outcomes never confirmed
+  live (2026-08-16).** Live testing (`TEST_FEATURE_PLAN.md` section 31,
+  Ben + traskmi) confirmed 7 of 8 checklist lines for Skill Books,
+  including a full write→read loop and real Intelligence growth — but
+  every write attempt actually run landed a plain `Success`, never the
+  extreme ends of the roll. Two things still genuinely unconfirmed:
+  - **`SpectacularFailure`** — should deal 2–10 damage to the writer and
+    produce no book, materials still consumed. Needs a deliberately bad
+    margin (low Intelligence against a hard/high-tier subject) to force
+    the roll toward this end — comfortable margins never reach it.
+  - **`BrilliantSuccess` lineage bonus** — should grant the resulting
+    book's read a 1–10 starting lineage level instead of exactly 0.
+    Needs a deliberately generous margin (high Intelligence against an
+    easy/low-tier subject).
+  - **Scope check** — after reading a book for one specific recipe,
+    confirm you still can't craft *other* recipes at that same tier you
+    haven't separately unlocked (the grant should be scoped to exactly
+    one recipe, not the whole tier). Not attempted at all yet.
+  Not blocking — `MVP2_PLANNING.md` item 7 is considered done; this is a
+  verification follow-up, not a known-broken feature.
 - [ ] **`RectangularHouseTwig`/`RectangularHousePlank` prefab buildings have
   broken roof geometry at both gable ends (2026-08-14).** The existing
   `RoofPanel`/`Roof` build piece is designed for a square footprint where
@@ -892,11 +948,14 @@ signs off on scope and order.
   controllers — found and used the pack's own `HumanF/M@BowShot01`
   clips after initially wrongly assuming no archery animation existed;
   Ben caught it). Not yet live-tested in Play mode — see
-  `TEST_FEATURE_PLAN.md` section 42. Gun, Iron Arrowhead, sound (no
-  audio system exists anywhere in this project), and NPC archery (the
-  unstarted "Guarding" job) are all still separate, explicitly open
-  gaps. Bare-handed's own numbers (9 dmg, 0.7s cooldown) are still
-  first-pass, not vetted against a real
+  `TEST_FEATURE_PLAN.md` section 42. **NPC archery (the Guarding job) is
+  now built** — see `GUARDING_PLANNING.md` and `CHANGELOG.md`'s
+  v0.3.106-dev entry: `NPCGuarding.cs` fires a ranged attack using the
+  same `CraftTierScale.ArrowDamageBonus`/`BowDamageBonus` math, just on a
+  fixed cooldown instead of the player's manual draw-and-hold. Gun, Iron
+  Arrowhead, and sound (no audio system exists anywhere in this project)
+  are still separate, explicitly open gaps. Bare-handed's own numbers
+  (9 dmg, 0.7s cooldown) are still first-pass, not vetted against a real
   weapon-tier progression.
 - [ ] **Bow Release animation always returns to StandingIdle
   specifically (2026-08-15), not whatever stance the player was

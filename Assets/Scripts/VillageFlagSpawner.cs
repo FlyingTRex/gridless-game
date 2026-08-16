@@ -105,5 +105,11 @@ public class VillageFlagSpawner : MonoBehaviour
         // around longer" (Ben's own framing, section 4).
         float stickAroundMinutes = (BaseIntervalMinutes * BaseStickAroundMinutes) / intervalMinutes;
         seek.BeginSeeking(flag.transform, stickAroundMinutes * 60f);
+
+        // Real value here: this takes up to 30 real minutes at baseline --
+        // easy to miss if you're not staring at the screen when it
+        // happens. Logged once per spawn, not per tick.
+        Debug.Log($"[VillageFlag] Spawned NPC near {flag.name} (tier {flag.Tier}), "
+            + $"interval was {intervalMinutes:F1}min, stick-around {stickAroundMinutes:F1}min");
     }
 }

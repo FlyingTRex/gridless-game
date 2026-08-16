@@ -35,6 +35,13 @@ public abstract class SkinnableCreature : MonoBehaviour, IDamageable, IInteracta
         ? (HasToolRequirement ? $"Hold to skin (requires {requiredToolLabel})" : "Hold to skin")
         : "";
 
+    // Read by sibling movement components (PreyWander, 2026-08-16) that
+    // aren't subclasses of this one and so can't see the protected isDead
+    // field directly -- stop driving movement/animation once the creature
+    // is dead, same as HostileCreature's own isDead check already does
+    // internally.
+    public bool IsDead => isDead;
+
     public bool IsInstant => false;
     public float GetHoldDuration(GameObject player) => skinHoldDuration;
 

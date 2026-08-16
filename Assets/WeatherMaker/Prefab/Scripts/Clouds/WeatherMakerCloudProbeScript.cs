@@ -45,10 +45,12 @@ namespace DigitalRuby.WeatherMaker
             {
                 WeatherMakerCommandBufferManagerScript.Instance.UnregisterPreCull(this);
             }
+#if UNITY_EDITOR
             if (blackTexture != null)
             {
                 DestroyImmediate(blackTexture);
             }
+#endif
         }
 
         private void CameraPreCull(Camera camera)

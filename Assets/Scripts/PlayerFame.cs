@@ -99,5 +99,15 @@ public class PlayerFame : MonoBehaviour
     // PlayerSkills.RestoreLevel already draws against GainExperience.
     public void RestoreFame(float value) => fame = Mathf.Clamp(value, MinFame, MaxFame);
 
-    private void Grant(float amount) => fame = Mathf.Clamp(fame + amount, MinFame, MaxFame);
+    // Every Fame change (Hire/Fire/Training/City Statue/tier-unlocks) flows
+    // through this one method -- logging here (2026-08-16, same reasoning
+    // as PlayerSkills.GainExperience's own log) covers all of them with a
+    // single line, useful for background/autonomous grants (a tier-unlock
+    // mid-play, a City Statue placed) that are easy to miss without
+    // watching the Player tab continuously.
+    private void Grant(float amount)
+    {
+        fame = Mathf.Clamp(fame + amount, MinFame, MaxFame);
+        Debug.Log($"[Fame] {(amount >= 0 ? "+" : "")}{amount:F2} -> {fame:F2} ({Band})");
+    }
 }

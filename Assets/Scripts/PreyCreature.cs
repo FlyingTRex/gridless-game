@@ -26,11 +26,24 @@ public class PreyCreature : SkinnableCreature
     [SerializeField] private int lootBMaxCount = 1;
     [SerializeField, Range(0f, 1f)] private float lootBDropChance = 1f;
 
+    // Third slot (2026-08-16, Chicken Meat) -- a plain mirror of A/B rather
+    // than restructuring into a loot-entry array. Only Chicken needs a
+    // third drop right now; an array would be the more "correct" shape if
+    // a creature ever needed an arbitrary number, but that's not a real
+    // need yet, and this way Chicken/Deer's existing scene data (still
+    // just A/B) needs zero migration.
+    [SerializeField] private ItemDefinition lootItemC;
+    [SerializeField] private int lootCMinCount = 1;
+    [SerializeField] private int lootCMaxCount = 1;
+    [SerializeField, Range(0f, 1f)] private float lootCDropChance = 1f;
+
     protected override void DropLoot(PlayerDropping dropping)
     {
         if (lootItemA != null && Random.value < lootADropChance)
             dropping?.SpawnPickup(lootItemA, Random.Range(lootAMinCount, lootAMaxCount + 1));
         if (lootItemB != null && Random.value < lootBDropChance)
             dropping?.SpawnPickup(lootItemB, Random.Range(lootBMinCount, lootBMaxCount + 1));
+        if (lootItemC != null && Random.value < lootCDropChance)
+            dropping?.SpawnPickup(lootItemC, Random.Range(lootCMinCount, lootCMaxCount + 1));
     }
 }

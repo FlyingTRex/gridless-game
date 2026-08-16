@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
+  m_Name: ChickenMeat
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  itemName: Chicken Meat
+  maxStack: 20
+  weight: 0.3
+  tier: 2
+  worldPickupPrefab: {fileID: 1166396061579546333, guid: cba4f8668cafbcc4a9471b9c7ee1264d, type: 3}
+  icon: {fileID: 21300000, guid: 4ece73b00cd4a5b45bf7e94a222bfd68, type: 3}
+  previewIcon: {fileID: 21300000, guid: 16b0cbf6f52531c4fad13f50e8e42241, type: 3}
+  baseItem: {fileID: 0}
+  isMeleeWeapon: 0
+  isRangedWeapon: 0
+  isArrow: 0

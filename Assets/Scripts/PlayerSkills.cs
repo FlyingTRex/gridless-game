@@ -161,6 +161,15 @@ public class PlayerSkills : MonoBehaviour
             string template = pool[UnityEngine.Random.Range(0, pool.Length)];
             message = string.Format(template, skill.skillName, newLevel.ToString("F1"));
             messageExpireTime = Time.time + MessageDuration;
+
+            // Every skill/stat gain in the game flows through this one
+            // method — logging here (2026-08-16) covers all of them with a
+            // single line, written to Player.log in a standalone build
+            // (same folder as save.json), so a live-test session can be
+            // reviewed after the fact without needing the Editor open or
+            // manual save-diffing.
+            Debug.Log($"[Skill] {skill.skillName} +{(newLevel - current):F3} -> {newLevel:F3}"
+                + (tierUnlocked ? $" (TIER UNLOCKED: {unlockedTier})" : ""));
         }
     }
 

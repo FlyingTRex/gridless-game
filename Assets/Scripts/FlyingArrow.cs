@@ -23,7 +23,13 @@ public class FlyingArrow : MonoBehaviour
         end = endPos;
         transform.position = start;
         if ((end - start).sqrMagnitude > 0.0001f)
-            transform.rotation = Quaternion.LookRotation(end - start);
+            // The nested Arrow model's own baked-in rotation (authored for
+            // its equipped/held orientation, not flight) points the
+            // arrowhead toward local -Z, not +Z -- confirmed backwards in
+            // a real Play session (2026-08-16, traskmi: fletching led,
+            // arrowhead trailed). The extra 180 degrees corrects for that
+            // without touching the model's own equip-context rotation.
+            transform.rotation = Quaternion.LookRotation(end - start) * Quaternion.Euler(0f, 180f, 0f);
         duration = Mathf.Max((end - start).magnitude / Mathf.Max(speed, 0.1f), 0.05f);
         elapsed = 0f;
         arrived = false;

@@ -74,6 +74,7 @@ public class NPCSeekFlag : MonoBehaviour
             // in place at the Flag.
             hasArrived = true;
             wander.SetPaused(false);
+            Debug.Log($"[VillageFlag] NPC arrived at {targetFlag.name}, waiting to be hired.");
         }
 
         // Not decided in the design doc whether an unhired NPC despawns or
@@ -82,7 +83,10 @@ public class NPCSeekFlag : MonoBehaviour
         // it's the pick here; worth revisiting if that gap ever bites.
         stickAroundSecondsRemaining -= Time.deltaTime;
         if (stickAroundSecondsRemaining <= 0f)
+        {
+            Debug.Log($"[VillageFlag] NPC at {targetFlag.name} timed out unhired, despawning.");
             Destroy(gameObject);
+        }
     }
 
     // Same straight-line-plus-deflection movement as NPCGathering/

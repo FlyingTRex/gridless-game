@@ -428,6 +428,40 @@ Cooking 15 (Ben confirmed the doc's proposed numbers as-is).
 `PlayerCrafting`). Verified via compile + direct YAML grep only so
 far — not yet live-tested in Play mode.
 
+**NPC Guarding — the last unstarted MVP2 NPC-hiring job family — is
+built, v0.3.106-dev.** See `GUARDING_PLANNING.md` and `CHANGELOG.md`'s
+v0.3.106-dev entry. Designed conversationally with Ben (2026-08-16),
+built the same day — this closes out MVP2 item 2 in full. Bigger than
+the other job families: needed the project's first real NPC health/death
+system (`NPCVitals.cs`, `IDamageable`, permanent death — mirrors
+`SkinnableCreature`'s `TakeDamage`/`Die` shape without the skin/loot/
+respawn half) and its first NPC-initiated combat (`NPCGuarding.cs`,
+reuses `HostileCreature`'s `Idle`/`Chasing`/`Attacking` state shape
+retargeted at threats instead of the player). `HostileCreature` itself
+needed generalizing too — it only ever tracked a single hardcoded
+`player` Transform before this, so a new `RedirectAggro(Transform)`
+lets a Guard that lands a hit actually get attacked back (without it,
+"real health, can die" would've been true in name only — a Guard could
+never actually take damage from a Wolf). Two `NPCJobDefinition`s under
+one shared "Guarding" family/skill — `GuardMeleeJob`/`GuardRangedJob` —
+since the existing `ToolRequirement` "must fill every slot" gate can't
+conditionally drop an Arrow requirement for a melee-only Guard. Patrol
+behavior is Ben's own framing: circles the nearest Village Flag at that
+Flag's own `CraftTierScale.VillageFlagRevealRadius`, not a fixed post or
+following the player — falls back to standing at its current spot if no
+Flag is placed. NPC ranged attacks don't consume Arrow stock (a
+permanent equipped loadout like every other `NPCJob` tool, not a stack
+the way the player's own hand slot is) — a deliberate v1 simplification.
+"Negative Fame players" as a target is explicitly logged as a
+multiplayer-only future hook, not built now — this project has one
+local player, and Ben confirmed the intent was about future other
+players, not inverting `NPCFlee.cs`'s existing flee-from-negative-Fame
+reaction into an attack. Verified via batch-mode compile + direct YAML
+grep only so far — **not yet live-tested in Play mode**, and this is
+the riskiest untested feature of the whole session (real combat, real
+permanent NPC death, and a brand-new circular-patrol movement shape all
+landing at once).
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:
@@ -486,6 +520,29 @@ Read these directly rather than trusting a summary — they're actively evolving
   natural checkpoint; use it to keep the backlog visible instead of letting
   it go stale between explicit "how are we doing on our mvp2 and bug list?"
   asks.
+- **MVP review format (2026-08-16, Ben's ask): every item, plus its
+  remaining test steps split into two labeled sections, not one flat
+  list.** List every MVP item with its current status first (done/
+  partial/not started), same as before. Then, for whatever's still
+  untested, split the remaining steps into:
+  - **"Editor OK Playtesting"** — anything verifiable in a normal
+    in-Editor Play session within a few minutes: placing a piece,
+    opening a screen, one craft, one fight, a UI check. Doesn't need a
+    standalone build.
+  - **"Compiled Game" testing** — anything needing sustained real
+    time or an unattended run to test properly: the Village Flag's
+    up-to-30-minute spawn timer, Constitution/Dexterity's real-time-
+    calibrated training (sprint/sneak gains take ~110s+ just to cross
+    the first flush threshold, tuned for days of play), City Statue's
+    "10 actually-hired NPCs" precondition, or anything better watched
+    via `Player.log`/a save-file diff than babysat live in the Editor.
+    A standalone Player build (`Assets/Editor/PlayerBuildTool.cs`-style
+    throwaway batch build, or built via the Editor's own Build Settings)
+    is the natural way to run these, since it doesn't hold the Editor's
+    project lock the way Play mode does — batch-mode script work can
+    happen in parallel while a long Compiled Game session runs.
+  Items with nothing left to test (fully confirmed, or not yet built at
+  all) don't need an entry in either section.
 
 ## Checklist: adding a new `IEquippable` (worn item)
 
@@ -714,6 +771,40 @@ mandatory checklist step for placing any new imported model, not just advice
 to remember if something looks wrong** — run the bounds check above as part
 of every placement script, before the model is considered done, not only
 when the sink is visually obvious.
+
+## Gotcha: a nested imported model's own baked rotation can fight `Quaternion.LookRotation` on its parent
+
+Hit live (2026-08-16, `FlyingArrow.cs`): a script that orients a whole
+object toward a travel/aim direction via `transform.rotation =
+Quaternion.LookRotation(direction)` assumes the object's local +Z already
+points the "business end" (an arrowhead, a nose, a muzzle) forward. That
+assumption holds for a procedurally-built object authored with a clean
+axis-aligned pivot, but not for a wrapper around a nested imported-model
+prefab instance that already carries its **own** baked local rotation
+(often a correction authored for a completely different context, like how
+the model looks equipped/held/resting — `ArrowFlightVisual.prefab`'s
+nested Arrow child had one). The two rotations compose
+(`parentRotation * childLocalRotation`), and there's no guarantee the
+result still points the recognizable "front" of the model toward
+`LookRotation`'s target — confirmed by a real regression (traskmi hunting
+a Chicken with a Bow and Arrow, 2026-08-16): the arrow flew
+fletching-first, arrowhead trailing.
+
+**How to apply:** don't assume `Quaternion.LookRotation` "just works" on
+any object wrapping a nested imported-model instance — verify with an
+actual render, not by eye in the Editor alone. The fix here was a fixed
+corrective `Quaternion.Euler(0, 180, 0)` multiplied onto the
+`LookRotation` result inside `FlyingArrow.Launch()`, discovered by
+rendering the object with color-coded direction markers (a small red
+sphere at the intended travel direction, green behind) before and after —
+the same kind of "don't trust it by eye, render and check pixel-by-pixel"
+discipline this file's other icon/render gotchas already establish. This
+is the same underlying axis-mismatch family as `NPCWander`'s/
+`PreyWander`'s `modelForwardOffsetY` correction field, just hitting a
+`LookRotation`-driven projectile instead of a movement-facing script — if
+a future script combines a nested-prefab visual with `LookRotation`
+(muzzle flashes, thrown weapons, any other flight-path visual), check its
+orientation the same way before trusting it.
 
 ## Rule: scale every generated model against the player, not against its own raw import size
 
@@ -1018,6 +1109,40 @@ embedded material before the surrounding game code — check the Inspector
 for a `Shader Graphs/glTF...` (or similarly importer-generated) shader
 name, and compare against a working model's own material asset to see
 what "correctly converted" looks like for this project.
+
+**Update (2026-08-16, Chicken Meat) — the documented `AddRemap` fix above
+can silently not take effect, even when it looks like it did.** Extracting
+`ChickenMeat.glb`'s two embedded materials followed the exact recipe
+above — `.mat` assets created, `importer.AddRemap(new
+SourceAssetIdentifier(embeddedMat), newMat)` called, `SaveAndReimport()`
+called — and the `.meta`'s `externalObjects` block came out looking
+correct, `AssetImporter.GetExternalObjectMap()` even echoed it back
+correctly. **None of that meant the remap actually applied.** Every
+instantiated copy of the model kept resolving its renderers to the
+original embedded `Shader Graphs/glTF-pbrMetallicRoughness` materials
+regardless — confirmed only by instantiating the prefab and checking
+`AssetDatabase.GetAssetPath()` on the actual `Renderer.sharedMaterial`,
+which still pointed at the `.glb` itself, not the new `.mat` asset. This
+one didn't even show the usual "fully invisible" tell: the un-remapped
+Shader Graph material happened to still render, just badly overexposed to
+flat white, which then nearly disappeared against a light background —
+easy to misdiagnose as a camera-angle/framing problem instead (two
+framing-angle rebakes were tried, and failed, before the real cause was
+found). **Don't trust `GetExternalObjectMap()` or a clean `.meta` diff as
+proof the remap is live** — instantiate and check the real assigned
+material's `AssetDatabase.GetAssetPath()` (or its shader name) directly.
+If it's still resolving to the source model asset, don't keep retrying
+reimport variations — reach for the reliable fallback instead:
+`PrefabUtility.LoadPrefabContents` on the *wrapper* prefab that carries
+the model, walk `GetComponentsInChildren<MeshRenderer>()`, assign
+`sharedMaterial` directly to the real `.mat` assets, `SaveAsPrefabAsset`.
+This is a real per-instance override that doesn't depend on the `.glb`'s
+own import-time material resolution at all, and it's the same fix either
+way regardless of why the importer-level remap didn't take. **Open
+question, not yet checked:** whether the original Berry Seed fix this
+pattern came from was ever actually verified this way, or only ever
+confirmed via a `.meta` guid grep the same way this one initially was —
+flagged in `BUGS_AND_ENHANCEMENTS.md` as worth a follow-up look.
 
 ## Gotcha: `GameObject.Find(name)` can silently match a nested imported
 model's own internal node, not the top-level object you meant
