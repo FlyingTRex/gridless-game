@@ -5,10 +5,40 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.96-dev` — must always match `GameVersion` in
+**Current version:** `0.3.97-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (2)
+
+### v0.3.97-dev — Fried Egg: Frying Pan's second recipe
+
+traskmi's ask: 1 Egg in a Frying Pan, 30s, 5 Health + Hunger.
+
+- **New low-poly Blender model** (`Assets/Models/FriedEgg.glb`, 178 tris —
+  two meshes, a squashed-oval white + an off-center dome yolk, separate
+  materials) via the established headless-Blender pipeline.
+- **`FriedEggCookable.asset`**: 1x Egg, `requiredAccessory` = Frying Pan
+  (same accessory-gate Steak and Potatoes already uses), 30s cook time,
+  Cooking skill level 5 — matches Grilled Meat/Herbal Tea's tier of basic
+  single-accessory recipes rather than Steak and Potatoes'/Meat Stew's
+  higher-effort ones.
+- **`FriedEggEdible.asset`**: 5 Health via `vital`/`restoreAmount`. Hunger
+  is flagged, not an exact match — `EdibleItem` restores Hunger through a
+  fixed 5-rung `FoodTier` ladder (15/25/40/60/90), and traskmi's requested
+  20 sits exactly between two rungs. Shipped on `FoodTier.LightMeal` (25)
+  rather than `Snack` (15) — a genuine coin-flip, easy one-line change if
+  the other rung is preferred.
+- **Ran `DatabaseRepopulator.RepopulateAll`** (new tool since this session
+  last touched the repo, `EFFICIENCY_AUDIT.md`) — required after adding
+  any new `ItemDefinition`, or save/load's `Find()`-based restore silently
+  can't see it. Confirmed the new item's guid actually landed in
+  `ItemDatabase.asset` before considering this done, not just that the
+  tool logged success.
+- Verified every new asset directly via saved YAML (ingredient/output
+  guids, `cookDurationSeconds: 30`, `restoreAmount: 5`, `foodTier: 1`),
+  not just the batch script's own log output.
 
 ## 2026-08-16 (1)
 
