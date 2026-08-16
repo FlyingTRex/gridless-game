@@ -5,10 +5,40 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.93-dev` — must always match `GameVersion` in
+**Current version:** `0.3.94-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (17)
+
+### v0.3.94-dev — Meat Stew: Cooking Pot's first recipe, closes out MVP2 item 9's accessory-recipe gap
+
+Ben's ask: Raw Meat + Potato + Carrot + Water, cooked in the Cooking
+Pot — the one accessory still sitting with zero recipes after last
+commit's Grill/Frying Pan/Kettle recipes.
+
+**New merged model** (`Tools/Blender/GenerateMeatStewModel.py`) — a
+copy of the Cooking Pot geometry with a flat broth disc and 4 visible
+chunks (meat, potato, 2 carrot pieces) clustered on top, inside the
+rim. Unlike Herbal Tea's lean-against-the-side placement, everything
+here sits on top of the pot — visible from any horizontal camera
+angle, so the Blender-Y/Unity-Z occlusion gotcha that bit Herbal Tea's
+icon bake didn't apply; read correctly in both the standalone preview
+and the real baked game icon on the first pass.
+
+**`MeatStewCookable`**: Raw Meat x1 + Potato x1 + Carrot x1 + 20
+Canteen Water, 50s (longest cook time yet — the most involved recipe),
+`requiredAccessory` = Cooking Pot. **Gated at Cooking 25/skillGain
+2** — above Steak and Potatoes' Cooking 15, reflecting it's the most
+complex recipe built so far (3 ingredients + water, vs. Steak and
+Potatoes' 2). `MeatStewEdible`: Feast tier (90 Hunger), registered in
+`PlayerEating.edibles`.
+
+This closes the "Cooking Pot has zero recipes" gap flagged after
+v0.3.90-dev — all 4 Campfire accessories now have at least one real,
+skill-gated recipe. MVP2 item 9's only remaining open piece is
+wild-forage seed sourcing (still admin-spawn only).
 
 ## 2026-08-15 (16)
 

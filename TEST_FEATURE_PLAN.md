@@ -2670,6 +2670,15 @@ than usual given how much changed.**
   Raw Meat → Cooked Meat is completely unaffected — no skill gate, no
   failure chance, cooks every single time regardless of Cooking level
   (0 included).
+- [ ] **Meat Stew (v0.3.94-dev, Cooking Pot, the 4th/last accessory's
+  first recipe)**: with a Cooking Pot seated, drag in 1 Raw Meat + 1
+  Potato + 1 Carrot, and equip a Canteen with 20+ Water — confirm "Cook
+  Meat Stew x1" appears, and confirm its model/icon shows a pot with
+  visible meat/potato/carrot chunks (not a placeholder). Confirm the
+  recipe requires Cooking 25 (higher than Steak and Potatoes' 15) —
+  same under-leveled-hides-the-recipe check as the other gated dishes.
+  Cook it (~50s), confirm the Canteen's Water drops by 20 on start, and
+  confirm eating it restores Feast-tier Hunger (90).
 - [ ] **Start cooking**: click the Recipe button — confirm the Raw Meat
   is immediately consumed from the Ingredients box, the Recipe section
   now shows "Cooking Cooked Meat — N%" counting up, and after ~30

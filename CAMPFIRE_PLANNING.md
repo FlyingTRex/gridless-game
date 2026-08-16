@@ -68,6 +68,15 @@ a mild Health hit on the worst roll. `RawMeatToCookedMeatCookable`
 stays exactly as it always was — free, no risk. `CampfireScreen` shows
 a brief result message under the Recipe section.
 
+**Meat Stew (Cooking Pot) — built (v0.3.94-dev, 2026-08-15), Ben's
+direct ask.** Raw Meat x1 + Potato x1 + Carrot x1 + 20 Canteen Water,
+50s, gated at Cooking 25/skillGain 2 — above Steak and Potatoes'
+Cooking 15, the most complex recipe built so far. Own merged model
+(`Tools/Blender/GenerateMeatStewModel.py`, a Cooking Pot with visible
+broth + meat/potato/carrot chunks on top). **This is the 4th and last
+accessory's first recipe** — every Campfire accessory (Grill/Cooking
+Pot/Kettle/Frying Pan) now has at least one real, skill-gated dish.
+
 **UI redesign — built (v0.3.28-dev, then substantially reworked
 v0.3.30-dev, both 2026-08-13).** Loading fuel/food used to only work via
 a "Campfire (nearby)" section auto-appended to the bottom of the main

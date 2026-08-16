@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4bdc403a080f57a419bba4819cfdbd80, type: 3}
+  m_Name: MeatStewCookable
+  m_EditorClassIdentifier: Assembly-CSharp::CookableItem
+  ingredients:
+  - item: {fileID: 11400000, guid: c677bb554b43f7046af1083f259ff234, type: 2}
+    count: 1
+  - item: {fileID: 11400000, guid: 81b60be0afd47224a94f39721d14378c, type: 2}
+    count: 1
+  - item: {fileID: 11400000, guid: d3f3bdc52c358ce4ea706c034dbe3742, type: 2}
+    count: 1
+  outputItem: {fileID: 11400000, guid: ac467fd8b0f030f4d93ef98ed5460e12, type: 2}
+  outputCount: 1
+  cookDurationSeconds: 50
+  requiredAccessory: {fileID: 11400000, guid: 7c208505d745bce49b264179f04f6fa8, type: 2}
+  requiresCanteenWater: 1
+  canteenWaterAmount: 20
+  trainedSkill: {fileID: 11400000, guid: 00ee502ead76cab4a993ae3a1865bd06, type: 2}
+  skillGain: 2
+  requiredSkillLevel: 25
