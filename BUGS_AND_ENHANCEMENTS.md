@@ -395,6 +395,54 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
+- [ ] **Per-foot Boot/Sneaker attachment — investigated 2026-08-15, not
+  built, no decision made yet.** Today `Boot`/`PlayerBoot.cs` treats each
+  boot item as a single combined-pair mesh (both feet baked into one
+  model) anchored once to the `Hips` bone with a static offset — it
+  doesn't track either foot's actual animation, and can't show a
+  genuinely separate left/right shoe. Ben's idea: split each existing
+  combined model into a real Left and Right half (reusing the "overlay
+  two models together" merge trick in reverse — cut one out via a
+  filtering technique) and attach each half to its own `LeftFoot`/
+  `RightFoot` bone.
+  **Investigated via real Blender renders, not just theory:**
+  `CombatBoot.glb` (Civilian/Hiking/Military Boots' shared model) splits
+  **cleanly** with a simple per-vertex left/right position cut — verified
+  by rendering both halves, each comes out as one complete, correct
+  boot. `Sneakers.glb` (Sneakers/Settler's Sneakers) does **not** split
+  cleanly — the two shoes' geometry is genuinely intertwined/overlapping
+  in the model's display pose, not side-by-side. Tried two different
+  geometric approaches (a plane cut, then 2-means clustering on vertex
+  position) and both leave fragments of each shoe on both sides; this
+  isn't fixable with a smarter cut, the source mesh has no clean seam.
+  Also tried Blender's "separate by loose parts" as a connectivity-based
+  alternative — useless here, the Tripo3D-generated mesh is already
+  fragmented into ~500 disconnected shell pieces internally regardless
+  of which shoe/boot they belong to, so connectivity doesn't correspond
+  to "left boot" vs. "right boot" at all.
+  **Historical precedent for the fix:** `CombatBoot.glb` itself once had
+  an analogous problem (a "3 boots fused into one mesh" bug, fixed
+  v0.3.15-dev) — resolved by *regenerating* the model via Tripo3D with a
+  corrected prompt, not by surgically editing the bad mesh. The same
+  playbook likely applies to Sneakers: a fresh single-shoe Tripo3D
+  generation, not a split of the current asset.
+  **Two real open design questions, neither decided:**
+  (1) Split-into-two vs. one-clean-model-mirrored (`scale.x = -1` for the
+  other foot) — mirroring halves the asset work and guarantees perfect
+  symmetry, but needs confirming a negative-scale mirror doesn't produce
+  inside-out-face rendering artifacts before relying on it; using the
+  actual split halves avoids that risk but doesn't help Sneakers either
+  way. (2) For Sneakers specifically: regenerate a single clean shoe via
+  Tripo3D, or build a fresh sneaker procedurally in Blender (like this
+  session's cookware/food models), or leave Sneakers combined for now and
+  ship the per-foot treatment for the 3 CombatBoot-tier items only.
+  **Also real scope, not yet touched:** even with clean per-side models
+  in hand, `Boot.cs`/`PlayerBoot.cs`/`EquipmentAttach` need real code
+  changes — a single equipped Boot item would need to carry/attach *two*
+  child visual instances (one per foot bone) instead of one combined
+  mesh at `Hips`, more like how a two-handed item might work than
+  anything currently built. Nothing here is scheduled — logged for
+  later thought per Ben's call.
 - [ ] **Constitution — cold/heat resistance (2026-08-14).** The original
   item-1 "Expand Stats" brainstorm (`MVP2_PLANNING.md`) listed "resistance
   to cold/heat/poison" as a candidate Constitution effect alongside max
