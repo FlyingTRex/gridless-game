@@ -36,6 +36,16 @@ built — not attempted together with this pass.
   Crude Flag, up through Masterwork Stick → Masterwork Flag). Higher
   Flag tiers shorten the spawn interval further, on top of whatever Fame
   is already doing (section 4).
+- **Higher tiers also look bigger** (Ben, 2026-08-16) — a visual tell
+  that reads at a glance, not just a stat difference the player has to
+  check a screen to see. Same "5 real, differently-shaped/sized stages"
+  precedent `CropDefinition.growthStagePrefabs`/`ChoppableTree`'s growth
+  states already use in this project, rather than one mesh non-uniformly
+  scaled up — a genuinely bigger/more elaborate flag per tier (taller
+  pole, larger banner, maybe more ornamentation at Fine/Masterwork), not
+  a naive `transform.localScale` multiply. Exact per-tier size/model
+  detail not designed here — a Blender modeling pass at build time, same
+  process every other tiered item in this project already went through.
 - Player-placed, same free-placement Build flow every other structure
   (Campfire, Garden Plot, StorageBox) already uses.
 

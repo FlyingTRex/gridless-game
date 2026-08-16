@@ -178,7 +178,10 @@ piece (1 Stick + 1 Cloth, trains Sewing — its first real crafted-item
 purpose beyond Rope/Cloth themselves), 5-tier ladder determined
 deterministically by which Stick tier feeds it, same shape Stone Arrow
 already established (Hunting Expansion, 2026-08-15) — no skill roll,
-ingredient quality decides output tier. A spawn timer (30 real minutes
+ingredient quality decides output tier, and higher tiers physically look
+bigger too (real per-tier models, not a naive scale multiply — same
+"differently-shaped stages" precedent `CropDefinition`'s growth stages
+already use). A spawn timer (30 real minutes
 baseline) reduced by both Fame band (reuses `FAME_PLANNING.md`'s
 existing 5-band 0.5x–1.5x table directly, no new numbers) and Flag tier
 (a new dedicated scale — CLAUDE.md's own tier-scaling gotcha means Arrow/
