@@ -111,6 +111,10 @@ fix the coordinate in this file rather than assuming the step is wrong.
   scale) — confirm the bar still reads sensibly after Will's max grows (see
   §6a) rather than looking permanently near-full.
 - [ ] Hunger and Thirst tick down over real time while doing nothing.
+  **Tuning (v0.3.113-dev, 2026-08-16)**: Ben reported live play feeling
+  too fast — confirmed 20min/12min-to-empty was the actual rate, slowed
+  3x to 60min/36min. Re-check pace feels right at the new rate, not just
+  that it still ticks down at all.
 - [ ] Health drains when either Hunger or Thirst hits 0; regenerates when both are
   reasonably fed.
 - [ ] Eating a Berry (see §4) restores Hunger; drinking (see §7 Canteen, §8 Water
@@ -4299,3 +4303,25 @@ together in a real session, not just the setup-time diagnostic render.
   read noticeably bigger than the Rabbit, smaller than the Deer).
 - [ ] **Not built yet, by design**: retrofitting `PreyWander` onto
   Chicken/Deer (they still stand still); taming.
+
+## 56. Autosave, v1 (v0.3.114-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via compile + direct scene YAML grep). Full context in
+`SAVE_LOAD_PLANNING.md`.
+
+- [ ] **Fires automatically**: sit idle (or play normally) for 10 real
+  minutes — confirm a save actually happens with no player action (check
+  `Player.log`/`Debug.Log` output, or the save file's modified
+  timestamp) and a "Game autosaved." toast appears top-center.
+- [ ] **Toast timing**: confirm the toast stays visible for ~15 seconds
+  then clears on its own, and doesn't block/obscure other HUD elements
+  (Vitals bars, `PlayerSkills`' own tier-unlock toast if one happens to
+  fire around the same time — the two are offset vertically on purpose,
+  confirm they don't actually overlap if both are visible at once).
+- [ ] **Manual Save still works unmodified**: confirm `GameMenuScreen`'s
+  Save button still saves immediately and shows its own existing
+  in-menu "Saved." message, independent of the 10-minute autosave timer
+  (doesn't reset the timer, doesn't skip the next autosave).
+- [ ] **Repeats**: stay in a session past 20+ minutes — confirm a second
+  (and third) autosave actually fires on schedule, not just once.

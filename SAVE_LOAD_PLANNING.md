@@ -174,6 +174,16 @@ Two different ID problems, two different mechanisms:
   Matches Ben's original framing directly: a deliberate save before
   stopping covers "continue where we're at" fine without autosave-timing
   edge cases to design around.
+  - **Update (v0.3.113-dev, 2026-08-16): autosave added, doesn't replace
+    the manual trigger.** Ben's ask, prompted by wanting to safely wait
+    out a real-time system (the Village Flag's up-to-30-minute spawn
+    timer) without needing to remember to hit Save first. `PlayerAutosave.cs`
+    calls the same `SaveManager.Save()` every 10 real minutes and shows a
+    15-second top-center toast ("Game autosaved.") — same shape as
+    `PlayerSkills.cs`'s own tier-unlock toast, offset lower so the two
+    can't overlap. The manual Save button in `GameMenuScreen` is
+    untouched and still works exactly as before; this is a second,
+    automatic trigger layered on top, not a replacement.
 - **Load**: on game start, check for an existing save file — if present,
   suppress whatever `PlayerShirt`/`PlayerJeans`/`PlayerBelt`/etc.'s
   starting-gear auto-equip would normally do (it already guards on

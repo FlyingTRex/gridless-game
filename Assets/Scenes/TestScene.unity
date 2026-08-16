@@ -43110,6 +43110,7 @@ GameObject:
   - component: {fileID: 1681626299}
   - component: {fileID: 1681626300}
   - component: {fileID: 1681626301}
+  - component: {fileID: 1681626302}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -43260,8 +43261,8 @@ MonoBehaviour:
   maxWill: 100
   maxHealth: 100
   maxStamina: 100
-  hungerDrainPerSecond: 0.083333336
-  thirstDrainPerSecond: 0.1388889
+  hungerDrainPerSecond: 0.027777778
+  thirstDrainPerSecond: 0.0462963
   starvationDamagePerSecond: 2
   healthRegenPerSecond: 0.05
   staminaDrainPerSecond: 10
@@ -44382,6 +44383,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VillageFlagSpawner
   hireableNpcPrefab: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
   spawnDistanceFromFlag: 40
+--- !u!114 &1681626302
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0514b27a5b8c5d34ea2fd450a54c9b6d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerAutosave
 --- !u!1001 &1689588954
 PrefabInstance:
   m_ObjectHideFlags: 0

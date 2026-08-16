@@ -682,6 +682,20 @@ signs off on scope and order.
   `MEDICAL_SYSTEM_PLANNING.md` + `MEDICAL_FAMILIES.md` (2026-08-12)** for a
   full proposed 50-item medical progression evaluated against the current
   system, including which items map to Master Physician endgame content.
+- [ ] **Endgame ("Leaving the Planet") mechanically doesn't exist yet —
+  real audit + build-order plan now in `ENDGAME_PLANNING.md`
+  (2026-08-16).** The 8-discipline Keystone → Ruins Gateway → 4-route →
+  Escape Velocity design (`docs/skill-path-space.md`) has zero code
+  behind it: no Gateway trigger, no route-check, and 3 of 8 Keystone
+  disciplines have no matching skill at all (Engineering doesn't exist
+  in any form; Combat has no unifying skill across Melee/Archery/
+  Guarding; Trade/Financier has nothing beyond join/leave a
+  dev-authored Guild). Recommends building Arcane Propulsion (Magic)
+  first and only — it's the one route needing zero new disciplines.
+  Orbital Engineering needs an entire 8th discipline invented from
+  scratch; Chartered Expedition is blocked on `COMMERCE_PLANNING.md`
+  shipping; Conquered Launch Site is blocked on Settlement Warfare
+  (below), the least-ready of the four by a wide margin.
 - [ ] **Reverse engineering & manuals** — disassemble items to learn their
   schematics, then write instructional manuals/grimoires to mentor other
   players or NPCs. Ties into the skill-books item above as the inverse

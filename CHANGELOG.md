@@ -5,10 +5,52 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.112-dev` — must always match `GameVersion` in
+**Current version:** `0.3.114-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (21)
+
+### v0.3.114-dev — Autosave added (doesn't replace the manual Save button)
+
+Ben's ask: about to spawn food, eat, heal back up from the 0-HP save
+state, and wait out the Village Flag's real-time spawn timer — wanted a
+safety net so a long unattended wait doesn't risk losing progress if
+something goes wrong, without needing to remember to hit Save first.
+
+- New `PlayerAutosave.cs` (`[RequireComponent(typeof(SaveManager))]`) —
+  calls the existing `SaveManager.Save()` every 10 real minutes and
+  shows a 15-second top-center toast ("Game autosaved."), same shape as
+  `PlayerSkills.cs`'s own tier-unlock toast (`DebugGUI.DrawPanel` +
+  `DebugGUI.Header`), offset lower (y=110 vs. y=70) so the two can't
+  visually collide if they ever fire close together.
+- `SAVE_LOAD_PLANNING.md`'s original "manual Save button only, no
+  autosave for v1" scope updated to reflect this — the manual button in
+  `GameMenuScreen` is completely untouched, this is a second trigger
+  layered on top, not a replacement.
+- Attached to the `Player` object in `TestScene.unity`, next to the
+  existing `SaveManager` — verified via direct YAML grep.
+
+## 2026-08-16 (20)
+
+### v0.3.113-dev — Tuning: Hunger/Thirst drain slowed 3x
+
+Ben's feedback from live play: Hunger/Thirst dropped very fast — worth
+checking against the actual numbers, not just a gut feeling. Confirmed:
+Hunger emptied in 20 real minutes, Thirst in 12, both from full — a
+Meal-tier food (40 Hunger) only bought back 8 minutes, meaning eating
+almost constantly just to keep pace.
+
+- `PlayerVitals.hungerDrainPerSecond`/`thirstDrainPerSecond` both slowed
+  3x: Hunger now empties in 60 real minutes, Thirst in 36 — keeps the
+  same relative pace between the two (~1.67x) while turning survival
+  upkeep into an occasional task instead of a constant one.
+- Updated in both places per CLAUDE.md's own stale-`[SerializeField]`-
+  default gotcha — the C# default *and* `TestScene.unity`'s already-
+  serialized override, confirmed matching after the edit.
+- Ben picked "~3x slower" from a menu of options (2x/3x/5x/exact) rather
+  than an arbitrary number — a real tuning decision, not a guess.
 
 ## 2026-08-16 (19)
 

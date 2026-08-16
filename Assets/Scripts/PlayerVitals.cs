@@ -41,8 +41,13 @@ public class PlayerVitals : MonoBehaviour
     [SerializeField] private float maxHealth = 100f;
     [SerializeField] private float maxStamina = 100f;
 
-    [SerializeField] private float hungerDrainPerSecond = 100f / (20f * 60f);
-    [SerializeField] private float thirstDrainPerSecond = 100f / (12f * 60f);
+    // Slowed 3x (2026-08-16, Ben's call, live-testing) -- the original
+    // 20min/12min-to-empty rates meant eating/drinking almost constantly
+    // (a Meal-tier food's 40 Hunger only bought back 8 real minutes).
+    // 60min/36min keeps the same relative Hunger:Thirst pace (~1.67x)
+    // while turning it into an occasional task instead of a constant one.
+    [SerializeField] private float hungerDrainPerSecond = 100f / (60f * 60f);
+    [SerializeField] private float thirstDrainPerSecond = 100f / (36f * 60f);
     [SerializeField] private float starvationDamagePerSecond = 2f;
     // Slowed 2026-08-10 (Ben's call, live-testing Combat): the old 1/s
     // rate healed a full 0-100 in under 2 minutes with zero player

@@ -118,6 +118,35 @@ architecture), and it only pays off once a second real player exists to
 pay a fee to, so it's logged in `BUGS_AND_ENHANCEMENTS.md` rather than
 designed further here.
 
+**Endgame ("Leaving the Planet") planning lives in `ENDGAME_PLANNING.md`.**
+Planning only as of 2026-08-16, prompted by Ben's ask for a critical,
+honest big-picture map from today's basic-survival state to the
+already-designed endgame (`docs/skill-path-space.md`) — every session
+so far has built outward (survival/crafting/NPC systems), never upward
+toward space. Real audit finding: of the endgame's 8 "Keystone"
+disciplines, only 5 map to skills that actually exist (`Gathering`,
+`Medicine`, `Metalworking`/`Forging`, `Woodworking`, the 4 Magic
+lineages); Engineering doesn't exist in any form (zero skill, zero
+items, zero code), Combat has no unifying skill across `Melee`/
+`Archery`/`Guarding`, and Trade/Financier has nothing beyond join/leave
+a dev-authored Guild. Bigger structural gap: skill levels cap at 100,
+which already means `CraftTierScale.SkillRequirement(Masterwork)` —
+there's no headroom for a distinct "Keystone" tier, so this doc
+proposes (not yet Ben-confirmed) that Keystone just *means* level 100
+in a discipline's skill, reusing the existing cap rather than inventing
+a 6th tier. Recommends building **Arcane Propulsion first and only
+that** of the four endgame routes — it needs zero new disciplines
+(Magic already has real lineages/XP/wishes), so it's the cheapest way
+to prove the whole Gateway→route→liftoff pipeline end-to-end. Orbital
+Engineering is blocked on inventing an entire 8th discipline from
+scratch; Chartered Expedition is blocked on `COMMERCE_PLANNING.md`
+actually shipping; Conquered Launch Site is blocked on Settlement
+Warfare, which touches multiplayer/PvP territory this project doesn't
+have infrastructure for at all and is flagged as the least-ready of the
+four by a wide margin. Several real open questions (what Ascend to the
+Stars actually does, whether routes are mutually exclusive) are
+explicitly logged as unresolved game-design calls, not decided here.
+
 **Multiplayer conversion exploration lives in `MULTIPLAYER_PLANNING.md`.**
 Audits the single-player codebase (2026-08-13) against what converting to
 dedicated-server multiplayer via Mirror Networking (imported this session)
