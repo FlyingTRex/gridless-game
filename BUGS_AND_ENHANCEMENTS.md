@@ -395,6 +395,23 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
+- [x] **Player Map explored-state save/load — fixed, v0.3.99-dev
+  (2026-08-16).** Caught live by Ben (explored, saved, reloaded, map
+  reset to fog). `PlayerMapExploration.CaptureRevealedBase64()`/
+  `RestoreRevealedBase64()` bit-pack the grid (1,250 bytes regardless of
+  how much is revealed, not one bool per cell), wired into
+  `SaveManager.CapturePlayer`/`RestorePlayer`. Verified via a real
+  batch-mode round-trip check (666 cells revealed → captured → restored
+  → confirmed identical cell-by-cell) — the first verification attempt
+  gave a false PASS because `AddComponent` doesn't fire `Awake()` in
+  edit-mode batch scripting (fixed the *test*, via reflection, not the
+  real code).
+- [ ] **Player Map — Village Flag/City Statue reveal hooks not wired
+  yet (v0.3.98-dev).** `PlayerMapExploration.RevealCircle(worldPos,
+  radius)` is public and ready; nothing calls it from a Flag or Statue
+  yet since the Flag itself is still being built in a separate pass.
+  Follow-up once that lands — see `PLAYER_MAP_PLANNING.md`'s reveal-
+  radius table (Crude 35m through Masterwork 75m; City Statue 125m).
 - [ ] **Per-foot Boot/Sneaker attachment — investigated 2026-08-15, not
   built, no decision made yet.** Today `Boot`/`PlayerBoot.cs` treats each
   boot item as a single combined-pair mesh (both feet baked into one

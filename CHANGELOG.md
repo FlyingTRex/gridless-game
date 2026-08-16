@@ -5,14 +5,14 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.98-dev` — must always match `GameVersion` in
+**Current version:** `0.3.100-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-16 (3)
+## 2026-08-16 (5)
 
-### v0.3.98-dev — Deterministic ItemDatabase/SkillDatabase/NPCJobDatabase regeneration + O(1) lookup
+### v0.3.100-dev — Deterministic ItemDatabase/SkillDatabase/NPCJobDatabase regeneration + O(1) lookup
 
 traskmi asked whether a "central database" for items/recipes would help
 or hurt merge collisions between sessions. Investigating that question
@@ -47,6 +47,77 @@ be nondeterministic" gotcha in `CLAUDE.md` for the full writeup.
   admin "VMS" browser for items/recipes should read this now-
   deterministic index to list everything, but write edits back through
   each item's own `.asset` file, not a new central data store.
+
+## 2026-08-16 (4)
+
+### v0.3.99-dev — Player Map explored state now survives save/load
+
+Ben caught this live: explored the map, saved, reloaded, and the map had
+reset to mostly fog — exactly the gap `PLAYER_MAP_PLANNING.md` and
+`BUGS_AND_ENHANCEMENTS.md` already had flagged as known-missing, now
+closed.
+
+**`PlayerMapExploration.CaptureRevealedBase64()`/`RestoreRevealedBase64()`**
+— bit-packed, not one bool per cell verbatim (the explicit ask when this
+gap was first flagged): a 100×100 grid packs into 1,250 bytes regardless
+of how much is actually revealed. Wired into `SaveManager.CapturePlayer`/
+`RestorePlayer` alongside vitals/skills/inventory — this is per-player
+state, not a `SaveId`-keyed world object.
+
+**Caught and fixed a real gap in my own verification method, not the
+game code**: a first-pass batch-mode diagnostic reported a false PASS —
+`AddComponent<PlayerMapExploration>()` doesn't fire `Awake()`
+automatically in pure edit-mode scripting (the same documented "Unity
+lifecycle methods don't reliably fire in batch edit-mode" gotcha
+`CLAUDE.md` already has for `Object.Instantiate()`/`OnEnable`, just a
+new trigger for it — `AddComponent`, not `Instantiate`). The grid was
+silently 0×0 on both sides, so capturing and restoring nothing "matched"
+trivially. Fixed the diagnostic (not the real code) by invoking `Awake()`
+via reflection, then got a genuine result: 666 cells revealed, captured,
+restored, and confirmed identical cell-by-cell.
+
+## 2026-08-16 (3)
+
+### v0.3.98-dev — Player Map: fog-of-war core, plus a WorldBounds utility it needed first
+
+Ben's ask, designed conversationally then built the same session (see
+`PLAYER_MAP_PLANNING.md`).
+
+**`WorldBounds.cs`** — a real prerequisite, not busywork: nothing in
+this project had a "how big is the world" concept before now. Reads
+`Terrain.activeTerrain`'s own position + `TerrainData.size` directly
+(same "static utility, read by whoever needs it" shape `GroundHeight.cs`
+already established), so it stays correct automatically if the Terrain
+is ever resized or regenerated — including the future Terrain/hills
+conversion already flagged in `BUGS_AND_ENHANCEMENTS.md`. Verified
+against the real scene via a direct batch-mode check, not just
+compiled: confirmed exactly 200×200 units (X/Z: -100 to 100), not the
+"roughly 200×200" guess this was based on before.
+
+**`PlayerMapExploration.cs`** — fog-of-war state. Splits the playable
+world into a 2m-cell grid (a 200×200 world is 100×100 = 10,000 cells, a
+trivial plain `bool[,]`, no need for a sparse representation at this
+scale) and permanently reveals cells within 25m of the player every
+frame. `RevealCircle(worldPos, radius)` is public and ready for a
+Village Flag/City Statue to call once those exist (being built in a
+separate parallel pass — see `WORKING_ON.md`) — no changes needed here
+when that lands, just a new caller.
+
+**`MapScreen.cs`** — `M` opens it, same open/close/cursor-lock shape
+`GameMenuScreen`'s own backquote toggle already established. Renders
+`PlayerMapExploration`'s grid as a fog texture (only rebuilt when
+something's actually changed, tracked via a `RevealVersion` counter —
+same "don't redo the work every frame" discipline `GardenPlot4x4`'s own
+visual-stage update already uses) plus a player-position marker.
+`GameMenuScreen.ControlsList` updated with the new binding, per this
+project's own standing rule.
+
+**Explicitly not built this pass**: Flag/Statue reveal hooks (ready,
+just not wired — the Flag itself doesn't exist in the game yet) and
+save/load persistence for explored state (a real follow-up, same
+category of gap Skill Books had before its own save/load increment).
+Verified via batch-mode compile + direct scene YAML grep only — not yet
+live-tested in Play mode.
 
 ## 2026-08-16 (2)
 

@@ -23,6 +23,7 @@ public class GameMenuScreen : MonoBehaviour
         ("Escape", "Close the open screen / toggle cursor lock"),
         ("F", "Secondary interact (e.g. Fill Canteen at a water source)"),
         ("Left Shift (hold)", "Sprint"),
+        ("M", "Open the Player Map"),
         ("Mouse Movement", "Look around"),
         ("Right Mouse Button", "Rename a world object"),
         ("Space", "Jump"),

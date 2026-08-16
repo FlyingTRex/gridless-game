@@ -3757,3 +3757,45 @@ wander/flee AI yet), Knife-gated skinning, trains Gathering.
 - [ ] **Cooking failure roll**: confirm a low-Cooking-skill attempt can
   still fail per the existing `CraftOutcomeRoll` mechanic, same as other
   Cooking recipes.
+
+## 46. Player Map — fog-of-war core, v1 (v0.3.98-dev, save/load fixed v0.3.99-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct scene YAML grep, plus a batch-mode
+save/load round-trip check for the item below). Full design in
+`PLAYER_MAP_PLANNING.md`.
+
+**Regression** (2026-08-16): Ben found live that explored state didn't
+survive a save/reload — the map came back mostly fog. Fixed same day
+(`PlayerMapExploration.CaptureRevealedBase64`/`RestoreRevealedBase64`,
+wired into `SaveManager`). Re-check this specifically on the next full
+pass, not just the general "walking reveals it" item below.
+
+- [ ] **Open the map**: press `M` from normal gameplay — confirm a
+  panel opens, cursor unlocks, and the Controls tab (`` ` ``) lists `M`
+  under "Open the Player Map."
+- [ ] **Starts mostly fog**: on a fresh game, confirm only a small area
+  around the player's spawn point (a ~25m-radius circle) reads as
+  revealed, everything else is solid fog color.
+- [ ] **Walking reveals it live**: close the map, walk in a straight
+  line away from spawn for a while, reopen the map — confirm a visible
+  trail of revealed ground now traces the path just walked, roughly
+  25m wide, and it's still there (doesn't re-fog) after walking away
+  from it.
+- [ ] **Player marker**: confirm a distinct marker shows the player's
+  *current* position on the map, and that it moves to the correct
+  relative spot if you close the map, walk somewhere else, and reopen
+  it.
+- [ ] **Closing**: confirm both the in-map Close button and Escape both
+  close it cleanly and re-lock the cursor, same as every other screen.
+- [ ] **Regression**: confirm `M` does nothing unexpected while another
+  screen already has the cursor unlocked (shouldn't stack on top of
+  Inventory/Crafting/etc.), matching every other screen's own toggle
+  guard.
+- [ ] **Save/load**: explore a distinctive area, save, reload — confirm
+  the map comes back showing that exact area still revealed (this is
+  the regression flagged above; confirm it's actually fixed, not just
+  that the code compiles).
+- [ ] **Not built yet, by design**: Village Flag/City Statue reveal
+  circles (the Flag doesn't exist in the game yet) and any shared/
+  multiplayer visibility.

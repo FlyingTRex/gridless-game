@@ -36,6 +36,7 @@ public class SaveManager : MonoBehaviour
     private PlayerEquipment equipment;
     private PlayerBodyModel bodyModel;
     private PlayerFame fame;
+    private PlayerMapExploration mapExploration;
 
     // Set by Load() so a fresh scene's starting-gear auto-equip (Shirt/
     // Jeans/Belt/Canteen, each guarded on "nothing equipped yet") doesn't
@@ -57,6 +58,7 @@ public class SaveManager : MonoBehaviour
         equipment = GetComponent<PlayerEquipment>();
         bodyModel = GetComponent<PlayerBodyModel>();
         fame = GetComponent<PlayerFame>();
+        mapExploration = GetComponent<PlayerMapExploration>();
     }
 
     private void Start()
@@ -129,6 +131,7 @@ public class SaveManager : MonoBehaviour
             ["currency"] = CaptureCurrency(),
             ["inventory"] = InventorySaveUtility.Capture(playerInventory.Inventory),
             ["equipment"] = CaptureEquipmentSlots(),
+            ["mapExploration"] = mapExploration != null ? mapExploration.CaptureRevealedBase64() : null,
         };
     }
 
@@ -169,6 +172,9 @@ public class SaveManager : MonoBehaviour
             foreach (var slotName in equipment.SlotNames)
                 if (equipmentObj[slotName] is JArray slotArray)
                     InventorySaveUtility.Restore(equipment.GetSlot(slotName), slotArray);
+
+        if (mapExploration != null && data["mapExploration"] != null)
+            mapExploration.RestoreRevealedBase64((string)data["mapExploration"]);
 
         // Every worn item above was restored directly into its
         // PlayerEquipment slot's Inventory, hidden (Stash()ed) by
