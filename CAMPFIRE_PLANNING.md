@@ -58,6 +58,16 @@ needed it. `CookableItem` gained `requiresCanteenWater`/
 `GetAvailableRecipes()` and `StartCooking()` the same way
 `PlayerCrafting` already gates/consumes it for ordinary crafting.
 
+**Cooking skill/quality-tier system — built (v0.3.93-dev, 2026-08-15),
+see `COOKING_SKILL_PLANNING.md`.** Cooking is no longer 100%
+deterministic — 3 of the 4 recipes above (Grilled Meat, Herbal Tea,
+Steak and Potatoes) now roll for a real outcome on completion via the
+same shared `CraftOutcomeRoll` crafting uses, collapsed to binary
+(success or wasted ingredients, no crafting-style tier-swap items) plus
+a mild Health hit on the worst roll. `RawMeatToCookedMeatCookable`
+stays exactly as it always was — free, no risk. `CampfireScreen` shows
+a brief result message under the Recipe section.
+
 **UI redesign — built (v0.3.28-dev, then substantially reworked
 v0.3.30-dev, both 2026-08-13).** Loading fuel/food used to only work via
 a "Campfire (nearby)" section auto-appended to the bottom of the main

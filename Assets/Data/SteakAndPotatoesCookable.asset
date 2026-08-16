@@ -21,3 +21,8 @@ MonoBehaviour:
   outputCount: 1
   cookDurationSeconds: 45
   requiredAccessory: {fileID: 11400000, guid: e45f00df1efa95b41b8631e538a442ee, type: 2}
+  requiresCanteenWater: 0
+  canteenWaterAmount: 20
+  trainedSkill: {fileID: 11400000, guid: 00ee502ead76cab4a993ae3a1865bd06, type: 2}
+  skillGain: 1.5
+  requiredSkillLevel: 15

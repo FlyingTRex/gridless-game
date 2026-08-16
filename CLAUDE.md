@@ -235,6 +235,29 @@ now that Fame is a single overall number — that part's still open.
 Verified via batch-mode compile + YAML grep only so far — not yet
 live-tested in Play mode.
 
+**Cooking skill/quality-tier system is built — see
+`COOKING_SKILL_PLANNING.md`.** MVP2 item 9's last open piece, designed
+and built same session (2026-08-15, v0.3.93-dev): the previously-unused
+`Cooking` `SkillDefinition` now actually gates 3 of the 4 Campfire
+accessory recipes. Binary success/fail (no crafting-style tier-ladder
+items — Ben's call, less new content) reusing `CraftOutcomeRoll`
+directly, with a mild Health hit (`Campfire.CookingFailureDamage = 5`,
+half crafting's `SpectacularFailureDamage`) on the worst outcome only.
+`CookableItem` gained `trainedSkill`/`skillGain`/`requiredSkillLevel` (a
+flat int, deliberately NOT routed through
+`CraftTierScale.SkillRequirement` — food items don't use the `CraftTier`
+ladder, and CLAUDE.md's own tier-scaling gotcha already warns against
+reusing a scale tuned for one quantity on an unrelated one).
+`trainedSkill == null` skips the roll entirely, same "opt-in" convention
+crafting's skill-less gadget recipes already use — kept the
+already-shipped free baseline recipe (Raw Meat → Cooked Meat) untouched.
+Grilled Meat/Herbal Tea gated at Cooking 5, Steak and Potatoes at
+Cooking 15 (Ben confirmed the doc's proposed numbers as-is).
+`Campfire` gained a small message toast (`LastCookMessage`, read by
+`CampfireScreen` — Campfire has no `OnGUI` of its own, unlike
+`PlayerCrafting`). Verified via compile + direct YAML grep only so
+far — not yet live-tested in Play mode.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:

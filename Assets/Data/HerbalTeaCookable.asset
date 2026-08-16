@@ -21,3 +21,6 @@ MonoBehaviour:
   requiredAccessory: {fileID: 11400000, guid: c26b68c73d7eb2a46a34e8acffdf502a, type: 2}
   requiresCanteenWater: 1
   canteenWaterAmount: 20
+  trainedSkill: {fileID: 11400000, guid: 00ee502ead76cab4a993ae3a1865bd06, type: 2}
+  skillGain: 1
+  requiredSkillLevel: 5

@@ -2654,6 +2654,22 @@ than usual given how much changed.**
   a Kettle with a Herb leaf visibly leaning against its base. Drink the
   result — confirm the verb reads "Drink" (not "Eat") and it restores
   Thirst specifically (not Hunger) by a real amount (30).
+- [ ] **Cooking skill/quality-tier system (v0.3.93-dev)**: with 0
+  Cooking skill, load a Grilled Meat/Herbal Tea's ingredients+accessory
+  — confirm "Cook..." does NOT appear (Cooking 5 required). Admin-Spawn
+  or grind Cooking XP up to 5+ — confirm the recipe now appears. Cook
+  several batches at exactly Cooking 5 (riskiest odds) — confirm you
+  occasionally see the "It didn't turn out — the ingredients were
+  wasted" message with no output landing, and at least once see the
+  Health-damage disaster message ("Disaster! Burnt beyond saving...")
+  with a real Health hit. Raise Cooking well past 25 (Grilled Meat/
+  Herbal Tea) or 35 (Steak and Potatoes) and cook again — confirm
+  failures become rare (not gone, per `CraftOutcomeRoll`'s risk floor).
+  Confirm a successful cook (any outcome) visibly raises the Cooking
+  skill bar; confirm a failed cook does NOT. **Regression:** confirm
+  Raw Meat → Cooked Meat is completely unaffected — no skill gate, no
+  failure chance, cooks every single time regardless of Cooking level
+  (0 included).
 - [ ] **Start cooking**: click the Recipe button — confirm the Raw Meat
   is immediately consumed from the Ingredients box, the Recipe section
   now shows "Cooking Cooked Meat — N%" counting up, and after ~30

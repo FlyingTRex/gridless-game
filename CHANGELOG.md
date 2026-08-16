@@ -5,10 +5,60 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.92-dev` — must always match `GameVersion` in
+**Current version:** `0.3.93-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (16)
+
+### v0.3.93-dev — Cooking skill/quality-tier system: the last open piece of MVP2 item 9
+
+Designed (`COOKING_SKILL_PLANNING.md`, confirmed via AskUserQuestion)
+and built same session. The `Cooking` `SkillDefinition` existed since
+early in the project but was used by nothing — `Campfire` cooking was
+100% deterministic, no skill gate, no risk, no growth.
+
+**Decided:** binary success/fail, not a crafting-style tier ladder
+(Ben's call — swapping in a whole different `ItemDefinition` per
+outcome, like `CraftingRecipe.lowerTierItem`/`higherTierItem`, would
+need 2-3 new items per dish; not worth it for cooking). Reuses
+`CraftOutcomeRoll` directly (the same 5-outcome roll `PlayerCrafting`
+and `PlayerWriting` already share) collapsed to two buckets — you get
+the dish, or the (already-consumed) ingredients are wasted — plus a
+mild Health hit (`Campfire.CookingFailureDamage = 5`, half crafting's
+`SpectacularFailureDamage`) on the worst outcome only.
+
+**`CookableItem`** gained `trainedSkill`/`skillGain`/
+`requiredSkillLevel`, mirroring `CraftingRecipe`'s shape but with
+`requiredSkillLevel` as a flat int rather than routing through
+`CraftTierScale.SkillRequirement(outputItem.tier)` — food items don't
+use the `CraftTier` ladder for this, and CLAUDE.md's own tier-scaling
+gotcha already warns against reusing a scale tuned for one quantity
+(crafting-quality tiers) on an unrelated one (cooking difficulty).
+`trainedSkill == null` skips the roll entirely and always succeeds,
+same "opt-in" convention crafting's skill-less gadget recipes already
+use — `RawMeatToCookedMeatCookable`, the original baseline recipe, is
+deliberately untouched by this system, staying exactly as free and
+risk-free as it's always been.
+
+**`Campfire.cs`** gained `HasRequiredCookingSkill()` (mirrors
+`PlayerCrafting.HasRequiredSkill`, wired into both
+`GetAvailableRecipes()` and `StartCooking()` — an under-leveled recipe
+doesn't even show as an option) and `ResolveCookingOutcome()` (mirrors
+`PlayerCrafting.ResolveOutcome`, called from `TickCooking()` once the
+timer finishes rather than at `StartCooking` time — ingredients are
+already consumed upfront either way, same convention as crafting). A
+new `LastCookMessage`/`ShowCookMessage` pair gives `Campfire` a small
+result toast — it has no `OnGUI` of its own (unlike `PlayerCrafting`,
+which draws its own directly), so `CampfireScreen.DrawRecipeSection()`
+reads and renders it instead.
+
+**Tuning** (Ben confirmed the planning doc's proposed numbers as-is,
+no changes): Grilled Meat and Herbal Tea both Cooking 5/skillGain 1.0;
+Steak and Potatoes Cooking 15/skillGain 1.5 (a more involved
+two-ingredient sear, higher gate). Verified via compile + direct YAML
+grep of all 3 recipes' new fields — not yet live-tested in Play mode.
 
 ## 2026-08-15 (15)
 

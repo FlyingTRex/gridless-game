@@ -33,4 +33,19 @@ public class CookableItem : ScriptableObject
     // PlayerCrafting.StartCraft consumes it. See Campfire.HasCanteenWater.
     public bool requiresCanteenWater;
     public float canteenWaterAmount = 20f;
+
+    // Cooking skill/quality-tier system (2026-08-15, COOKING_SKILL_PLANNING.md)
+    // — null trainedSkill skips the outcome roll entirely and always
+    // succeeds, same "opt-in" convention PlayerCrafting's skill-less
+    // gadget recipes already use (keeps RawMeatToCookedMeatCookable, the
+    // original baseline recipe, exactly as free/risk-free as it always
+    // was). requiredSkillLevel is a flat int, deliberately NOT routed
+    // through CraftTierScale.SkillRequirement(outputItem.tier) — food
+    // items don't use the CraftTier ladder for this, and a scale tuned
+    // for crafting-quality tiers doesn't transfer to cooking difficulty
+    // (see CLAUDE.md's tier-scaling gotcha). See Campfire.TickCooking's
+    // outcome roll and HasRequiredCookingSkill.
+    public SkillDefinition trainedSkill;
+    public float skillGain = 1f;
+    public int requiredSkillLevel;
 }

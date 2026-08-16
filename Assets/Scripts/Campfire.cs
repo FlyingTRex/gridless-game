@@ -40,9 +40,24 @@ using UnityEngine;
 // present), and clicking one commits — ingredients consumed immediately
 // (same "consumed upfront" convention as PlayerCrafting), one recipe
 // cooking at a time, real-time timer pausing (not resetting) while unlit
-// or the player's away, landing in the output bank on completion.
+// or the player's away.
+//
+// Cooking skill/quality-tier system (2026-08-15,
+// COOKING_SKILL_PLANNING.md) — completion is no longer deterministic for
+// any CookableItem with a trainedSkill set: ResolveCookingOutcome rolls
+// the same shared CraftOutcomeRoll crafting uses, collapsed to binary
+// (Ben's call — no crafting-style tier-swap items for food) plus a mild
+// Health hit on the worst outcome. Recipes with no trainedSkill (the
+// original RawMeatToCookedMeatCookable) are untouched — always succeed,
+// same as before this system existed.
 public class Campfire : MonoBehaviour, IInteractable, IWishTarget
 {
+    // Mild — half PlayerCrafting.SpectacularFailureDamage (10), per Ben's
+    // "mild Health hit" framing for a cooking disaster vs. crafting's full
+    // one (2026-08-15, COOKING_SKILL_PLANNING.md).
+    private const float CookingFailureDamage = 5f;
+    private const float MessageDuration = 4f;
+
     [SerializeField] private WishRecipe sparkWish;
     [SerializeField] private Material unlitMaterial;
     [SerializeField] private Material litMaterial;
@@ -82,10 +97,13 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     private Inventory outputInventory;
     private Transform player;
     private PlayerVitals playerVitals;
+    private PlayerSkills playerSkills;
     private bool isLit;
     private float fuelSecondsRemaining;
     private CookableItem activeRecipe;
     private float cookSecondsElapsed;
+    private string lastCookMessage;
+    private float lastCookMessageExpireTime;
 
     public string DisplayName => "Campfire";
     public Inventory FuelInventory => fuelInventory;
@@ -100,6 +118,12 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     public float FuelSecondsRemaining => fuelSecondsRemaining;
     public CookableItem ActiveRecipe => activeRecipe;
     public float CookSecondsElapsed => cookSecondsElapsed;
+
+    // Read by CampfireScreen to show a brief result toast under the Recipe
+    // section once cooking completes — Campfire has no OnGUI of its own
+    // (unlike PlayerCrafting, which draws its own), so this is exposed as
+    // a property instead (2026-08-15, COOKING_SKILL_PLANNING.md).
+    public string LastCookMessage => Time.time < lastCookMessageExpireTime ? lastCookMessage : null;
 
     // 2026-08-13: E now always opens CampfireScreen instead of attempting
     // to light directly — lighting moved to a button inside that popup
@@ -163,6 +187,7 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     {
         playerVitals = FindFirstObjectByType<PlayerVitals>();
         player = playerVitals != null ? playerVitals.transform : null;
+        playerSkills = player != null ? player.GetComponent<PlayerSkills>() : null;
     }
 
     private void Update()
@@ -190,9 +215,10 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     // Real-time timer for whichever recipe StartCooking() committed to —
     // paused (not reset) while unlit or the player's out of range, same
     // "runs on its own, pauses on interruption" mental model as before.
-    // Ingredients were already consumed at StartCooking time, so nothing
-    // here can fail except the output actually landing (guarded upfront
-    // by StartCooking's own HasSpaceFor check).
+    // Ingredients were already consumed at StartCooking time; whether the
+    // dish actually lands now depends on ResolveCookingOutcome's roll
+    // (2026-08-15, COOKING_SKILL_PLANNING.md) rather than always
+    // succeeding.
     private void TickCooking()
     {
         if (activeRecipe == null) return;
@@ -204,9 +230,72 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         cookSecondsElapsed += Time.deltaTime;
         if (cookSecondsElapsed < activeRecipe.cookDurationSeconds) return;
 
-        outputInventory.AddItem(activeRecipe.outputItem, activeRecipe.outputCount);
+        ResolveCookingOutcome(activeRecipe);
         activeRecipe = null;
         cookSecondsElapsed = 0f;
+    }
+
+    // Chance-of-creation roll for cooking, mirroring
+    // PlayerCrafting.ResolveOutcome but collapsed to binary (Ben's call,
+    // 2026-08-15 — no crafting-style tier-swap items): recipes with no
+    // trainedSkill skip the roll entirely and always succeed, same as
+    // PlayerCrafting's skill-less gadget recipes. Otherwise rolls between
+    // five outcomes via the shared CraftOutcomeRoll based on how far
+    // Cooking is above this recipe's requiredSkillLevel — Brilliant/
+    // Success both just give the dish (no tier-swap to give instead),
+    // Barely/BadFailure waste the (already-consumed) ingredients, and
+    // SpectacularFailure also deals a mild Health hit.
+    private void ResolveCookingOutcome(CookableItem recipe)
+    {
+        if (recipe.trainedSkill == null)
+        {
+            outputInventory.AddItem(recipe.outputItem, recipe.outputCount);
+            return;
+        }
+
+        float margin = playerSkills != null
+            ? playerSkills.GetLevel(recipe.trainedSkill) - recipe.requiredSkillLevel
+            : 0f;
+        var outcome = CraftOutcomeRoll.Roll(Mathf.Max(0f, margin));
+
+        switch (outcome)
+        {
+            case CraftOutcome.BrilliantSuccess:
+                outputInventory.AddItem(recipe.outputItem, recipe.outputCount);
+                playerSkills?.GainExperience(recipe.trainedSkill, recipe.skillGain);
+                ShowCookMessage($"{recipe.outputItem.itemName} turned out perfectly!");
+                break;
+
+            case CraftOutcome.Success:
+                outputInventory.AddItem(recipe.outputItem, recipe.outputCount);
+                playerSkills?.GainExperience(recipe.trainedSkill, recipe.skillGain);
+                break;
+
+            case CraftOutcome.BarelyFail:
+            case CraftOutcome.BadFailure:
+                ShowCookMessage("It didn't turn out — the ingredients were wasted.");
+                break;
+
+            case CraftOutcome.SpectacularFailure:
+                playerVitals?.Damage(CookingFailureDamage);
+                ShowCookMessage("Disaster! Burnt beyond saving, and it made you feel sick.");
+                break;
+        }
+    }
+
+    private void ShowCookMessage(string text)
+    {
+        lastCookMessage = text;
+        lastCookMessageExpireTime = Time.time + MessageDuration;
+    }
+
+    // True if the recipe has no trainedSkill set, or Cooking is currently
+    // at or above requiredSkillLevel. Mirrors PlayerCrafting.HasRequiredSkill
+    // (2026-08-15, COOKING_SKILL_PLANNING.md).
+    private bool HasRequiredCookingSkill(CookableItem recipe)
+    {
+        if (recipe.trainedSkill == null) return true;
+        return playerSkills != null && playerSkills.GetLevel(recipe.trainedSkill) >= recipe.requiredSkillLevel;
     }
 
     // Every registered recipe whose accessory (if any) is currently seated
@@ -224,6 +313,7 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
             if (!AccessoryPresent(recipe.requiredAccessory)) continue;
             if (!HasAllIngredients(recipe)) continue;
             if (!HasCanteenWater(recipe)) continue;
+            if (!HasRequiredCookingSkill(recipe)) continue;
             result.Add(recipe);
         }
         return result;
@@ -282,6 +372,7 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         if (recipe == null || activeRecipe != null) return false;
         if (!AccessoryPresent(recipe.requiredAccessory) || !HasAllIngredients(recipe)) return false;
         if (!HasCanteenWater(recipe)) return false;
+        if (!HasRequiredCookingSkill(recipe)) return false;
         if (!outputInventory.HasSpaceFor(recipe.outputItem, recipe.outputCount)) return false;
 
         if (recipe.ingredients != null)

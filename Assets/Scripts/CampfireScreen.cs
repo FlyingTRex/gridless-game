@@ -167,6 +167,14 @@ public class CampfireScreen : MonoBehaviour
     {
         GUILayout.Label("Recipe", DebugGUI.Header);
 
+        // Brief result toast (2026-08-15, COOKING_SKILL_PLANNING.md) —
+        // set by Campfire.ResolveCookingOutcome once a skill-gated recipe
+        // finishes; null/expired most of the time, same "returns null
+        // when there's nothing to show" shape as its own LastCookMessage
+        // property.
+        if (current.LastCookMessage != null)
+            GUILayout.Label(current.LastCookMessage, DebugGUI.Label);
+
         if (current.ActiveRecipe != null)
         {
             float progress = Mathf.Clamp01(current.CookSecondsElapsed / current.ActiveRecipe.cookDurationSeconds);
