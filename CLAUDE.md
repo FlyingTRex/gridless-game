@@ -209,6 +209,23 @@ Engineering route converging on Escape Velocity — a future Spaceport
 reads as a real stepping stone toward that, not a new disconnected idea.
 Not yet built.
 
+**A fog-of-war Player Map is planned in full — see
+`PLAYER_MAP_PLANNING.md`.** Designed the same session (2026-08-16),
+direct extension of the Village Flag/City Statue work just above. `M`
+opens it (confirmed collision-free against `GameMenuScreen.
+ControlsList`). Starts blank — only reveals a permanent 25m radius
+around everywhere the player has actually walked, plus a bigger reveal
+circle wherever a Flag or Statue is placed, scaled by the same 5-tier
+ladder (Crude 35m total through Masterwork 75m; City Statue 125m flat).
+Shared visibility for other players (Flag markers, Statue circles
+visible settlement-wide) is explicitly logged as multiplayer-only —
+`MULTIPLAYER_PLANNING.md` has no state-sharing infrastructure at all
+yet, so this doc only designs the single-player fog-of-war core. Real
+open prerequisite: **no "how big is the world" concept exists anywhere
+in this project today** — the current Ground/Terrain looks to be
+roughly 200×200 units from its scene position, not yet confirmed as a
+hard number. Not yet built.
+
 **Save/load persistence real implementation plan lives in
 `SAVE_LOAD_PLANNING.md`.** Expands the narrow v1 draft in
 `BUGS_AND_ENHANCEMENTS.md` (and `MVP2_PLANNING.md` item 6) into a buildable
