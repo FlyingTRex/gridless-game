@@ -17,4 +17,4 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-(nothing in progress right now)
+- 2026-08-16 — Ben+Claude — Village Flag's 5-tier recipe ladder (Stick+Cloth, Sewing-trained, deterministic by Stick tier) built and registered in `TestScene.unity`, per `VILLAGE_FLAG_PLANNING.md` section 2 — placeholder prefabs only, real Blender models still open. Not yet live-tested in Play mode; not yet committed. Spawn loop and City Statue gate still unbuilt.

@@ -3739,3 +3739,37 @@ wander/flee AI yet), Knife-gated skinning, trains Gathering.
   and stacks/carries normally like any other material.
 - [ ] **Not built yet, by design**: no movement, no flee behavior when
   approached, same limitation as Chicken.
+
+## 45. Player Map — fog-of-war core, v1 (v0.3.97-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct scene YAML grep). Full design in
+`PLAYER_MAP_PLANNING.md`.
+
+- [ ] **Open the map**: press `M` from normal gameplay — confirm a
+  panel opens, cursor unlocks, and the Controls tab (`` ` ``) lists `M`
+  under "Open the Player Map."
+- [ ] **Starts mostly fog**: on a fresh game, confirm only a small area
+  around the player's spawn point (a ~25m-radius circle) reads as
+  revealed, everything else is solid fog color.
+- [ ] **Walking reveals it live**: close the map, walk in a straight
+  line away from spawn for a while, reopen the map — confirm a visible
+  trail of revealed ground now traces the path just walked, roughly
+  25m wide, and it's still there (doesn't re-fog) after walking away
+  from it.
+- [ ] **Player marker**: confirm a distinct marker shows the player's
+  *current* position on the map, and that it moves to the correct
+  relative spot if you close the map, walk somewhere else, and reopen
+  it.
+- [ ] **Closing**: confirm both the in-map Close button and Escape both
+  close it cleanly and re-lock the cursor, same as every other screen.
+- [ ] **Regression**: confirm `M` does nothing unexpected while another
+  screen already has the cursor unlocked (shouldn't stack on top of
+  Inventory/Crafting/etc.), matching every other screen's own toggle
+  guard.
+- [ ] **Not built yet, by design**: Village Flag/City Statue reveal
+  circles (the Flag doesn't exist in the game yet), any shared/
+  multiplayer visibility, and save/load — **explored state does NOT
+  currently persist across a save/reload**, confirm this is the
+  observed (expected, logged) behavior rather than assuming it's a bug
+  if a reload shows the map reset to mostly fog.

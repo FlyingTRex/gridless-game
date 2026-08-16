@@ -3,7 +3,35 @@
 Planning doc for a fog-of-war Player Map (2026-08-16) — designed
 conversationally with Ben as a direct extension of the Village Flag/City
 Statue work earlier the same session. Decision-locked where noted,
-otherwise flagged as open. Not yet built.
+otherwise flagged as open.
+
+**Status: core mechanic built, same day.** `M` opens a real `MapScreen`
+(same open/close/cursor-lock shape `GameMenuScreen`'s backquote toggle
+already established), showing a live fog-of-war texture driven by a new
+`PlayerMapExploration` component — the permanent 25m on-foot reveal
+radius from section 1 is live and ticking every frame. `GameMenuScreen.
+ControlsList` updated with the new binding, per this project's own
+standing rule. **Not yet built**: Village Flag/City Statue reveal hooks
+(`PlayerMapExploration.RevealCircle` is public and ready — the Flag
+itself is being built in a separate parallel pass per `WORKING_ON.md`,
+so wiring its reveal call is a follow-up once that lands, not bundled
+here), and save/load persistence for explored state (section 2 already
+flagged this as real follow-up scope). Verified via batch-mode compile +
+direct scene YAML grep only so far — not yet live-tested in Play mode.
+
+**Real prerequisite closed same day: `WorldBounds.cs` built and
+verified.** Section 2's "no world-size concept exists" gap is resolved —
+a new shared utility reads `Terrain.activeTerrain`'s own position +
+`TerrainData.size` directly, so it stays correct automatically if the
+Terrain is ever resized/regenerated (including the future Terrain/hills
+conversion `BUGS_AND_ENHANCEMENTS.md` already has flagged). Verified
+against the real `TestScene.unity`, not just compiled: confirmed
+**exactly 200×200 units** (X: -100 to 100, Z: -100 to 100) via a direct
+batch-mode check, not the "roughly 200×200, unconfirmed" guess this doc
+originally had. No hardcoded world size anywhere — `WorldBounds` is the
+one place that ever needs to know it, ready for the Player Map's
+fog-of-war grid (and anything else that needs world extent) to consume
+directly.
 
 ## 1. The mechanic
 

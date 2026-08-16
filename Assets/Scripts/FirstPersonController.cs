@@ -64,6 +64,7 @@ public class FirstPersonController : MonoBehaviour
     private GameMenuScreen gameMenuScreen;
     private NPCHiringScreen npcHiringScreen;
     private NPCJobScreen npcJobScreen;
+    private MapScreen mapScreen;
     private PlayerNPCDeposit npcDeposit;
     private Vector3 velocity;
     private float pitch;
@@ -104,6 +105,7 @@ public class FirstPersonController : MonoBehaviour
         gameMenuScreen = GetComponent<GameMenuScreen>();
         npcHiringScreen = GetComponent<NPCHiringScreen>();
         npcJobScreen = GetComponent<NPCJobScreen>();
+        mapScreen = GetComponent<MapScreen>();
         npcDeposit = GetComponent<PlayerNPCDeposit>();
     }
 
@@ -157,6 +159,7 @@ public class FirstPersonController : MonoBehaviour
                 gameMenuScreen?.Close();
                 npcHiringScreen?.Close();
                 npcJobScreen?.Close();
+                mapScreen?.Close();
             }
         }
     }
@@ -298,7 +301,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.96-dev";
+    private const string GameVersion = "0.3.97-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

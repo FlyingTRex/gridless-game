@@ -5,10 +5,53 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.96-dev` — must always match `GameVersion` in
+**Current version:** `0.3.97-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (2)
+
+### v0.3.97-dev — Player Map: fog-of-war core, plus a WorldBounds utility it needed first
+
+Ben's ask, designed conversationally then built the same session (see
+`PLAYER_MAP_PLANNING.md`).
+
+**`WorldBounds.cs`** — a real prerequisite, not busywork: nothing in
+this project had a "how big is the world" concept before now. Reads
+`Terrain.activeTerrain`'s own position + `TerrainData.size` directly
+(same "static utility, read by whoever needs it" shape `GroundHeight.cs`
+already established), so it stays correct automatically if the Terrain
+is ever resized or regenerated — including the future Terrain/hills
+conversion already flagged in `BUGS_AND_ENHANCEMENTS.md`. Verified
+against the real scene via a direct batch-mode check, not just
+compiled: confirmed exactly 200×200 units (X/Z: -100 to 100), not the
+"roughly 200×200" guess this was based on before.
+
+**`PlayerMapExploration.cs`** — fog-of-war state. Splits the playable
+world into a 2m-cell grid (a 200×200 world is 100×100 = 10,000 cells, a
+trivial plain `bool[,]`, no need for a sparse representation at this
+scale) and permanently reveals cells within 25m of the player every
+frame. `RevealCircle(worldPos, radius)` is public and ready for a
+Village Flag/City Statue to call once those exist (being built in a
+separate parallel pass — see `WORKING_ON.md`) — no changes needed here
+when that lands, just a new caller.
+
+**`MapScreen.cs`** — `M` opens it, same open/close/cursor-lock shape
+`GameMenuScreen`'s own backquote toggle already established. Renders
+`PlayerMapExploration`'s grid as a fog texture (only rebuilt when
+something's actually changed, tracked via a `RevealVersion` counter —
+same "don't redo the work every frame" discipline `GardenPlot4x4`'s own
+visual-stage update already uses) plus a player-position marker.
+`GameMenuScreen.ControlsList` updated with the new binding, per this
+project's own standing rule.
+
+**Explicitly not built this pass**: Flag/Statue reveal hooks (ready,
+just not wired — the Flag itself doesn't exist in the game yet) and
+save/load persistence for explored state (a real follow-up, same
+category of gap Skill Books had before its own save/load increment).
+Verified via batch-mode compile + direct scene YAML grep only — not yet
+live-tested in Play mode.
 
 ## 2026-08-16 (1)
 

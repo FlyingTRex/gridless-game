@@ -26,6 +26,23 @@ built — not attempted together with this pass.
 
 ## 2. The Flag itself — a new Build piece, Sewing-trained
 
+**Recipes built (2026-08-16).** 5 `BuildPiece` assets
+(`Assets/Data/{Tier}VillageFlagPiece.asset`), each 1 tier-matched Trimmed
+Stick + 1 Cloth, `trainedSkill = Sewing`, `unlockTier` set to the matching
+`CraftTier` (gates visibility the same way `CraftTierScale.SkillRequirement`
+gates every other tiered recipe — this *is* still a skill-level gate, just
+not a random `CraftOutcomeRoll`, matching what Stone Arrow's own recipes
+actually do). All 5 registered on the Player's `PlayerBuilding.allPieces`
+in `TestScene.unity`, so they show up in the Build tab now. Each has its
+own placeholder prefab (a primitive pole + banner, banner tinted via
+`CraftTierColors` and both pole/banner sized up per tier) so the ladder is
+placeable and testable today — **not the real Blender pass** this doc
+already flagged as separate future work; swap `BuildPiece.prefab` on each
+asset once real models exist, no other change needed. Verified via
+batch-mode compile + direct scene/asset YAML grep only — not yet
+live-tested in Play mode.
+
+
 - **Recipe**: 1 Stick + 1 Cloth, trains Sewing — Sewing's first real
   crafted-item purpose beyond Rope/Cloth themselves (both of which just
   feed *into* other things; the Flag is an actual standalone structure).

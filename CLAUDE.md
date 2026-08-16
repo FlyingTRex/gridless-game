@@ -209,22 +209,36 @@ Engineering route converging on Escape Velocity — a future Spaceport
 reads as a real stepping stone toward that, not a new disconnected idea.
 Not yet built.
 
-**A fog-of-war Player Map is planned in full — see
-`PLAYER_MAP_PLANNING.md`.** Designed the same session (2026-08-16),
-direct extension of the Village Flag/City Statue work just above. `M`
-opens it (confirmed collision-free against `GameMenuScreen.
-ControlsList`). Starts blank — only reveals a permanent 25m radius
-around everywhere the player has actually walked, plus a bigger reveal
-circle wherever a Flag or Statue is placed, scaled by the same 5-tier
-ladder (Crude 35m total through Masterwork 75m; City Statue 125m flat).
-Shared visibility for other players (Flag markers, Statue circles
-visible settlement-wide) is explicitly logged as multiplayer-only —
-`MULTIPLAYER_PLANNING.md` has no state-sharing infrastructure at all
-yet, so this doc only designs the single-player fog-of-war core. Real
-open prerequisite: **no "how big is the world" concept exists anywhere
-in this project today** — the current Ground/Terrain looks to be
-roughly 200×200 units from its scene position, not yet confirmed as a
-hard number. Not yet built.
+**A fog-of-war Player Map's core mechanic is built — see
+`PLAYER_MAP_PLANNING.md`.** Designed and built the same session
+(2026-08-16), direct extension of the Village Flag/City Statue work
+just above. `M` opens it (confirmed collision-free against
+`GameMenuScreen.ControlsList`, updated with the new binding). Starts
+blank — new `PlayerMapExploration` component reveals a permanent 25m
+radius around everywhere the player has actually walked, rendered live
+as a fog texture in the new `MapScreen`. **Not yet wired**: the bigger
+reveal circle a Flag or Statue is supposed to add at the point it's
+placed, scaled by the same 5-tier ladder (Crude 35m total through
+Masterwork 75m; City Statue 125m flat) — `PlayerMapExploration.
+RevealCircle` is public and ready for this, but the Village Flag itself
+is being built in a separate parallel pass (see `WORKING_ON.md`), so
+the hook-up is a follow-up once that lands. Shared visibility for other
+players (Flag markers, Statue circles visible settlement-wide) is
+explicitly logged as multiplayer-only — `MULTIPLAYER_PLANNING.md` has
+no state-sharing infrastructure at all yet. Also not yet built: save/
+load persistence for explored state. See `WorldBounds.cs` below for the
+one real prerequisite this needed, which is done.
+
+**`WorldBounds.cs` (2026-08-16) — the "how big is the world" gap the
+Player Map needed, built and verified same day.** A small shared
+utility (`GroundHeight.cs`'s same "static class, read by whoever needs
+it" shape) reading `Terrain.activeTerrain.transform.position` +
+`.terrainData.size` directly — no hardcoded world size anywhere, and it
+stays correct automatically if the Terrain is ever resized/regenerated
+(including the future Terrain/hills conversion
+`BUGS_AND_ENHANCEMENTS.md` already has flagged). Verified via a direct
+batch-mode check against the real `TestScene.unity`, not just compiled:
+confirmed exactly 200×200 units (X: -100 to 100, Z: -100 to 100).
 
 **Save/load persistence real implementation plan lives in
 `SAVE_LOAD_PLANNING.md`.** Expands the narrow v1 draft in

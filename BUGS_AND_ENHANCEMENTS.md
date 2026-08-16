@@ -395,6 +395,20 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
+- [ ] **Player Map explored-state save/load — not built (v0.3.97-dev,
+  2026-08-16).** `PlayerMapExploration`'s fog-of-war grid is pure
+  runtime state, same as `GardenPlot4x4`'s `cells` array was before its
+  own save/load pass — a reload currently resets the whole map back to
+  mostly fog. Needs a `SaveManager` increment (a compact encoding, not
+  one bool per cell verbatim — a 100×100 grid stored naively would be
+  the biggest single save-file consumer in the game). See
+  `PLAYER_MAP_PLANNING.md`.
+- [ ] **Player Map — Village Flag/City Statue reveal hooks not wired
+  yet (v0.3.97-dev).** `PlayerMapExploration.RevealCircle(worldPos,
+  radius)` is public and ready; nothing calls it from a Flag or Statue
+  yet since the Flag itself is still being built in a separate pass.
+  Follow-up once that lands — see `PLAYER_MAP_PLANNING.md`'s reveal-
+  radius table (Crude 35m through Masterwork 75m; City Statue 125m).
 - [ ] **Per-foot Boot/Sneaker attachment — investigated 2026-08-15, not
   built, no decision made yet.** Today `Boot`/`PlayerBoot.cs` treats each
   boot item as a single combined-pair mesh (both feet baked into one
