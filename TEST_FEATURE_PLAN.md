@@ -3758,11 +3758,18 @@ wander/flee AI yet), Knife-gated skinning, trains Gathering.
   still fail per the existing `CraftOutcomeRoll` mechanic, same as other
   Cooking recipes.
 
-## 46. Player Map — fog-of-war core, v1 (v0.3.98-dev)
+## 46. Player Map — fog-of-war core, v1 (v0.3.98-dev, save/load fixed v0.3.99-dev)
 
 New — not yet walked through in Play mode at all (verified so far only
-via batch-mode compile + direct scene YAML grep). Full design in
+via batch-mode compile + direct scene YAML grep, plus a batch-mode
+save/load round-trip check for the item below). Full design in
 `PLAYER_MAP_PLANNING.md`.
+
+**Regression** (2026-08-16): Ben found live that explored state didn't
+survive a save/reload — the map came back mostly fog. Fixed same day
+(`PlayerMapExploration.CaptureRevealedBase64`/`RestoreRevealedBase64`,
+wired into `SaveManager`). Re-check this specifically on the next full
+pass, not just the general "walking reveals it" item below.
 
 - [ ] **Open the map**: press `M` from normal gameplay — confirm a
   panel opens, cursor unlocks, and the Controls tab (`` ` ``) lists `M`
@@ -3785,9 +3792,10 @@ via batch-mode compile + direct scene YAML grep). Full design in
   screen already has the cursor unlocked (shouldn't stack on top of
   Inventory/Crafting/etc.), matching every other screen's own toggle
   guard.
+- [ ] **Save/load**: explore a distinctive area, save, reload — confirm
+  the map comes back showing that exact area still revealed (this is
+  the regression flagged above; confirm it's actually fixed, not just
+  that the code compiles).
 - [ ] **Not built yet, by design**: Village Flag/City Statue reveal
-  circles (the Flag doesn't exist in the game yet), any shared/
-  multiplayer visibility, and save/load — **explored state does NOT
-  currently persist across a save/reload**, confirm this is the
-  observed (expected, logged) behavior rather than assuming it's a bug
-  if a reload shows the map reset to mostly fog.
+  circles (the Flag doesn't exist in the game yet) and any shared/
+  multiplayer visibility.

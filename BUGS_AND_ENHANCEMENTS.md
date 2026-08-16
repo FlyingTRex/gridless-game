@@ -395,14 +395,17 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
-- [ ] **Player Map explored-state save/load — not built (v0.3.98-dev,
-  2026-08-16).** `PlayerMapExploration`'s fog-of-war grid is pure
-  runtime state, same as `GardenPlot4x4`'s `cells` array was before its
-  own save/load pass — a reload currently resets the whole map back to
-  mostly fog. Needs a `SaveManager` increment (a compact encoding, not
-  one bool per cell verbatim — a 100×100 grid stored naively would be
-  the biggest single save-file consumer in the game). See
-  `PLAYER_MAP_PLANNING.md`.
+- [x] **Player Map explored-state save/load — fixed, v0.3.99-dev
+  (2026-08-16).** Caught live by Ben (explored, saved, reloaded, map
+  reset to fog). `PlayerMapExploration.CaptureRevealedBase64()`/
+  `RestoreRevealedBase64()` bit-pack the grid (1,250 bytes regardless of
+  how much is revealed, not one bool per cell), wired into
+  `SaveManager.CapturePlayer`/`RestorePlayer`. Verified via a real
+  batch-mode round-trip check (666 cells revealed → captured → restored
+  → confirmed identical cell-by-cell) — the first verification attempt
+  gave a false PASS because `AddComponent` doesn't fire `Awake()` in
+  edit-mode batch scripting (fixed the *test*, via reflection, not the
+  real code).
 - [ ] **Player Map — Village Flag/City Statue reveal hooks not wired
   yet (v0.3.98-dev).** `PlayerMapExploration.RevealCircle(worldPos,
   radius)` is public and ready; nothing calls it from a Flag or Statue

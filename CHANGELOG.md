@@ -5,10 +5,38 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.98-dev` — must always match `GameVersion` in
+**Current version:** `0.3.99-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (4)
+
+### v0.3.99-dev — Player Map explored state now survives save/load
+
+Ben caught this live: explored the map, saved, reloaded, and the map had
+reset to mostly fog — exactly the gap `PLAYER_MAP_PLANNING.md` and
+`BUGS_AND_ENHANCEMENTS.md` already had flagged as known-missing, now
+closed.
+
+**`PlayerMapExploration.CaptureRevealedBase64()`/`RestoreRevealedBase64()`**
+— bit-packed, not one bool per cell verbatim (the explicit ask when this
+gap was first flagged): a 100×100 grid packs into 1,250 bytes regardless
+of how much is actually revealed. Wired into `SaveManager.CapturePlayer`/
+`RestorePlayer` alongside vitals/skills/inventory — this is per-player
+state, not a `SaveId`-keyed world object.
+
+**Caught and fixed a real gap in my own verification method, not the
+game code**: a first-pass batch-mode diagnostic reported a false PASS —
+`AddComponent<PlayerMapExploration>()` doesn't fire `Awake()`
+automatically in pure edit-mode scripting (the same documented "Unity
+lifecycle methods don't reliably fire in batch edit-mode" gotcha
+`CLAUDE.md` already has for `Object.Instantiate()`/`OnEnable`, just a
+new trigger for it — `AddComponent`, not `Instantiate`). The grid was
+silently 0×0 on both sides, so capturing and restoring nothing "matched"
+trivially. Fixed the diagnostic (not the real code) by invoking `Awake()`
+via reflection, then got a genuine result: 666 cells revealed, captured,
+restored, and confirmed identical cell-by-cell.
 
 ## 2026-08-16 (3)
 

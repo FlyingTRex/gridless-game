@@ -225,9 +225,15 @@ is being built in a separate parallel pass (see `WORKING_ON.md`), so
 the hook-up is a follow-up once that lands. Shared visibility for other
 players (Flag markers, Statue circles visible settlement-wide) is
 explicitly logged as multiplayer-only — `MULTIPLAYER_PLANNING.md` has
-no state-sharing infrastructure at all yet. Also not yet built: save/
-load persistence for explored state. See `WorldBounds.cs` below for the
-one real prerequisite this needed, which is done.
+no state-sharing infrastructure at all yet. **Save/load persistence for
+explored state is built, v0.3.99-dev** — caught live by Ben (explored,
+saved, reloaded, map reset to fog); `PlayerMapExploration` gained
+`CaptureRevealedBase64()`/`RestoreRevealedBase64()` (bit-packed, ~1,250
+bytes for the whole grid) wired into `SaveManager`, verified via a real
+batch-mode round-trip after fixing a false-PASS in the first attempt
+(`AddComponent` doesn't fire `Awake()` in edit-mode batch scripting —
+fixed the test via reflection, not the real code). See `WorldBounds.cs`
+below for the one real prerequisite this needed, which is done.
 
 **`WorldBounds.cs` (2026-08-16) — the "how big is the world" gap the
 Player Map needed, built and verified same day.** A small shared

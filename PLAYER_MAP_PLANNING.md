@@ -11,13 +11,21 @@ already established), showing a live fog-of-war texture driven by a new
 `PlayerMapExploration` component — the permanent 25m on-foot reveal
 radius from section 1 is live and ticking every frame. `GameMenuScreen.
 ControlsList` updated with the new binding, per this project's own
-standing rule. **Not yet built**: Village Flag/City Statue reveal hooks
-(`PlayerMapExploration.RevealCircle` is public and ready — the Flag
-itself is being built in a separate parallel pass per `WORKING_ON.md`,
-so wiring its reveal call is a follow-up once that lands, not bundled
-here), and save/load persistence for explored state (section 2 already
-flagged this as real follow-up scope). Verified via batch-mode compile +
-direct scene YAML grep only so far — not yet live-tested in Play mode.
+standing rule. **Save/load persistence built and verified, v0.3.99-dev**
+— caught live by Ben (explored, saved, reloaded, map reset to fog).
+`CaptureRevealedBase64()`/`RestoreRevealedBase64()` bit-pack the grid
+into `SaveManager.CapturePlayer`/`RestorePlayer`, verified via a real
+batch-mode round-trip (not just a clean compile — the first attempt gave
+a false PASS because `AddComponent` doesn't fire `Awake()` in edit-mode
+batch scripting; fixed the test via reflection, then got a genuine
+666-cells-revealed-and-matched result). **Still not yet built**: Village
+Flag/City Statue reveal hooks (`PlayerMapExploration.RevealCircle` is
+public and ready — the Flag itself is being built in a separate parallel
+pass per `WORKING_ON.md`, so wiring its reveal call is a follow-up once
+that lands, not bundled here). Everything else verified via batch-mode
+compile + direct scene YAML grep only so far — not yet live-tested in
+Play mode beyond the save/load round-trip Ben confirmed was broken (and
+this fix addresses).
 
 **Real prerequisite closed same day: `WorldBounds.cs` built and
 verified.** Section 2's "no world-size concept exists" gap is resolved —

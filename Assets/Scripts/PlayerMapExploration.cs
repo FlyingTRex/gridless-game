@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 // Fog-of-war reveal tracking for the Player Map (PLAYER_MAP_PLANNING.md,
@@ -94,5 +95,71 @@ public class PlayerMapExploration : MonoBehaviour
     {
         cellX = Mathf.FloorToInt((worldPos.x - worldBounds.min.x) / CellSize);
         cellZ = Mathf.FloorToInt((worldPos.z - worldBounds.min.z) / CellSize);
+    }
+
+    // ---- Save/load support (SaveManager.CapturePlayer/RestorePlayer) ----
+    //
+    // Bit-packed, not one bool/byte per cell verbatim (BUGS_AND_ENHANCEMENTS.md
+    // flagged this explicitly when the fog-of-war grid shipped without
+    // persistence) — a 100x100 grid is 10,000 cells, which packs into
+    // 1,250 bytes regardless of how much is actually revealed, instead of
+    // a much larger plain array/JSON-bool-list encoding.
+
+    public string CaptureRevealedBase64()
+    {
+        int totalBits = gridWidth * gridHeight;
+        var bytes = new byte[(totalBits + 7) / 8];
+        int bitIndex = 0;
+        for (int x = 0; x < gridWidth; x++)
+        {
+            for (int z = 0; z < gridHeight; z++)
+            {
+                if (revealed[x, z])
+                    bytes[bitIndex / 8] |= (byte)(1 << (bitIndex % 8));
+                bitIndex++;
+            }
+        }
+        return Convert.ToBase64String(bytes);
+    }
+
+    // Defensive against a mismatched grid size (e.g. a future Terrain
+    // resize between save and load) — restores whatever bits are actually
+    // present in the decoded byte array and simply stops there, rather
+    // than assuming it exactly matches the current gridWidth/gridHeight.
+    public void RestoreRevealedBase64(string base64)
+    {
+        if (string.IsNullOrEmpty(base64)) return;
+
+        byte[] bytes;
+        try
+        {
+            bytes = Convert.FromBase64String(base64);
+        }
+        catch (FormatException)
+        {
+            Debug.LogWarning("PlayerMapExploration: save data had malformed map-exploration " +
+                "data, skipping restore.");
+            return;
+        }
+
+        int bitIndex = 0;
+        bool revealedAny = false;
+        for (int x = 0; x < gridWidth; x++)
+        {
+            for (int z = 0; z < gridHeight; z++)
+            {
+                if (bitIndex / 8 >= bytes.Length) return;
+
+                bool bit = (bytes[bitIndex / 8] & (1 << (bitIndex % 8))) != 0;
+                if (bit && !revealed[x, z])
+                {
+                    revealed[x, z] = true;
+                    revealedAny = true;
+                }
+                bitIndex++;
+            }
+        }
+
+        if (revealedAny) RevealVersion++;
     }
 }
