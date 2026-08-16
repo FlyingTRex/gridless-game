@@ -41,6 +41,23 @@ curated array, `EFFICIENCY_AUDIT.md` item 1, not yet covered by
 `DatabaseRepopulator` — skipping this step would have left Grilled
 Meat silently uneatable).
 
+**Steak and Potatoes (Frying Pan) + Herbal Tea (Kettle) — built
+(v0.3.92-dev, 2026-08-15).** Both Ben's direct asks, both with their own
+real merged model rather than a reused placeholder (Steak and Potatoes:
+`Tools/Blender/GenerateSteakAndPotatoesModel.py`, a pan + seared steak +
+potato; Herbal Tea: `Tools/Blender/GenerateHerbalTeaModel.py`, a copy of
+the Kettle geometry with the existing Herb model leaned against its
+base). **Herbal Tea is also the first recipe to actually need water** —
+the "Water is explicitly out of scope" decision below still holds for a
+dirty/unsafe-water *mechanic*, but plain canteen water as a cooking
+*ingredient* didn't exist as a mechanism at all until this recipe
+needed it. `CookableItem` gained `requiresCanteenWater`/
+`canteenWaterAmount`, mirroring `CraftingRecipe`'s existing fields
+(already used by Healing Paste); `Campfire.cs` gained its own
+`HasCanteenWater()`/`FindPlayerCanteen()`, wired into both
+`GetAvailableRecipes()` and `StartCooking()` the same way
+`PlayerCrafting` already gates/consumes it for ordinary crafting.
+
 **UI redesign — built (v0.3.28-dev, then substantially reworked
 v0.3.30-dev, both 2026-08-13).** Loading fuel/food used to only work via
 a "Campfire (nearby)" section auto-appended to the bottom of the main
@@ -142,6 +159,9 @@ Confirmed directly against the codebase before designing anything new:
   convenience interaction with **no mechanical effect yet** — seeds the
   interaction without deciding a real water-safety system now. A fuller
   version of that idea was raised and explicitly deferred (see section 5).
+  **Still true as of v0.3.92-dev** — Herbal Tea consumes plain Canteen
+  water as an ordinary ingredient (see the status note above), no water-
+  quality/safety concept involved.
 - **Warmth: a lit Campfire raises Body Temperature while the player is
   nearby** — the first real use of a vital that's been 100% decorative
   until now. **Body Temperature also gets added to the real HUD**

@@ -2638,6 +2638,22 @@ than usual given how much changed.**
   disappears from the list (the accessory gate is actually enforced, not
   cosmetic). Cook it, confirm ~40s completion, and confirm eating it
   restores more Hunger than Cooked Meat (HeartyMeal/60 vs. Meal/40).
+- [ ] **Steak and Potatoes (v0.3.92-dev, Frying Pan)**: with a Frying
+  Pan seated, drag in 1 Raw Meat + 1 Potato — confirm "Cook Steak and
+  Potatoes x1" appears, and confirm its icon/model actually shows a pan
+  with a steak and a potato (not the earlier Cooked-Meat-reused
+  placeholder). Cook it (~45s), confirm it restores more Hunger than
+  Grilled Meat (Feast/90 vs. HeartyMeal/60).
+- [ ] **Herbal Tea (v0.3.92-dev, Kettle, the first water-requiring
+  recipe)**: with a Kettle seated and Herb loaded, but **no Water in an
+  equipped Canteen** — confirm "Cook Herbal Tea" does NOT appear.
+  Equip a Canteen with at least 20 Water, keep the Herb loaded — confirm
+  the recipe now appears. Cook it (~20s) — confirm the Canteen's Water
+  drops by 20 immediately on starting (not on completion), matching
+  Healing Paste's own upfront-consume behavior. Confirm the model shows
+  a Kettle with a Herb leaf visibly leaning against its base. Drink the
+  result — confirm the verb reads "Drink" (not "Eat") and it restores
+  Thirst specifically (not Hunger) by a real amount (30).
 - [ ] **Start cooking**: click the Recipe button — confirm the Raw Meat
   is immediately consumed from the Ingredients box, the Recipe section
   now shows "Cooking Cooked Meat — N%" counting up, and after ~30

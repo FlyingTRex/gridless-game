@@ -223,6 +223,7 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
             if (recipe == null) continue;
             if (!AccessoryPresent(recipe.requiredAccessory)) continue;
             if (!HasAllIngredients(recipe)) continue;
+            if (!HasCanteenWater(recipe)) continue;
             result.Add(recipe);
         }
         return result;
@@ -246,6 +247,30 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         return true;
     }
 
+    // True if the recipe has no requiresCanteenWater flag set, or the
+    // nearby player has an equipped Canteen currently holding at least
+    // canteenWaterAmount of Water. Mirrors PlayerCrafting.HasCanteenWater
+    // — hands only, same scope as that method (2026-08-15, Herbal Tea).
+    private bool HasCanteenWater(CookableItem recipe)
+    {
+        if (recipe == null || !recipe.requiresCanteenWater) return true;
+
+        var canteen = FindPlayerCanteen();
+        return canteen != null && canteen.Liquid == LiquidType.Water && canteen.Amount >= recipe.canteenWaterAmount;
+    }
+
+    private Canteen FindPlayerCanteen()
+    {
+        var equipment = player != null ? player.GetComponent<PlayerEquipment>() : null;
+        if (equipment == null) return null;
+
+        foreach (var handSlotName in PlayerEquipSlots.Hands)
+            if (equipment.GetEquipped(handSlotName) is Canteen canteen)
+                return canteen;
+
+        return null;
+    }
+
     // Commits to cooking recipe: consumes its ingredients from the input
     // pool immediately (same upfront-consume convention as
     // PlayerCrafting), starts the real-time timer. Only one recipe cooks
@@ -256,12 +281,20 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     {
         if (recipe == null || activeRecipe != null) return false;
         if (!AccessoryPresent(recipe.requiredAccessory) || !HasAllIngredients(recipe)) return false;
+        if (!HasCanteenWater(recipe)) return false;
         if (!outputInventory.HasSpaceFor(recipe.outputItem, recipe.outputCount)) return false;
 
         if (recipe.ingredients != null)
             foreach (var ingredient in recipe.ingredients)
                 if (ingredient != null && ingredient.item != null)
                     inputInventory.RemoveItem(ingredient.item, ingredient.count);
+
+        // Consumed upfront, same as ingredients above — deliberately NOT
+        // refunded if cooking is somehow interrupted (there's no cancel
+        // path for cooking today, unlike PlayerCrafting.CancelCraft, so
+        // this matches that method's own "water isn't refunded" choice).
+        if (recipe.requiresCanteenWater)
+            FindPlayerCanteen()?.ConsumeWater(recipe.canteenWaterAmount);
 
         activeRecipe = recipe;
         cookSecondsElapsed = 0f;

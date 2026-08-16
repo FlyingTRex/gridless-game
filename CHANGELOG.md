@@ -5,10 +5,64 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.91-dev` — must always match `GameVersion` in
+**Current version:** `0.3.92-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (15)
+
+### v0.3.92-dev — Steak and Potatoes + Herbal Tea: Frying Pan/Kettle get their first recipes, Cooking gains a real water mechanic
+
+Two more Ben-requested recipes, closing out both remaining Campfire
+accessories.
+
+**Steak and Potatoes** (Frying Pan) — Raw Meat x1 + Potato x1, 45s,
+Feast tier (90 Hunger — a full combined meat+starch meal, a step above
+Grilled Meat's HeartyMeal). **Got its own real merged model
+(`Tools/Blender/GenerateSteakAndPotatoesModel.py`)** — a pan with a
+seared steak slab (two dark sear-mark bars) and a potato, replacing the
+Cooked-Meat-reused placeholder it initially shipped with; Ben asked for
+the merge explicitly mid-build.
+
+**Herbal Tea** (Kettle) — Herb x1 + Water, 20s, Snack tier but restores
+30 Thirst directly (a real drink, not a meal). **This is the first
+`CookableItem` to need water**, which didn't exist as a cooking
+mechanic at all before now — `CraftingRecipe.requiresCanteenWater`/
+`canteenWaterAmount` existed for ordinary crafting (Healing Paste) but
+`CookableItem` had no equivalent. Ported the same pattern:
+`CookableItem` gained the same two fields, `Campfire.cs` gained
+`HasCanteenWater()`/`FindPlayerCanteen()` (mirroring
+`PlayerCrafting`'s own versions) wired into both `GetAvailableRecipes()`
+(gates whether the recipe shows as available) and `StartCooking()`
+(consumes the water on commit, same "not refunded" convention
+`PlayerCrafting.StartCraft` already established). **Model**
+(`Tools/Blender/GenerateHerbalTeaModel.py`) is a copy of the Kettle
+geometry with the existing `Herb.glb` model leaned against its base,
+per Ben's explicit ask — imported directly rather than hand-rebuilt,
+scaled off its longest in-plane dimension (it's a ~3mm-thick flat leaf,
+so naively normalizing off its height first blew it up to nonsense
+size) and rotated with both an X and Y component (a pure single-axis
+tilt left it edge-on/invisible from some angles).
+
+**Real bug, caught by looking at the actual baked icon, not trusting a
+clean batch log**: the herb initially baked into the icon as
+completely invisible despite rendering fine in this script's own
+preview camera. Root cause — **Blender's Y axis becomes Unity's
+*negative* Z on glTF import**, and `IconBaker`'s fixed default camera
+sits at `(+X, +Y, -Z)` looking toward `+Z`; the herb's Blender-space
+`-Y` offset became Unity `+Z`, the *far* side of the kettle from that
+camera, fully occluded behind the body. Fixed by flipping the offset
+sign, verified by re-baking and looking at the actual icon PNG again
+— exactly the "don't trust the log, check the real render" discipline
+CLAUDE.md's other model-placement gotchas already establish, just a
+new specific failure mode (an axis-convention flip across the Blender→
+Unity import boundary, not a bounds/grounding issue).
+
+Both new `EdibleItem`s registered in `PlayerEating.edibles` (the
+separate manually-curated array from `GrilledMeatEdible`'s registration
+last commit — caught missing this step for Steak and Potatoes too
+before it shipped, same gap class).
 
 ## 2026-08-15 (14)
 

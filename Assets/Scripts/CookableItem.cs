@@ -24,4 +24,13 @@ public class CookableItem : ScriptableObject
     public int outputCount = 1;
     public float cookDurationSeconds = 30f;
     public ItemDefinition requiredAccessory;
+
+    // Mirrors CraftingRecipe.requiresCanteenWater/canteenWaterAmount
+    // (2026-08-15, Herbal Tea) — false/0 (default) means no such
+    // requirement, same "most recipes don't need this" convention. True
+    // means an equipped Canteen holding Water must have at least
+    // canteenWaterAmount, consumed on StartCooking the same way
+    // PlayerCrafting.StartCraft consumes it. See Campfire.HasCanteenWater.
+    public bool requiresCanteenWater;
+    public float canteenWaterAmount = 20f;
 }
