@@ -124,6 +124,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8692921560892917446}
   - component: {fileID: 1928055324429785817}
+  - component: {fileID: 5918704121707238856}
   m_Layer: 0
   m_Name: VillageFlag_Masterwork
   m_TagString: Untagged
@@ -162,6 +163,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VillageFlag
   tier: 4
   villageName: Unnamed Village
+--- !u!65 &5918704121707238856
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2228003249093120911}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.8249999, y: 2.6499999, z: 0.20000002}
+  m_Center: {x: 0.31249997, y: 1.3, z: -0.0000000037252903}
 --- !u!1 &2749588061370823604
 GameObject:
   m_ObjectHideFlags: 0

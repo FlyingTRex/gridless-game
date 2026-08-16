@@ -5,10 +5,35 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.110-dev` — must always match `GameVersion` in
+**Current version:** `0.3.111-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (18)
+
+### v0.3.111-dev — Fix: Village Flag right-click rename only worked on the pole
+
+Bug caught live by Ben — right-clicking the visible flag banner did
+nothing; renaming only worked by aiming at the thin pole instead.
+
+- **Root cause**: all 5 `VillageFlag_*.prefab` tiers only had a Collider
+  on the `Pole` child (a `CapsuleCollider`, ~0.025m world-space radius
+  once scaled) — the `Banner` child (the actual colorful flag cloth
+  players naturally aim at) had no Collider at all. `PlayerRenaming`'s
+  right-click raycast had nothing to hit unless aimed almost exactly at
+  the thin pole.
+- **Fix**: added a single `BoxCollider` on each tier's root, sized and
+  centered to the combined Pole+Banner renderer bounds (measured per
+  tier, not a shared guess) with a small padding margin — right-clicking
+  anywhere on the visible flag now hits something. The original pole
+  `CapsuleCollider` is left in place, harmless.
+- Confirmed live by Ben immediately after: renamed a Flag to "Phoenix,"
+  which also correctly appeared on the Player Map — incidentally
+  confirmed `MapScreen`'s label-per-flag drawing has no duplicate-render
+  bug either (an earlier screenshot showing two overlapping "Unnamed
+  Village" labels turned out to be two separate Flags, not one label
+  drawn twice).
 
 ## 2026-08-16 (17)
 

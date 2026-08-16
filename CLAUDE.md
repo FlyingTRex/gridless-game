@@ -86,6 +86,38 @@ the model (ring of rocks + charred wood, replacing the pre-Blender
 placeholder). Spark becomes an alternate way to light a placed Campfire,
 not the only way one can exist.
 
+**Commerce/vendor system design lives in `COMMERCE_PLANNING.md`.**
+Planning only as of 2026-08-16, prompted by Ben's ask for one shared
+vendor mechanic instead of three separate ones across a player-built
+stall, a Traveling NPC, and prespawned village vendors (Innkeeper/
+Armory-style). Locks in a single non-abstract `VendorStall` component
+(stock via an existing `StorageBox`, a `Lockbox`-shaped till, a `{item,
+buyPrice, sellPrice, canBuy, canSell}` price list, buy/sell methods that
+fail cleanly when stock or till runs out) with three thin "drivers" that
+only differ in how price/stock/till get populated — nothing invents a
+second transaction system. The Traveling Trader driver reuses
+`FAME_PLANNING.md`'s already-designed 5-band pricing table and the
+already-built Village Flag spawn/seek beacon (`VILLAGE_FLAG_PLANNING.md`)
+directly. Real gap surfaced along the way: there's currently no way to
+earn currency through gameplay at all (`PlayerCurrency`'s own comment:
+"no earn/spend mechanic beyond Coin pickups exists yet," and the design
+brief's Ore→Furnace→Press→Coin minting pipeline is unbuilt) — resolved
+for now by giving the prespawned Village Vendor driver a till that
+regenerates slowly over real time, a real substitute faucet that doesn't
+require minting to exist first. Recommended build order:
+`VendorStall` + Village Vendor first (works in single-player today,
+lowest new-plumbing risk) → Traveling Trader → Player Stall (needs new
+`Lockbox` assignment/targeting, which doesn't exist yet, plus a "bank
+in town" locality concept — `BankBox` is explicitly branch-agnostic
+today, "any branch opens the same account"). A separate idea, a
+player-built Bank keeping half of every transaction fee run through
+it, was deliberately kept out of this plan's scope — it isn't a vendor,
+it requires `PlayerBank`/`BankBox` to become a per-instance ownable
+entity (a real redesign of the current single-global-ledger
+architecture), and it only pays off once a second real player exists to
+pay a fee to, so it's logged in `BUGS_AND_ENHANCEMENTS.md` rather than
+designed further here.
+
 **Multiplayer conversion exploration lives in `MULTIPLAYER_PLANNING.md`.**
 Audits the single-player codebase (2026-08-13) against what converting to
 dedicated-server multiplayer via Mirror Networking (imported this session)
@@ -352,6 +384,22 @@ optional (and out-of-scope) network-sync script, and a shipped day/night
 profile with `Speed`/`NightSpeed` both frozen at `0` — found live when
 asked "how long until night" and the honest answer required reading the
 binary asset directly, not guessing.
+
+**Weather Maker's ambient rain/hail/sleet audio is real and live-confirmed
+(2026-08-16)** — traskmi reported hearing rain during a normal play
+session, which turned out not to be a fluke: `WeatherMakerFallingParticleScript`
+(the same script driving precipitation intensity `PlayerWeatherEffects`
+already bridges to body temperature) also owns a genuine Light/Medium/
+Heavy `AudioSource` trio per precipitation type, each wired to a real
+clip (`WeatherMakerRainLight/Medium/Heavy`, same pattern for Hail/Sleet;
+Snow's are deliberately null/silent), volume-scaled by intensity. This
+plays automatically off the Player's existing `AudioListener` (added for
+Weather Maker itself, see above) — **no code in this project drives it,
+it's entirely bundled Weather Maker behavior.** Don't confuse this with
+"this project has an audio system" — there is still no general-purpose
+gameplay SFX anywhere (combat hits, arrow whoosh, footsteps, crafting/UI
+all remain silent); this is ambient weather audio only, riding along on
+infrastructure that was added for a different reason.
 
 **Dexterity & Constitution are built — see
 `DEXTERITY_CONSTITUTION_PLANNING.md`.** Follow-up to Strength/Intelligence,

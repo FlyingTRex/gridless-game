@@ -640,15 +640,33 @@ signs off on scope and order.
   one does. See `FAME_PLANNING.md`.
 - [ ] **Fame: business-reach input (Inn/Trader) + the Traveling Trader
   output effect, both blocked on an entire commerce system that doesn't
-  exist.** No Inn, Trader, or vendor/customer/transaction system exists
-  anywhere in this codebase — not a missing hook, an entire unbuilt
-  commerce layer. The biggest prerequisite in `FAME_PLANNING.md`, which
-  has the full design ready (a 5-band frequency/pricing/quality table)
-  once the underlying system gets built. **The Trader's spawn/visit
-  mechanism specifically is now designed** (2026-08-16,
-  `VILLAGE_FLAG_PLANNING.md`) as a reusable Village Flag beacon system —
-  still blocked on the rest of commerce (pricing/transactions/inventory),
-  but the "how does it show up at all" half has a real answer now.
+  exist — real design now exists, see `COMMERCE_PLANNING.md`
+  (2026-08-16).** No Inn, Trader, or vendor/customer/transaction system
+  exists in code yet — this entry is still open, not built — but a
+  shared `VendorStall` mechanic is now designed (one buy/sell/till
+  primitive, three thin drivers: Player Stall, Traveling Trader,
+  prespawned Village Vendor) rather than three separate vendor systems.
+  The Traveling Trader driver reuses `FAME_PLANNING.md`'s existing
+  5-band pricing table directly. **The Trader's spawn/visit mechanism
+  specifically is already built** (`VILLAGE_FLAG_PLANNING.md`, the
+  Village Flag beacon system) — `COMMERCE_PLANNING.md` is what wires
+  actual commerce onto it. Recommended build order: `VendorStall` +
+  prespawned Village Vendor first (works in single-player today, doubles
+  as a real currency-earning faucet via a regenerating till, no minting
+  pipeline required) → Traveling Trader → Player Stall (needs new
+  Lockbox-assignment plumbing and a "bank in town" locality concept
+  neither exist yet, see that doc's section 6).
+- [ ] **Player-built Bank keeping half the transaction fee — deliberately
+  kept out of `COMMERCE_PLANNING.md`'s scope (2026-08-16), logged
+  separately.** Ben's idea: a player-constructed Bank earns half of
+  every transaction fee run through it. Not a vendor, so it doesn't fit
+  the `VendorStall` shape — it requires `PlayerBank`/`BankBox` to become
+  a per-instance, ownable entity, a real redesign of the current
+  single-global-ledger architecture (`BankBox`'s own code comment: "any
+  branch opens the same account... there's no per-branch ledger"). Also
+  only pays off once a second real player is transacting at your
+  specific branch — priced for post-multiplayer, not useful to build
+  before then.
 - [ ] **Basic transportation** — log raft/boat up through a cart; a tamed
   animal can pull a cart or carry loot.
 - [ ] **Larger/settlement-level storage** — distinct from Phase 1's personal
@@ -953,10 +971,34 @@ signs off on scope and order.
   v0.3.106-dev entry: `NPCGuarding.cs` fires a ranged attack using the
   same `CraftTierScale.ArrowDamageBonus`/`BowDamageBonus` math, just on a
   fixed cooldown instead of the player's manual draw-and-hold. Gun, Iron
-  Arrowhead, and sound (no audio system exists anywhere in this project)
-  are still separate, explicitly open gaps. Bare-handed's own numbers
-  (9 dmg, 0.7s cooldown) are still first-pass, not vetted against a real
-  weapon-tier progression.
+  Arrowhead, and gameplay sound (combat hits, arrow whoosh, footsteps,
+  crafting/UI — no such system exists; **not** the same gap as ambient
+  weather audio, which works — see the "Gameplay audio system" entry
+  below) are still separate, explicitly open gaps. Bare-handed's own
+  numbers (9 dmg, 0.7s cooldown) are still first-pass, not vetted against
+  a real weapon-tier progression.
+- [ ] **Gameplay audio system — genuinely doesn't exist yet; a survey of
+  every imported asset pack found nothing worth reusing (2026-08-16).**
+  Prompted by traskmi reporting he heard rain in a live session — real,
+  confirmed via `WeatherMakerFallingParticleScript`'s own Light/Medium/
+  Heavy `AudioSource` trio (see `CLAUDE.md`'s Weather Maker section for
+  the full mechanism), riding on the `AudioListener` already added to
+  the Player for Weather Maker. That's ambient weather audio only, not a
+  general system — no combat hit sounds, arrow whoosh, footsteps,
+  crafting/UI sounds, or anything player-triggered exists anywhere.
+  Checked whether any already-imported pack has usable audio sitting
+  dormant before assuming a from-scratch build is the only option:
+  `LJPackages` (All Seasons environment pack) ships one ambient sound
+  file each for Desert/Spring/Winter, unreferenced by `TestScene.unity`;
+  `Mirror/Examples` bundles its own demo audio (Kenney RPG pack + 10
+  OpenGameArt sounds), also unreferenced — both are generic pack filler,
+  not tailored to this game, not worth wiring up as a shortcut. Rabbits,
+  Animal pack deluxe v2, ithappy, Kevin Iglesias, and NV3D ship no audio
+  at all. **`Assets/Audio/` already exists as an empty scaffold** (just
+  a `.gitkeep`) — presumably set up in advance by an earlier session for
+  whenever this actually gets built, no content in it yet. Real system
+  design (which events trigger what, how clips get sourced/generated,
+  mixer setup) not started.
 - [ ] **Bow Release animation always returns to StandingIdle
   specifically (2026-08-15), not whatever stance the player was
   actually in before drawing.** Known limitation from choosing a

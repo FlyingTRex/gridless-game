@@ -4034,6 +4034,19 @@ temporarily lowering `VillageFlagSpawner`'s private constants (not
 exposed in the Inspector; edit the script, test, revert) rather than
 waiting out a full real-time cycle.
 
+**Regression (2026-08-16, v0.3.111-dev fix)**: Ben found live that
+right-clicking a placed Flag's visible banner to rename it did nothing —
+only the thin pole was clickable, since it was the only child with a
+Collider. Fixed with a proper full-body `BoxCollider` per tier. Confirmed
+live immediately after: renamed a Flag to "Phoenix," which also
+correctly showed up on the Player Map. This checklist never had a
+rename-specific line even though `VillageFlag` shipped `IRenameable` at
+v0.3.105-dev — added below to close that gap.
+
+- [x] **Rename via right-click**: confirmed live (2026-08-16) — works
+  when aimed at the flag itself (banner or pole), not just the pole as
+  before the fix. Renamed name also correctly appears on the Player Map
+  marker label.
 - [ ] **Build a Flag**: place any tier of Village Flag — confirm it
   registers (no error) and `VillageFlagSpawner`'s timer visibly starts
   accruing (add a temporary debug log if needed to confirm).
@@ -4223,22 +4236,24 @@ and `CHANGELOG.md`'s v0.3.108-dev entry.
 
 ## 55. Pig (Animal pack deluxe v2), v1 (v0.3.109-dev)
 
-New — not yet walked through in Play mode at all (verified so far only
-via batch-mode compile + a rendered visual check + scene-guid grep, not
-a live look). Two instances pre-placed in `TestScene.unity`. Full design
-context in `MVP2_PLANNING.md` item 8 and `CHANGELOG.md`'s v0.3.109-dev
-entry.
+Two instances pre-placed in `TestScene.unity`. Full design context in
+`MVP2_PLANNING.md` item 8 and `CHANGELOG.md`'s v0.3.109-dev entry.
 
-- [ ] **Renders correctly**: confirm the Pig is actually visible and
-  correctly textured in Play mode (pink skin, not white/invisible/pink-
-  missing-shader) — the rendered visual check during setup looked
-  correct, but that's not the same as a real in-Editor lighting pass.
+**Live evidence, 2026-08-16**: Ben got charged/fled-from live in Play
+mode — screenshot shows a Pig running away from the player, correctly
+textured (pink skin, no shader issues) and proportioned believably next
+to a Tree. Confirms the URP material fix, the fresh `PigAnimator
+.controller`, and `PreyWander`'s flee behavior all actually work
+together in a real session, not just the setup-time diagnostic render.
+
+- [x] **Renders correctly**: confirmed live (screenshot) — correctly
+  textured, no white/invisible/missing-shader issue.
 - [ ] **Idle/wander**: watch a Pig from a distance — confirm it
   alternates between standing still and walking to a nearby point,
   looping indefinitely, with the Run animation actually playing while it
   moves (not sliding).
-- [ ] **Flees on approach**: walk toward a Pig — confirm it breaks off
-  wandering and runs directly away once you're within range.
+- [x] **Flees on approach**: confirmed live (screenshot) — Pig running
+  directly away from the player.
 - [ ] **Resumes wandering after fleeing**: back off and give it space —
   confirm it settles back into the ordinary idle/wander cycle.
 - [ ] **Kill and skin**: kill a Pig (any weapon), confirm it drops into

@@ -100,6 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4017211213760089525}
   - component: {fileID: 422787386430174342}
+  - component: {fileID: 4258650477848257579}
   m_Layer: 0
   m_Name: VillageFlag_Crude
   m_TagString: Untagged
@@ -138,6 +139,27 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::VillageFlag
   tier: 0
   villageName: Unnamed Village
+--- !u!65 &4258650477848257579
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3839425688126023935}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.525, y: 1.4499999, z: 0.20000002}
+  m_Center: {x: 0.1625, y: 0.7, z: -0.0000000037252903}
 --- !u!1 &7049942022412461375
 GameObject:
   m_ObjectHideFlags: 0

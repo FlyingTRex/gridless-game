@@ -692,6 +692,11 @@ for a first playable build; Phases 2–3 are deliberately deferred, not cut.
     10 Gold). This is the personal deposit/withdraw/exchange/storage slice only —
     trading between players, the gem market, and city-scale central banking are still
     not built.
+  - **Vendor/trading planning started (2026-08-16):** see `COMMERCE_PLANNING.md`
+    for a real design (a single shared `VendorStall` mechanic spanning a
+    player-built stall, a Traveling NPC, and prespawned village vendors)
+    pulled forward from this Phase 3 placeholder. Planning only, nothing
+    built yet.
 - **Merchant Guilds & Warbands** — see the Guilds & Warbands section. Guilds
   provide craft bonuses/trade perks and aren't territorial; Warbands are the
   literal combatant groups in Settlement Warfare, deferred here alongside it.
