@@ -17,4 +17,6 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-(nothing in progress right now)
+- 2026-08-16 — Claude (traskmi's session) — Adding a Fried Egg Frying Pan
+  recipe (1 Egg, 30s, 5 Health + Hunger) — new Data assets + a low-poly
+  Blender model, no scene/shared-script changes.
