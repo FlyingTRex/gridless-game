@@ -16,6 +16,7 @@ MonoBehaviour:
   seedItem: {fileID: 11400000, guid: 8f7f4a2cba45a29479749e1abd2e3959, type: 2}
   cropItem: {fileID: 11400000, guid: 71de159ac2ce2db43ab67e3a99486e6b, type: 2}
   growDurationSeconds: 420
+  seedDropChance: 0.3
   growthStagePrefabs:
   - {fileID: 7286151055597410946, guid: d546eb98adb433243b0a2332fd775ba9, type: 3}
   - {fileID: 3621632398056596393, guid: 049d0171d55689646854a1d6ae9e9a8b, type: 3}

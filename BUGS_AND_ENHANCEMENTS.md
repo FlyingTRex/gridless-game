@@ -485,10 +485,24 @@ signs off on scope and order.
   placeholder primitives — `GardenPlot4x4` swaps stage prefabs directly
   as the cell's real-time timer progresses. Corn keeps its placeholder
   cube (pack doesn't include it, and it's not a root vegetable anyway).
-- [ ] **Garden Plot seeds are Admin-Spawn-only (2026-08-15).** All 7 seed
-  items exist as real items with real packet art but have no in-world
-  source — the wild forage nodes (`WildCarrotPatch` etc.) from
-  `COOKING_AND_GARDENING_PLANNING.md` section 4 aren't built yet.
+- [x] **Garden Plot seeds are Admin-Spawn-only — closed for real
+  2026-08-16 (not via the originally-envisioned wild-forage nodes).**
+  All 7 seed items have real packet art but had no in-world source at
+  all. Two pieces close the loop: **`CropDefinition.seedDropChance`**
+  (30%, all 7 crops) gives harvesting a chance to also return 1 seed,
+  so an established garden sustains/expands itself; **7 `GardenPlot4x4`
+  instances scattered around `TestScene.unity`** (one per crop, ~14
+  units apart, well clear of spawn/buildings/Chicken/Deer), each
+  pre-seeded with 7 already-`Ready` cells of that one crop via a new
+  `GardenPlot4x4.PreplantedCell`/`Start()` mechanism (guarded on
+  `SaveManager.SaveExists` so a loaded save always wins — same
+  "only apply to a truly fresh game" convention starting gear already
+  uses) — a genuine first-ever seed source, no Admin Spawn required.
+  The `WildCarrotPatch`-style wild forage nodes from
+  `COOKING_AND_GARDENING_PLANNING.md` section 4 still don't exist, but
+  functionally this closes the same gap a different, cheaper way (Ben's
+  call, 2026-08-16) — reusing the existing plot/cell mechanic instead of
+  building a whole new standalone-wild-plant object type.
 - [x] **Garden Plot growth state save/load — built, v0.3.85-dev
   (2026-08-15).** Both `GardenPlot` (single-plot POC) and `GardenPlot4x4`
   now capture/restore via the same `SaveId` + `CaptureWorldObjects<T>`

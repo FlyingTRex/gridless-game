@@ -42,6 +42,36 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
     // not computed at runtime.
     [SerializeField] private Transform[] plantAnchors;
 
+    // World-placed "already growing" cells (2026-08-16) — e.g. the 7
+    // scattered-plot instances seeded with 7 already-Ready cells each,
+    // giving a fresh game a real in-world seed source (see
+    // BUGS_AND_ENHANCEMENTS.md's "Garden Plot seeds are Admin-Spawn-only"
+    // entry). Applied once in Start(), guarded on SaveManager.SaveExists
+    // so a loaded save always wins — matches the existing starting-gear
+    // convention (PlayerShirt et al.'s "only equip if nothing's there yet"
+    // guard), just applied to a runtime-only cells array instead of a
+    // slot that can be inspected directly.
+    [System.Serializable]
+    public struct PreplantedCell
+    {
+        public int cellIndex;
+        public CropDefinition crop;
+        public int count;
+    }
+    [SerializeField] private PreplantedCell[] preplantedCells;
+
+    private void Start()
+    {
+        if (SaveManager.SaveExists || preplantedCells == null) return;
+
+        foreach (var p in preplantedCells)
+        {
+            if (p.crop == null || p.crop.seedItem == null) continue;
+            if (p.cellIndex < 0 || p.cellIndex >= CellCount) continue;
+            RestoreCell(p.cellIndex, p.crop.seedItem, p.count, CellState.Ready, 0f);
+        }
+    }
+
     private readonly Cell[] cells = new Cell[CellCount];
 
     public string DisplayName => "Garden Plot";
@@ -168,6 +198,13 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
 
         int leftover = backpackInventory != null ? backpackInventory.AddItem(crop.cropItem, 1) : 1;
         if (leftover > 0) playerInventory.AddItem(crop.cropItem, leftover);
+
+        // Seed-back chance (2026-08-16) — see CropDefinition.seedDropChance.
+        if (crop.seedItem != null && Random.value < crop.seedDropChance)
+        {
+            int seedLeftover = backpackInventory != null ? backpackInventory.AddItem(crop.seedItem, 1) : 1;
+            if (seedLeftover > 0) playerInventory.AddItem(crop.seedItem, seedLeftover);
+        }
 
         cells[index].count--;
         if (cells[index].count > 0)

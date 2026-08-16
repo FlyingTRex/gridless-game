@@ -3508,11 +3508,14 @@ New — not yet walked through in Play mode at all (verified so far only
 via batch-mode compile + direct YAML grep of the new asset/prefab/scene
 wiring, plus one standalone render check for the seed packet material).
 Full design in `COOKING_AND_GARDENING_PLANNING.md` sections 3, 6, and 7.
-No instance is pre-placed — craft one via the Build tab (`Garden Plot
-(4x4)`, 8 Plank + 6 Stick, trains Cooking). All 7 crops (Carrot/Potato/
-Ginger/Turnip/Onion/Sweet Potato/Corn) — now "Seed Packet" items, 10 per
-packet, with a real color-coded packet model — have no in-world source
-yet; use Admin Spawn.
+Craft your own via the Build tab (`Garden Plot (4x4)`, 8 Plank + 6
+Stick, trains Cooking), or find one of the **7 pre-seeded instances now
+scattered around `TestScene.unity`** (v0.3.96-dev, 2026-08-16 — one per
+crop, ~14 units apart starting around (30, -30), each with 7 cells
+already `Ready` to harvest on a fresh game). All 7 crops (Carrot/Potato/
+Ginger/Turnip/Onion/Sweet Potato/Corn) — "Seed Packet" items, 10 per
+packet, real color-coded packet models — can now also be found this
+way instead of only via Admin Spawn.
 
 - [ ] **Open the grid**: place a 4x4 Garden Plot, press E — confirm a
   16-cell popup opens (not the single-plot's direct plant/harvest), all
@@ -3562,10 +3565,30 @@ yet; use Admin Spawn.
 - [ ] **Escape closes it cleanly**: with the grid open, press Escape —
   confirm the popup closes and the cursor re-locks, same as every other
   screen (Campfire, Lockbox, etc.).
+- [ ] **Seed-back chance (v0.3.96-dev)**: harvest a cell repeatedly (a
+  pre-seeded scattered plot's 5-count cells are convenient for this) —
+  confirm you occasionally also receive 1 seed of that same crop
+  alongside the crop item (roughly 30% of harvests, `CropDefinition.
+  seedDropChance`), landing in the backpack-then-main-inventory same as
+  the crop item. Confirm most harvests do NOT grant a seed (it's a
+  chance, not guaranteed).
+- [ ] **Pre-seeded scattered plots (v0.3.96-dev)**: on a **fresh game
+  (no save file)**, walk to one of the 7 scattered `GardenPlot4x4`
+  instances (named `GardenPlot4x4_<Crop>Crop` in the Hierarchy for easy
+  identification) — confirm exactly 7 of its 16 cells already read
+  "Ready!" with no planting needed, all growing the instance's one
+  crop, and confirm harvesting them works normally (crop item + chance
+  of a seed). **Regression — save/load must win**: harvest a few of a
+  scattered plot's pre-seeded cells down to Empty, save, then check
+  that a fresh load does NOT re-populate those cells back to Ready
+  (the `SaveManager.SaveExists` guard on `GardenPlot4x4.Start()` should
+  mean this pre-planting logic only ever applies once, on a truly
+  fresh game — a loaded save's actual cell states must always win).
 - [ ] **Not built yet, by design**: real crop visuals (placeholder
-  colored primitives only), wild forage seed sourcing (Admin Spawn only),
-  and Cooking's own skill/quality-tier system (no quality roll on harvest
-  yet — every harvest is just 1 plain crop item).
+  colored primitives only), and Cooking's own skill/quality-tier system
+  for crops specifically (no quality roll on harvest — every harvest is
+  just 1 plain crop item; the skill/quality system that does exist is
+  scoped to Campfire cooking recipes, not gardening).
 - [ ] **Save/load (new, v0.3.85-dev)**: plant 2-3 different crops into
   different cells (mix of Growing and, if you wait long enough, Ready),
   save, exit, relaunch — confirm every cell comes back with the correct

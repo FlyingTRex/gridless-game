@@ -5,10 +5,45 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.95-dev` — must always match `GameVersion` in
+**Current version:** `0.3.96-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (1)
+
+### v0.3.96-dev — Harvesting a crop has a chance to return a seed, and 7 pre-grown plots close the seed-sourcing gap for real
+
+Ben's ask: for all 7 Garden Plot vegetables, add a seed chance on
+harvest, then place real growing plants in the world so a fresh game
+actually has somewhere to get that first seed from.
+
+**New `CropDefinition.seedDropChance`** (0-1, default/set 0.3 — same
+"flat chance, not guaranteed" convention as `WolfPelt`/`PreyCreature`'s
+own loot-chance fields), rolled independently per harvested unit in
+`GardenPlot4x4.TryHarvest` — on a hit, 1 seed lands in the
+backpack-then-main-inventory, same placement priority the crop item
+itself already uses.
+
+**New `GardenPlot4x4.PreplantedCell` mechanism** — `cells` is a private,
+runtime-only array (nothing about cell state was ever serializable), so
+"already growing" couldn't just be authored into the scene directly.
+Added a small `[SerializeField] PreplantedCell[]` (cellIndex/crop/count)
+consumed once in a new `Start()` via the existing `RestoreCell()` save-
+restore method, guarded on `SaveManager.SaveExists` — a loaded save
+always wins, matching the "only apply to a truly fresh game" convention
+`PlayerShirt`/`PlayerJeans`/etc.'s starting-gear guards already use.
+**7 `GardenPlot4x4` instances placed scattered around `TestScene.unity`**
+(one per crop, spaced ~14 units apart, clear of spawn/buildings/
+Chicken/Deer), each pre-seeded with 7 already-`Ready` cells of that one
+crop, count 5 — immediately harvestable on a fresh game, no Admin Spawn
+required.
+
+**Closes "Garden Plot seeds are Admin-Spawn-only" for real** (not via
+the originally-envisioned `WildCarrotPatch`-style wild forage nodes —
+Ben's call: reuse the existing plot/cell mechanic instead of building a
+whole new standalone-wild-plant object type). Updated
+`BUGS_AND_ENHANCEMENTS.md` accordingly.
 
 ## 2026-08-15 (18)
 

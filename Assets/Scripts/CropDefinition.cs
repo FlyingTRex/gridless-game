@@ -13,6 +13,16 @@ public class CropDefinition : ScriptableObject
     public ItemDefinition cropItem;
     public float growDurationSeconds = 300f;
 
+    // Chance (2026-08-16) that harvesting one unit of this crop also
+    // returns 1 seedItem alongside the cropItem — a partial answer to the
+    // still-open "wild forage seed sourcing" gap (MVP2_PLANNING.md item
+    // 9): doesn't replace real wild-forage nodes, but means a garden can
+    // now sustain/expand itself instead of being purely Admin-Spawn-fed
+    // for every planting. Rolled independently per harvested unit in
+    // GardenPlot4x4.TryHarvest, same "flat chance, not guaranteed"
+    // convention as WolfPelt/PreyCreature's own loot-chance fields.
+    [Range(0f, 1f)] public float seedDropChance = 0.3f;
+
     // Ordered growth-stage visuals — index 0 is the earliest stage, the
     // last entry is the fully-grown plant. GardenPlot4x4 swaps between
     // these directly as a cell's grow timer progresses (no scaling — each
