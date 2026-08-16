@@ -2573,8 +2573,27 @@ rebuild (v0.3.27-dev). The old "Campfire (nearby)" Inventory-tab steps
 are long gone (removed entirely in favor of `CampfireScreen`), and so is
 v0.3.28-dev's simple Add-1/Take button flow — cooking is now drag-and-
 drop with utensils, multi-slot ingredients/output, and a manual Recipe
-button. **Not yet walked through even once — this pass matters more
-than usual given how much changed.**
+button.
+
+**Live evidence, 2026-08-16**: Ben had all 4 utensil boxes loaded
+simultaneously (Grill/Cooking Pot/Kettle/Frying Pan all seated at once,
+each showing its own distinct icon) with a Raw Meat → Cooked Meat cook
+running ("Cooking Cooked Meat — 0%" visible in the Recipe section), then
+a follow-up screenshot showed the fire still lit ("242s of fuel left")
+with the finished **Cooked Meat sitting in a Cooked Items box** and the
+Recipe section correctly reading "No recipes available with the current
+utensils/ingredients" once the Ingredients box emptied out. This is a
+genuine full start-to-finish confirmation of the base cook cycle,
+including the fuel countdown display and both Recipe-section message
+states. **Follow-up, same session**: Ben dragged the Cooked Meat from
+the Cooked Items box to Backpack and ate it — both worked, and confirmed
+he could drag items freely across the popup's various boxes (Fuel/
+Utensils/Ingredients/Backpack/Hands) but specifically could **not** drag
+anything into the Cooked Items box, only out — matching the code's
+`dragSourceOnly: true` restriction exactly. Still unconfirmed: the
+precise Hunger amount restored / no Health effect, Raw Meat having no
+Eat option, the 3 accessory-gated dishes, and the skill/quality-tier
+system.
 
 - [ ] **Open the Build tab and find "Campfire"** in the piece list —
   confirm it shows an icon (not blank), and its cost reads 4 Rock + 3
@@ -2657,7 +2676,12 @@ than usual given how much changed.**
 - [ ] **Cooking skill/quality-tier system (v0.3.93-dev)**: with 0
   Cooking skill, load a Grilled Meat/Herbal Tea's ingredients+accessory
   — confirm "Cook..." does NOT appear (Cooking 5 required). Admin-Spawn
-  or grind Cooking XP up to 5+ — confirm the recipe now appears. Cook
+  or grind Cooking XP up to 5+ — confirm the recipe now appears.
+  **Regression fix (v0.3.112-dev)**: this used to be genuinely
+  ungrindable from 0 — every XP-granting recipe required Cooking ≥5, a
+  real deadlock found live by Ben. Fried Egg (Egg + Frying Pan) is now
+  the actual entry point (`requiredSkillLevel` lowered to 0) — cook it
+  a few times first to reach 5, *then* test the rest of this line. Cook
   several batches at exactly Cooking 5 (riskiest odds) — confirm you
   occasionally see the "It didn't turn out — the ingredients were
   wasted" message with no output landing, and at least once see the
@@ -2686,10 +2710,9 @@ than usual given how much changed.**
   away mid-cook, confirm progress pauses (doesn't restart from 0). Let
   the fire go out mid-cook — confirm cooking pauses too, then resumes
   once relit.
-- [ ] **Take cooked items out**: drag a Cooked Meat from a Cooked Items
-  box to your Backpack or a hand — confirm it moves normally. Confirm
-  you can NOT drag anything INTO a Cooked Items box (system-populated
-  only).
+- [x] **Take cooked items out**: confirmed live (2026-08-16) — drag out
+  to Backpack worked, and dragging into the Cooked Items box was
+  confirmed blocked (only out, never in).
 - [ ] **Eat the Cooked Meat** — confirm a right-click Eat option appears
   and restores Hunger (Meal tier, ~40) with no Health effect. Confirm Raw
   Meat itself has **no** Eat option at all (still not directly edible —
@@ -3755,6 +3778,16 @@ a Bow and Arrow, once with a Knife — confirming it renders, is targetable,
 takes damage from both weapon types, and dies (see sections 37/42 for what
 this confirms about the weapon frameworks themselves). Not confirmed from
 this alone: the actual skin/loot/skill-gain/respawn steps below.
+
+**Regression found and fixed (v0.3.112-dev)**: Ben killed a Deer and a
+Chicken and found two real bugs — Feather had no icon at all (a
+genuinely broken source model, not just a missing bake — fixed, see
+`BUGS_AND_ENHANCEMENTS.md`), and both the Egg and Leather loot drops
+fell through the world on landing (fixed — corpse-collider-overlap +
+Discrete-collision-detection tunneling, full 49-prefab audit done). Both
+worth a specific re-check next time: confirm Feather's icon shows
+correctly, and confirm dropped loot actually lands and stays on the
+ground instead of falling through.
 
 - [ ] **Visual check**: walk up to it in Play mode — confirm it renders
   correctly (not pink/invisible) and looks proportionally right next to

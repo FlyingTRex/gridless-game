@@ -23,4 +23,4 @@ MonoBehaviour:
   canteenWaterAmount: 20
   trainedSkill: {fileID: 11400000, guid: 00ee502ead76cab4a993ae3a1865bd06, type: 2}
   skillGain: 1
-  requiredSkillLevel: 5
+  requiredSkillLevel: 0

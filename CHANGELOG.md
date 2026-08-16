@@ -5,10 +5,52 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.111-dev` — must always match `GameVersion` in
+**Current version:** `0.3.112-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (19)
+
+### v0.3.112-dev — Fix: Cooking skill deadlock, Feather's broken model/icon, dropped-loot tunneling
+
+Three bugs found live by Ben in one Editor session, all fixed.
+
+- **Cooking skill deadlock**: every `CookableItem` that grants Cooking XP
+  required Cooking ≥5 to unlock, while the only recipe reachable at
+  Cooking 0 (Raw Meat → Cooked Meat) grants no XP at all — a genuine
+  progression dead end, not just a slow grind. Fixed by lowering
+  `FriedEggCookable.requiredSkillLevel` from 5 to 0, giving the game a
+  real entry-level Cooking recipe (Egg + Frying Pan, single ingredient)
+  a fresh character can actually reach.
+- **Feather's model was genuinely broken, not just missing an icon**:
+  `Feather.glb`'s mesh had 2 of its 4 quad vertices coincident at the
+  origin, leaving only one real (degenerate-looking) triangle — a thin
+  spike, confirmed via direct render, not a feather silhouette. Replaced
+  with a real model (`Tools/Blender/GenerateFeatherModel.py`, a tapered
+  vane + quill). Also hit the same glTF-remap-doesn't-apply bug as
+  Chicken Meat and fixed it the same way (material assigned directly on
+  the wrapper prefab). The vane's material also needed `_Cull: 0`
+  (double-sided) — thin single-sided foliage-style geometry is an easy
+  place to get the front-face winding backwards. `IconBaker`'s tight-fit
+  reprojection couldn't frame this particular thin/tall shape correctly
+  no matter which `cameraDirection` override was tried (confirmed
+  correct geometry/material via a simple direct face-on render first,
+  ruling those out) — baked with a small dedicated camera setup instead
+  of fighting the generic tool further.
+- **Dropped loot (at least Egg and Leather) fell through the world**:
+  root-caused to two compounding issues. (1) `SkinnableCreature.Complete()`
+  called `DropLoot()` *before* disabling the corpse's own Collider, so a
+  freshly-spawned pickup could land overlapping a still-solid corpse,
+  and Unity's physics-overlap separation impulse could eject it through
+  nearby terrain — fixed by disabling the collider first. (2) A broader
+  audit found 49 of the project's 74 `Pickup` prefabs still used
+  Discrete collision detection, the exact "small fast-moving object vs.
+  a thin static collider" tunneling risk `PlayerCoinDrop.cs` had already
+  been fixed for — switched all 49 to `ContinuousDynamic`, matching the
+  25 that already had it right.
+- Verified via batch-mode compile, direct YAML/asset grep, and rendered
+  checks throughout — not yet confirmed live in Play mode.
 
 ## 2026-08-16 (18)
 

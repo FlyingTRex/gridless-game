@@ -709,6 +709,40 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **Cooking skill can never be trained from 0 through normal play — a
+  real progression deadlock, found live by Ben (2026-08-16). Fixed
+  v0.3.112-dev.** Every `CookableItem` recipe that actually grants
+  Cooking XP required `requiredSkillLevel: 5` or higher, while the only
+  recipe reachable at Cooking 0 (`RawMeatToCookedMeatCookable`) grants no
+  XP at all — confirmed live via Ben's save file (no Cooking entry) and
+  a Grill+Herb+Raw Meat load that still only offered Cooked Meat. Fixed
+  by lowering `FriedEggCookable.requiredSkillLevel` from 5 to 0, giving
+  the game a real single-ingredient entry-level Cooking recipe (Egg +
+  Frying Pan) instead of touching the deliberately risk-free base recipe
+  or adding new Skill Book plumbing. See `CHANGELOG.md` v0.3.112-dev.
+- [x] **Feather has no icon at all, found live by Ben (2026-08-16). Fixed
+  v0.3.112-dev — turned out to be a broken model, not just a missing
+  bake.** `Feather.glb`'s mesh had 2 of its 4 quad vertices coincident at
+  the origin (a genuinely degenerate quad, confirmed via direct render —
+  only a thin spike existed, not a feather shape) — nobody could have
+  ever baked a good icon from it. Replaced with a real Blender-generated
+  model (`Tools/Blender/GenerateFeatherModel.py`), which also turned up
+  the same glTF-remap-doesn't-apply bug as Chicken Meat (fixed the same
+  way) plus a double-sided-material need for the thin vane geometry. See
+  `CHANGELOG.md` v0.3.112-dev.
+- [x] **Dropped loot (at least Egg and Leather) falls through the world,
+  found live by Ben killing a Deer and a Chicken (2026-08-16). Fixed
+  v0.3.112-dev, full audit done.** Root cause was two compounding
+  issues, both fixed: (1) `SkinnableCreature.Complete()` dropped loot
+  *before* disabling the corpse's own Collider, so a freshly-spawned
+  pickup could land overlapping still-solid geometry and get physics-
+  ejected through terrain — reordered to disable the collider first.
+  (2) A full audit found 49 of the project's 74 `Pickup` prefabs still
+  used Discrete collision detection (the exact tunneling risk
+  `PlayerCoinDrop.cs` was already fixed for) — all 49 switched to
+  `ContinuousDynamic`, matching the 25 that already had it right. See
+  `CHANGELOG.md` v0.3.112-dev.
+
 - [ ] **Verify Berry Seed's embedded-material remap actually took (2026-08-16
   follow-up).** Chicken Meat's icon bug (see `CHANGELOG.md` v0.3.108-dev,
   and the "Update (2026-08-16, Chicken Meat)" addendum to CLAUDE.md's

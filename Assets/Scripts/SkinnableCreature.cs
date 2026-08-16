@@ -87,6 +87,15 @@ public abstract class SkinnableCreature : MonoBehaviour, IDamageable, IInteracta
 
         playerObj.GetComponent<PlayerSkills>()?.GainExperience(skinningSkill, skinningSkillGain);
 
+        // Disable the corpse's own collider before dropping loot, not
+        // after — loot spawns right next to (often overlapping) this
+        // collider, and Unity's physics-overlap separation impulse can
+        // eject a small pickup clean through nearby terrain (2026-08-16,
+        // found live: Egg/Leather falling through the world after a
+        // kill). SetVisible(false) below used to be the only place this
+        // got disabled, well after loot had already spawned.
+        if (col != null) col.enabled = false;
+
         var dropping = playerObj.GetComponent<PlayerDropping>();
         DropLoot(dropping);
 
