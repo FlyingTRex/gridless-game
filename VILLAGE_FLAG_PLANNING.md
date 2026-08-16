@@ -118,8 +118,57 @@ halve the interval (15 min), stick-around time doubles (20 min); if they
 cut it to a third (10 min), stick-around triples (30 min). Clean
 proportional inverse, one anchor number to tune later once live-tested.
 
-## 5. Explicitly out of scope for this pass
+## 6. City Statue — the Village → City progression gate
 
+**Decided (Ben, 2026-08-16): locked in as a gate mechanism only** — this
+section defines the unlock condition and what it gates, not the
+Statue's own recipe or any specific City-tier building beyond
+illustrative examples.
+
+- **Unlock condition**: a **Masterwork-tier Village Flag** placed, and
+  **at least 10 currently-hired NPCs** — both checked at the moment the
+  player attempts to build the Statue (a live precondition, not a
+  lifetime/cumulative hire counter — if you've fired people back below
+  10, the gate simply isn't satisfied yet, same as any other
+  not-currently-satisfiable recipe in this project).
+- **City Statue** — a new `BuildPiece`, visible/craftable in the Build
+  tab only once both conditions hold (same "hidden until satisfiable"
+  treatment `PlayerCrafting`'s skill-gated recipes already get, just
+  gated on world-state instead of a skill level). Its own material cost
+  isn't designed here — a real, substantial civic cost, matching its
+  weight as a milestone, but the actual `ingredients[]` list is a build-
+  time decision.
+- **Permanent once built** (Ben, explicit) — City status doesn't revert
+  if the player later fires NPCs below 10 or the Flag is somehow lost.
+  The Statue standing in the world *is* the proof; no separate
+  "maintain city status" upkeep exists.
+- **Grants Fame on completion** — proposed **+50**, a real milestone-
+  sized jump, deliberately well above any repeatable action (Hire +1,
+  Training's small per-session gain, even a Masterwork skill-tier
+  mastery's +5) since reaching this requires 10 hires *and* a Masterwork
+  Flag *and* the Statue's own real cost. Not yet Ben-confirmed as a
+  final number.
+- **The gate itself, reusable**: a new `requiresCityStatus` bool on
+  `BuildPiece`, mirroring `CraftingRecipe.requiresAnvilSurface`/
+  `requiresFurnace`'s exact shape — a flag any future advanced structure
+  checks rather than something bespoke per building. **Research
+  Facility and Spaceport are illustrative examples of what this could
+  eventually gate, not designed here.** Genuinely promising real
+  convergence point, though: `docs/design-brief.md`'s existing
+  "Endgame: Leaving the Planet" section already specs an **Orbital
+  Engineering** route (Master Smith + Master Engineer + Master Builder
+  Keystones, "build a launch vehicle from first principles") converging
+  on Escape Velocity — a City-tier Spaceport reads like a natural
+  earlier stepping stone toward that already-designed endgame arc, not
+  a disconnected new idea. Worth keeping in mind when City-tier
+  buildings actually get designed, not committed to yet.
+
+## 7. Explicitly out of scope for this pass
+
+- **The City Statue's own recipe/materials, and any specific City-tier
+  building** (Research Facility, Spaceport, or otherwise) — the gate
+  mechanism is locked, what it actually gates is not.
+- **The +50 Fame number** — proposed, not yet confirmed.
 - **The Traveling Trader itself** — this doc designs the reusable
   spawn-and-seek mechanism; the Trader is a second future consumer of
   it, blocked on the same "no commerce system exists at all" prerequisite
@@ -151,5 +200,8 @@ proportional inverse, one anchor number to tune later once live-tested.
 - `NPC_TRAINING_PLANNING.md` — designed the same session, unrelated
   mechanically but part of the same conversation's larger "give Fame and
   NPC population real teeth" push.
+- `docs/design-brief.md`'s "Endgame: Leaving the Planet" section — the
+  Orbital Engineering route the City Statue gate's illustrative
+  Spaceport example would eventually feed toward.
 
 Planning only, not yet built.

@@ -196,6 +196,17 @@ Fame means NPCs both show up sooner *and* stick around longer once they
 do, a real compounding effect. The Traveling Trader itself stays blocked
 on the wider commerce system (`BUGS_AND_ENHANCEMENTS.md`) — this doc
 only builds the reusable spawn-and-seek mechanism, not the Trader.
+**Same doc's section 6, also locked in**: a Masterwork Flag + 10
+currently-hired NPCs unlocks a **City Statue** `BuildPiece` — permanent
+once built (no revert if NPC count later drops), +50 Fame (proposed),
+and a reusable `requiresCityStatus` gate flag (mirrors
+`CraftingRecipe.requiresAnvilSurface`'s exact shape) for whatever
+advanced structures eventually need "must be a City, not a Village" —
+Research Facility/Spaceport are named only as illustrative future
+examples, not designed. Genuine tie-in worth remembering:
+`docs/design-brief.md`'s existing endgame already specs an Orbital
+Engineering route converging on Escape Velocity — a future Spaceport
+reads as a real stepping stone toward that, not a new disconnected idea.
 Not yet built.
 
 **Save/load persistence real implementation plan lives in
