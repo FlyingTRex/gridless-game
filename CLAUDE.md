@@ -119,10 +119,32 @@ for direct-yield targets (ResourceNode, ChoppableTree) plus a separate
 search half only — their chop-for-stick action stays player-only),
 `Pickup.cs` gained an NPC-safe collection path, and `NPCMining.cs` was
 renamed to `NPCGathering.cs` (GUID preserved) with a target search
-spanning all three pools. Bench-crafting families (Metalworking, Sewing,
-etc.) are sketched in the planning doc but explicitly deferred to a later
-pass. Verified via compile + YAML grep only so far — no live Play-mode
-confirmation yet.
+spanning all three pools. Verified via compile + YAML grep only so far —
+no live Play-mode confirmation yet.
+
+**Bench-crafting (Metalworking pilot) is planned in full — see the same
+doc's section 7.** Designed 2026-08-16, decision-locked via
+`AskUserQuestion`, not yet built. A new sibling `NPCCrafting.cs`
+component (not a `NPCGathering` extension — `NPCJobDefinition` gains a
+`JobKind{Gathering,Crafting}` field so both components can coexist on
+the same NPC prefab, each bailing early if the assigned job isn't its
+own kind). Recipe selection is a per-NPC queue mirroring `Furnace.
+recipeQueue`/`ToggleQueue` exactly (Ben's call over "auto-craft anything
+in family") — offerable-to-queue recipes are still family-scoped (same
+grouping `CraftingScreen` uses), just not auto-executed. Crafting is
+deterministic (no `CraftOutcomeRoll`, matches `SmeltableItem`/
+`CookableItem`'s existing precedent) — the recipe's own skill-tier
+threshold still gates whether it's queueable at all, via the same
+`CraftTierScale.SkillRequirement` check `PlayerCrafting.HasRequiredSkill`
+uses, but there's no quality ladder or failure chance once it clears
+that bar. A recipe needing `requiresAnvilSurface`/`requiresFurnace`
+makes the NPC walk to the nearest qualifying surface first, same
+nearest-in-range scan `NPCGathering` already uses for harvest targets.
+`requiresCanteenWater` recipes are explicitly excluded (NPCs have no
+Canteen concept). Pilot recipe: `IronIngotRecipe` (no new recipe data
+needed, proves the walk-to-Furnace case). Other bench families (Sewing,
+Woodworking, etc.) are data-only follow-ups once `NPCCrafting` itself is
+proven — not built ahead of that.
 
 **Save/load persistence real implementation plan lives in
 `SAVE_LOAD_PLANNING.md`.** Expands the narrow v1 draft in

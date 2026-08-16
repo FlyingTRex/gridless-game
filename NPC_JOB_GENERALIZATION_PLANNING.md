@@ -289,38 +289,158 @@ not yet used by anything NPC-facing.
    live rather than after the fact. Confirm a Mining-assigned NPC run at
    the same time is unaffected (regression check on the shared loop).
 
-## 7. Deferred: bench-crafting families (Metalworking, Sewing, Stonework,
-   Carpentry, Forging, Minting)
+## 7. Bench-crafting families (Metalworking, Sewing, Stonework, Carpentry,
+   Forging, Minting)
 
-Explicitly out of scope for this pass (Ben's call) — sketched here only so
-the next planning pass doesn't start from zero.
+**Status: planned in full 2026-08-16, not yet built.** Was deferred at
+the end of section 6's build; this is the follow-up pass Ben asked for
+("let's do some planning on bench training" → "I meant benchcrafting").
+Design below is decision-locked (confirmed via `AskUserQuestion`) and
+ready to build — nothing here is still open except what's explicitly
+flagged as such.
 
-- Needs a genuinely new component (`NPCCrafting.cs`), not a generalization
-  of `NPCGathering` — bench crafting has no "target in the world to walk
-  to and hit" the way gathering does (well, it does: `AnvilSurface`/
-  `FurnaceSurface`, so the walk-to-a-surface part of the loop *does*
-  reuse the same shape), but the actual action is "run a `CraftingRecipe`"
-  not "harvest a node."
-- **Decided already (Ben, via `AskUserQuestion`, 2026-08-13): NPC crafting
-  is deterministic — always succeeds, no chance-of-creation risk roll.**
-  Matches the precedent just set for Furnace/Campfire automation
-  (`SmeltableItem`/`CookableItem` are both deterministic, distinct from
-  the player-facing `CraftingRecipe` risk system) — unattended production
-  shouldn't silently destroy materials with nobody watching, and there's
-  no real "skill margin" narrative for a background NPC the way there is
-  for a player actively at a bench.
-- Likely needs its own materials-in/output-out `StorageBox` pair per NPC
-  (mirrors the Furnace's `FuelSourceBox`/`MaterialsSourceBox`/`OutputBox`
-  pattern shipped v0.3.31-dev) rather than the free-inventory-scanning
-  `PlayerCrafting.ReachableInventories` does — an NPC has no "current
-  location relative to player's backpack" concept to piggyback on.
-- Open question not yet discussed with Ben: does an NPC craft *any*
-  `CraftingRecipe` whose `trainedSkill` matches the job's `family` (mirrors
-  how `CraftingScreen`/`NPCJobScreen` already group by family — no new
-  data needed), or does each crafting `NPCJobDefinition` need its own
-  explicit recipe list (more control, more data entry, matches how
-  `Furnace`/`Campfire` each wire their own `smeltableItems`/
-  `cookableItems` array rather than querying a global list)?
+### 7.1 Shape: a new sibling component, not a `NPCGathering` extension
+
+Bench crafting has no "target in the world to walk up to and hit
+repeatedly" the way gathering does — the action is "run a
+`CraftingRecipe`," not "harvest a node." But it *does* share gathering's
+"walk to a required surface first" shape for any recipe with
+`requiresAnvilSurface`/`requiresFurnace` set (`AnvilSurface`/
+`FurnaceSurface` are exactly the right targets to walk to). New
+`NPCCrafting.cs`, sibling to `NPCGathering.cs` — both `RequireComponent`'d
+on the hireable NPC prefab (matching the existing pattern where every
+`NPCJob`-driven component is always present, gated by whether it's
+actually the assigned job's shape), each bailing out early in `Update()`
+if the assigned job isn't its own kind.
+
+**`NPCJobDefinition` gains `public enum JobKind { Gathering, Crafting }`
++ `public JobKind kind = JobKind.Gathering;`** — default keeps
+`MineOreJob`/`ChopWoodJob`/`ForageJob` behaving exactly as today with no
+data migration needed (they're all implicitly `Gathering` already).
+`NPCGathering.Update()` gains one more early-out:
+`if (job.AssignedJob != null && job.AssignedJob.kind != JobKind.Gathering) return;`
+— `NPCCrafting.Update()` does the mirror check for `Crafting`.
+
+### 7.2 Recipe selection: a per-NPC queue, not "craft anything in family"
+
+**Decided (Ben, `AskUserQuestion`, 2026-08-16): the player queues
+specific recipes per NPC**, reusing `Furnace.recipeQueue`/`ToggleQueue`'s
+exact shape rather than letting the NPC freely auto-craft any
+family-matching recipe it has materials for — same reasoning Furnace's
+own queue already established (predictability: the player decides what
+gets made, not a background process burning through materials on its
+own judgment). `NPCCrafting` gets its own `List<CraftingRecipe>
+recipeQueue` + `ToggleQueue(CraftingRecipe)`, mirroring `Furnace`'s
+member-for-member.
+
+**Discovery is still family-scoped, just for what's *offerable* to
+queue, not what's *auto-crafted*** — the crafting-job UI (see 7.5) only
+lists `CraftingRecipe`s whose `trainedSkill` matches the assigned job's
+`family`, the same grouping `CraftingScreen`/`NPCJobScreen` already use.
+This gets both halves of the originally-flagged open question for free:
+family scoping keeps the offered list relevant with no new per-job
+recipe-list data asset, and the queue itself is the "explicit selection"
+half.
+
+### 7.3 The loop
+
+Each `Update()` tick (while `job.IsReady` and not
+`hiring.IsWaitingForPayment`, same readiness gate `NPCGathering` uses):
+
+1. Walk the queue in order; the first entry that's currently
+   satisfiable (see 7.4) is `activeRecipe`. None satisfiable → idle
+   (resume wandering), same "nothing useful right now" fallback
+   `NPCGathering.FindTarget` returning null already has.
+2. If `activeRecipe.requiresAnvilSurface` or `.requiresFurnace`, and the
+   NPC isn't currently within range of a qualifying surface, walk to the
+   nearest one (`FindObjectsByType<AnvilSurface>`/`<FurnaceSurface>`,
+   same nearest-in-range scan `NPCGathering.FindTarget` already does for
+   harvestables) before proceeding. No surface requirement → craft in
+   place, no walk needed (this is Sewing/Woodworking's case — see 7.6).
+3. Once in position: a `craftDuration` timer (new field, mirrors
+   `harvestDuration`), then commit — consume ingredients from
+   `materialsSourceBox` (7.4), deterministic success (**no
+   `CraftOutcomeRoll`, confirmed already decided** — `lowerTierItem`/
+   `higherTierItem`/the whole chance-of-creation ladder are simply
+   unused on this path, same as `SmeltableItem`'s existing precedent),
+   output (+ `bonusItem` if set) lands in `outputBox`, `NPCSkills.
+   GainExperience(job.AssignedJob.family, recipe.skillGain)`.
+4. Repeat from 1.
+
+### 7.4 Satisfiability check (gates both queue-walking and the UI)
+
+A queued recipe is currently craftable if, **all** of:
+- Every `ingredients[]` entry's count is present in `materialsSourceBox`.
+- `job.HasAnyTool(recipe.requiredTools)` — same check `NPCGathering`
+  already uses for harvest targets, reusing whatever tools the player
+  handed the NPC via this job's own `toolRequirements`.
+- `NPCSkills.GetLevel(recipe.trainedSkill) >=
+  CraftTierScale.SkillRequirement(recipe.outputItem.tier)` — the exact
+  same threshold check `PlayerCrafting.HasRequiredSkill` uses. An
+  under-leveled NPC simply can't queue-execute a recipe yet (not a
+  "lower quality" outcome — there's no quality ladder on this
+  deterministic path at all, see 7.3).
+- **`!recipe.requiresCanteenWater`** — explicitly excluded, not silently
+  broken. NPCs have no `Canteen`/liquid concept at all today. A
+  water-requiring recipe (Healing Paste) should be filtered out of the
+  offerable-to-queue list entirely for now, flagged here rather than
+  discovered as a live bug later. Revisit if NPCs ever gain their own
+  Canteen equipment.
+- `outputBox.HasSpaceFor(...)` — same upfront space check
+  `PlayerCrafting.StartCraft`/`Furnace.StartSmelting` both already do.
+
+### 7.5 Data/UI needed
+
+- **`MetalworkingJob.asset`** (`NPCJobDefinition`): `jobName =
+  "Metalworking"`, `family = Metalworking`, `kind = Crafting`,
+  `toolRequirements = [Backpack]` (matches every other job's carrying-
+  capacity-up-front resolution — no held tool needed for the pilot
+  recipes, see 7.6). Add to `NPCJobScreen.jobs[]`/`families[]` if
+  `Metalworking` isn't already listed there.
+- **`NPCCrafting` gets `materialsSourceBox`/`outputBox` fields** (no fuel
+  box — `requiresFurnace` just needs the NPC standing near a placed
+  `Furnace`'s `FurnaceSurface` marker, not its own fuel supply; the
+  Furnace structure manages its own fuel independently). Set via the
+  same point-and-confirm flow `PlayerNPCDeposit` already provides for
+  `NPCJob.DepositContainer` — either extend `PlayerNPCDeposit` to target
+  a second/third box kind, or a small sibling targeting helper; exact
+  shape TBD at build time, not a design blocker.
+- **New crafting-queue UI** — `NPCJobScreen` (or a new dedicated screen,
+  same "Campfire got its own popup instead of overloading Inventory"
+  precedent) needs: a family-filtered recipe list with per-recipe
+  queue-toggle buttons (mirrors `FurnaceScreen`'s own queue UI almost
+  exactly), the two box-assignment buttons, and a live satisfiability
+  indicator per queued recipe (materials/tool/skill/space, same
+  four-way check as 7.4) so the player can see *why* an NPC is idle
+  instead of guessing.
+
+### 7.6 Pilot recipe, once built
+
+`IronIngotRecipe` (existing asset, already `trainedSkill = Metalworking`,
+`requiresFurnace = true`, no tool requirement) is the natural first live
+test — proves the hardest case (walk-to-a-surface) with zero new recipe
+data needed. Assign a hired NPC to `MetalworkingJob`, give it a Backpack,
+point its materials box at a box stocked with Iron Ore and its output box
+at an empty one, queue `IronIngotRecipe`, confirm it walks to the
+Furnace, waits `craftDuration`, and Iron Ingots land in the output box
+with Metalworking XP gained — no risk roll, always succeeds once
+satisfiable.
+
+### 7.7 Explicitly out of scope for this pass
+
+- **Sewing/Woodworking/Stonework/Carpentry/Forging/Minting** as actually
+  *assignable* jobs — the design above is family-agnostic (any
+  `SkillDefinition` works as `family`), so adding one is a data-only
+  follow-up (`NPCJobDefinition` asset + `NPCJobScreen` array entries)
+  once `NPCCrafting` itself is proven on Metalworking. Not built
+  speculatively ahead of that proof.
+- **Multiple recipes cooking in parallel per NPC** — one `activeRecipe`
+  at a time, same single-slot precedent `Campfire`/`PlayerCrafting`'s
+  non-batch path already set; a real batch/queue-depth concept (like
+  `PlayerCrafting.StartCraft`'s quantity parameter) isn't scoped here.
+- **NPC Canteen/liquid-ingredient support** — see 7.4's explicit
+  exclusion; would need giving NPCs a `Canteen` equipment concept
+  first, a bigger separate piece.
 
 ## Cross-references
 
