@@ -1068,3 +1068,51 @@ trusted, the same "don't claim done off a clean compile" discipline as
 every other verification step in this file — the difference here is
 that batch mode itself couldn't provide that live confirmation, only a
 real Play session can.
+
+## Gotcha: `ItemDatabase`/`SkillDatabase`/`NPCJobDatabase` regeneration used to be nondeterministic — a real merge-conflict source, not hypothetical
+
+Found 2026-08-16 while discussing whether a "central database" for
+items/recipes would help or hurt merge collisions between the two
+collaborators' sessions. `DatabaseRepopulator` (see its own header)
+rebuilds all three from `AssetDatabase.FindAssets($"t:{T}")` every time
+it runs — mandatory before any commit that adds a new
+`ItemDefinition`/`SkillDefinition`/`NPCJobDefinition`. `FindAssets`'
+enumeration order is **not stable** across machines or even across runs
+on the same machine as the project grows. `EditorSetItems`/
+`EditorSetSkills`/`EditorSetJobs` used to do a plain `items = value`
+assignment with no sort — meaning two independent, correct runs of the
+exact same mandatory repopulate step could produce two differently-
+ordered arrays for the *same underlying item set*, showing up as a
+full-array reshuffle (every line changed) on both sides of a merge.
+Confirmed live by diffing `Assets/Resources/ItemDatabase.asset` from
+two independent runs pre-fix — order differed with zero actual content
+change.
+
+**Fixed** by sorting by the asset's own stable ID (`item.name`, the
+same string `IdFor`/`Find`/save-load already use) inside
+`EditorSetItems` before assigning, so two independent full
+regenerations of the same item set now produce **byte-identical**
+output — verified via a direct two-run diff. A real content change
+(new item added) now shows up as a clean single-line insert, not a
+reshuffle. Same fix applied to `SkillDatabase`/`NPCJobDatabase`.
+`Find(id)` was also switched from a linear scan to a
+`Dictionary<string, T>` built lazily on first call (and invalidated by
+`EditorSetItems`/etc.) — was fine at 125 items, not something to leave
+for later as the item count keeps growing.
+
+**Implication for the two-collaborator workflow**: this doesn't change
+the "run `DatabaseRepopulator` before committing a new item" habit —
+still required. It does mean that habit is now git-safe by default; you
+no longer need to worry about your regen producing a spurious diff
+against the other person's last regen.
+
+**Backlog, not yet built**: the actual item/recipe *data* still lives
+in individual `Assets/Data/*.asset` files (good — that's the right
+merge unit for two people editing in parallel, keep it that way). A
+future "admin browser" for items/recipes (discussed 2026-08-16,
+sometimes called VMS) should be a read+write Editor Window over this
+now-deterministic index — list every item by reading the database,
+edit one by editing its own `.asset` file's `SerializedObject` — not a
+new inlined data store. Don't reopen the "one big database" idea; the
+index being central is fine, the data staying distributed is what keeps
+merges safe.

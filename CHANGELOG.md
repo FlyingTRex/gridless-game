@@ -5,10 +5,48 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.97-dev` — must always match `GameVersion` in
+**Current version:** `0.3.98-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (3)
+
+### v0.3.98-dev — Deterministic ItemDatabase/SkillDatabase/NPCJobDatabase regeneration + O(1) lookup
+
+traskmi asked whether a "central database" for items/recipes would help
+or hurt merge collisions between sessions. Investigating that question
+surfaced a real, already-live bug rather than a hypothetical one — see
+the new "ItemDatabase/SkillDatabase/NPCJobDatabase regeneration used to
+be nondeterministic" gotcha in `CLAUDE.md` for the full writeup.
+
+- **Root cause**: `DatabaseRepopulator` (mandatory before any commit
+  adding a new `ItemDefinition`/`SkillDefinition`/`NPCJobDefinition`)
+  rebuilds all three databases from an `AssetDatabase.FindAssets` scan
+  every run, and the old `EditorSetItems`/`EditorSetSkills`/
+  `EditorSetJobs` did a plain unsorted assignment. `FindAssets`
+  enumeration order isn't stable across machines/runs, so two
+  independent (correct) regenerations of the identical item set could
+  produce two differently-ordered arrays — a full-array-reshuffle merge
+  conflict with zero actual content difference.
+- **Fix**: sort by the asset's own stable ID (`item.name`, same string
+  `IdFor`/`Find`/save-load already key on) inside each `EditorSetX`
+  before assigning. Verified fixed by running `DatabaseRepopulator`
+  twice independently and diffing `ItemDatabase.asset` byte-for-byte —
+  identical output both times (pre-fix, this diffed).
+- **Also switched `Find(id)` from a linear `foreach` scan to a lazily-
+  built `Dictionary<string, T>`** on all three databases (`ItemDatabase`,
+  `SkillDatabase`, `NPCJobDatabase`) — fine at 125 items today, not
+  something to leave as an O(n) scan while the item count keeps growing.
+- Ran `DatabaseRepopulator.RepopulateAll` in batch mode after the fix
+  and confirmed `Items=125 Skills=21 Jobs=3` (unchanged counts, as
+  expected — this is a reordering/lookup fix, not a data change).
+- **Backlog, not built this session**: keep item/recipe data as
+  individual `Assets/Data/*.asset` files (the right git-merge unit for
+  two people editing in parallel — don't inline into one blob). A future
+  admin "VMS" browser for items/recipes should read this now-
+  deterministic index to list everything, but write edits back through
+  each item's own `.asset` file, not a new central data store.
 
 ## 2026-08-16 (2)
 
