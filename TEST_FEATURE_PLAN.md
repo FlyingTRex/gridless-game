@@ -793,7 +793,16 @@ fixed v0.3.16-dev)
   first rather than both showing at once. At MaxLevel (100, essentially
   unreachable in a normal playtest but worth noting) no message should
   appear since there's no real gain left to report.
-- [ ] **Chance-of-creation crafting (v0.1.82-dev):** craft a batch of
+- [ ] **Chance-of-creation crafting (v0.1.82-dev):** **Live evidence,
+  2026-08-16** — Ben crafted a Trimmed Stick and got the "Close, but not
+  quite — you ended up with a Crude Trimmed Stick instead." downgrade
+  message alongside a genuine Dexterity skill-gain toast, confirming
+  the Barely-Fail/downgrade outcome fires live (not just in theory) and
+  that a downgrade + a skill-gain message can legitimately show
+  together — incidentally the same live moment that caught the
+  `PlayerAutosave` toast-position bug (see `CHANGELOG.md` v0.3.114-dev).
+  Remaining outcomes (Bad/Spectacular Failure, Brilliant Success) still
+  unconfirmed. Craft a batch of
   Crude tools/Trimmed Stick (low skill margin, riskiest odds — roughly
   63% Success / 20% Barely Fail / 12% Bad Failure / 3% Spectacular / 2%
   Brilliant) and confirm all 5 outcomes are actually reachable, not just

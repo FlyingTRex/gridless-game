@@ -5,10 +5,26 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.114-dev` — must always match `GameVersion` in
+**Current version:** `0.3.115-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (22)
+
+### v0.3.115-dev — Fix: PlayerAutosave toast overlapped PlayerCrafting's
+
+Caught live within minutes of v0.3.114-dev shipping — Ben's screenshot
+showed a crafting outcome message and a skill-gain toast stacked at the
+top of the screen, which was the trigger for actually checking every
+existing toast position in the project instead of just the one
+(`PlayerSkills`) the original placement was checked against.
+`PlayerCrafting.cs` already owns y=110 for its own craft-outcome
+messages — `PlayerAutosave`'s toast moved to y=150, clear of both
+existing top-center toasts (`PlayerSkills` at y=70, `PlayerCrafting` at
+y=110). Same screenshot incidentally confirmed a real crafting outcome
+live for the first time — the "Close, but not quite" Barely-Fail
+downgrade message, see `TEST_FEATURE_PLAN.md`'s crafting section.
 
 ## 2026-08-16 (21)
 
@@ -23,14 +39,15 @@ something goes wrong, without needing to remember to hit Save first.
   calls the existing `SaveManager.Save()` every 10 real minutes and
   shows a 15-second top-center toast ("Game autosaved."), same shape as
   `PlayerSkills.cs`'s own tier-unlock toast (`DebugGUI.DrawPanel` +
-  `DebugGUI.Header`), offset lower (y=110 vs. y=70) so the two can't
-  visually collide if they ever fire close together.
+  `DebugGUI.Header`).
 - `SAVE_LOAD_PLANNING.md`'s original "manual Save button only, no
   autosave for v1" scope updated to reflect this — the manual button in
   `GameMenuScreen` is completely untouched, this is a second trigger
   layered on top, not a replacement.
 - Attached to the `Player` object in `TestScene.unity`, next to the
   existing `SaveManager` — verified via direct YAML grep.
+- **Toast position had a real bug, fixed in v0.3.115-dev right after** —
+  see that entry above.
 
 ## 2026-08-16 (20)
 
