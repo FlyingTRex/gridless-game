@@ -5,10 +5,55 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.94-dev` — must always match `GameVersion` in
+**Current version:** `0.3.95-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-15 (18)
+
+### v0.3.95-dev — Deer is live: killable/lootable via PreyCreature, and it finally answers "where does Leather come from"
+
+Ben's ask: put the Deer model (`ithappy/Animals_FREE`) in the game, same
+treatment as the Chicken — a loot table dropping Meat and Leather.
+
+**New `Leather.asset`** — the first real source of Leather in the game,
+closing a question `BUGS_AND_ENHANCEMENTS.md` has flagged as open since
+2026-08-06 ("where Leather comes from — implies hunting/animals, which
+don't exist at all yet"). Own real model
+(`Tools/Blender/GenerateLeatherModel.py`, a folded/draped hide swatch —
+subdivided plane + Solidify modifier + per-vertex jitter for an uneven
+drape, distinct from Cloth's flat weave), pickup prefab, and icon via
+the now-standard `PickupPrefabBuilder`/`IconBaker` pipeline.
+
+**Deer placed in `TestScene.unity`** — same `PreyCreature` treatment as
+Chicken: `MovePlayerInput` disabled (legacy Input Manager, incompatible
+with this project's New-Input-System-only setup), `PreyCreature` added
+in the same batch run as the initial `Instantiate()` (per the
+established "don't add a component to an already-saved PrefabInstance
+in a later run" gotcha). Loot: Raw Meat (2-4, guaranteed — the same
+shared meat item every creature already drops) + Leather (1-2,
+guaranteed), Knife-gated (all 5 tiers), trains Gathering.
+
+**A real scale question, resolved by rendering a comparison, not
+guessing.** The Deer's measured `Renderer.bounds` came back 2.29m
+tall — taller than the 1.8m player, suspicious for a deer. Rendered it
+next to a 1.8m reference cube via the same batch-render technique
+`IconBaker` uses (a throwaway diagnostic script, deleted after) rather
+than assuming either "the pack must be right" or "the bounds must be
+right." The render showed why: edit-time (no `Animator` ticking, no
+Play mode) leaves the model in an odd reared-up bind/idle pose — front
+legs raised, neck thrown back, antlers up — which inflates the
+Y-extent of a static bounds measurement without reflecting the actual
+four-legs-on-the-ground standing height. `CreatureMover`'s own
+`CharacterController`-based gravity/ground-snap corrects this at
+runtime regardless of edit-time placement precision, same as it
+already does for Chicken — no manual rescale applied, matching
+Chicken's own precedent of trusting this asset pack's native scale.
+
+**Still standing, no wander/flee AI** — same known limitation as
+Chicken (`PreyCreature`'s movement half is unbuilt, see
+`MVP2_PLANNING.md` item 8).
 
 ## 2026-08-15 (17)
 

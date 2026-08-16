@@ -3681,3 +3681,38 @@ new generic `PreyCreature.cs`.
   — confirm the Chicken reappears alive at the same spot.
 - [ ] **Not built yet, by design**: no movement, no flee behavior when
   approached (it doesn't react to the player at all until damaged).
+
+## 44. Deer (ithappy Animals_FREE) — killable/lootable, v1 (v0.3.95-dev)
+
+A `Deer_001` sits in `TestScene.unity` near (12, ~0.04, 8). Same
+treatment as the Chicken above — `PreyCreature`, stands still (no
+wander/flee AI yet), Knife-gated skinning, trains Gathering.
+
+- [ ] **Visual check**: walk up to it in Play mode — confirm it renders
+  correctly (not pink/invisible), and confirm it settles into a normal
+  standing/idle pose (not the reared-up bind pose seen in the edit-time
+  scale-check render) once its Animator starts ticking. Confirm it
+  looks proportionally right next to the player — noticeably bigger
+  than the Chicken, roughly deer-sized relative to a 1.8m person, not
+  towering over them.
+- [ ] **Confirm it doesn't throw errors**: `MovePlayerInput` is disabled
+  on this instance for the same reason as Chicken's (legacy Input
+  Manager). Check the Console for input-related exceptions.
+- [ ] **Kill and skin it**: punch/shoot it until it dies (35 HP), confirm
+  the tip-over death pose, then hold E with a Knife equipped to skin it.
+- [ ] **Loot drop**: after skinning — confirm you receive 2-4 Raw Meat
+  AND 1-2 Leather (both should always drop, no chance roll on either).
+  Confirm Leather's icon/model actually shows a folded hide swatch, not
+  a blank/generic box.
+- [ ] **Skill gain**: check Gathering's XP before/after skinning —
+  confirm it increased.
+- [ ] **Tool gate**: try skinning without a Knife equipped — confirm the
+  hold either doesn't start or doesn't complete.
+- [ ] **Respawn**: wait out the 180s respawn delay — confirm the Deer
+  reappears alive at the same spot.
+- [ ] **Leather has no consumer yet, by design** — it's sourced now but
+  no recipe uses it (see `BUGS_AND_ENHANCEMENTS.md`'s Fiber/Leather
+  entry). Confirm it's at least findable via Admin Spawn's item search
+  and stacks/carries normally like any other material.
+- [ ] **Not built yet, by design**: no movement, no flee behavior when
+  approached, same limitation as Chicken.

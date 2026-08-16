@@ -47686,6 +47686,107 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 8458264644918559309, guid: a2b58bcedcd6b7140a7fd455a3e73228, type: 3}
   m_PrefabInstance: {fileID: 1844839459}
   m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1844939689
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 7402009758359158996, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_Name
+      value: Deer_001
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778604, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 12
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0.042852283
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 8
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: -0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922649801668778606, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 7402009758359158996, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1844939691}
+  m_SourcePrefab: {fileID: 100100000, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+--- !u!1 &1844939690 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 7402009758359158996, guid: 4ecab060b0afb5d4db61f7f1311b9e24, type: 3}
+  m_PrefabInstance: {fileID: 1844939689}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1844939691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1844939690}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b2e117f216f022d44b9a3870b9c6fe1b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PreyCreature
+  maxHealth: 35
+  requiredTools:
+  - {fileID: 11400000, guid: b770c40f049e6c548d471825e1df0ada, type: 2}
+  - {fileID: 11400000, guid: cab50ab63360c6a4980d65ff4194a603, type: 2}
+  - {fileID: 11400000, guid: 9b1ad9cc97308904386310222340b53a, type: 2}
+  - {fileID: 11400000, guid: b67b3678beead1e4780de292a0cdbf7a, type: 2}
+  - {fileID: 11400000, guid: 895e12c4910884d418218d6e5edb27f2, type: 2}
+  requiredToolLabel: Knife
+  skinningSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
+  skinningSkillGain: 0.5
+  skinHoldDuration: 2
+  respawnDelay: 180
+  lootItemA: {fileID: 11400000, guid: c677bb554b43f7046af1083f259ff234, type: 2}
+  lootAMinCount: 2
+  lootAMaxCount: 4
+  lootADropChance: 1
+  lootItemB: {fileID: 11400000, guid: ba302e2b0eb19af4ba74d05ab9c67789, type: 2}
+  lootBMinCount: 1
+  lootBMaxCount: 2
+  lootBDropChance: 1
 --- !u!1001 &1847582141
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -56308,3 +56409,4 @@ SceneRoots:
   - {fileID: 1207228636}
   - {fileID: 1420769989}
   - {fileID: 908157494}
+  - {fileID: 1844939689}

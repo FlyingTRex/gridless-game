@@ -898,20 +898,10 @@ signs off on scope and order.
   Two independent confirmations now; worth prioritizing a real fix if a
   third asset hits it, rather than accumulating more manual-bake
   one-offs.
-- [ ] **"Rock" item (`MediumRock.asset`) is now completely orphaned.** Side
-  effect of the v0.1.90-dev change making Boulder's chunk punchable
-  instead of directly pickupable (per Ben's request): `MediumRockChunk.
-  prefab` used to be a `Pickup` granting 1 Rock, now it's a
-  `ResourceNode` that breaks into 2 Small Rock instead and never grants
-  Rock at all. Confirmed via guid search — nothing in the project
-  references `MediumRock.asset` anymore (no recipe ever did, per the
-  entry below this one). Same situation the Wood item used to be in
-  before it was removed outright (v0.1.136-dev, Ben's call — the
-  Stick/Plank material line covers that role, Wood was redundant) —
-  worth deciding whether to delete `MediumRock.asset` outright too, or
-  give "Rock" a real purpose (a crafting ingredient? a coarser material
-  than Small Rock for some recipe?) before it reads as forgotten dead
-  content.
+- [x] **"Rock" item (`MediumRock.asset`) — deleted, v0.3.89-dev.** Confirmed
+  orphaned (nothing referenced it) during the 2026-08-15 efficiency
+  audit; deleted outright per Ben's call rather than inventing a use for
+  it.
 - [x] **Can't eat a Berry — fixed v0.1.161-dev.** Reported by Ben during playtest, 2026-08-07.
   Root cause confirmed via investigation: the data wiring is actually
   correct (`Berry.asset`/`BerryEdible.asset` match, and
@@ -1213,10 +1203,16 @@ signs off on scope and order.
   see the Belt and Backpack entries below for the full detail. Also
   required fixing `PlayerCrafting.TryCraft` so a crafted equippable
   actually works (see the Admin-spawn-tab entry above — same root cause,
-  only the crafting side is fixed). **Still open:** where Leather comes
-  from (implies hunting/animals, which don't exist at all yet — or some
-  other source?), and Rudimentary/Fine/Masterwork tiers of either new
-  Fiber item.
+  only the crafting side is fixed). **"Where Leather comes from" answered
+  2026-08-15 (`CHANGELOG.md` v0.3.95-dev):** hunting — a new `Leather.asset`
+  (own real model, `Tools/Blender/GenerateLeatherModel.py`) drops from the
+  Deer, placed in `TestScene.unity` the same `PreyCreature` way Chicken
+  was (killable/skinnable with a Knife, trains Gathering). Raw Meat also
+  drops (2-4, guaranteed) — the shared meat item every creature already
+  uses. **Still open:** no recipe actually consumes Leather yet (still
+  just a sourced-but-unspent material — the still-open Backpack/Belt
+  Sewing-tier recipes below are the natural next consumer), and
+  Rudimentary/Fine/Masterwork tiers of either new Fiber item.
   *(Reported by Ben.)*
 - [x] **Skill-gated crafting tiers — shipped 2026-08-07, see
   `CHANGELOG.md` v0.1.80-dev.** Ben's call: use skill level 1/10/25/50/100
