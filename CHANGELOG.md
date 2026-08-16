@@ -10,7 +10,7 @@ skimmable version.
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
-## 2026-08-16 (10)
+## 2026-08-16 (12)
 
 ### v0.3.105-dev — Village Flag is nameable, name shows on the Player Map
 
@@ -36,7 +36,7 @@ a Storage Box, and the name should show on the Player Map.
   present with its default in each re-saved prefab) only so far — not
   yet live-tested in Play mode.
 
-## 2026-08-16 (9)
+## 2026-08-16 (11)
 
 ### v0.3.104-dev — City Statue gate built, Player Map Flag/Statue reveal hooks wired
 
@@ -88,7 +88,7 @@ section 1), built together since both hook into the same
   Masterwork Flag placed and 10 NPCs actually hired first, so this is a
   longer live-test setup than most items in this list.
 
-## 2026-08-16 (8)
+## 2026-08-16 (10)
 
 ### v0.3.103-dev — Village Flag spawn loop built
 
@@ -150,7 +150,7 @@ placed Flag draws in new hireable NPCs on a real timer.
   30-minute baseline is long for a quick manual check — worth a
   temporarily-shortened interval for the first live test pass).
 
-## 2026-08-16 (7)
+## 2026-08-16 (9)
 
 ### v0.3.102-dev — NPC Training via Desk/Bookshelf built
 
@@ -222,7 +222,7 @@ except the player's own one-time read.
   `PlayerBuilding.allPieces` contents, placed-instance `PrefabInstance`
   blocks) only so far — **not yet live-tested in Play mode.**
 
-## 2026-08-16 (6)
+## 2026-08-16 (8)
 
 ### v0.3.101-dev — NPC bench-crafting (Metalworking pilot) built
 
@@ -290,6 +290,109 @@ crafting job, not just gathering.
 - Verified via batch-mode compile + direct YAML grep (component
   references, array contents, prefab wiring) only so far — **not yet
   live-tested in Play mode.**
+
+## 2026-08-16 (7)
+
+### ItemDefinition/BuildPiece assets now show their own icon as their Project/picker thumbnail (editor tool, no version bump)
+
+traskmi caught this live in the new VMS browser: opening the object
+picker for a recipe's Item field showed every item as an identical
+generic ScriptableObject placeholder, no way to tell Iron from IronOre
+at a glance.
+
+- **`Assets/Editor/IconPreviewEditors.cs`** — `ItemDefinitionEditor`/
+  `BuildPieceEditor`, two thin `CustomEditor`s overriding
+  `RenderStaticPreview` to render each asset's own `icon` Sprite as its
+  thumbnail, instead of Unity's default placeholder. Both types share
+  the same `icon` field name (per `IconBaker.cs`'s own header comment
+  noting it already wires both generically) so one shared helper
+  (`IconPreviewUtility.RenderFromSprite`) covers both.
+- **GPU blit + `ReadPixels`, not `Sprite.texture.GetPixels()`** — works
+  regardless of the source PNG's Read/Write Enabled import setting
+  (the baked icons aren't marked readable); same reasoning `IconBaker`
+  itself renders via a `RenderTexture` rather than reading pixels off
+  an arbitrary source directly.
+- **Neither override touches `OnInspectorGUI`**, so this doesn't change
+  VMS's detail pane at all — `Editor.CreateEditor` now resolves to
+  these custom editors for Items/Build Pieces instead of a plain
+  default `Editor`, but the base class's default `OnInspectorGUI()` is
+  the same rendering VMS was already getting.
+- An item/piece with no `icon` assigned returns `null` from the
+  override, which is exactly what falls back to Unity's normal
+  placeholder — no special-casing needed for in-progress/unfinished
+  assets.
+- Verified via a throwaway batch-mode script (`IconPreviewVerify.cs`,
+  deleted after running, launched **without** `-nographics` since
+  `Graphics.Blit` needs a real graphics device — same trap `IconBaker.cs`
+  already documents): confirmed `Editor.CreateEditor` resolves to the
+  new custom editor types, `RenderStaticPreview` produces a correctly-
+  sized (32×32) texture for two known-icon items (Iron Ingot, Fried
+  Egg), and a blank item with no icon returns `null` cleanly rather than
+  throwing. **Cannot confirm from batch mode** that the Project window
+  or object picker actually display the new thumbnail live — needs a
+  human look in the Editor.
+
+## 2026-08-16 (6)
+
+### VMS admin browser: a tabbed Editor Window for Items/Recipes/Cookables/Skills/NPC Jobs/Build Pieces (editor tool, no version bump)
+
+traskmi's ask, following up on the "central database" discussion earlier
+this session — build the actual browser the backlog note in `CLAUDE.md`
+promised, covering all 6 core data types in one pass.
+
+- **`Assets/Editor/VmsTypeInfo.cs`** — a 6-entry descriptor table
+  (`ItemDefinition`, `CraftingRecipe`, `CookableItem`, `SkillDefinition`,
+  `NPCJobDefinition`, `BuildPiece`) plus a shared `LoadAll(Type)` scan —
+  same `AssetDatabase.FindAssets($"t:{T}")` → `LoadAssetAtPath` pattern
+  `DatabaseRepopulator.LoadAll<T>()` already uses, just `System.Type`-
+  parameterized so the window can call it with a runtime-selected tab.
+- **`Assets/Editor/VmsWindow.cs`** — `Gridless > VMS Admin Browser`. Tab
+  strip across the 6 types, a search box (matches each asset's own
+  filename — the one field guaranteed to exist on every type, and the
+  same stable ID the database `Find()`/`IdFor()` system already keys
+  on), a filtered list on the left, and a live detail pane on the right.
+- **Detail pane deliberately uses Unity's own default inspector**
+  (`Editor.CreateEditor(selected).OnInspectorGUI()`), not a hand-rolled
+  per-type layout — renders every field type already in play (arrays,
+  enums, nested `[System.Serializable]` classes, self-references)
+  correctly for free and stays correct automatically if a field is
+  added/renamed later. Gets real Undo (Ctrl+Z) support for free too,
+  since `OnInspectorGUI()` calls `ApplyModifiedProperties()` internally
+  — deliberately not the `...WithoutUndo()` pattern `IconBaker.cs`/
+  `PickupPrefabBuilder.cs` use, since those are one-shot generators and
+  this is a hand-editing tool.
+- **No autosave** (matches the rest of the project): explicit Save
+  button with a dirty asterisk, plus auto-save-if-dirty when switching
+  tabs or selection so an edit-then-click-next flow doesn't lose work.
+- **New-asset creation included in v1** — `New` button →
+  `EditorUtility.SaveFilePanelInProject` (defaults into `Assets/Data/`,
+  native overwrite-prompt) → `AssetDatabase.CreateAsset`. No fields
+  auto-populated; filled in via the same generic detail editor as any
+  edit.
+- Items/Skills/NPC Jobs tabs show a one-line reminder to run
+  `Gridless > Repopulate Databases` after adding a new asset — those 3
+  types are indexed by `ItemDatabase`/`SkillDatabase`/`NPCJobDatabase`
+  (see the regeneration-determinism fix earlier this session);
+  Recipes/Cookables/Build Pieces have no such index, so no reminder.
+- **No new data store** — per the backlog note this follows through on,
+  VMS never touches `ItemDatabase`/`SkillDatabase`/`NPCJobDatabase`
+  directly and doesn't create equivalents for the other 3 types. All
+  reads are a fresh `AssetDatabase` scan (gone the instant `OnGUI`
+  returns), all writes land on each asset's own `.asset` file — the
+  actual data stays exactly as distributed/git-mergeable as it already
+  was.
+- **No version bump** — `Assets/Editor/**` isn't in this project's
+  version-bump trigger list (`Assets/Scripts/**`, `Assets/Scenes/**`,
+  `Assets/Prefabs/**`) and this is a dev-only tool with zero runtime
+  effect, same precedent as `DatabaseRepopulator.cs` itself.
+- Verified via a throwaway batch-mode script (`VmsVerify.cs`, deleted
+  after running): confirmed a clean compile and exercised the exact
+  scan/name-resolution logic the window uses for all 6 types —
+  `Items=125, Recipes=62, Cookables=6, Skills=21, NPC Jobs=3,
+  Build Pieces=25`, item/skill/job counts matching this session's
+  earlier `DatabaseRepopulator` run exactly. **This only confirms the
+  data layer** — actual window behavior (tabs, search, Undo, Save, New)
+  needs a live Editor GUI pass; see `TEST_FEATURE_PLAN.md`.
 
 ## 2026-08-16 (5)
 

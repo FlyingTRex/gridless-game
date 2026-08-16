@@ -3799,7 +3799,7 @@ pass, not just the general "walking reveals it" item below.
 - [ ] **Flag/Statue reveal circles (v0.3.104-dev)**: place a Village
   Flag, confirm a large circle around it reveals on the Map immediately
   on placement (bigger than the 25m walking radius, scaled by tier — see
-  section 50). Placing a City Statue should reveal an even larger flat
+  section 51). Placing a City Statue should reveal an even larger flat
   125m circle.
 - [ ] **Named Flag markers (v0.3.105-dev)**: right-click a placed Village
   Flag, confirm the rename prompt opens (same as a Storage Box) and
@@ -3809,7 +3809,61 @@ pass, not just the general "walking reveals it" item below.
   walked/revealed yet.
 - [ ] **Not built yet, by design**: any shared/multiplayer visibility.
 
-## 47. NPC Bench-Crafting (Metalworking pilot), v1 (v0.3.101-dev)
+## 47. VMS admin browser (Editor Window), v1 (2026-08-16, no version bump — editor tool)
+
+New — not yet opened in the live Editor GUI at all. Verified so far only
+via a throwaway batch-mode script exercising the same scan/name-resolution
+logic the window uses (`Items=125, Recipes=62, Cookables=6, Skills=21,
+NPC Jobs=3, Build Pieces=25`, clean compile, no field-name typos) — see
+`CHANGELOG.md` 2026-08-16 (6). Batch mode cannot render or click an
+`EditorWindow`, so none of the actual GUI behavior below has been
+confirmed yet.
+
+- [ ] **Open it**: `Gridless > VMS Admin Browser` from the menu bar opens
+  a window with 6 tabs (Items, Recipes, Cookables, Skills, NPC Jobs,
+  Build Pieces).
+- [ ] **List counts look right per tab**: Items ~125, Recipes ~62,
+  Cookables ~6, Skills ~21, NPC Jobs ~3, Build Pieces ~25 (exact counts
+  will drift upward as new content is added — just confirm each tab
+  shows a plausible non-empty list, not that it matches these numbers
+  exactly).
+- [ ] **Search box filters live**: type a partial name (e.g. "Egg" on
+  the Cookables tab) and confirm the list narrows to matching assets
+  only, case-insensitive; Clear resets it.
+- [ ] **Selecting an asset shows its real fields**: click a known item
+  (e.g. `FriedEggCookable`) and confirm the detail pane shows its actual
+  field values (1x Egg ingredient, Frying Pan accessory, 30s cook time,
+  etc.), not a blank/default inspector.
+- [ ] **Editing works and persists**: change a field (e.g. bump a
+  recipe's `skillGain` by 1), click Save, confirm via `git diff` that
+  the `.asset` file on disk actually changed to match.
+- [ ] **Undo works**: make an edit, press Ctrl+Z while the window has
+  focus, confirm the field reverts — this is the whole reason the detail
+  pane uses Unity's own `Editor.CreateEditor`/`OnInspectorGUI()` instead
+  of a hand-rolled layout; confirm that actually pays off in practice.
+- [ ] **Switching tabs/selection with unsaved changes doesn't lose
+  work**: edit a field, switch tabs (or click a different asset) without
+  clicking Save first, confirm the auto-save-if-dirty logic caught it
+  (check the dirty asterisk clears, or `git diff` shows the change).
+- [ ] **New-asset creation**: click New on a tab, confirm the save
+  dialog defaults into `Assets/Data/`, create one, confirm it appears in
+  the list and is selected automatically with blank/default fields.
+- [ ] **Database reminder shows on the right tabs only**: Items/Skills/
+  NPC Jobs tabs show the "run Repopulate Databases" HelpBox; Recipes/
+  Cookables/Build Pieces tabs don't.
+- [ ] **Item/Build Piece icons in the object picker** (added same day,
+  `IconPreviewEditors.cs`): click an `Item`/`ItemDefinition`-type field
+  (e.g. a recipe's Ingredient → Item) to open the picker, confirm items
+  with an assigned `icon` show that actual sprite as their thumbnail —
+  not the generic blue-cube placeholder every item showed before this
+  fix. An item with no icon assigned should still show the placeholder
+  (expected, not a bug). Same check for a Build Piece field/picker.
+- [ ] **Doesn't collide with existing per-asset workflows**: confirm
+  editing an asset through VMS and then opening the same asset in the
+  normal Project window Inspector shows the same up-to-date values (no
+  stale-cache mismatch between the two).
+
+## 48. NPC Bench-Crafting (Metalworking pilot), v1 (v0.3.101-dev)
 
 New — not yet walked through in Play mode at all (verified so far only
 via batch-mode compile + direct scene/prefab YAML grep). Full design in
@@ -3846,7 +3900,7 @@ via batch-mode compile + direct scene/prefab YAML grep). Full design in
   follow-ups once this pilot is confirmed); multiple recipes crafting in
   parallel per NPC; NPC Canteen/liquid-ingredient support.
 
-## 48. NPC Training via Desk/Bookshelf, v1 (v0.3.102-dev)
+## 49. NPC Training via Desk/Bookshelf, v1 (v0.3.102-dev)
 
 New — not yet walked through in Play mode at all (verified so far only
 via batch-mode compile + direct scene/prefab YAML grep). Full design in
@@ -3895,7 +3949,7 @@ books from the original Skill Books build.
   (placeholder cubes for now); any NPC magic-ability system that would
   ever actually read a banked lineage grant.
 
-## 49. Village Flag spawn loop, v1 (v0.3.103-dev)
+## 50. Village Flag spawn loop, v1 (v0.3.103-dev)
 
 New — not yet walked through in Play mode at all (verified so far only
 via batch-mode compile + direct prefab/scene YAML grep). Full design in
@@ -3940,7 +3994,7 @@ waiting out a full real-time cycle.
   per-tier Flag models beyond placeholder scale differences already in
   place.
 
-## 50. City Statue gate, v1 (v0.3.104-dev)
+## 51. City Statue gate, v1 (v0.3.104-dev)
 
 New — not yet walked through in Play mode at all (verified so far only
 via batch-mode compile + direct asset/scene YAML grep). Full design in
