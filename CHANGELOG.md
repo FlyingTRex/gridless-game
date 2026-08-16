@@ -10,6 +10,47 @@ skimmable version.
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
+## 2026-08-16 (7)
+
+### ItemDefinition/BuildPiece assets now show their own icon as their Project/picker thumbnail (editor tool, no version bump)
+
+traskmi caught this live in the new VMS browser: opening the object
+picker for a recipe's Item field showed every item as an identical
+generic ScriptableObject placeholder, no way to tell Iron from IronOre
+at a glance.
+
+- **`Assets/Editor/IconPreviewEditors.cs`** — `ItemDefinitionEditor`/
+  `BuildPieceEditor`, two thin `CustomEditor`s overriding
+  `RenderStaticPreview` to render each asset's own `icon` Sprite as its
+  thumbnail, instead of Unity's default placeholder. Both types share
+  the same `icon` field name (per `IconBaker.cs`'s own header comment
+  noting it already wires both generically) so one shared helper
+  (`IconPreviewUtility.RenderFromSprite`) covers both.
+- **GPU blit + `ReadPixels`, not `Sprite.texture.GetPixels()`** — works
+  regardless of the source PNG's Read/Write Enabled import setting
+  (the baked icons aren't marked readable); same reasoning `IconBaker`
+  itself renders via a `RenderTexture` rather than reading pixels off
+  an arbitrary source directly.
+- **Neither override touches `OnInspectorGUI`**, so this doesn't change
+  VMS's detail pane at all — `Editor.CreateEditor` now resolves to
+  these custom editors for Items/Build Pieces instead of a plain
+  default `Editor`, but the base class's default `OnInspectorGUI()` is
+  the same rendering VMS was already getting.
+- An item/piece with no `icon` assigned returns `null` from the
+  override, which is exactly what falls back to Unity's normal
+  placeholder — no special-casing needed for in-progress/unfinished
+  assets.
+- Verified via a throwaway batch-mode script (`IconPreviewVerify.cs`,
+  deleted after running, launched **without** `-nographics` since
+  `Graphics.Blit` needs a real graphics device — same trap `IconBaker.cs`
+  already documents): confirmed `Editor.CreateEditor` resolves to the
+  new custom editor types, `RenderStaticPreview` produces a correctly-
+  sized (32×32) texture for two known-icon items (Iron Ingot, Fried
+  Egg), and a blank item with no icon returns `null` cleanly rather than
+  throwing. **Cannot confirm from batch mode** that the Project window
+  or object picker actually display the new thumbnail live — needs a
+  human look in the Editor.
+
 ## 2026-08-16 (6)
 
 ### VMS admin browser: a tabbed Editor Window for Items/Recipes/Cookables/Skills/NPC Jobs/Build Pieces (editor tool, no version bump)

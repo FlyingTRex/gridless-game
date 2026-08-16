@@ -3842,6 +3842,13 @@ confirmed yet.
 - [ ] **Database reminder shows on the right tabs only**: Items/Skills/
   NPC Jobs tabs show the "run Repopulate Databases" HelpBox; Recipes/
   Cookables/Build Pieces tabs don't.
+- [ ] **Item/Build Piece icons in the object picker** (added same day,
+  `IconPreviewEditors.cs`): click an `Item`/`ItemDefinition`-type field
+  (e.g. a recipe's Ingredient → Item) to open the picker, confirm items
+  with an assigned `icon` show that actual sprite as their thumbnail —
+  not the generic blue-cube placeholder every item showed before this
+  fix. An item with no icon assigned should still show the placeholder
+  (expected, not a bug). Same check for a Build Piece field/picker.
 - [ ] **Doesn't collide with existing per-asset workflows**: confirm
   editing an asset through VMS and then opening the same asset in the
   normal Project window Inspector shows the same up-to-date values (no
