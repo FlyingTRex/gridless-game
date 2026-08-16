@@ -10,6 +10,68 @@ skimmable version.
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
+## 2026-08-16 (6)
+
+### VMS admin browser: a tabbed Editor Window for Items/Recipes/Cookables/Skills/NPC Jobs/Build Pieces (editor tool, no version bump)
+
+traskmi's ask, following up on the "central database" discussion earlier
+this session — build the actual browser the backlog note in `CLAUDE.md`
+promised, covering all 6 core data types in one pass.
+
+- **`Assets/Editor/VmsTypeInfo.cs`** — a 6-entry descriptor table
+  (`ItemDefinition`, `CraftingRecipe`, `CookableItem`, `SkillDefinition`,
+  `NPCJobDefinition`, `BuildPiece`) plus a shared `LoadAll(Type)` scan —
+  same `AssetDatabase.FindAssets($"t:{T}")` → `LoadAssetAtPath` pattern
+  `DatabaseRepopulator.LoadAll<T>()` already uses, just `System.Type`-
+  parameterized so the window can call it with a runtime-selected tab.
+- **`Assets/Editor/VmsWindow.cs`** — `Gridless > VMS Admin Browser`. Tab
+  strip across the 6 types, a search box (matches each asset's own
+  filename — the one field guaranteed to exist on every type, and the
+  same stable ID the database `Find()`/`IdFor()` system already keys
+  on), a filtered list on the left, and a live detail pane on the right.
+- **Detail pane deliberately uses Unity's own default inspector**
+  (`Editor.CreateEditor(selected).OnInspectorGUI()`), not a hand-rolled
+  per-type layout — renders every field type already in play (arrays,
+  enums, nested `[System.Serializable]` classes, self-references)
+  correctly for free and stays correct automatically if a field is
+  added/renamed later. Gets real Undo (Ctrl+Z) support for free too,
+  since `OnInspectorGUI()` calls `ApplyModifiedProperties()` internally
+  — deliberately not the `...WithoutUndo()` pattern `IconBaker.cs`/
+  `PickupPrefabBuilder.cs` use, since those are one-shot generators and
+  this is a hand-editing tool.
+- **No autosave** (matches the rest of the project): explicit Save
+  button with a dirty asterisk, plus auto-save-if-dirty when switching
+  tabs or selection so an edit-then-click-next flow doesn't lose work.
+- **New-asset creation included in v1** — `New` button →
+  `EditorUtility.SaveFilePanelInProject` (defaults into `Assets/Data/`,
+  native overwrite-prompt) → `AssetDatabase.CreateAsset`. No fields
+  auto-populated; filled in via the same generic detail editor as any
+  edit.
+- Items/Skills/NPC Jobs tabs show a one-line reminder to run
+  `Gridless > Repopulate Databases` after adding a new asset — those 3
+  types are indexed by `ItemDatabase`/`SkillDatabase`/`NPCJobDatabase`
+  (see the regeneration-determinism fix earlier this session);
+  Recipes/Cookables/Build Pieces have no such index, so no reminder.
+- **No new data store** — per the backlog note this follows through on,
+  VMS never touches `ItemDatabase`/`SkillDatabase`/`NPCJobDatabase`
+  directly and doesn't create equivalents for the other 3 types. All
+  reads are a fresh `AssetDatabase` scan (gone the instant `OnGUI`
+  returns), all writes land on each asset's own `.asset` file — the
+  actual data stays exactly as distributed/git-mergeable as it already
+  was.
+- **No version bump** — `Assets/Editor/**` isn't in this project's
+  version-bump trigger list (`Assets/Scripts/**`, `Assets/Scenes/**`,
+  `Assets/Prefabs/**`) and this is a dev-only tool with zero runtime
+  effect, same precedent as `DatabaseRepopulator.cs` itself.
+- Verified via a throwaway batch-mode script (`VmsVerify.cs`, deleted
+  after running): confirmed a clean compile and exercised the exact
+  scan/name-resolution logic the window uses for all 6 types —
+  `Items=125, Recipes=62, Cookables=6, Skills=21, NPC Jobs=3,
+  Build Pieces=25`, item/skill/job counts matching this session's
+  earlier `DatabaseRepopulator` run exactly. **This only confirms the
+  data layer** — actual window behavior (tabs, search, Undo, Save, New)
+  needs a live Editor GUI pass; see `TEST_FEATURE_PLAN.md`.
+
 ## 2026-08-16 (5)
 
 ### v0.3.100-dev — Deterministic ItemDatabase/SkillDatabase/NPCJobDatabase regeneration + O(1) lookup

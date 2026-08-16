@@ -3799,3 +3799,50 @@ pass, not just the general "walking reveals it" item below.
 - [ ] **Not built yet, by design**: Village Flag/City Statue reveal
   circles (the Flag doesn't exist in the game yet) and any shared/
   multiplayer visibility.
+
+## 47. VMS admin browser (Editor Window), v1 (2026-08-16, no version bump — editor tool)
+
+New — not yet opened in the live Editor GUI at all. Verified so far only
+via a throwaway batch-mode script exercising the same scan/name-resolution
+logic the window uses (`Items=125, Recipes=62, Cookables=6, Skills=21,
+NPC Jobs=3, Build Pieces=25`, clean compile, no field-name typos) — see
+`CHANGELOG.md` 2026-08-16 (6). Batch mode cannot render or click an
+`EditorWindow`, so none of the actual GUI behavior below has been
+confirmed yet.
+
+- [ ] **Open it**: `Gridless > VMS Admin Browser` from the menu bar opens
+  a window with 6 tabs (Items, Recipes, Cookables, Skills, NPC Jobs,
+  Build Pieces).
+- [ ] **List counts look right per tab**: Items ~125, Recipes ~62,
+  Cookables ~6, Skills ~21, NPC Jobs ~3, Build Pieces ~25 (exact counts
+  will drift upward as new content is added — just confirm each tab
+  shows a plausible non-empty list, not that it matches these numbers
+  exactly).
+- [ ] **Search box filters live**: type a partial name (e.g. "Egg" on
+  the Cookables tab) and confirm the list narrows to matching assets
+  only, case-insensitive; Clear resets it.
+- [ ] **Selecting an asset shows its real fields**: click a known item
+  (e.g. `FriedEggCookable`) and confirm the detail pane shows its actual
+  field values (1x Egg ingredient, Frying Pan accessory, 30s cook time,
+  etc.), not a blank/default inspector.
+- [ ] **Editing works and persists**: change a field (e.g. bump a
+  recipe's `skillGain` by 1), click Save, confirm via `git diff` that
+  the `.asset` file on disk actually changed to match.
+- [ ] **Undo works**: make an edit, press Ctrl+Z while the window has
+  focus, confirm the field reverts — this is the whole reason the detail
+  pane uses Unity's own `Editor.CreateEditor`/`OnInspectorGUI()` instead
+  of a hand-rolled layout; confirm that actually pays off in practice.
+- [ ] **Switching tabs/selection with unsaved changes doesn't lose
+  work**: edit a field, switch tabs (or click a different asset) without
+  clicking Save first, confirm the auto-save-if-dirty logic caught it
+  (check the dirty asterisk clears, or `git diff` shows the change).
+- [ ] **New-asset creation**: click New on a tab, confirm the save
+  dialog defaults into `Assets/Data/`, create one, confirm it appears in
+  the list and is selected automatically with blank/default fields.
+- [ ] **Database reminder shows on the right tabs only**: Items/Skills/
+  NPC Jobs tabs show the "run Repopulate Databases" HelpBox; Recipes/
+  Cookables/Build Pieces tabs don't.
+- [ ] **Doesn't collide with existing per-asset workflows**: confirm
+  editing an asset through VMS and then opening the same asset in the
+  normal Project window Inspector shows the same up-to-date values (no
+  stale-cache mismatch between the two).
