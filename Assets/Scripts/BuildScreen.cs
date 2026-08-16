@@ -119,8 +119,11 @@ public class BuildScreen : MonoBehaviour
 
         if (!unlocked)
         {
-            int required = piece.trainedSkill != null ? CraftTierScale.SkillRequirement(piece.unlockTier) : 0;
-            GUILayout.Label($"— requires {piece.trainedSkill.skillName} {required}", DebugGUI.Warning);
+            // LockReason (2026-08-16) covers every gate, not just a skill
+            // level -- the old inline message assumed trainedSkill was
+            // always non-null on a locked piece, which the City Statue's
+            // state-only gate (no skill at all) would have NPE'd on.
+            GUILayout.Label($"— {building.LockReason(piece)}", DebugGUI.Warning);
         }
 
         GUI.enabled = unlocked;

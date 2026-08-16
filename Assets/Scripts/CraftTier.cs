@@ -185,6 +185,42 @@ public static class CraftTierScale
         _ => 8f,
     };
 
+    // Village Flag tier -> spawn-interval multiplier (VILLAGE_FLAG_
+    // PLANNING.md section 4, 2026-08-16) -- deliberately its own small
+    // table, not a reuse of Modifier/WeightModifier above (same "a ratio
+    // tuned for one quantity doesn't transfer to another" trap
+    // WeightModifier's own comment documents). Multiplies directly into
+    // the interval (lower = shorter interval = more frequent spawns),
+    // restrained shape matching the design doc's own proposed range
+    // ("Crude 1.0x down to Masterwork ~0.6x") rather than a 25x-style
+    // swing -- exact numbers are first-pass, tune-by-playtesting like
+    // everything else in this table.
+    public static float VillageFlagIntervalMultiplier(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => 1.0f,
+        CraftTier.Rudimentary => 0.9f,
+        CraftTier.Normal => 0.8f,
+        CraftTier.Fine => 0.7f,
+        CraftTier.Masterwork => 0.6f,
+        _ => 1f,
+    };
+
+    // Village Flag tier -> Player Map reveal radius, total (not additive
+    // on top of the 25m on-foot base) -- PLAYER_MAP_PLANNING.md section 1,
+    // locked in 2026-08-16, wired the same day the Flag's own placement
+    // hook (PlayerBuilding.Confirm) went in. City Statue's own flat 125m
+    // reveal (a one-time milestone, not a tier ladder) lives as a plain
+    // const on PlayerBuilding rather than here, since it isn't tier-keyed.
+    public static float VillageFlagRevealRadius(CraftTier tier) => tier switch
+    {
+        CraftTier.Crude => 35f,
+        CraftTier.Rudimentary => 45f,
+        CraftTier.Normal => 55f,
+        CraftTier.Fine => 65f,
+        CraftTier.Masterwork => 75f,
+        _ => 35f,
+    };
+
     // Seconds a skill-gated hold interaction (gathering, chopping, and
     // eventually crafting) takes at each tier — replaces the old
     // punch-N-times/hitsToBreak model. Low tier takes longest (still

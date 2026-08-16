@@ -89,6 +89,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3246594296850682120}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4275300560746879353}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1724510330860882059}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3597751508970687021}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
 --- !u!1 &384420937806375696 stripped
 GameObject:
@@ -269,3 +278,48 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCFlee
   baseMoveSpeed: 1.2
+--- !u!114 &4275300560746879353
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 895d14063c41f0b43b93ba382ac40598, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCCrafting
+  craftDuration: 3
+  searchRadius: 50
+  moveSpeed: 1.5
+  obstacleCheckDistance: 1.5
+--- !u!114 &1724510330860882059
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8dd8d92cdb1dd684a8995e36c9d5b3ae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCTraining
+  searchRadius: 50
+  moveSpeed: 1.5
+  obstacleCheckDistance: 1.5
+--- !u!114 &3597751508970687021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 499990286f5e3d34bb076d4e8fb22c71, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCSeekFlag
+  moveSpeed: 1.5
+  obstacleCheckDistance: 1.5

@@ -23,6 +23,7 @@ public class NPCHiringScreen : MonoBehaviour
 
     private PlayerCurrency wallet;
     private NPCJobScreen jobScreen;
+    private NPCTrainingScreen trainingScreen;
     private PlayerFame fame;
     private NPCHiring current;
     private bool isOpen;
@@ -34,6 +35,7 @@ public class NPCHiringScreen : MonoBehaviour
     {
         wallet = GetComponent<PlayerCurrency>();
         jobScreen = GetComponent<NPCJobScreen>();
+        trainingScreen = GetComponent<NPCTrainingScreen>();
         fame = GetComponent<PlayerFame>();
     }
 
@@ -97,6 +99,19 @@ public class NPCHiringScreen : MonoBehaviour
                 var npc = current;
                 SetOpen(false);
                 jobScreen?.Open(npc);
+                GUILayout.EndArea();
+                return;
+            }
+
+            // Independent of whatever job is assigned (or unassigned) --
+            // training is a general NPC action, not job management, so it
+            // gets its own top-level button rather than living inside
+            // NPCJobScreen (NPC_TRAINING_PLANNING.md section 3.1).
+            if (GUILayout.Button("Train"))
+            {
+                var npc = current;
+                SetOpen(false);
+                trainingScreen?.Open(npc);
                 GUILayout.EndArea();
                 return;
             }

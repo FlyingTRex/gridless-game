@@ -5,10 +5,291 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.100-dev` — must always match `GameVersion` in
+**Current version:** `0.3.105-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (10)
+
+### v0.3.105-dev — Village Flag is nameable, name shows on the Player Map
+
+Ben's follow-up ask on the Village Flag work: it should be nameable like
+a Storage Box, and the name should show on the Player Map.
+
+- **`VillageFlag` now implements `IRenameable`** (`villageName`,
+  default "Unnamed Village") — the existing `PlayerRenaming` right-click
+  flow (raycast → `GetComponentInParent<IRenameable>`) picks it up for
+  free, no new interaction code needed. Re-saved all 5 existing
+  `VillageFlag_{Tier}.prefab`s so the new field is baked into their YAML
+  explicitly rather than relying on Unity's "missing field uses the C#
+  default" behavior for a field added after those prefabs were last
+  saved.
+- **`MapScreen` now draws a labeled marker for every placed Village
+  Flag** — a small red marker plus its `DisplayName` in a text label
+  above it, shown unconditionally (not gated by fog reveal, same
+  reasoning the player's own position marker already gets — you
+  obviously know where your own Flag is). Refactored the player marker's
+  own world-to-map-pixel math into a shared `MapPointFor` helper rather
+  than duplicating it for the new Flag markers.
+- Verified via batch-mode compile + direct YAML grep (`villageName`
+  present with its default in each re-saved prefab) only so far — not
+  yet live-tested in Play mode.
+
+## 2026-08-16 (9)
+
+### v0.3.104-dev — City Statue gate built, Player Map Flag/Statue reveal hooks wired
+
+Chunks 4 and 5 of the "Settlement Growth Loop" — the Village→City
+progression gate (`VILLAGE_FLAG_PLANNING.md` section 6) and the Player
+Map's own long-flagged "not yet wired" follow-up (`PLAYER_MAP_PLANNING.md`
+section 1), built together since both hook into the same
+`PlayerBuilding.Confirm` placement moment.
+
+- **`BuildPiece` gained two independent gate flags**, mirroring
+  `CraftingRecipe.requiresAnvilSurface`/`requiresFurnace`'s exact "opt-in
+  bool most recipes don't need" shape: `requiresCityStatus` (a reusable
+  gate — true means a `CityStatue` must already exist somewhere in the
+  world, for whatever future City-tier structure needs one) and
+  `requiresCityFoundingConditions` (the one-off check only the Statue's
+  own piece sets — a Masterwork Village Flag placed **and** at least 10
+  currently-hired NPCs, a live precondition checked at placement time,
+  not a lifetime counter).
+- **New `CityStatue.cs` marker** — permanent once placed (Ben's explicit
+  call): `Exists` is a pure "does one exist right now" scan, nothing
+  tracks *how* it got there, so firing NPCs back below 10 afterward
+  doesn't revoke city status.
+- **`PlayerBuilding.CanPlace` refactored into a new public `LockReason`**
+  — returns *why* a piece is locked (skill level, missing City Statue,
+  or unmet founding conditions) instead of a bare bool. Fixed a latent
+  bug this refactor would otherwise have exposed: `BuildScreen`'s old
+  warning label unconditionally read `piece.trainedSkill.skillName`,
+  which would have NPE'd the moment a state-gated piece with no
+  `trainedSkill` at all (the City Statue) was ever shown locked.
+- **New `CityStatuePiece.asset`** (placeholder base+column prefab, real
+  Blender model still open) — 20 Rock + 10 Iron Ingot + 5 Gold Ingot, no
+  skill gate at all (purely state-gated, per the design doc's own
+  framing). Placing it grants `PlayerFame.GrantCityStatue()` (+50,
+  proposed, not yet Ben-confirmed as final) — `requiresCityFoundingConditions`
+  doubles as the trigger for this, since only the Statue's own piece
+  would ever set it.
+- **Player Map reveal hooks wired**: `PlayerBuilding.Confirm` now calls
+  `PlayerMapExploration.RevealCircle` for both a placed Village Flag
+  (`CraftTierScale.VillageFlagRevealRadius(tier)` — a new per-tier table,
+  35m Crude up to 75m Masterwork, total radius not additive on top of the
+  25m walking base) and a placed City Statue (a flat 125m, since it's a
+  one-time milestone, not a tier ladder). Closes the one open item
+  `PLAYER_MAP_PLANNING.md` had left since the Map itself shipped
+  (v0.3.98-dev): "the Village Flag itself is being built in a separate
+  parallel pass, so the hook-up is a follow-up once that lands."
+- Verified via batch-mode compile + direct YAML grep (`BuildPiece` field
+  values, prefab component, `PlayerBuilding.allPieces` registration) only
+  so far — **not yet live-tested in Play mode.** A real test needs a
+  Masterwork Flag placed and 10 NPCs actually hired first, so this is a
+  longer live-test setup than most items in this list.
+
+## 2026-08-16 (8)
+
+### v0.3.103-dev — Village Flag spawn loop built
+
+Chunk 3 of the "Settlement Growth Loop" (`VILLAGE_FLAG_PLANNING.md`
+sections 3-4) — the Village Flag's 5-tier recipe ladder (built earlier
+the same session by a parallel pass) now actually does something: a
+placed Flag draws in new hireable NPCs on a real timer.
+
+- **New `VillageFlag.cs` marker** — added to all 5 existing
+  `VillageFlag_{Tier}.prefab`s with the correct `CraftTier` baked in per
+  prefab (each tier is already a genuinely different prefab from the
+  earlier build, not one mesh scaled).
+- **New `VillageFlagSpawner.cs`** on the Player — every
+  `currentIntervalMinutes` (30 real minutes baseline, only accruing once
+  at least one Flag is placed), spawns a fresh `NPCFactoryWorker`-shaped
+  hireable NPC ~40m out from the strongest placed Flag and sends it
+  walking in. Interval formula: `baseInterval / fameFrequencyMultiplier
+  × flagTierMultiplier` — Fame divides (higher Fame = shorter wait),
+  Flag tier multiplies directly (`CraftTierScale.
+  VillageFlagIntervalMultiplier`, a new dedicated small table, Crude
+  1.0x down to Masterwork 0.6x, deliberately restrained per this
+  project's own "a ratio tuned for one quantity doesn't transfer to
+  another" tier-scaling gotcha). With more than one Flag placed, the
+  single highest-tier one drives the shared timer — multi-Flag balance
+  was explicitly left undesigned, this is the simplest defensible
+  reading.
+- **`PlayerFame` gained a canonical `FameBand` enum + `Band`/
+  `SpawnFrequencyMultiplier`** — the same 5-band table (Infamous 0.5x
+  through Renowned 1.5x) `PlayerMenuScreen`'s Fame tile has displayed a
+  label for since 2026-08-14, now the one source of those boundaries
+  instead of two separate copies that could drift; `PlayerMenuScreen.
+  FameBandLabel` was removed in favor of calling `fame.Band` directly.
+  This is also the exact table `FAME_PLANNING.md`'s Traveling Trader
+  visit-frequency design has been sitting on since 2026-08-14 waiting for
+  a real spawn mechanism — now it has one, reusable once commerce exists.
+- **New `NPCSeekFlag.cs`** on the hireable NPC prefab — walks toward a
+  fixed point (reuses `NPCWander`'s move/ground-sample/face plumbing via
+  a small local copy, same reuse shape `NPCFlee.cs` already established
+  for its own move-away behavior), resumes ordinary wandering once it
+  arrives at the Flag (unhired NPCs standing near a Flag behave exactly
+  like any other pre-placed hire), and despawns if not hired within
+  `stickAroundMinutes` — the *inverse* of the current spawn interval
+  (`(baseInterval × baseStickAround) / currentInterval`, `baseStickAround`
+  = the design doc's proposed 10-minute anchor, not yet Ben-confirmed as
+  final). Lives permanently on the prefab (same always-present,
+  gated-by-whether-it-was-triggered convention `NPCCrafting`/`NPCTraining`
+  already use) — every pre-placed hire already in the world also carries
+  it, harmlessly inert since nothing calls `BeginSeeking` on them.
+- **Explicitly left open, matching the design doc's own flagged gaps**:
+  exact Flag-tier multiplier numbers and the 10-minute stick-around
+  anchor are both first-pass, tune-by-playtesting; an unhired NPC that
+  times out despawns outright rather than rejoining the general world
+  population (the design doc left this undecided — despawn needs no new
+  system, so it's the pick here).
+- Verified via batch-mode compile + direct YAML grep (per-prefab tier
+  values, `NPCSeekFlag`/`VillageFlagSpawner` component wiring) only so
+  far — **not yet live-tested in Play mode**, and note this needs a real
+  multi-real-minute Play session to actually observe a spawn (the
+  30-minute baseline is long for a quick manual check — worth a
+  temporarily-shortened interval for the first live test pass).
+
+## 2026-08-16 (7)
+
+### v0.3.102-dev — NPC Training via Desk/Bookshelf built
+
+Chunk 2 of the "Settlement Growth Loop" (`NPC_TRAINING_PLANNING.md`,
+planned earlier the same day) — a hired NPC can now be sent to study a
+skill book at a Desk, closing the loop skill books have been missing
+since they shipped: writing a book previously had nothing to consume it
+except the player's own one-time read.
+
+- **Two new placeholder `BuildPiece`s**: Desk (4 Plank + 2 Stick) and
+  Bookshelf (6 Plank), both Woodworking-trained, Crude tier — real
+  Blender models still open, same "functional shape first, art later"
+  convention this session's Village Flag recipes already used. `Desk
+  Surface.cs` is a bare marker (mirrors `AnvilSurface`/`FurnaceSurface`
+  exactly) `NPCTraining` walks the nearest one of.
+- **Bookshelf is a flagged `StorageBox`, not a new component** —
+  `StorageBox` gained an optional `restrictToSkillBooks` bool that
+  computes its `Inventory`'s `restrictedTo` list from a live
+  `ItemDatabase` scan at `Awake` (any `ItemDefinition` whose
+  `worldPickupPrefab` carries a `SkillBook`), not a hand-authored item
+  list — a new skill-book item is automatically allowed with no
+  registration step, closing the exact registration-array risk
+  `EFFICIENCY_AUDIT.md` already flagged for `ItemDatabase` et al. Reuses
+  every bit of `StorageBox`'s existing rename/pickup/`InventoryScreen`
+  auto-detection behavior for free. `ItemDatabase` gained a small public
+  `AllItems` accessor to support the scan.
+- **New `NPCTraining.cs`** — a one-shot interrupt (mirrors `NPCDialogue`'s
+  Begin/End shape, not a continuous job loop like `NPCGathering`/
+  `NPCCrafting`). Validates Desk availability *before* consuming the
+  book (simpler and safer than discovering "no Desk in range" after an
+  already-spent book has nowhere to walk to), consumes the book upfront,
+  walks to the nearest Desk, waits 2 real minutes, then grants the
+  recipe/lineage and resumes whatever job the NPC was already doing.
+  Pauses `NPCWander`/`NPCGathering`/`NPCCrafting` for the duration, same
+  `SetPaused` convention `NPCDialogue` already established — and closed
+  a real gap in `NPCDialogue` itself while there: Talk previously only
+  paused `NPCGathering`, leaving a Metalworking-assigned NPC free to keep
+  crafting mid-conversation.
+- **`NPCJob` gained a `grantedRecipes`/`knownLineages` bank** — mirrors
+  `PlayerCrafting.bookGrantedRecipes`/`PlayerMagic.knownLineages` exactly,
+  just on the NPC's own job/tool-state component. A crafting/weapon book
+  grants the recipe as a standing exception `NPCCrafting.IsSatisfiable`
+  now checks (`|| job.HasGrantedRecipe(recipe)`); a magic book banks the
+  lineage inertly — NPCs have no spellcasting system at all today, so
+  nothing reads it yet (Ben's explicit framing: forward compatibility,
+  not a stub to apologize for — no bonus-level tracking either, since
+  nothing would ever read a magnitude).
+- **New `NPCTrainingScreen.cs`** — opened via a new "Train" button on
+  `NPCHiringScreen` (a general NPC action independent of job assignment,
+  not nested inside `NPCJobScreen`). Book picker reads from the player's
+  main inventory *and* every `StorageBox` within 10m (a Bookshelf is just
+  one such box — a book left in an ordinary box still counts too,
+  matching the design's "shelving first isn't required" framing). A book
+  that would grant nothing new (`NPCTraining.CanTrainWith`) is shown
+  disabled with an "(already known)" label rather than offered as a real
+  wasteful option.
+- **`PlayerFame` gained `GrantNpcTraining()`** (+0.25, smaller than Hire's
+  own +1 since this repeats far more often once a player has several
+  NPCs and a steady book supply).
+- **`NPCHiring.Fire()` now cancels in-progress training cleanly**
+  (`NPCTraining.CancelTraining`) instead of leaving a fired NPC stuck
+  mid-walk to a Desk with its other components paused forever — the
+  already-consumed book is lost, not refunded, matching this project's
+  consume-upfront-not-refunded convention everywhere else.
+- Placeholder Desk + Bookshelf instances placed in `TestScene.unity` near
+  spawn for easy testing, same precedent the "Prefab buildings" and
+  found skill books already set.
+- Verified via batch-mode compile + direct YAML grep (component wiring,
+  `PlayerBuilding.allPieces` contents, placed-instance `PrefabInstance`
+  blocks) only so far — **not yet live-tested in Play mode.**
+
+## 2026-08-16 (6)
+
+### v0.3.101-dev — NPC bench-crafting (Metalworking pilot) built
+
+Chunk 1 of the "Settlement Growth Loop" (see the published design
+artifact and `NPC_JOB_GENERALIZATION_PLANNING.md` section 7, planned
+2026-08-16 earlier the same day) — an NPC can now be assigned to a real
+crafting job, not just gathering.
+
+- **`NPCJobDefinition` gained `JobKind{Gathering,Crafting}`**, default
+  `Gathering` so `MineOreJob`/`ChopWoodJob`/`ForageJob` needed no data
+  migration. `NPCGathering.Update()` gained a matching early-out so it and
+  the new `NPCCrafting` can sit on the same NPC prefab without fighting
+  over which one is actually driving.
+- **New `NPCCrafting.cs`** — sibling to `NPCGathering`, not an extension
+  of it. Player queues specific `CraftingRecipe`s per NPC (mirrors
+  `Furnace.recipeQueue`/`ToggleQueue`/`MaxQueueSize` member-for-member,
+  including its 4-slot cap — no depth number was specified for this queue
+  specifically, so Furnace's own cap carried over rather than inventing
+  one). Crafting is deterministic — no `CraftOutcomeRoll`, same
+  unattended-automation precedent `SmeltableItem`/`CookableItem` already
+  set. A recipe needing `requiresAnvilSurface`/`requiresFurnace` sends the
+  NPC walking to the nearest qualifying surface first (same
+  nearest-in-range scan `NPCGathering` uses for harvest targets);
+  `requiresCanteenWater` recipes are excluded outright (NPCs have no
+  Canteen concept). Materials/output flow through two player-assigned
+  `StorageBox`es directly — no NPC cargo involved, since nothing is ever
+  carried.
+- **`PlayerNPCDeposit` generalized** from a hardcoded `NPCJob.
+  SetDepositContainer` target to any `Action<StorageBox>` callback — the
+  new `NPCCraftingScreen` needed the identical point-and-confirm
+  targeting flow for its own materials/output box pickers, and
+  duplicating that raycast/E-confirm loop for a second caller would've
+  just been the same code twice. `NPCJobScreen`'s existing "Set Deposit
+  Container" button is unaffected (now passes `job.SetDepositContainer`
+  explicitly instead of the job itself).
+- **New `NPCCraftingScreen.cs`** — opened from `NPCJobScreen`'s new
+  "Manage Crafting Queue" button (shown instead of the Deposit Container
+  section for `JobKind.Crafting` jobs, since there's no world node to
+  deposit from on this path at all). Recipe list is family-scoped to the
+  assigned job's own family, read directly off `PlayerCrafting.Recipes`
+  — no new per-job recipe-list data needed. Each row shows a live
+  Ready/Not ready indicator using the same four-way satisfiability check
+  (`materials`/`tool`/`skill`/`space`) the loop itself uses, so the
+  player can see *why* an NPC is idle instead of guessing.
+- **Pilot: `MetalworkingJob.asset`** (new `NPCJobDefinition`, `kind =
+  Crafting`, `toolRequirements = [Backpack]` copied from `MineOreJob`'s
+  own Backpack requirement) — proves the walk-to-Furnace case against the
+  existing `IronIngotRecipe` with zero new recipe data, per the planning
+  doc's own pilot choice.
+- **Real batch-mode gotcha hit and fixed along the way**: a first attempt
+  at appending `MetalworkingJob` into the scene's `NPCJobScreen.jobs[]`
+  array via `SerializedObject` reported full success (`ApplyModified
+  Properties`/`SaveScene` both returned clean) but the saved YAML showed
+  the new slot as `{fileID: 0}` — the asset reference had been loaded
+  *before* the batch script's own `EditorSceneManager.OpenScene` call,
+  which CLAUDE.md's existing stale-reference gotcha already warns can
+  silently null out a reference used afterward, even with no prefab-
+  content cycle involved. Fixed by reloading the asset reference *after*
+  `OpenScene`, and by rebuilding the array clean (not append-only) to
+  clear the stray null slot the first attempt had already saved.
+- Sewing/Woodworking/Stonework/Carpentry/Forging/Minting as actually
+  *assignable* crafting jobs are explicitly not built yet — the design is
+  family-agnostic, so each is a data-only follow-up once this pilot is
+  confirmed working live, not built speculatively ahead of that.
+- Verified via batch-mode compile + direct YAML grep (component
+  references, array contents, prefab wiring) only so far — **not yet
+  live-tested in Play mode.**
 
 ## 2026-08-16 (5)
 

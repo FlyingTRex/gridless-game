@@ -13,13 +13,21 @@ using UnityEngine.InputSystem;
 // for the duration -- StorageBox already implements IInteractable for its
 // own "pick up the box" action, and confirming a deposit target on the
 // same keystroke shouldn't also pick the box up.
+//
+// Generalized 2026-08-16 (bench-crafting, section 7) from a hardcoded
+// NPCJob.SetDepositContainer target to any Action<StorageBox> callback --
+// NPCCraftingScreen needs the identical point-and-confirm flow for its own
+// materialsSourceBox/outputBox pickers, and duplicating this whole
+// raycast/E-confirm loop for a second caller would just be the same code
+// twice. Existing caller (NPCJobScreen) passes job.SetDepositContainer
+// directly, so its own behavior is unchanged.
 [RequireComponent(typeof(PlayerInteraction))]
 public class PlayerNPCDeposit : MonoBehaviour
 {
     [SerializeField] private float range = 5f;
 
     private PlayerInteraction interaction;
-    private NPCJob targetJob;
+    private System.Action<StorageBox> onSelected;
     private bool isTargeting;
     private StorageBox hovered;
 
@@ -30,9 +38,9 @@ public class PlayerNPCDeposit : MonoBehaviour
         interaction = GetComponent<PlayerInteraction>();
     }
 
-    public void BeginTargeting(NPCJob job)
+    public void BeginTargeting(System.Action<StorageBox> onBoxSelected)
     {
-        targetJob = job;
+        onSelected = onBoxSelected;
         isTargeting = true;
         interaction.SuppressInteraction = true;
     }
@@ -45,7 +53,7 @@ public class PlayerNPCDeposit : MonoBehaviour
         if (!isTargeting) return;
 
         isTargeting = false;
-        targetJob = null;
+        onSelected = null;
         hovered = null;
         interaction.SuppressInteraction = false;
     }
@@ -64,8 +72,10 @@ public class PlayerNPCDeposit : MonoBehaviour
 
         if (hovered != null && keyboard.eKey.wasPressedThisFrame)
         {
-            targetJob.SetDepositContainer(hovered);
+            var callback = onSelected;
+            var box = hovered;
             CancelTargeting();
+            callback?.Invoke(box);
         }
     }
 

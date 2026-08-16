@@ -19,6 +19,13 @@ public class ItemDatabase : ScriptableObject
 
     private Dictionary<string, ItemDefinition> lookup;
 
+    // Read by Bookshelf (StorageBox.restrictToSkillBooks, 2026-08-16) to
+    // compute its own allowed-items list at runtime from a scan of every
+    // ItemDefinition's worldPickupPrefab -- avoids a second hand-maintained
+    // registration array for exactly the reason EFFICIENCY_AUDIT.md already
+    // flagged for this database itself.
+    public IReadOnlyList<ItemDefinition> AllItems => items;
+
     public string IdFor(ItemDefinition item) => item != null ? item.name : null;
 
     public ItemDefinition Find(string id)

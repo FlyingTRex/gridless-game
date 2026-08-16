@@ -109,7 +109,12 @@ public class NPCGathering : MonoBehaviour
     {
         if (isPaused) return;
 
-        bool ready = job.IsReady && (hiring == null || !hiring.IsWaitingForPayment);
+        // Bench-crafting sibling check (2026-08-16, section 7) -- job.IsReady
+        // already requires AssignedJob != null, so this short-circuits safely
+        // before ever dereferencing it.
+        bool ready = job.IsReady
+            && job.AssignedJob.kind == NPCJobDefinition.JobKind.Gathering
+            && (hiring == null || !hiring.IsWaitingForPayment);
         if (!ready)
         {
             currentTarget = null;

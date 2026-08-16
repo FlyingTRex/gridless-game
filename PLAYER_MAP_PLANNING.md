@@ -18,14 +18,18 @@ into `SaveManager.CapturePlayer`/`RestorePlayer`, verified via a real
 batch-mode round-trip (not just a clean compile — the first attempt gave
 a false PASS because `AddComponent` doesn't fire `Awake()` in edit-mode
 batch scripting; fixed the test via reflection, then got a genuine
-666-cells-revealed-and-matched result). **Still not yet built**: Village
-Flag/City Statue reveal hooks (`PlayerMapExploration.RevealCircle` is
-public and ready — the Flag itself is being built in a separate parallel
-pass per `WORKING_ON.md`, so wiring its reveal call is a follow-up once
-that lands, not bundled here). Everything else verified via batch-mode
-compile + direct scene YAML grep only so far — not yet live-tested in
-Play mode beyond the save/load round-trip Ben confirmed was broken (and
-this fix addresses).
+666-cells-revealed-and-matched result). **Village Flag/City Statue
+reveal hooks built, v0.3.104-dev** — `PlayerBuilding.Confirm` calls
+`PlayerMapExploration.RevealCircle` at placement time for both (see
+`VILLAGE_FLAG_PLANNING.md` section 6 and `CHANGELOG.md`'s v0.3.104-dev
+entry), closing the follow-up flagged here. **Named Flag markers built,
+v0.3.105-dev** — `VillageFlag` became nameable (`IRenameable`, same
+right-click flow `StorageBox` already uses), and `MapScreen` now draws a
+labeled marker at every placed Flag's position using that name, shown
+unconditionally rather than gated by fog reveal. Everything else
+verified via batch-mode compile + direct scene YAML grep only so far —
+not yet live-tested in Play mode beyond the save/load round-trip Ben
+confirmed was broken (and that fix addresses).
 
 **Real prerequisite closed same day: `WorldBounds.cs` built and
 verified.** Section 2's "no world-size concept exists" gap is resolved —

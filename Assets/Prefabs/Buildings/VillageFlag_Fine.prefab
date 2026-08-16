@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4209538209670383386}
+  - component: {fileID: 730450188279324252}
   m_Layer: 0
   m_Name: VillageFlag_Fine
   m_TagString: Untagged
@@ -33,6 +34,20 @@ Transform:
   - {fileID: 2731472288248815566}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &730450188279324252
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 426007985688276149}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d8ad3c70b4c95374098f95a1f7dbd77e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::VillageFlag
+  tier: 3
+  villageName: Unnamed Village
 --- !u!1 &1806260753984155462
 GameObject:
   m_ObjectHideFlags: 0

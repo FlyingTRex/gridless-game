@@ -1,8 +1,19 @@
 # NPC Training Planning
 
+**Status: built, v0.3.102-dev (2026-08-16)** — see `CHANGELOG.md`'s
+v0.3.102-dev entry for the built shape. Design below was written and
+decision-locked earlier the same day, then built as written; left in
+present/future tense rather than rewritten past-tense, same convention
+`NPC_JOB_GENERALIZATION_PLANNING.md` uses for its own built sections.
+Section 6's open items (exact Fame amount, interrupted-training refund
+question) were resolved at build time: Fame gain is `PlayerFame.
+GrantNpcTraining()` (+0.25), and an interrupted training loses the
+consumed book (not refunded) — see `NPCHiring.Fire`/`NPCTraining.
+CancelTraining`.
+
 Planning doc for training hired NPCs via skill books (2026-08-16). Designed
 conversationally with Ben across several rounds — this is the write-up of
-that conversation, decision-locked, not yet built.
+that conversation, decision-locked.
 
 **Supersedes `SKILL_BOOKS_PLANNING.md`'s existing Phase 4 stub.** That
 stub (written 2026-08-13, before this conversation) sketched a much
@@ -142,5 +153,3 @@ exist; low-tier materials, matching how Campfire/Garden Plot were both
 - `EFFICIENCY_AUDIT.md` item 1 — the registration-array risk the
   Bookshelf's allowed-items list needs to avoid via auto-population.
 - `FAME_PLANNING.md` — the Fame gain this grants into.
-
-Planning only, not yet built.

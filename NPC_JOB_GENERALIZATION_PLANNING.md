@@ -1,10 +1,12 @@
 # NPC Job Generalization Planning
 
-**Status: built, v0.3.32-dev (2026-08-13)** — sections 1-6 below are now
-shipped (see `CHANGELOG.md`'s v0.3.32-dev entry for the built shape).
-Section 7 (bench-crafting families) remains planning-only, not scoped in.
-Left as-written below rather than rewritten past-tense — it's still the
-accurate design record of what got built and why.
+**Status: built.** Sections 1-6 shipped v0.3.32-dev (2026-08-13, see
+`CHANGELOG.md`'s v0.3.32-dev entry). Section 7 (bench-crafting, the
+Metalworking pilot) shipped v0.3.101-dev (2026-08-16, see that entry) —
+other bench families (Sewing, Woodworking, etc.) are still data-only
+follow-ups, not built. Left as-written below rather than rewritten
+past-tense — it's still the accurate design record of what got built and
+why.
 
 Planning doc for generalizing the Hireable NPC system beyond Mining
 (2026-08-13). Ben's ask: the player should be able to assign an NPC to
@@ -292,12 +294,17 @@ not yet used by anything NPC-facing.
 ## 7. Bench-crafting families (Metalworking, Sewing, Stonework, Carpentry,
    Forging, Minting)
 
-**Status: planned in full 2026-08-16, not yet built.** Was deferred at
-the end of section 6's build; this is the follow-up pass Ben asked for
-("let's do some planning on bench training" → "I meant benchcrafting").
+**Status: built, v0.3.101-dev (2026-08-16)** — see `CHANGELOG.md`'s
+v0.3.101-dev entry for the built shape. Was deferred at the end of
+section 6's build; planned in full the same day Ben asked for it
+("let's do some planning on bench training" → "I meant benchcrafting"),
+then built later the same day once Village Flag/NPC Training/Player Map
+(the rest of the "Settlement Growth Loop") had also been designed.
 Design below is decision-locked (confirmed via `AskUserQuestion`) and
-ready to build — nothing here is still open except what's explicitly
-flagged as such.
+was built as written — nothing here is still open except what's
+explicitly flagged as such (7.7's out-of-scope list). Verified via
+batch-mode compile + direct YAML grep only so far — not yet live-tested
+in Play mode.
 
 ### 7.1 Shape: a new sibling component, not a `NPCGathering` extension
 

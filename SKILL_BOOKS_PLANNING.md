@@ -428,18 +428,17 @@ exist yet and need building first or scoped around:
 
 ### Phase 4 — NPC training
 
-**Superseded 2026-08-16 — see `NPC_TRAINING_PLANNING.md` for the real
-design.** The sketch below (items 11) was written 2026-08-13, before a
-full conversational design pass with Ben. It's kept here for history but
-is **no longer accurate**: the real design is a Desk/Bookshelf ritual
-(2 real minutes, not instant), reads from both a Bookshelf *and* the
-player's inventory (not just a direct hand-over), and **includes magic
-books** (banked inertly on the NPC for a future NPC-magic system,
-explicitly not excluded the way this stub originally said). Sequencing
-is unchanged — still correctly blocked on NPC bench-crafting
-(`NPC_JOB_GENERALIZATION_PLANNING.md` section 7, itself planned but not
-yet built as of this note) for the crafting/weapon-book half to have
-anything to attach to.
+**Superseded 2026-08-16, built the same day — see `NPC_TRAINING_PLANNING.md`
+for the real design (v0.3.102-dev, see `CHANGELOG.md`).** The sketch below
+(item 11) was written 2026-08-13, before a full conversational design pass
+with Ben. It's kept here for history but is **no longer accurate**: the
+real design is a Desk/Bookshelf ritual (2 real minutes, not instant), reads
+from both a Bookshelf *and* the player's inventory (not just a direct
+hand-over), and **includes magic books** (banked inertly on the NPC for a
+future NPC-magic system, explicitly not excluded the way this stub
+originally said). NPC bench-crafting (`NPC_JOB_GENERALIZATION_PLANNING.md`
+section 7) shipped first, same session (v0.3.101-dev), giving the
+crafting/weapon-book half something real to attach to.
 
 <details>
 <summary>Original sketch (2026-08-13), kept for history, superseded above</summary>

@@ -19,11 +19,55 @@ public class PlayerFame : MonoBehaviour
     private const float GuildJoinAmount = 1f;
     private const float GuildLeaveAmount = -1f;
 
+    // Smaller than Hire's own +1 (NPC_TRAINING_PLANNING.md, 2026-08-16) --
+    // a repeatable action once a player has several NPCs and a steady book
+    // supply, not a one-time milestone. Number not pinned down in the
+    // design doc beyond "small"; picked to sit clearly below Hire.
+    private const float NpcTrainingAmount = 0.25f;
+
+    // Proposed, not yet Ben-confirmed as final (VILLAGE_FLAG_PLANNING.md
+    // section 6) -- a real milestone-sized jump, deliberately well above
+    // any repeatable action (Hire +1, Training's own +0.25, even a
+    // Masterwork skill-tier mastery's +5), since reaching this requires
+    // 10 hires *and* a Masterwork Flag *and* the Statue's own real cost.
+    private const float CityStatueAmount = 50f;
+
     [SerializeField] private float fame = 0f;
 
     private PlayerSkills skills;
 
     public float Fame => fame;
+
+    // The same 5-band table `PlayerMenuScreen`'s Fame tile has displayed a
+    // label for since 2026-08-14 -- moved here 2026-08-16 (Village Flag
+    // spawn loop, VILLAGE_FLAG_PLANNING.md section 4) so it's one
+    // canonical source of the band boundaries instead of two copies that
+    // could drift. Also directly the table `FAME_PLANNING.md`'s Traveling
+    // Trader visit-frequency design already confirmed and left unusable
+    // until a real spawn mechanism existed -- the Village Flag is that
+    // mechanism, so this doubles as the Trader's own future frequency
+    // table too, not a Flag-specific one.
+    public enum FameBand { Infamous, Notorious, Neutral, Known, Renowned }
+
+    public FameBand Band =>
+        fame <= -500f ? FameBand.Infamous :
+        fame <= -100f ? FameBand.Notorious :
+        fame < 100f ? FameBand.Neutral :
+        fame < 500f ? FameBand.Known :
+        FameBand.Renowned;
+
+    // Higher = more often = a shorter spawn interval, so the Village Flag
+    // spawner divides by this rather than multiplying — see
+    // VillageFlagSpawner.CurrentIntervalMinutes.
+    public float SpawnFrequencyMultiplier => Band switch
+    {
+        FameBand.Infamous => 0.5f,
+        FameBand.Notorious => 0.75f,
+        FameBand.Neutral => 1.0f,
+        FameBand.Known => 1.25f,
+        FameBand.Renowned => 1.5f,
+        _ => 1.0f,
+    };
 
     private void Awake()
     {
@@ -47,6 +91,8 @@ public class PlayerFame : MonoBehaviour
     public void GrantUnpaidCycle() => Grant(UnpaidCycleAmount);
     public void GrantGuildJoin() => Grant(GuildJoinAmount);
     public void GrantGuildLeave() => Grant(GuildLeaveAmount);
+    public void GrantNpcTraining() => Grant(NpcTrainingAmount);
+    public void GrantCityStatue() => Grant(CityStatueAmount);
 
     // Called by SaveManager on load — sets the absolute value directly,
     // unlike Grant's relative add, same "restore vs. earn" distinction

@@ -16,6 +16,17 @@ public class NPCJob : MonoBehaviour
     private readonly Dictionary<string, ItemDefinition> equippedTools = new Dictionary<string, ItemDefinition>();
     private StorageBox depositContainer;
 
+    // Training grants (NPC_TRAINING_PLANNING.md, 2026-08-16) -- parallel to
+    // PlayerCrafting.bookGrantedRecipes/PlayerMagic.knownLineages, just
+    // living on the NPC's own job/tool-state component rather than a
+    // dedicated NPCCrafting/NPCMagic split, since NPCs have no spellcasting
+    // system to justify a whole NPCMagic component yet. Never touched by
+    // Assign()'s tool-wipe-on-reassignment rule or ClearJob() -- a trained
+    // recipe/lineage is a standing exception on the NPC itself, not a
+    // per-job tool loadout.
+    private readonly HashSet<CraftingRecipe> grantedRecipes = new HashSet<CraftingRecipe>();
+    private readonly HashSet<SkillDefinition> knownLineages = new HashSet<SkillDefinition>();
+
     public NPCJobDefinition AssignedJob => assignedJob;
 
     // Read by NPCGathering (its own readiness gate) and NPCHiring (Chunk 6 --
@@ -114,5 +125,28 @@ public class NPCJob : MonoBehaviour
         equippedTools.Clear();
         assignedJob = null;
         depositContainer = null;
+    }
+
+    // Mirrors PlayerCrafting.GrantRecipe/HasRequiredSkill's bookGrantedRecipes
+    // set exactly, just on the NPC's side -- granting twice is a no-op
+    // (HashSet.Add), and NPCTrainingScreen checks HasGrantedRecipe upfront so
+    // a book already-known isn't even offered (see NPC_TRAINING_PLANNING.md
+    // section 4's "book already granted" edge case).
+    public bool HasGrantedRecipe(CraftingRecipe recipe) => recipe != null && grantedRecipes.Contains(recipe);
+    public void GrantRecipe(CraftingRecipe recipe)
+    {
+        if (recipe != null) grantedRecipes.Add(recipe);
+    }
+
+    // Banked inertly (Ben's call, 2026-08-16) -- NPCs have no spellcasting
+    // system at all today, so nothing currently reads this beyond the
+    // already-known check below. Forward compatibility for a future NPC
+    // magic-ability system, not a stub to apologize for. No bonus-level
+    // tracking (unlike PlayerMagic.LearnLineage) since there's no consumer
+    // that would ever read a magnitude yet -- presence is all that matters.
+    public bool HasLineage(SkillDefinition lineage) => lineage != null && knownLineages.Contains(lineage);
+    public void LearnLineage(SkillDefinition lineage)
+    {
+        if (lineage != null) knownLineages.Add(lineage);
     }
 }

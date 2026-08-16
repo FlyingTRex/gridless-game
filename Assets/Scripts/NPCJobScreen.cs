@@ -23,6 +23,12 @@ public class NPCJobScreen : MonoBehaviour
 
     private PlayerInventory playerInventory;
     private PlayerNPCDeposit deposit;
+
+    // Optional -- not every project setup wires NPCCraftingScreen onto the
+    // player, so this is a plain GetComponent, not a RequireComponent (same
+    // reasoning NPCGathering keeps NPCHiring optional).
+    private NPCCraftingScreen craftingScreen;
+
     private NPCHiring current;
     private bool isOpen;
     private int currentFamilyIndex;
@@ -33,6 +39,7 @@ public class NPCJobScreen : MonoBehaviour
     {
         playerInventory = GetComponent<PlayerInventory>();
         deposit = GetComponent<PlayerNPCDeposit>();
+        craftingScreen = GetComponent<NPCCraftingScreen>();
     }
 
     public void Open(NPCHiring npc)
@@ -136,11 +143,37 @@ public class NPCJobScreen : MonoBehaviour
         else
         {
             DrawToolRequirements(def, job);
-            DrawDepositContainer(job);
+
+            // Crafting-kind jobs have no world node to walk to and deposit
+            // from -- NPCCrafting reads/writes StorageBoxes directly, so
+            // there's no DepositContainer for this kind at all. Hand off to
+            // NPCCraftingScreen for its own materials/output box pickers and
+            // recipe queue instead, same one-modal-at-a-time handoff
+            // DrawDepositContainer already uses for targeting.
+            if (def.kind == NPCJobDefinition.JobKind.Crafting)
+                DrawCraftingQueueButton();
+            else
+                DrawDepositContainer(job);
         }
 
         GUILayout.EndVertical();
         GUILayout.Space(8);
+    }
+
+    private void DrawCraftingQueueButton()
+    {
+        GUILayout.Space(6);
+        if (craftingScreen == null)
+        {
+            GUILayout.Label("No crafting queue screen wired up.", DebugGUI.Warning);
+            return;
+        }
+
+        if (GUILayout.Button("Manage Crafting Queue", GUILayout.Width(180)))
+        {
+            SetOpen(false);
+            craftingScreen.Open(current);
+        }
     }
 
     // Chunk 5 (2026-08-10): where NPCGathering walks the mined ore back to
@@ -158,7 +191,7 @@ public class NPCJobScreen : MonoBehaviour
         if (GUILayout.Button("Set Deposit Container", GUILayout.Width(180)))
         {
             SetOpen(false);
-            deposit.BeginTargeting(job);
+            deposit.BeginTargeting(job.SetDepositContainer);
         }
     }
 

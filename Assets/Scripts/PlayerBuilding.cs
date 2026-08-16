@@ -38,10 +38,24 @@ public class PlayerBuilding : MonoBehaviour
     [SerializeField] private float storageRange = 10f;
     private const float MessageDuration = 3f;
 
+    // City Statue founding gate (VILLAGE_FLAG_PLANNING.md section 6) -- a
+    // live precondition checked at placement time, not a lifetime counter.
+    private const int CityFoundingRequiredHiredNpcs = 10;
+
+    // City Statue's own Player Map reveal (PLAYER_MAP_PLANNING.md section
+    // 1) -- flat, not tier-keyed like the Flag's own ladder, since the
+    // Statue is a one-time milestone, not a craftable tier.
+    private const float CityStatueRevealRadius = 125f;
+
     private PlayerInventory inventory;
     private PlayerSkills skills;
     private PlayerInteraction interaction;
     private PlayerBackpack backpackCarrier;
+    // Both optional -- Fame/Map reveal are real hooks (City Statue Fame
+    // grant, Flag/Statue placement revealing the Player Map), but building
+    // itself shouldn't hard-require either just to place a Foundation.
+    private PlayerFame fame;
+    private PlayerMapExploration mapExploration;
     private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
     private BuildPiece armedPiece;
@@ -66,6 +80,8 @@ public class PlayerBuilding : MonoBehaviour
         skills = GetComponent<PlayerSkills>();
         interaction = GetComponent<PlayerInteraction>();
         backpackCarrier = GetComponent<PlayerBackpack>();
+        fame = GetComponent<PlayerFame>();
+        mapExploration = GetComponent<PlayerMapExploration>();
     }
 
     // Same reach as PlayerCrafting.ReachableInventories: main inventory
@@ -95,9 +111,55 @@ public class PlayerBuilding : MonoBehaviour
         return total;
     }
 
-    public bool CanPlace(BuildPiece piece) =>
-        piece != null && (piece.trainedSkill == null
-            || skills.GetLevel(piece.trainedSkill) >= CraftTierScale.SkillRequirement(piece.unlockTier));
+    public bool CanPlace(BuildPiece piece) => LockReason(piece) == null;
+
+    // Null if placeable, otherwise a short human reason -- read by
+    // BuildScreen's warning label so a piece locked for a non-skill reason
+    // (City Statue's founding conditions, or a future requiresCityStatus
+    // piece) doesn't hit the old code's bare `piece.trainedSkill.
+    // skillName` dereference on a null trainedSkill, and so the player
+    // actually sees *why* it's locked instead of a generic message.
+    public string LockReason(BuildPiece piece)
+    {
+        if (piece == null) return "unavailable";
+
+        if (piece.trainedSkill != null)
+        {
+            int required = CraftTierScale.SkillRequirement(piece.unlockTier);
+            if (skills.GetLevel(piece.trainedSkill) < required)
+                return $"requires {piece.trainedSkill.skillName} {required}";
+        }
+
+        if (piece.requiresCityStatus && !CityStatue.Exists)
+            return "requires an existing City Statue";
+
+        if (piece.requiresCityFoundingConditions && !MeetsCityFoundingConditions())
+            return $"requires a Masterwork Village Flag and {CityFoundingRequiredHiredNpcs} currently-hired NPCs";
+
+        return null;
+    }
+
+    // Live precondition, not a lifetime/cumulative hire counter -- if
+    // you've fired people back below 10, this simply isn't satisfied yet,
+    // same as any other not-currently-satisfiable recipe in this project
+    // (VILLAGE_FLAG_PLANNING.md section 6's own explicit framing).
+    private bool MeetsCityFoundingConditions()
+    {
+        bool hasMasterworkFlag = false;
+        foreach (var flag in FindObjectsByType<VillageFlag>(FindObjectsSortMode.None))
+        {
+            if (flag.Tier != CraftTier.Masterwork) continue;
+            hasMasterworkFlag = true;
+            break;
+        }
+        if (!hasMasterworkFlag) return false;
+
+        int hiredCount = 0;
+        foreach (var hiring in FindObjectsByType<NPCHiring>(FindObjectsSortMode.None))
+            if (hiring.IsHired) hiredCount++;
+
+        return hiredCount >= CityFoundingRequiredHiredNpcs;
+    }
 
     // Called by BuildScreen's Select button.
     public void ArmPiece(BuildPiece piece)
@@ -328,6 +390,22 @@ public class PlayerBuilding : MonoBehaviour
         var real = Instantiate(armedPiece.prefab, position, rotation);
         real.AddComponent<PlacedPiece>().Piece = armedPiece;
         skills?.GainExperience(armedPiece.trainedSkill, armedPiece.skillGain);
+
+        // City Statue Fame grant (VILLAGE_FLAG_PLANNING.md section 6) --
+        // requiresCityFoundingConditions is only ever true on the Statue's
+        // own piece, so it doubles as the trigger here rather than a third
+        // bespoke flag.
+        if (armedPiece.requiresCityFoundingConditions)
+            fame?.GrantCityStatue();
+
+        // Player Map reveal hook (PLAYER_MAP_PLANNING.md section 1) --
+        // the one piece this doc's own Player Map section flagged as
+        // "not yet wired" back when the Map itself shipped, closed here
+        // now that the Flag/Statue actually exist to hook.
+        if (real.GetComponent<VillageFlag>() is { } flag)
+            mapExploration?.RevealCircle(position, CraftTierScale.VillageFlagRevealRadius(flag.Tier));
+        else if (real.GetComponent<CityStatue>() != null)
+            mapExploration?.RevealCircle(position, CityStatueRevealRadius);
 
         if (socket != null)
         {

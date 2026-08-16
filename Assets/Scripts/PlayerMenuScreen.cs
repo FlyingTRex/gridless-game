@@ -337,16 +337,14 @@ public class PlayerMenuScreen : MonoBehaviour
     private void DrawFameTile()
     {
         float value = fame != null ? fame.Fame : 0f;
-        DrawTile("Fame", value.ToString("F1"), TileWidth, FameBandLabel(value));
-    }
-
-    private static string FameBandLabel(float value)
-    {
-        if (value <= -500f) return "Infamous";
-        if (value <= -100f) return "Notorious";
-        if (value < 100f) return "Neutral";
-        if (value < 500f) return "Known";
-        return "Renowned";
+        // Band-name lookup moved onto PlayerFame itself (2026-08-16,
+        // Village Flag spawn loop) since the Village Flag's own spawn-
+        // interval formula needs the identical 5-band thresholds as a
+        // numeric multiplier, not just a display label -- consolidated
+        // into one canonical source rather than two copies of the same
+        // boundaries drifting apart.
+        string band = fame != null ? fame.Band.ToString() : PlayerFame.FameBand.Neutral.ToString();
+        DrawTile("Fame", value.ToString("F1"), TileWidth, band);
     }
 
     // 0-1 progress from the current .25 displayed point toward the next —

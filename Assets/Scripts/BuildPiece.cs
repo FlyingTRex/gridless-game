@@ -27,6 +27,22 @@ public class BuildPiece : ScriptableObject
     // 2026-08-08 — see design-brief.md's Building System section.
     public BuildPiece nextTier;
 
+    // City Statue gate (VILLAGE_FLAG_PLANNING.md section 6, 2026-08-16) --
+    // two independent flags, mirroring CraftingRecipe.requiresAnvilSurface/
+    // requiresFurnace's exact "opt-in bool most recipes don't need" shape.
+    // requiresCityStatus is the REUSABLE gate: true means a CityStatue must
+    // already exist somewhere in the world -- for whatever future
+    // City-tier structure needs "must already be a city," not something
+    // bespoke per building. requiresCityFoundingConditions is the one-off
+    // check only the City Statue's own piece ever sets: a Masterwork
+    // Village Flag placed AND at least 10 currently-hired NPCs (a live
+    // precondition, not cumulative) -- see PlayerBuilding.
+    // MeetsCityFoundingConditions. Also doubles as the trigger
+    // PlayerBuilding.Confirm uses to grant City-founding Fame on
+    // placement, since only the Statue itself would ever set this true.
+    public bool requiresCityStatus;
+    public bool requiresCityFoundingConditions;
+
     // Optional — same "bake from the prefab, blank spacer if unset"
     // convention as ItemDefinition.icon/previewIcon (2026-08-09, Build
     // tab's tile-grid redesign). Null (the default) means BuildScreen

@@ -3796,6 +3796,178 @@ pass, not just the general "walking reveals it" item below.
   the map comes back showing that exact area still revealed (this is
   the regression flagged above; confirm it's actually fixed, not just
   that the code compiles).
-- [ ] **Not built yet, by design**: Village Flag/City Statue reveal
-  circles (the Flag doesn't exist in the game yet) and any shared/
-  multiplayer visibility.
+- [ ] **Flag/Statue reveal circles (v0.3.104-dev)**: place a Village
+  Flag, confirm a large circle around it reveals on the Map immediately
+  on placement (bigger than the 25m walking radius, scaled by tier — see
+  section 50). Placing a City Statue should reveal an even larger flat
+  125m circle.
+- [ ] **Named Flag markers (v0.3.105-dev)**: right-click a placed Village
+  Flag, confirm the rename prompt opens (same as a Storage Box) and
+  saving a new name sticks. Open the Map — confirm a labeled marker at
+  the Flag's position shows that exact name, and updates if renamed
+  again. Confirm the marker/label shows even in an area that hasn't been
+  walked/revealed yet.
+- [ ] **Not built yet, by design**: any shared/multiplayer visibility.
+
+## 47. NPC Bench-Crafting (Metalworking pilot), v1 (v0.3.101-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct scene/prefab YAML grep). Full design in
+`NPC_JOB_GENERALIZATION_PLANNING.md` section 7.
+
+- [ ] **Assign the job**: hire an NPC, open Assign Job, confirm a
+  "Metalworking" family tab now exists alongside Mining/Woodworking/
+  Foraging, and assigning it gives the NPC a Backpack requirement (same
+  as Mining) instead of a Deposit Container section.
+- [ ] **Open the queue**: with Metalworking assigned, confirm "Manage
+  Crafting Queue" appears (not "Set Deposit Container"), and clicking it
+  opens `NPCCraftingScreen` showing every recipe whose skill matches
+  Metalworking (Iron Ingot at minimum).
+- [ ] **Box assignment**: use the Materials Source / Output Box "Set"
+  buttons — confirm the point-and-confirm targeting flow (aim at a
+  Storage Box, press E) works identically to the existing Deposit
+  Container flow, and Escape cancels it cleanly.
+- [ ] **Satisfiability indicator**: with no boxes assigned or empty
+  materials, confirm Iron Ingot shows "Not ready"; stock the materials
+  box with enough Iron Ore and confirm it flips to "Ready."
+- [ ] **Queue it and watch it work**: toggle Iron Ingot into the queue,
+  confirm the NPC walks to the nearest placed Furnace (`FurnaceSurface`),
+  waits, and Iron Ingots land in the output box with Metalworking XP
+  gained — no risk roll, always succeeds once satisfiable.
+- [ ] **Idle behavior**: with nothing queued or nothing satisfiable,
+  confirm the NPC just wanders normally instead of standing frozen.
+- [ ] **Doesn't fight Mining/Gathering**: confirm a Mining- or
+  Woodworking-assigned NPC on the same prefab type is unaffected (still
+  gathers normally, never tries to bench-craft), and vice versa.
+- [ ] **Payment gate**: confirm a Metalworking NPC stops crafting while
+  `IsWaitingForPayment` is true, same as a Gathering NPC stops harvesting.
+- [ ] **Not built yet, by design**: Sewing/Woodworking/Stonework/
+  Carpentry/Forging/Minting as assignable crafting jobs (data-only
+  follow-ups once this pilot is confirmed); multiple recipes crafting in
+  parallel per NPC; NPC Canteen/liquid-ingredient support.
+
+## 48. NPC Training via Desk/Bookshelf, v1 (v0.3.102-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct scene/prefab YAML grep). Full design in
+`NPC_TRAINING_PLANNING.md`. A Desk and a Bookshelf (placeholder cube
+models, real Blender models still open) are pre-placed near spawn in
+`TestScene.unity` for easy testing, alongside the two "found" skill
+books from the original Skill Books build.
+
+- [ ] **Build the pieces**: confirm Desk and Bookshelf both appear under
+  the Woodworking tab of the Build screen, and each places normally
+  (Desk: 4 Plank + 2 Stick; Bookshelf: 6 Plank).
+- [ ] **Bookshelf storage**: confirm a written/found `SkillBook` can be
+  stored in a Bookshelf like any other Storage Box, and confirm a
+  non-book item (any ordinary resource) is *rejected* — restricted-items
+  behavior working as intended.
+- [ ] **Open Train**: hire an NPC, open its menu, confirm a "Train"
+  button exists independent of whatever job (or no job) is assigned, and
+  clicking it opens `NPCTrainingScreen` listing books from both your own
+  inventory and any Bookshelf/Storage Box within ~10m.
+- [ ] **Start training**: pick a crafting/weapon-targeted book, confirm
+  it's immediately consumed (gone from wherever it was) and the NPC
+  walks to the nearest Desk.
+- [ ] **The wait**: confirm the NPC actually holds still at the Desk for
+  2 real minutes (not instant), with `NPCTrainingScreen` showing live
+  progress if reopened mid-training.
+- [ ] **Grant lands**: after training completes, confirm the NPC resumes
+  its prior job (or wandering, if unassigned), and — if it has
+  `NPCCrafting`/Metalworking assigned — confirm the granted recipe is now
+  queueable even below the normal skill-level threshold.
+- [ ] **Magic book banking**: train with a magic (`WishRecipe`-targeting)
+  book — confirm it's consumed and Fame still ticks up, with no error,
+  even though nothing currently reads the banked lineage.
+- [ ] **Already-known guard**: confirm a book targeting a recipe/lineage
+  the NPC already has is shown disabled with "(already known)" rather
+  than offered as a real option.
+- [ ] **No Desk in range**: with both placed Desks far away (or an NPC
+  moved somewhere isolated), confirm training simply can't start and the
+  book is *not* consumed — not a softlock with a wasted book.
+- [ ] **Fire mid-training**: start training, then Fire the NPC before it
+  completes — confirm the NPC doesn't stay stuck paused forever (bug, if
+  seen) and the game doesn't error.
+- [ ] **Talk still works on a Metalworking NPC**: confirm Talk pauses
+  bench-crafting too, not just gathering (closes a gap opened when
+  `NPCCrafting` shipped a chunk earlier the same day).
+- [ ] **Not built yet, by design**: real Desk/Bookshelf Blender models
+  (placeholder cubes for now); any NPC magic-ability system that would
+  ever actually read a banked lineage grant.
+
+## 49. Village Flag spawn loop, v1 (v0.3.103-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct prefab/scene YAML grep). Full design in
+`VILLAGE_FLAG_PLANNING.md` sections 3-4. **Real time commitment**: the
+baseline interval is 30 real minutes — for a first pass, consider
+temporarily lowering `VillageFlagSpawner`'s private constants (not
+exposed in the Inspector; edit the script, test, revert) rather than
+waiting out a full real-time cycle.
+
+- [ ] **Build a Flag**: place any tier of Village Flag — confirm it
+  registers (no error) and `VillageFlagSpawner`'s timer visibly starts
+  accruing (add a temporary debug log if needed to confirm).
+- [ ] **No Flag = no timer**: with zero Flags placed, confirm no NPC ever
+  spawns from this system, however long you wait.
+- [ ] **A spawn actually happens**: after the (possibly shortened)
+  interval elapses, confirm a new NPC appears roughly `spawnDistanceFromFlag`
+  (40m) from the Flag and visibly walks toward it.
+- [ ] **Arrival behavior**: confirm the NPC stops directed movement once
+  within ~2m of the Flag and resumes ordinary wandering nearby — not
+  frozen in place.
+- [ ] **Hiring it**: confirm the arrived NPC can be hired exactly like
+  any pre-placed hire (E, Hire), and behaves normally afterward (Assign
+  Job, Train, etc. — all of Chunks 1-2 above).
+- [ ] **Timeout despawn**: let an arrived-but-unhired NPC sit past
+  `stickAroundMinutes` — confirm it disappears cleanly (no error, no
+  orphaned components).
+- [ ] **Fame changes the pacing**: raise/lower Fame (Admin tools or real
+  play) into a different band and confirm the interval visibly changes
+  (shorter at higher Fame, longer at lower) — same direction for the
+  stick-around window (longer at higher Fame).
+- [ ] **Higher-tier Flag is faster**: with a Masterwork Flag placed
+  instead of Crude (same Fame), confirm the interval is shorter.
+- [ ] **Multiple Flags**: place two Flags of different tiers — confirm
+  the spawn loop doesn't error and uses the higher-tier one's multiplier
+  (the "single shared timer, strongest Flag wins" interpretation this
+  build picked for an otherwise-undesigned case).
+- [ ] **Doesn't affect existing pre-placed NPCs**: confirm NPCs already
+  standing in the world at game start are unaffected by `NPCSeekFlag`
+  being present on their prefab (still just stand there normally, no
+  phantom movement).
+- [ ] **Not built yet, by design**: the Traveling Trader itself; real
+  per-tier Flag models beyond placeholder scale differences already in
+  place.
+
+## 50. City Statue gate, v1 (v0.3.104-dev)
+
+New — not yet walked through in Play mode at all (verified so far only
+via batch-mode compile + direct asset/scene YAML grep). Full design in
+`VILLAGE_FLAG_PLANNING.md` section 6. Needs real setup to test: a
+Masterwork Village Flag placed and 10 NPCs actually hired at once
+(easiest via Admin Spawn for the hire cost and the Village Flag spawn
+loop or Admin-spawned NPCs for the population).
+
+- [ ] **Locked by default**: with fewer than 10 hired NPCs or no
+  Masterwork Flag placed, confirm City Statue shows in the Build tab
+  locked, with the reason label reading something like "requires a
+  Masterwork Village Flag and 10 currently-hired NPCs" (not a generic
+  skill message, not a crash).
+- [ ] **Unlocks live**: place a Masterwork Flag and get to 10 hired NPCs
+  — confirm City Statue becomes placeable (Arm button enabled) without
+  needing to reopen the Build screen.
+- [ ] **Drops back below 10**: fire an NPC back below the threshold
+  before placing the Statue — confirm it re-locks.
+- [ ] **Place it**: confirm the placeholder base+column model appears,
+  Fame increases by +50, and the Player Map immediately reveals a large
+  (125m) circle around it.
+- [ ] **Permanent**: after placing, fire NPCs back below 10 (or lose the
+  Masterwork Flag) — confirm the City Statue itself doesn't disappear or
+  revert, and anything gated by `requiresCityStatus` (nothing yet uses
+  it) would still read city status as true.
+- [ ] **Materials**: confirm placement actually consumes 20 Rock + 10
+  Iron Ingot + 5 Gold Ingot.
+- [ ] **Not built yet, by design**: any actual `requiresCityStatus`-gated
+  structure (Research Facility/Spaceport are illustrative only); the
+  City Statue's real Blender model (placeholder primitives for now).

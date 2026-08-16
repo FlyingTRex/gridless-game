@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 26c729ec6f906524fb8578352178b810, type: 3}
+  m_Name: MetalworkingJob
+  m_EditorClassIdentifier: Assembly-CSharp::NPCJobDefinition
+  jobName: Metalworking
+  kind: 1
+  family: {fileID: 11400000, guid: 026b005b8956b244d8bd104f47370603, type: 2}
+  tier: 1
+  toolRequirements:
+  - label: Backpack
+    acceptableItems:
+    - {fileID: 11400000, guid: a6c92fd6e5ce4d959025097ca6c2c5c8, type: 2}
+    - {fileID: 11400000, guid: 6515c0f350ea4119a80d2535c70ca024, type: 2}
+    - {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
+    - {fileID: 11400000, guid: eea31ec6d54844c19e9c541ae9472293, type: 2}
+    - {fileID: 11400000, guid: 1057569e62d24c378b9411ac3f1ab1fc, type: 2}
+    attachBone: 8
+    attachPositionOffset: {x: 0, y: 0.05, z: -0.18}
+    attachEulerOffset: {x: 0, y: -90, z: 0}
+  workAnimation: 0
+  collectLoosePickups: 0

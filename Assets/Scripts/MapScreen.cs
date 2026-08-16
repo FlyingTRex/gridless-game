@@ -5,21 +5,22 @@ using UnityEngine.InputSystem;
 // open/close/cursor-lock shape GameMenuScreen's backquote toggle already
 // established. Reads PlayerMapExploration's revealed-cell grid and draws
 // it as a texture (fog color for unrevealed cells, ground color for
-// revealed ones), plus the player's own position as a marker. Doesn't
-// draw Flag/Statue markers yet — those components don't exist in the
-// game yet (Village Flag is being built separately, per WORKING_ON.md);
-// this screen only needs PlayerMapExploration's grid to already reflect
-// their reveals once RevealCircle gets called from there, no changes
-// needed here when that lands.
+// revealed ones), plus the player's own position as a marker. Also draws
+// a named marker for every placed Village Flag (Ben's follow-up ask,
+// 2026-08-16, once Flags became nameable via IRenameable) — shown
+// unconditionally, not gated by fog reveal, same reasoning the player's
+// own marker already gets.
 [RequireComponent(typeof(PlayerMapExploration))]
 public class MapScreen : MonoBehaviour
 {
     private static readonly Color FogColor = new Color(0.05f, 0.05f, 0.05f, 1f);
     private static readonly Color RevealedColor = new Color(0.36f, 0.42f, 0.3f, 1f);
     private static readonly Color PlayerMarkerColor = new Color(0.95f, 0.85f, 0.2f, 1f);
+    private static readonly Color FlagMarkerColor = new Color(0.85f, 0.25f, 0.2f, 1f);
 
     private const float MapFraction = 0.8f; // square map area, 80% of the shorter screen dimension
     private const float MarkerSize = 10f;
+    private const float FlagMarkerSize = 8f;
 
     private PlayerMapExploration exploration;
     private bool isOpen;
@@ -73,6 +74,7 @@ public class MapScreen : MonoBehaviour
         float mapSize = Mathf.Min(Screen.width, Screen.height) * MapFraction;
         var mapRect = new Rect((Screen.width - mapSize) / 2f, 70f, mapSize, mapSize);
         GUI.DrawTexture(mapRect, mapTexture);
+        DrawFlagMarkers(mapRect);
         DrawPlayerMarker(mapRect);
 
         GUILayout.EndArea();
@@ -123,19 +125,56 @@ public class MapScreen : MonoBehaviour
 
     private void DrawPlayerMarker(Rect mapRect)
     {
-        exploration.WorldToCell(transform.position, out int cellX, out int cellZ);
-        float u = (float)cellX / exploration.GridWidth;
-        float v = (float)cellZ / exploration.GridHeight;
-
-        // v is measured bottom-up (matches the texture's own row-0-is-
-        // bottom convention above); GUI Rects are measured top-down, so
-        // the marker's Y needs flipping relative to the map rect.
-        float markerX = mapRect.x + u * mapRect.width - MarkerSize / 2f;
-        float markerY = mapRect.y + (1f - v) * mapRect.height - MarkerSize / 2f;
+        Vector2 center = MapPointFor(transform.position, mapRect);
+        var markerRect = new Rect(center.x - MarkerSize / 2f, center.y - MarkerSize / 2f, MarkerSize, MarkerSize);
 
         var prevColor = GUI.color;
         GUI.color = PlayerMarkerColor;
-        GUI.DrawTexture(new Rect(markerX, markerY, MarkerSize, MarkerSize), Texture2D.whiteTexture);
+        GUI.DrawTexture(markerRect, Texture2D.whiteTexture);
         GUI.color = prevColor;
+    }
+
+    // Named Flag markers (Ben's follow-up ask, 2026-08-16) -- shown
+    // unconditionally, not gated by fog reveal, same "you obviously know
+    // where your own Flag is" reasoning the player's own marker already
+    // gets. Drawn before DrawPlayerMarker so the player's marker renders
+    // on top if the two ever overlap.
+    private void DrawFlagMarkers(Rect mapRect)
+    {
+        foreach (var flag in FindObjectsByType<VillageFlag>(FindObjectsSortMode.None))
+        {
+            Vector2 center = MapPointFor(flag.transform.position, mapRect);
+            var markerRect = new Rect(center.x - FlagMarkerSize / 2f, center.y - FlagMarkerSize / 2f, FlagMarkerSize, FlagMarkerSize);
+
+            var prevColor = GUI.color;
+            GUI.color = FlagMarkerColor;
+            GUI.DrawTexture(markerRect, Texture2D.whiteTexture);
+            GUI.color = prevColor;
+
+            var content = new GUIContent(flag.DisplayName);
+            var labelSize = FlagLabelStyle.CalcSize(content);
+            var labelRect = new Rect(center.x - labelSize.x / 2f, markerRect.y - labelSize.y - 2f, labelSize.x, labelSize.y);
+            GUI.Label(labelRect, content, FlagLabelStyle);
+        }
+    }
+
+    private static GUIStyle flagLabelStyle;
+    private static GUIStyle FlagLabelStyle => flagLabelStyle ??= new GUIStyle(GUI.skin.label)
+    {
+        fontSize = 12,
+        alignment = TextAnchor.MiddleCenter,
+        normal = { textColor = FlagMarkerColor },
+    };
+
+    // Shared world-to-map-pixel conversion -- v is measured bottom-up
+    // (matches the texture's own row-0-is-bottom convention in
+    // EnsureTexture above); GUI Rects are measured top-down, so Y needs
+    // flipping relative to the map rect.
+    private Vector2 MapPointFor(Vector3 worldPos, Rect mapRect)
+    {
+        exploration.WorldToCell(worldPos, out int cellX, out int cellZ);
+        float u = (float)cellX / exploration.GridWidth;
+        float v = (float)cellZ / exploration.GridHeight;
+        return new Vector2(mapRect.x + u * mapRect.width, mapRect.y + (1f - v) * mapRect.height);
     }
 }

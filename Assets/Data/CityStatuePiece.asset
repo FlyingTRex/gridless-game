@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17f85ac9db3fc704b91d2ef0a58fed7b, type: 3}
+  m_Name: CityStatuePiece
+  m_EditorClassIdentifier: Assembly-CSharp::BuildPiece
+  pieceName: City Statue
+  prefab: {fileID: 1154147010992547636, guid: e61bdf772d2254344afbdd30ff8bc50c, type: 3}
+  ingredients:
+  - item: {fileID: 11400000, guid: 3d8f7ca61e2666c468f0401b63e2a7cc, type: 2}
+    count: 20
+  - item: {fileID: 11400000, guid: 7a8f6c7adeb496e4fb9ba5fde59b39bd, type: 2}
+    count: 10
+  - item: {fileID: 11400000, guid: d930497f919d5f74b887474ef864536a, type: 2}
+    count: 5
+  trainedSkill: {fileID: 0}
+  unlockTier: 0
+  skillGain: 0
+  groundReach: 0
+  nextTier: {fileID: 0}
+  requiresCityStatus: 0
+  requiresCityFoundingConditions: 1
+  icon: {fileID: 0}
+  previewIcon: {fileID: 0}

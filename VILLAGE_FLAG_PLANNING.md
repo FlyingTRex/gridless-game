@@ -1,9 +1,20 @@
 # Village Flag Planning
 
+**Status: fully built.** Sections 2-4 (the Flag itself + spawn loop)
+shipped v0.3.103-dev; section 6 (City Statue gate) shipped v0.3.104-dev
+(both 2026-08-16) — see `CHANGELOG.md`'s entries for the built shape.
+Left in present/future tense below rather than rewritten
+past-tense, matching the convention `NPC_JOB_GENERALIZATION_PLANNING.md`
+uses for its own built sections. Two of this doc's own flagged-open
+numbers were resolved at build time: `baseStickAround` used the doc's own
+proposed 10-minute anchor (still not Ben-confirmed as final), and "what
+happens to an NPC that wanders off unhired" resolved to despawn (the
+simpler of the two undecided options, needing no new system).
+
 Planning doc for a craftable beacon that draws new hireable NPCs (and,
 later, a Traveling Trader) toward the player's settlement, with Fame and
 the Flag's own crafted quality both speeding it up (2026-08-16). Designed
-conversationally with Ben, decision-locked, not yet built.
+conversationally with Ben, decision-locked.
 
 ## 1. Why this matters — it answers two separate open questions at once
 
@@ -65,6 +76,12 @@ live-tested in Play mode.
   process every other tiered item in this project already went through.
 - Player-placed, same free-placement Build flow every other structure
   (Campfire, Garden Plot, StorageBox) already uses.
+- **Nameable, built v0.3.105-dev** (Ben's follow-up ask, same day) — a
+  placed Flag can be renamed exactly like a Storage Box (`VillageFlag`
+  implements `IRenameable`, so `PlayerRenaming`'s existing right-click
+  flow covers it for free, no new interaction code). The chosen name
+  shows as a labeled marker on the Player Map (`MapScreen`), shown
+  unconditionally rather than gated by fog reveal.
 
 ## 3. Spawn loop
 
@@ -148,13 +165,15 @@ illustrative examples.
   lifetime/cumulative hire counter — if you've fired people back below
   10, the gate simply isn't satisfied yet, same as any other
   not-currently-satisfiable recipe in this project).
-- **City Statue** — a new `BuildPiece`, visible/craftable in the Build
-  tab only once both conditions hold (same "hidden until satisfiable"
-  treatment `PlayerCrafting`'s skill-gated recipes already get, just
-  gated on world-state instead of a skill level). Its own material cost
-  isn't designed here — a real, substantial civic cost, matching its
-  weight as a milestone, but the actual `ingredients[]` list is a build-
-  time decision.
+- **City Statue** — a new `BuildPiece` (built v0.3.104-dev). **Actual
+  built behavior differs slightly from "hidden until satisfiable"**: it
+  always shows in the Build tab like every other piece, locked with a
+  reason label (`PlayerBuilding.LockReason`) when conditions aren't met
+  — matches `BuildScreen`'s existing always-shown-with-a-lock convention
+  for skill-gated pieces rather than introducing true hiding just for
+  this one piece. Material cost: 20 Rock + 10 Iron Ingot + 5 Gold Ingot,
+  a real, substantial civic cost matching its weight as a milestone (a
+  build-time decision, not designed in more detail than that here).
 - **Permanent once built** (Ben, explicit) — City status doesn't revert
   if the player later fires NPCs below 10 or the Flag is somehow lost.
   The Statue standing in the world *is* the proof; no separate
@@ -182,10 +201,13 @@ illustrative examples.
 
 ## 7. Explicitly out of scope for this pass
 
-- **The City Statue's own recipe/materials, and any specific City-tier
-  building** (Research Facility, Spaceport, or otherwise) — the gate
-  mechanism is locked, what it actually gates is not.
-- **The +50 Fame number** — proposed, not yet confirmed.
+- **Any specific City-tier building** gated behind `requiresCityStatus`
+  (Research Facility, Spaceport, or otherwise) — the gate mechanism is
+  built and reusable, nothing yet actually uses it. (The Statue's own
+  recipe/materials are no longer out of scope — see section 6, decided
+  at build time: 20 Rock + 10 Iron Ingot + 5 Gold Ingot.)
+- **The +50 Fame number** — proposed and shipped as the working number,
+  not yet Ben-confirmed as final.
 - **The Traveling Trader itself** — this doc designs the reusable
   spawn-and-seek mechanism; the Trader is a second future consumer of
   it, blocked on the same "no commerce system exists at all" prerequisite
@@ -221,4 +243,5 @@ illustrative examples.
   Orbital Engineering route the City Statue gate's illustrative
   Spaceport example would eventually feed toward.
 
-Planning only, not yet built.
+Sections 2-4 built (v0.3.103-dev). Section 6 (City Statue) built
+(v0.3.104-dev).

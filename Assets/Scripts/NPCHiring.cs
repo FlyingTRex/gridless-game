@@ -34,6 +34,7 @@ public class NPCHiring : MonoBehaviour, IInteractable
     private NPCSkills skills;
     private NPCEncumbrance encumbrance;
     private NPCCargo cargo;
+    private NPCTraining training;
     private PlayerFame playerFame;
     private bool isHired;
     private bool isWaitingForPayment;
@@ -81,6 +82,8 @@ public class NPCHiring : MonoBehaviour, IInteractable
         skills = GetComponent<NPCSkills>();
         encumbrance = GetComponent<NPCEncumbrance>();
         cargo = GetComponent<NPCCargo>();
+        // Optional -- not every hireable NPC setup necessarily has one.
+        training = GetComponent<NPCTraining>();
         playerFame = FindFirstObjectByType<PlayerFame>();
     }
 
@@ -129,6 +132,10 @@ public class NPCHiring : MonoBehaviour, IInteractable
         workTimer = 0f;
         unpaidTimer = 0f;
         job.ClearJob();
+        // Bail out cleanly rather than leaving a fired NPC stuck mid-walk
+        // to a Desk with SetPaused(true) never lifted -- see NPCTraining.
+        // CancelTraining's own header comment.
+        training?.CancelTraining();
     }
 
     public bool TryPay(PlayerCurrency wallet)

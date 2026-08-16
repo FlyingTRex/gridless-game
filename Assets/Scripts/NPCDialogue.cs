@@ -21,6 +21,7 @@ public class NPCDialogue : MonoBehaviour
 
     private NPCWander wander;
     private NPCGathering gathering;
+    private NPCCrafting crafting;
     private bool isTalking;
     private float talkTimer;
 
@@ -29,9 +30,13 @@ public class NPCDialogue : MonoBehaviour
     private void Awake()
     {
         wander = GetComponent<NPCWander>();
-        // Optional -- not every NPC has a job loop (Chunk 4), and
-        // NPCDialogue shouldn't hard-require one just to pause it.
+        // Optional -- not every NPC has a job loop, and NPCDialogue
+        // shouldn't hard-require one just to pause it. crafting added
+        // 2026-08-16 alongside NPCCrafting itself -- Talk previously only
+        // paused gathering, leaving a Metalworking-assigned NPC free to
+        // keep crafting mid-conversation.
         gathering = GetComponent<NPCGathering>();
+        crafting = GetComponent<NPCCrafting>();
     }
 
     private void Update()
@@ -52,6 +57,7 @@ public class NPCDialogue : MonoBehaviour
         talkTimer = dialogueDuration;
         wander.SetPaused(true);
         gathering?.SetPaused(true);
+        crafting?.SetPaused(true);
     }
 
     private void EndDialogue()
@@ -59,6 +65,7 @@ public class NPCDialogue : MonoBehaviour
         isTalking = false;
         wander.SetPaused(false);
         gathering?.SetPaused(false);
+        crafting?.SetPaused(false);
     }
 
     private void OnGUI()

@@ -122,16 +122,19 @@ renamed to `NPCGathering.cs` (GUID preserved) with a target search
 spanning all three pools. Verified via compile + YAML grep only so far —
 no live Play-mode confirmation yet.
 
-**Bench-crafting (Metalworking pilot) is planned in full — see the same
-doc's section 7.** Designed 2026-08-16, decision-locked via
-`AskUserQuestion`, not yet built. A new sibling `NPCCrafting.cs`
-component (not a `NPCGathering` extension — `NPCJobDefinition` gains a
-`JobKind{Gathering,Crafting}` field so both components can coexist on
-the same NPC prefab, each bailing early if the assigned job isn't its
-own kind). Recipe selection is a per-NPC queue mirroring `Furnace.
-recipeQueue`/`ToggleQueue` exactly (Ben's call over "auto-craft anything
-in family") — offerable-to-queue recipes are still family-scoped (same
-grouping `CraftingScreen` uses), just not auto-executed. Crafting is
+**Bench-crafting (Metalworking pilot) is built — see the same doc's
+section 7, and `CHANGELOG.md`'s v0.3.101-dev entry.** Designed
+2026-08-16, decision-locked via `AskUserQuestion`, built same day. A new
+sibling `NPCCrafting.cs` component (not a `NPCGathering` extension —
+`NPCJobDefinition` gained a `JobKind{Gathering,Crafting}` field so both
+components coexist on the same NPC prefab, each bailing early if the
+assigned job isn't its own kind). Recipe selection is a per-NPC queue
+mirroring `Furnace.recipeQueue`/`ToggleQueue` exactly (Ben's call over
+"auto-craft anything in family") — offerable-to-queue recipes are still
+family-scoped (same grouping `CraftingScreen` uses, read directly off
+`PlayerCrafting.Recipes`), just not auto-executed. New
+`NPCCraftingScreen.cs` is the player-facing queue UI, opened from
+`NPCJobScreen`'s new "Manage Crafting Queue" button. Crafting is
 deterministic (no `CraftOutcomeRoll`, matches `SmeltableItem`/
 `CookableItem`'s existing precedent) — the recipe's own skill-tier
 threshold still gates whether it's queueable at all, via the same
@@ -141,34 +144,56 @@ that bar. A recipe needing `requiresAnvilSurface`/`requiresFurnace`
 makes the NPC walk to the nearest qualifying surface first, same
 nearest-in-range scan `NPCGathering` already uses for harvest targets.
 `requiresCanteenWater` recipes are explicitly excluded (NPCs have no
-Canteen concept). Pilot recipe: `IronIngotRecipe` (no new recipe data
-needed, proves the walk-to-Furnace case). Other bench families (Sewing,
-Woodworking, etc.) are data-only follow-ups once `NPCCrafting` itself is
-proven — not built ahead of that.
+Canteen concept). Materials/output flow through two player-assigned
+`StorageBox`es directly (`PlayerNPCDeposit` generalized from a hardcoded
+`NPCJob` target to any `Action<StorageBox>` callback so both this and
+the original Deposit Container targeting share one implementation).
+Pilot: `MetalworkingJob.asset` + the existing `IronIngotRecipe` (no new
+recipe data needed, proves the walk-to-Furnace case). Other bench
+families (Sewing, Woodworking, etc.) are data-only follow-ups once this
+pilot is confirmed working live — not built ahead of that. Hit and fixed
+a real instance of this file's own `OpenScene`-stale-reference gotcha
+while wiring the new job into the scene's `NPCJobScreen.jobs[]` array —
+see that gotcha's own entry below, and the changelog entry for the
+specific symptom (a silently-null array slot despite a clean batch log).
+Verified via batch-mode compile + direct YAML grep only so far — **not
+yet live-tested in Play mode.**
 
-**NPC training via a Desk/Bookshelf ritual is planned in full — see
-`NPC_TRAINING_PLANNING.md`.** Designed conversationally with Ben the
-same session (2026-08-16), supersedes `SKILL_BOOKS_PLANNING.md`'s older
-Phase 4 stub (flagged there as corrected, not silently overwritten). Two
-new Build pieces: a Desk (the NPC physically walks there and waits 2
-real minutes once training starts — a real functional timer, not
-flavor) and a Bookshelf (a restricted storage box holding real
-`SkillBook` instances; needs an auto-populated allowed-items list via
-the same `DatabaseRepopulator`-style scan, not a hand-maintained one,
-per `EFFICIENCY_AUDIT.md`'s registration-array warning). The book picker
-reads from both the Bookshelf *and* the player's own inventory — shelving
-first isn't required. The chosen book is consumed immediately (upfront,
-matching every other consume-then-wait convention in this project), not
-on completion. Crafting/weapon books grant the recipe exception straight
-into `NPCCrafting`'s queue (bench-crafting, above) — `WishRecipe`-
-targeting magic books are explicitly included too, but banked inertly
-(mirrors `PlayerMagic.knownLineages`' shape) since NPCs have no
-spellcasting system yet to actually use one; Ben's framing: forward
-compatibility for whenever NPC magic abilities become real, not a stub
-to be embarrassed about. Not yet built.
+**NPC training via a Desk/Bookshelf ritual is built — see
+`NPC_TRAINING_PLANNING.md`, and `CHANGELOG.md`'s v0.3.102-dev entry.**
+Designed conversationally with Ben the same session (2026-08-16), built
+later the same day — supersedes `SKILL_BOOKS_PLANNING.md`'s older Phase 4
+stub (flagged there as corrected, not silently overwritten). Two new
+placeholder `BuildPiece`s (real Blender models still open): a Desk
+(`DeskSurface.cs` marker + `NPCTraining.cs` walks there and waits 2 real
+minutes once training starts — a real functional timer, not flavor) and
+a Bookshelf — implemented as a plain `StorageBox` with a new
+`restrictToSkillBooks` flag rather than a separate component, since it
+needs the exact same rename/pickup/`InventoryScreen` behavior a normal
+box already has. Its allowed-items list is computed fresh from a live
+`ItemDatabase.AllItems` scan at `Awake` (any item whose
+`worldPickupPrefab` carries `SkillBook`), not hand-maintained, per
+`EFFICIENCY_AUDIT.md`'s registration-array warning. The book picker
+(`NPCTrainingScreen.cs`, opened via a new "Train" button on
+`NPCHiringScreen`) reads from both nearby `StorageBox`es *and* the
+player's own inventory — shelving first isn't required. The chosen book
+is consumed immediately (upfront, matching every other consume-then-wait
+convention in this project), not on completion. Crafting/weapon books
+grant the recipe exception into a new `NPCJob.grantedRecipes` set,
+mirroring `PlayerCrafting.bookGrantedRecipes` — `NPCCrafting.
+IsSatisfiable` checks it as a skill-gate exception, so it feeds straight
+into the bench-crafting queue above. `WishRecipe`-targeting magic books
+are included too, banked inertly into `NPCJob.knownLineages` (mirrors
+`PlayerMagic.knownLineages`' shape, no bonus-level tracking since nothing
+reads a magnitude yet) since NPCs have no spellcasting system to actually
+use one; Ben's framing: forward compatibility for whenever NPC magic
+abilities become real, not a stub to be embarrassed about. Verified via
+batch-mode compile + direct YAML grep only so far — not yet live-tested
+in Play mode.
 
 **A craftable Village Flag that draws new hireable NPCs (and, later, a
-Traveling Trader) is planned in full — see `VILLAGE_FLAG_PLANNING.md`.**
+Traveling Trader) is built (spawn loop) — see `VILLAGE_FLAG_PLANNING.md`
+and `CHANGELOG.md`'s v0.3.103-dev entry.**
 Designed the same session (2026-08-16) — answers two separate open
 questions at once: this conversation's own "what should higher Fame
 unlock for finding NPCs," and a `FAME_PLANNING.md` question left
@@ -181,33 +206,56 @@ already established (Hunting Expansion, 2026-08-15) — no skill roll,
 ingredient quality decides output tier, and higher tiers physically look
 bigger too (real per-tier models, not a naive scale multiply — same
 "differently-shaped stages" precedent `CropDefinition`'s growth stages
-already use). A spawn timer (30 real minutes
-baseline) reduced by both Fame band (reuses `FAME_PLANNING.md`'s
-existing 5-band 0.5x–1.5x table directly, no new numbers) and Flag tier
-(a new dedicated scale — CLAUDE.md's own tier-scaling gotcha means Arrow/
-Bow's damage tables aren't the right numbers to reuse here). Spawned
-NPCs walk toward the nearest Flag (reuses `NPCFlee.cs`'s move-toward-a-
-fixed-point plumbing) and become an ordinary pre-placed-style hire once
-they arrive. **The elegant part, Ben's own framing**: the window before
-an unhired NPC wanders off again is the *inverse* of the current spawn
-interval (`stickAroundMinutes = baseInterval × baseStickAround ÷
-currentInterval`, proposed formula not yet fully confirmed) — so higher
-Fame means NPCs both show up sooner *and* stick around longer once they
-do, a real compounding effect. The Traveling Trader itself stays blocked
-on the wider commerce system (`BUGS_AND_ENHANCEMENTS.md`) — this doc
-only builds the reusable spawn-and-seek mechanism, not the Trader.
-**Same doc's section 6, also locked in**: a Masterwork Flag + 10
-currently-hired NPCs unlocks a **City Statue** `BuildPiece` — permanent
-once built (no revert if NPC count later drops), +50 Fame (proposed),
-and a reusable `requiresCityStatus` gate flag (mirrors
-`CraftingRecipe.requiresAnvilSurface`'s exact shape) for whatever
-advanced structures eventually need "must be a City, not a Village" —
-Research Facility/Spaceport are named only as illustrative future
-examples, not designed. Genuine tie-in worth remembering:
+already use). **Spawn timer built, v0.3.103-dev**: 30 real minutes
+baseline, reduced by both Fame band (moved onto `PlayerFame.Band`/
+`SpawnFrequencyMultiplier` as the canonical source of the existing
+5-band 0.5x–1.5x table, no new numbers) and Flag tier (`CraftTierScale.
+VillageFlagIntervalMultiplier`, a new dedicated scale — CLAUDE.md's own
+tier-scaling gotcha means Arrow/Bow's damage tables aren't the right
+numbers to reuse here). Spawned NPCs walk toward the strongest placed
+Flag (`NPCSeekFlag.cs`, reuses `NPCFlee.cs`'s move-toward-a-fixed-point
+plumbing) and become an ordinary pre-placed-style hire once they arrive.
+**The elegant part, Ben's own framing, built as designed**: the window
+before an unhired NPC wanders off again (then despawns — the design's
+own undecided "despawn vs. rejoin the world" question resolved toward
+the simpler option) is the *inverse* of the current spawn interval
+(`stickAroundMinutes = baseInterval × baseStickAround ÷
+currentInterval`) — so higher Fame means NPCs both show up sooner *and*
+stick around longer once they do, a real compounding effect. The
+Traveling Trader itself stays blocked on the wider commerce system
+(`BUGS_AND_ENHANCEMENTS.md`) — this doc only builds the reusable
+spawn-and-seek mechanism, not the Trader. Verified via batch-mode
+compile + direct YAML grep only so far — not yet live-tested in Play
+mode (the 30-minute baseline is long for a quick manual check; worth a
+temporarily-shortened interval for the first live pass). **Nameable,
+v0.3.105-dev**: `VillageFlag` implements `IRenameable`, so the existing
+`PlayerRenaming` right-click flow (same one `StorageBox` already uses)
+renames it for free — no new interaction code. `MapScreen` draws a
+labeled marker for every placed Flag using its chosen name, shown
+unconditionally rather than gated by fog reveal.
+**Same doc's section 6 is built, v0.3.104-dev**: a Masterwork Flag + 10
+currently-hired NPCs (a live precondition, checked at placement time —
+`PlayerBuilding.MeetsCityFoundingConditions`) unlocks a **City Statue**
+`BuildPiece` — permanent once built (`CityStatue.Exists` is a pure
+"does one exist" scan, nothing tracks how it got there, so firing NPCs
+back below 10 afterward doesn't revoke it), +50 Fame
+(`PlayerFame.GrantCityStatue`, proposed, not yet Ben-confirmed as
+final), and a reusable `requiresCityStatus` gate flag on `BuildPiece`
+(mirrors `CraftingRecipe.requiresAnvilSurface`'s exact shape) for
+whatever advanced structures eventually need "must be a City, not a
+Village" — Research Facility/Spaceport are named only as illustrative
+future examples, not designed, and nothing uses `requiresCityStatus` yet
+besides the flag existing. Genuine tie-in worth remembering:
 `docs/design-brief.md`'s existing endgame already specs an Orbital
 Engineering route converging on Escape Velocity — a future Spaceport
 reads as a real stepping stone toward that, not a new disconnected idea.
-Not yet built.
+`PlayerBuilding.CanPlace` was refactored into a public `LockReason`
+during this build — fixed a latent NPE `BuildScreen`'s old locked-piece
+warning label would have hit the moment any state-gated (not
+skill-gated) piece like this one was ever shown locked. Verified via
+batch-mode compile + direct YAML grep only so far — not yet live-tested
+(needs a Masterwork Flag placed and 10 NPCs actually hired first, a
+longer live-test setup than most).
 
 **A fog-of-war Player Map's core mechanic is built — see
 `PLAYER_MAP_PLANNING.md`.** Designed and built the same session
@@ -216,13 +264,13 @@ just above. `M` opens it (confirmed collision-free against
 `GameMenuScreen.ControlsList`, updated with the new binding). Starts
 blank — new `PlayerMapExploration` component reveals a permanent 25m
 radius around everywhere the player has actually walked, rendered live
-as a fog texture in the new `MapScreen`. **Not yet wired**: the bigger
-reveal circle a Flag or Statue is supposed to add at the point it's
-placed, scaled by the same 5-tier ladder (Crude 35m total through
-Masterwork 75m; City Statue 125m flat) — `PlayerMapExploration.
-RevealCircle` is public and ready for this, but the Village Flag itself
-is being built in a separate parallel pass (see `WORKING_ON.md`), so
-the hook-up is a follow-up once that lands. Shared visibility for other
+as a fog texture in the new `MapScreen`. **Flag/Statue reveal hooks
+wired, v0.3.104-dev**: `PlayerBuilding.Confirm` calls `PlayerMapExploration.
+RevealCircle` at placement time for both a Village Flag
+(`CraftTierScale.VillageFlagRevealRadius`, Crude 35m total through
+Masterwork 75m) and a City Statue (125m flat) — closes the follow-up
+this section had been waiting on since the Flag was still mid-build in
+a parallel pass. Shared visibility for other
 players (Flag markers, Statue circles visible settlement-wide) is
 explicitly logged as multiplayer-only — `MULTIPLAYER_PLANNING.md` has
 no state-sharing infrastructure at all yet. **Save/load persistence for

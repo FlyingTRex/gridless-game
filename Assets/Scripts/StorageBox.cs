@@ -25,6 +25,15 @@ public class StorageBox : MonoBehaviour, IRenameable, IInteractable
     // shouldn't be portable) — Complete no-ops in that case.
     [SerializeField] private ItemDefinition pickupItem;
 
+    // The Bookshelf (NPC_TRAINING_PLANNING.md, 2026-08-16) is deliberately
+    // just a flagged StorageBox, not a separate component -- it needs the
+    // exact same rename/pickup/InventoryScreen-auto-detection behavior a
+    // plain box already has, just restricted to skill books. True computes
+    // restrictedTo from a live ItemDatabase scan at Awake (see below)
+    // instead of a hand-authored item list, so any future skill-book item
+    // is automatically allowed with no per-instance authoring needed.
+    [SerializeField] private bool restrictToSkillBooks;
+
     private Inventory inventory;
 
     public string DisplayName => boxName;
@@ -58,7 +67,28 @@ public class StorageBox : MonoBehaviour, IRenameable, IInteractable
 
     private void Awake()
     {
-        inventory = new Inventory(capacity);
+        inventory = new Inventory(capacity, restrictToSkillBooks ? ComputeSkillBookItems() : null);
+    }
+
+    // Every ItemDefinition whose worldPickupPrefab carries a SkillBook
+    // component, computed fresh from ItemDatabase every time a restricted
+    // Bookshelf wakes up -- not cached, not authored per-instance. A new
+    // skill-book item is automatically allowed the moment it exists, same
+    // "auto-populated, not hand-maintained" requirement DatabaseRepopulator
+    // already established for the database itself (EFFICIENCY_AUDIT.md).
+    private static ItemDefinition[] ComputeSkillBookItems()
+    {
+        var database = ItemDatabase.Instance;
+        if (database == null) return null;
+
+        var result = new List<ItemDefinition>();
+        foreach (var item in database.AllItems)
+        {
+            if (item == null || item.worldPickupPrefab == null) continue;
+            if (item.worldPickupPrefab.GetComponent<SkillBook>() != null)
+                result.Add(item);
+        }
+        return result.ToArray();
     }
 
     private void OnEnable() => Active.Add(this);
