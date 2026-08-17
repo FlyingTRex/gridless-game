@@ -23,15 +23,21 @@ public class VillageFlagSpawner : MonoBehaviour
     // every other first-pass balance number in this project takes.
     private const float BaseStickAroundMinutes = 10f;
 
-    [SerializeField] private GameObject hireableNpcPrefab;
+    // Split from a single hireableNpcPrefab field into Male/Female
+    // (2026-08-17, alongside the auto-naming work) -- every spawn now
+    // randomly picks between the two instead of always producing the
+    // same gender.
+    [SerializeField] private GameObject hireableNpcPrefabMale;
+    [SerializeField] private GameObject hireableNpcPrefabFemale;
 
     // Read by SaveManager.RestoreNpc (2026-08-17, once all pre-placed NPCs
     // were removed from the scene -- see BUGS_AND_ENHANCEMENTS.md) -- this
     // is now the ONLY source of hireable NPC instances in the whole game,
     // so restoring a saved hire that no longer exists in a fresh scene
     // means re-instantiating from this same prefab, exactly like a fresh
-    // spawn would.
-    public GameObject HireableNpcPrefab => hireableNpcPrefab;
+    // spawn would. Which of the two depends on that NPC's own saved
+    // gender, not a fixed choice.
+    public GameObject HireableNpcPrefab(bool isFemale) => isFemale ? hireableNpcPrefabFemale : hireableNpcPrefabMale;
 
     // How far out from the target Flag a freshly spawned NPC appears --
     // far enough that the walk-in is a real, visible thing, not
@@ -98,7 +104,11 @@ public class VillageFlagSpawner : MonoBehaviour
 
     private void SpawnAndSendToward(VillageFlag flag, float intervalMinutes)
     {
-        if (hireableNpcPrefab == null || flag == null) return;
+        if (flag == null) return;
+
+        bool isFemale = Random.value < 0.5f;
+        var prefab = HireableNpcPrefab(isFemale);
+        if (prefab == null) return;
 
         Vector2 dir = Random.insideUnitCircle.normalized;
         Vector3 spawnPos = flag.transform.position + new Vector3(dir.x, 0f, dir.y) * spawnDistanceFromFlag;
@@ -108,7 +118,9 @@ public class VillageFlagSpawner : MonoBehaviour
         spawnPos.z = Mathf.Clamp(spawnPos.z, bounds.min.z, bounds.max.z);
         spawnPos.y = GroundHeight.Sample(spawnPos, flag.transform.position.y);
 
-        var instance = Instantiate(hireableNpcPrefab, spawnPos, Quaternion.identity);
+        var instance = Instantiate(prefab, spawnPos, Quaternion.identity);
+        instance.GetComponent<NPCDialogue>()?.Configure(NPCNameGenerator.PickUnique(isFemale), isFemale);
+
         var seek = instance.GetComponent<NPCSeekFlag>();
         if (seek == null) return;
 

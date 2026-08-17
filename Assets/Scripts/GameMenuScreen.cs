@@ -25,6 +25,7 @@ public class GameMenuScreen : MonoBehaviour
         ("Left Shift (hold)", "Sprint"),
         ("M", "Open the Player Map"),
         ("Mouse Movement", "Look around"),
+        ("N", "Open the NPC Roster"),
         ("Right Mouse Button", "Rename a world object"),
         ("Space", "Jump"),
         ("Tab", "Open the player menu (Inventory / Skills / Crafting)"),

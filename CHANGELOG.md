@@ -5,10 +5,52 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.122-dev` — must always match `GameVersion` in
+**Current version:** `0.3.123-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-17 (7)
+
+### v0.3.123-dev — NPC gender/auto-naming, Map/Roster NPC tracking, longer work cycle
+
+**NPCs now randomly spawn Male or Female with a real auto-assigned
+name.** `VillageFlagSpawner` split its single `hireableNpcPrefab` field
+into Male/Female variants (previously only ever spawned Male), coin-flip
+picks between them, and a new `NPCNameGenerator.PickUnique` assigns a
+name from a static list — preferring one not already in use by a
+currently-active NPC. `NPCDialogue` now implements `IRenameable` (same
+right-click flow `StorageBox`/`VillageFlag` use) so a player can rename
+on top of the auto-assigned default. Both name and gender are captured/
+restored by `SaveManager`, including the recreate-on-load path — a
+restored NPC comes back as the same gender it was, not a fresh coin
+flip.
+
+**The Map and a new `N`-bound NPC Roster screen both now track NPCs
+live.** `MapScreen.DrawNpcMarkers` mirrors `DrawFlagMarkers`' exact
+pattern (a fresh scan every `OnGUI` frame — real live position, no
+extra plumbing). `NPCRosterScreen` (new) lists every NPC with name/job/
+status/distance; "Manage" opens the same `NPCHiringScreen` a walk-up-
+and-E interaction would. Built directly off live-testing pain — this
+same session involved diagnosing a wandering Miner and a frozen Guard
+one at a time by physically walking to each.
+
+**NPC work cycle lengthened from 5 to 60 real minutes** (`NPCHiring
+.workDurationSeconds`) — the 5-minute placeholder was too short a leash
+now that Village-Flag-spawned NPCs are the only source and testing
+spans much longer real sessions.
+
+Also found and logged (not yet fixed): giving an NPC a Leather Backpack
+is silently rejected — all 4 jobs needing a Backpack tool
+(`MineOreJob`/`ChopWoodJob`/`ForageJob`/`MetalworkingJob`) only list the
+original plain Backpack's 5 tier guids, never updated when the separate
+Leather Backpack family was added later. Also: `NPCJob.TryGiveTool`/
+`NPCJobScreen.HasAny` only check the player's top-level inventory, never
+a worn Backpack's nested contents. And the same weak single-deflection
+obstacle-avoidance `NPCSeekFlag` had (fixed in v0.3.116-dev) is still
+present, unfixed, in `NPCGathering`/`NPCCrafting`/`NPCTraining`/
+`NPCGuarding` — confirmed live via a Guard that got permanently stuck
+near a Boulder.
 
 ## 2026-08-17 (6)
 

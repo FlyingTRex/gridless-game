@@ -347,6 +347,7 @@ public class SaveManager : MonoBehaviour
     private static JObject CaptureNpc(NPCHiring npc, SaveId saveId)
     {
         var job = npc.Job;
+        var dialogue = npc.GetComponent<NPCDialogue>();
 
         var toolsObj = new JObject();
         foreach (var kv in job.EquippedTools)
@@ -362,6 +363,12 @@ public class SaveManager : MonoBehaviour
             ["saveId"] = saveId.Id,
             ["state"] = new JObject
             {
+                // Auto-assigned at spawn (or player-renamed since) --
+                // captured so a recreated-on-load NPC doesn't re-roll to a
+                // different random name/gender every reload (2026-08-17,
+                // BUGS_AND_ENHANCEMENTS.md "NPC identification").
+                ["name"] = dialogue != null ? dialogue.DisplayName : null,
+                ["isFemale"] = dialogue != null && dialogue.IsFemale,
                 ["isHired"] = npc.IsHired,
                 ["isWaitingForPayment"] = npc.IsWaitingForPayment,
                 ["workTimer"] = npc.WorkTimer,
@@ -397,7 +404,8 @@ public class SaveManager : MonoBehaviour
 
             if (npc == null)
             {
-                var prefab = villageFlagSpawner != null ? villageFlagSpawner.HireableNpcPrefab : null;
+                bool isFemale = (bool)(state["isFemale"] ?? false);
+                var prefab = villageFlagSpawner != null ? villageFlagSpawner.HireableNpcPrefab(isFemale) : null;
                 if (prefab == null) continue;
 
                 var position = ParseVector3(state["position"] as JObject);
@@ -415,6 +423,13 @@ public class SaveManager : MonoBehaviour
     private static void RestoreNpc(NPCHiring npc, JObject state)
     {
         if (state == null) return;
+
+        // Only reapplies if a name was actually saved -- an old save file
+        // from before this fix has no "name" key, and Configure's own
+        // null/whitespace guard leaves whatever the fresh Instantiate
+        // already carries untouched in that case rather than blanking it.
+        if (state["name"] != null)
+            npc.GetComponent<NPCDialogue>()?.Configure((string)state["name"], (bool)(state["isFemale"] ?? false));
 
         npc.RestoreHiringState(
             (bool)(state["isHired"] ?? false),

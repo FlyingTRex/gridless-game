@@ -42910,6 +42910,7 @@ GameObject:
   - component: {fileID: 1681626300}
   - component: {fileID: 1681626301}
   - component: {fileID: 1681626302}
+  - component: {fileID: 1681626303}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -44180,7 +44181,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae6002f77a7f3d74bbbaa13b7188a22d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VillageFlagSpawner
-  hireableNpcPrefab: {fileID: 4646995035460805641, guid: 56f31d049995da94292e953f4b711898, type: 3}
+  hireableNpcPrefabMale: {fileID: 4646995035460805641, guid: 56f31d049995da94292e953f4b711898, type: 3}
+  hireableNpcPrefabFemale: {fileID: 6623683994618491491, guid: b1ba0a7ae19f0154a82ac1f0c857f720, type: 3}
   spawnDistanceFromFlag: 20
 --- !u!114 &1681626302
 MonoBehaviour:
@@ -44194,6 +44196,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0514b27a5b8c5d34ea2fd450a54c9b6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAutosave
+--- !u!114 &1681626303
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1681626227}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e902492caedf6184abfe27b0202b27f5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCRosterScreen
 --- !u!1001 &1689588954
 PrefabInstance:
   m_ObjectHideFlags: 0

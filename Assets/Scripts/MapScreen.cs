@@ -17,10 +17,12 @@ public class MapScreen : MonoBehaviour
     private static readonly Color RevealedColor = new Color(0.36f, 0.42f, 0.3f, 1f);
     private static readonly Color PlayerMarkerColor = new Color(0.95f, 0.85f, 0.2f, 1f);
     private static readonly Color FlagMarkerColor = new Color(0.85f, 0.25f, 0.2f, 1f);
+    private static readonly Color NpcMarkerColor = new Color(0.3f, 0.65f, 0.9f, 1f);
 
     private const float MapFraction = 0.8f; // square map area, 80% of the shorter screen dimension
     private const float MarkerSize = 10f;
     private const float FlagMarkerSize = 8f;
+    private const float NpcMarkerSize = 7f;
 
     private PlayerMapExploration exploration;
     private bool isOpen;
@@ -75,6 +77,7 @@ public class MapScreen : MonoBehaviour
         var mapRect = new Rect((Screen.width - mapSize) / 2f, 70f, mapSize, mapSize);
         GUI.DrawTexture(mapRect, mapTexture);
         DrawFlagMarkers(mapRect);
+        DrawNpcMarkers(mapRect);
         DrawPlayerMarker(mapRect);
 
         GUILayout.EndArea();
@@ -164,6 +167,39 @@ public class MapScreen : MonoBehaviour
         fontSize = 12,
         alignment = TextAnchor.MiddleCenter,
         normal = { textColor = FlagMarkerColor },
+    };
+
+    // NPC markers (2026-08-17, BUGS_AND_ENHANCEMENTS.md "NPC
+    // identification") -- exact same live-scan pattern as DrawFlagMarkers,
+    // just a different source type and color. A fresh FindObjectsByType
+    // scan every OnGUI frame means these track each NPC's actual live
+    // position for free, same as the Flag markers already do.
+    private void DrawNpcMarkers(Rect mapRect)
+    {
+        foreach (var npc in FindObjectsByType<NPCHiring>(FindObjectsSortMode.None))
+        {
+            Vector2 center = MapPointFor(npc.transform.position, mapRect);
+            var markerRect = new Rect(center.x - NpcMarkerSize / 2f, center.y - NpcMarkerSize / 2f, NpcMarkerSize, NpcMarkerSize);
+
+            var prevColor = GUI.color;
+            GUI.color = NpcMarkerColor;
+            GUI.DrawTexture(markerRect, Texture2D.whiteTexture);
+            GUI.color = prevColor;
+
+            var dialogue = npc.GetComponent<NPCDialogue>();
+            var content = new GUIContent(dialogue != null ? dialogue.DisplayName : "NPC");
+            var labelSize = NpcLabelStyle.CalcSize(content);
+            var labelRect = new Rect(center.x - labelSize.x / 2f, markerRect.y - labelSize.y - 2f, labelSize.x, labelSize.y);
+            GUI.Label(labelRect, content, NpcLabelStyle);
+        }
+    }
+
+    private static GUIStyle npcLabelStyle;
+    private static GUIStyle NpcLabelStyle => npcLabelStyle ??= new GUIStyle(GUI.skin.label)
+    {
+        fontSize = 12,
+        alignment = TextAnchor.MiddleCenter,
+        normal = { textColor = NpcMarkerColor },
     };
 
     // Shared world-to-map-pixel conversion -- v is measured bottom-up

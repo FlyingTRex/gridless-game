@@ -26,8 +26,12 @@ public class NPCHiring : MonoBehaviour, IInteractable
     // Only counts real-world time spent actually working (NPCJob.IsReady)
     // -- an NPC sitting unassigned or unequipped isn't "working," so its
     // clock shouldn't run down either. Matches Ben's own framing ("the
-    // npc works for 5 real days, and then waits for payment").
-    [SerializeField] private float workDurationSeconds = 300f;
+    // npc works for 5 real days, and then waits for payment"). Was 300f
+    // (5 real minutes); lengthened to 60 real minutes (2026-08-17, Ben's
+    // call) now that Village-Flag-spawned NPCs are the only source and
+    // testing/playing across a longer session made 5 minutes too short
+    // a leash.
+    [SerializeField] private float workDurationSeconds = 3600f;
 
     private NPCDialogue dialogue;
     private NPCJob job;

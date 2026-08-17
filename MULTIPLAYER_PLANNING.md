@@ -216,6 +216,35 @@ Mapped onto Gridless's actual systems:
   Worth a real pass to confirm rather than assuming zero, once state is
   actually synced and screens need to read from `SyncVar`s instead of
   plain fields.
+- **Player identity/naming** (raised 2026-08-17, NPC-management
+  discussion): the game has zero player-name concept today — nothing
+  identifies a character beyond "the local player." Not worth building
+  in single-player (nothing to distinguish it from), but a real
+  prerequisite once a second real player exists — other players need a
+  name to see, same reasoning driving the NPC-renaming/nametag work
+  logged in `BUGS_AND_ENHANCEMENTS.md`. Likely the same shape either
+  way: a small identity component, name entry via the Player tab
+  (right-click-rename doesn't make sense on yourself), a `SyncVar` once
+  networked. Not designed further here — flagged so it isn't
+  rediscovered from scratch when phase 2+ (player-authoritative gameplay)
+  starts needing it. **A rename should cost currency** (a real Coin sink,
+  ties into `COMMERCE_PLANNING.md`'s "everything's a faucet, nothing's a
+  sink" gap) **and, once a second player exists, should hit current Fame
+  if it's negative** — not a flat tax on every rename (that would punish
+  cosmetic renames identically to reputation-laundering), but scaled to
+  discourage using a fresh name to shed an Infamous reputation
+  specifically. Not built, design-only.
+- **Guild-mate map markers** (raised 2026-08-17, same discussion):
+  members of a shared guild should see each other on the Map, same idea
+  as the Village Flag/NPC markers. Also blocked on a second real player
+  — `PlayerGuilds` today is single-player-only membership (join up to 3
+  dev-authored guilds via Admin Spawn; there's no roster of *other*
+  members at all, because there's no one else). The mechanism itself is
+  nearly free once relevant: `MapScreen.DrawFlagMarkers`' live-marker
+  pattern (fresh position scan every `OnGUI` frame) already proves this
+  out — filtering to "other players sharing a guild with me" instead of
+  "every Village Flag" is a small extension of existing code, not new
+  plumbing. Not built, design-only.
 
 ## Cross-references
 

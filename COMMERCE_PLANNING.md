@@ -172,6 +172,59 @@ exists in town. Two real prerequisites this surfaces, neither free:
   both still Phase 3 design-brief ideas with no relationship to this
   plan yet.
 
+## 8. Revisited: Metal Press / Ore→Furnace→Press→Coin minting (2026-08-17)
+
+Ben proposed building a Metal Press to mint Copper Coins from Copper
+Ingots as "the start of commerce," prompted by real friction testing the
+Village Flag/City Statue loop with 0 starting NPCs now in the world.
+Evaluated critically against this doc and `FAME_PLANNING.md` before
+building anything:
+
+- **This exact idea was already considered and explicitly deferred**,
+  in writing, the day before (section 3 above: "don't wait on minting...
+  Minting stays a real future improvement, not a blocker"; section 7
+  lists it as out of scope). Not rejected as a bad idea — deliberately
+  sequenced *after* a market exists to spend the minted currency on,
+  since a faster faucet is pointless when the only current sink is NPC
+  hire fees.
+- **A Press is a faucet, not commerce** — it doesn't touch `VendorStall`,
+  the price-list schema, or anything else this doc actually means by
+  "commerce." Zero `VendorStall` code exists regardless of whether a
+  Press ships.
+- **The numbers don't support "we'll run out of money"**: 10 hires costs
+  100 Copper total; starting reserves (20 Copper wallet + 25 Gold banked,
+  worth ~2,500 Copper after exchange) already cover that 25x over. The
+  actual bottleneck for reaching 10 hires is the Village Flag's real
+  30-minute spawn interval now that no NPCs are pre-placed — a Press
+  does nothing about that.
+- **It's a bigger build than "one more recipe"**: Coins aren't
+  `ItemDefinition`s — `PlayerCurrency` is a raw int-balance wallet, and
+  `Coin.cs` exists purely to call `PlayerCurrency.Add()` on pickup. A
+  Press recipe can't reuse `SmeltableItem`'s `outputItem` shape as-is; it
+  needs its own recipe type whose "output" writes to the wallet directly,
+  plus a new `BuildPiece`/model/screen — Furnace-scale work.
+- **Even the design brief's own version overshoots what's minable
+  today**: it specs the full 5-tier ladder (Copper→Platinum). All 5
+  Ingots exist, but Silver/Gold/Platinum ore nodes aren't placed
+  anywhere in `TestScene.unity` (zero scene references) — a full Press
+  would mint coin types nobody can currently mine through real play.
+
+**A real, useful piece of framework surfaced during this discussion,
+independent of the Press**: `FAME_PLANNING.md`'s Traveling Trader
+pricing formula ("base value × Fame-band multiplier") already assumes
+every item has a base value — nothing defines that anywhere today. This
+is a genuine currently-missing prerequisite, cheap to add
+(`ItemDefinition.baseValue` + a fill-in pass), and unlike the Press it's
+actually on the critical path to the Trader this section's "in theory"
+framing is picturing. Recommended next real framework step, when
+picked back up: `ItemDefinition.baseValue` + the `VendorStall` core
+component + Village Vendor as the first driver — matches section 5's
+already-decided build order, needs no minting or Press first.
+
+**Not decided/built** — this section captures the discussion and the
+recommendation, not a commitment either way. The Press stays logged as
+real future work (section 7), just not promoted ahead of `VendorStall`.
+
 ## Cross-references
 
 - `PlayerCurrency.cs` / `PlayerBank.cs` / `Lockbox.cs` / `Coin.cs` — the

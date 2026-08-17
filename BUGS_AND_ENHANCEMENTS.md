@@ -505,6 +505,83 @@ phased proposal in `MULTIPLAYER_PLANNING.md` — summary:
   called out as mandatory once real implementation starts, given the
   blast radius across nearly the whole codebase.
 
+## NPC identification (raised 2026-08-17, real live-testing pain point)
+
+With the Village Flag spawn loop now the only NPC source and multiple
+hires accumulating in the world, Ben hit a genuine usability gap: every
+NPC is visually and textually identical (only 2 base models — Male/
+Female Kevin Iglesias — and every one defaults to the same hardcoded
+"Factory Worker" name), making it hard to find the right one to give
+tools/fire/pay once several are running around doing different jobs.
+Audited before proposing fixes — confirmed via code read, not assumed:
+
+- **NPCs can't be renamed at all** — no `IRenameable` on `NPCHiring`/
+  `NPCDialogue`, unlike `StorageBox`/`VillageFlag`, which already have
+  the full right-click-rename flow working.
+- **No worldspace nametag** floats above an NPC in the 3D world — the
+  name only ever shows inside `NPCDialogue`'s on-screen dialogue box
+  during a Talk interaction.
+- **No map markers for NPCs** — `MapScreen.cs` already draws live
+  markers for every `VillageFlag` (`DrawFlagMarkers`, a fresh
+  `FindObjectsByType<VillageFlag>()` scan every `OnGUI` frame, so
+  markers track live position for free) but has no equivalent for
+  `NPCHiring`.
+
+**✅ Auto-naming + rename built same day (2026-08-17), items 1-2 of the
+recommended first pass**:
+1. **Auto-assigned name + gender at spawn**: `VillageFlagSpawner
+   .hireableNpcPrefab` split into `hireableNpcPrefabMale`/
+   `hireableNpcPrefabFemale` (both wired in `TestScene.unity`), a coin
+   flip picks between them per spawn, and a new `NPCNameGenerator.
+   PickUnique` (static male/female name lists) assigns a name —
+   preferring one not already in use by a currently-active NPC, falling
+   back to a random pick only once every name in the matching list is
+   taken. `NPCDialogue.Configure(name, isFemale)` sets both together,
+   called once at spawn.
+2. **`NPCDialogue` now implements `IRenameable`** — same right-click
+   `PlayerRenaming` flow `StorageBox`/`VillageFlag` already use, layered
+   on top of the auto-assigned name as an override, not a replacement.
+3. **Persisted correctly** — `SaveManager.CaptureNpc`/`RestoreNpc` now
+   capture/restore both `name` and `isFemale`, and critically,
+   `RestoreNpcs`' recreate-on-load path reads the saved gender *before*
+   instantiating so a recreated NPC comes back as the same gender (and
+   the correct model) it was, not a fresh coin flip. Old saves (no
+   `name`/`isFemale` keys) are handled gracefully — a null/missing name
+   leaves whatever the fresh `Instantiate` already carries untouched
+   rather than blanking it.
+
+Compile-verified (scene YAML confirmed for both new prefab slots); not
+yet live-tested with a real spawn + save/reload round trip.
+
+**✅ Map markers + NPC Roster screen both built same night (2026-08-17)**,
+prompted directly by live-testing pain — diagnosing several different
+NPCs one at a time (a wandering Miner, a frozen Guard) by physically
+walking to and inspecting each was exactly the friction these were
+meant to remove:
+
+- **`MapScreen.DrawNpcMarkers`** — copied `DrawFlagMarkers`' exact
+  pattern (a fresh `FindObjectsByType<NPCHiring>()` scan every `OnGUI`
+  frame, so markers track real live position for free), blue dots
+  labeled by name.
+- **`NPCRosterScreen`, bound to `N`** (Ben's call — an NPC roster is
+  about assets managed out in the world, closer in spirit to `M`/Map
+  than to the Tab menu's player-self screens; checked for collision,
+  `N` was unbound). Lists every `NPCHiring` in the scene with name/job/
+  status/distance; "Manage" opens the exact same `NPCHiringScreen` a
+  walk-up-and-E interaction would (not a second copy of that UI).
+  `GameMenuScreen.ControlsList` updated.
+
+Compile-verified, component confirmed added to the Player in
+`TestScene.unity` via direct YAML check; not yet live-tested in Play
+mode.
+
+**Related, logged separately**: the identical need applies to the
+player once multiplayer exists (other players need a name to see) — see
+`MULTIPLAYER_PLANNING.md`'s open questions. Decided there: entry via the
+` menu's Player tab (a text field), not the right-click flow — renaming
+yourself via right-click doesn't make sense the way it does for a
+world object.
+
 ## Enhancements — Phase 2 (MVP 2) Backlog
 
 **Draft, not finalized (2026-08-10) — Ben's explicit call: "we won't
@@ -879,6 +956,38 @@ signs off on scope and order.
 
 ## Bugs
 
+- [ ] **Leather Backpack silently rejected as an NPC tool, found live by
+  Ben (2026-08-17), not yet fixed.** There are two separate Backpack item
+  families — the original plain `Backpack` ladder and the newer `Leather
+  Backpack` ladder (added later, once Deer/Hide closed the raw-material
+  gap). All 4 jobs that need a Backpack tool (`MineOreJob`/`ChopWoodJob`/
+  `ForageJob`/`MetalworkingJob`) only list the original plain Backpack's
+  5 tier guids in their "Backpack" `ToolRequirement.acceptableItems` —
+  none of them were ever updated to also accept the Leather Backpack
+  tiers, so giving an NPC a Leather Backpack of any tier is flatly
+  rejected. Same shape as the Campfire/`FriedEggCookable` registration
+  gap from earlier this session — a newer item variant never backfilled
+  into an existing acceptable-items list. Fix: add all 5 Leather Backpack
+  tier guids to each of the 4 jobs' Backpack requirement.
+- [ ] **NPC tool-giving only checks the player's top-level inventory,
+  never a worn container's nested contents, found live by Ben
+  (2026-08-17), not yet fixed.** `NPCJobScreen.HasAny`/`NPCJob
+  .TryGiveTool` both call `playerInventory.GetCount(item)` directly — a
+  tool sitting inside a worn Backpack's nested inventory doesn't count,
+  so it has to be pulled out to the main inventory first before an NPC
+  can be given it. Not fixed — would need a recursive nested-inventory
+  scan, more involved than a one-line fix.
+- [ ] **Weak single-deflection obstacle avoidance still present in
+  `NPCGathering`/`NPCCrafting`/`NPCTraining`/`NPCGuarding`, found live by
+  Ben (2026-08-17) via a Guard permanently stuck near a Boulder, not yet
+  fixed.** `NPCSeekFlag.MoveToward` had this exact bug (a single normal-
+  based deflection that can point straight into a second obstacle at an
+  odd-shaped collider and stall permanently) and was fixed in v0.3.116-dev
+  with a widening directional search. The identical ~15-line pattern is
+  still duplicated, unfixed, in these 4 other NPC movement scripts. Worth
+  considering pulling into one shared helper this time instead of
+  fixing/copy-pasting a 5th near-identical block — see `CHANGELOG.md`
+  v0.3.123-dev.
 - [x] **Cooking skill can never be trained from 0 through normal play — a
   real progression deadlock, found live by Ben (2026-08-16). Fixed
   v0.3.112-dev.** Every `CookableItem` recipe that actually grants

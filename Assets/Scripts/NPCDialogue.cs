@@ -12,10 +12,15 @@ using UnityEngine;
 // implementers on the same GameObject would leave PlayerInteraction's
 // GetComponentInParent<IInteractable>() picking one arbitrarily, so only
 // NPCHiring owns that interface now.
+// IRenameable added 2026-08-17 (BUGS_AND_ENHANCEMENTS.md, "NPC
+// identification") -- same right-click PlayerRenaming flow StorageBox/
+// VillageFlag already use, layered on top of the auto-assigned spawn
+// name below rather than replacing it.
 [RequireComponent(typeof(NPCWander))]
-public class NPCDialogue : MonoBehaviour
+public class NPCDialogue : MonoBehaviour, IRenameable
 {
     [SerializeField] private string npcName = "Factory Worker";
+    [SerializeField] private bool isFemale;
     [SerializeField] private string dialogueLine = "Been a long shift out here. Never seen anything like this place before.";
     [SerializeField] private float dialogueDuration = 4f;
 
@@ -27,6 +32,24 @@ public class NPCDialogue : MonoBehaviour
     private float talkTimer;
 
     public string DisplayName => npcName;
+    public bool IsFemale => isFemale;
+
+    public void Rename(string newName)
+    {
+        if (!string.IsNullOrWhiteSpace(newName)) npcName = newName;
+    }
+
+    // Called once by VillageFlagSpawner right after Instantiate (a fresh
+    // spawn) or by SaveManager.RestoreNpc (a reload) -- the one place
+    // both name and gender get set together, since they're picked
+    // together at spawn time. Never called for renaming; use Rename for
+    // that (name only, gender is fixed once spawned -- it also picked
+    // which of the two prefabs this GameObject actually is).
+    public void Configure(string name, bool female)
+    {
+        if (!string.IsNullOrWhiteSpace(name)) npcName = name;
+        isFemale = female;
+    }
 
     private void Awake()
     {
