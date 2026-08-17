@@ -19,7 +19,8 @@ public static class DatabaseRepopulator
         int items = RepopulateItemDatabase();
         int skills = RepopulateSkillDatabase();
         int jobs = RepopulateNpcJobDatabase();
-        Debug.Log($"[DatabaseRepopulator] Items={items} Skills={skills} Jobs={jobs}");
+        int pieces = RepopulateBuildPieceDatabase();
+        Debug.Log($"[DatabaseRepopulator] Items={items} Skills={skills} Jobs={jobs} BuildPieces={pieces}");
     }
 
     private static int RepopulateItemDatabase()
@@ -65,6 +66,21 @@ public static class DatabaseRepopulator
         database.EditorSetJobs(jobs);
         EditorUtility.SetDirty(database);
         return jobs.Length;
+    }
+
+    private static int RepopulateBuildPieceDatabase()
+    {
+        var database = AssetDatabase.LoadAssetAtPath<BuildPieceDatabase>("Assets/Resources/BuildPieceDatabase.asset");
+        if (database == null)
+        {
+            Debug.LogError("[DatabaseRepopulator] Could not load BuildPieceDatabase.asset");
+            return 0;
+        }
+
+        var pieces = LoadAll<BuildPiece>();
+        database.EditorSetPieces(pieces);
+        EditorUtility.SetDirty(database);
+        return pieces.Length;
     }
 
     private static T[] LoadAll<T>() where T : Object

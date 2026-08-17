@@ -26,6 +26,21 @@ public class SaveId : MonoBehaviour
             id = System.Guid.NewGuid().ToString("N");
     }
 
+    // Called by SaveManager right after Instantiate()-ing a placed
+    // structure that didn't exist in the scene before load (a player-built
+    // Village Flag/Campfire/wall, unlike StorageBox/ResourceNode/etc.,
+    // which are always pre-placed and just get their data restored) — the
+    // RequireComponent auto-add already gave it a fresh random id via
+    // Reset(), this swaps it for the saved one so RestoreWorldObjects-style
+    // lookups on a later save/load cycle find the same object again.
+    public void AssignId(string savedId)
+    {
+        if (string.IsNullOrEmpty(savedId) || savedId == id) return;
+        SaveIdRegistry.Unregister(this);
+        id = savedId;
+        SaveIdRegistry.Register(this);
+    }
+
     // Self-healing collision guard (2026-08-15) — RequireComponent's
     // auto-add only runs Reset() once per loaded prefab *template* within
     // a session, not once per Instantiate() call: every runtime clone

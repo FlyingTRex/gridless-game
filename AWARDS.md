@@ -8,7 +8,7 @@ ledger of good nights.
 
 | Award | Count |
 |---|---|
-| 🏆 MVP Trophy Sticker | 1 |
+| 🏆 MVP Trophy Sticker | 2 |
 | 🥈 Silver Star Sticker | 1 |
 | 🪓 Small Axe Sticker | 1 |
 | 🍪 Cookie with a Bite Sticker | 1 |
@@ -22,6 +22,35 @@ ledger of good nights.
 
 ## Log
 
+- **2026-08-16 — 🏆 MVP Trophy Sticker.** MVP2's 10-item list, all ten
+  with something real built (design-only in `MVP2_PLANNING.md`'s original
+  ideation pass, but every item shipped code by the end): Dexterity/
+  Constitution completing the core-stat set, the full Settlement Growth
+  Loop (bench-crafting, NPC training, Village Flag spawn loop, City
+  Statue), sky/weather, save/load, skill books, all 4 hunting animals
+  plus ranged combat, the full Cooking+Gardening system, and the Prefab
+  Buildings tool. Then a genuinely long live-playtesting session (Ben
+  actually playing for hours, me staying off the Editor per his explicit
+  "don't touch it until told") found more real bugs than any prior
+  compile-only pass ever had: backwards flying arrow, Village Flag
+  rename hitbox, a true Cooking-skill progression deadlock (0 XP
+  reachable from level 0), a genuinely degenerate Feather source mesh
+  (not just an unbaked icon), dropped loot falling through the world
+  (root-caused to corpse-collider-disable ordering, then a full 49-prefab
+  Discrete-vs-Continuous collision audit), hunger/thirst pacing tuned 3x
+  slower by request, a new Autosave feature (caught its own toast-
+  collision bug within minutes of shipping), and — mid-session, live —
+  the Village Flag NPC spawn itself: wrong placeholder model, and an
+  obstacle-avoidance bug that could stall it permanently at a building
+  corner, both found and fixed while Ben watched the actual NPC on
+  screen. **Not claiming this perfect**: Egg still has no icon, the
+  Campfire's `cookableItems` array is still missing `FriedEggCookable`,
+  PlayerMagic and every built structure except StorageBox still don't
+  save, and `VillageFlagSpawner.cs` is currently committed with two
+  explicit temp test values still live for continued testing. Given
+  anyway for genuinely closing out a 10-item MVP list end to end and for
+  the discipline of actually fixing what live testing found instead of
+  letting it pile up. v0.3.55-dev through v0.3.116-dev.
 - **2026-08-10 — 🏆 MVP Trophy Sticker.** Hireable, Autonomous NPCs, start
   to a genuinely working loop, all 6 chunks in one sitting: Hire/Fire/Pay
   off real Coin, a `CraftingScreen`-style job picker gated on the NPC's

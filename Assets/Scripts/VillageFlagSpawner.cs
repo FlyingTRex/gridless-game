@@ -25,6 +25,14 @@ public class VillageFlagSpawner : MonoBehaviour
 
     [SerializeField] private GameObject hireableNpcPrefab;
 
+    // Read by SaveManager.RestoreNpc (2026-08-17, once all pre-placed NPCs
+    // were removed from the scene -- see BUGS_AND_ENHANCEMENTS.md) -- this
+    // is now the ONLY source of hireable NPC instances in the whole game,
+    // so restoring a saved hire that no longer exists in a fresh scene
+    // means re-instantiating from this same prefab, exactly like a fresh
+    // spawn would.
+    public GameObject HireableNpcPrefab => hireableNpcPrefab;
+
     // How far out from the target Flag a freshly spawned NPC appears --
     // far enough that the walk-in is a real, visible thing, not
     // instant-adjacent.

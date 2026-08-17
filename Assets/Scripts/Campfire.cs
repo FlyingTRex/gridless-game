@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 // Craftable/placeable structure (2026-08-12 rework, see
@@ -421,6 +422,45 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         foreach (var fuel in fuelItems)
             if (fuel != null && fuel.item == item) return fuel;
         return null;
+    }
+
+    // Read by SaveManager.CaptureCampfire — outputItem's stable ItemDatabase
+    // ID doubles as the recipe's own ID, since a given output is only ever
+    // registered once on a given Campfire (avoids needing a dedicated
+    // CookableItem database just for this one field).
+    public string ActiveRecipeId =>
+        activeRecipe != null && ItemDatabase.Instance != null ? ItemDatabase.Instance.IdFor(activeRecipe.outputItem) : null;
+
+    // Restore path for SAVE_LOAD_PLANNING.md section 11's Campfire follow-up
+    // (2026-08-17) -- called once by SaveManager right after this instance
+    // is re-created (or found already in the scene) on load. SetLit handles
+    // the material/light swap so a restored-lit Campfire actually looks lit,
+    // not just internally flagged. activeRecipeId is resolved against this
+    // instance's own cookableItems by matching outputItem, not a global
+    // database (see ActiveRecipeId above).
+    public void RestoreState(bool lit, float fuelRemaining, string activeRecipeId, float cookElapsed,
+        JArray fuelData, JArray grillData, JArray cookingPotData, JArray kettleData, JArray fryingPanData,
+        JArray inputData, JArray outputData)
+    {
+        SetLit(lit);
+        fuelSecondsRemaining = fuelRemaining;
+        cookSecondsElapsed = cookElapsed;
+
+        activeRecipe = null;
+        if (!string.IsNullOrEmpty(activeRecipeId) && cookableItems != null)
+        {
+            var targetItem = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(activeRecipeId) : null;
+            foreach (var recipe in cookableItems)
+                if (recipe != null && recipe.outputItem == targetItem) { activeRecipe = recipe; break; }
+        }
+
+        if (fuelData != null) InventorySaveUtility.Restore(fuelInventory, fuelData);
+        if (grillData != null) InventorySaveUtility.Restore(grillSlot, grillData);
+        if (cookingPotData != null) InventorySaveUtility.Restore(cookingPotSlot, cookingPotData);
+        if (kettleData != null) InventorySaveUtility.Restore(kettleSlot, kettleData);
+        if (fryingPanData != null) InventorySaveUtility.Restore(fryingPanSlot, fryingPanData);
+        if (inputData != null) InventorySaveUtility.Restore(inputInventory, inputData);
+        if (outputData != null) InventorySaveUtility.Restore(outputInventory, outputData);
     }
 
     private void SetLit(bool lit)

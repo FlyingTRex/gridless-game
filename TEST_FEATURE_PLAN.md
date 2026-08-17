@@ -4190,37 +4190,55 @@ loop or Admin-spawned NPCs for the population).
 
 ## 52. NPC Guarding, v1 (v0.3.106-dev)
 
-New — not yet walked through in Play mode at all (verified so far only
-via batch-mode compile + direct asset/prefab/scene YAML grep). Full
-design in `GUARDING_PLANNING.md`. **The riskiest untested feature this
-session** — real combat, real permanent NPC death, and a brand-new
-circular-patrol movement shape all at once. Needs a placed Village Flag
-and a live Wolf encounter to test meaningfully.
+Real live combat confirmation landed 2026-08-17: a hired Factory Worker
+assigned Guard (Ranged) killed a Wolf. First real evidence the whole
+Guarding chunk — job assignment, ranged tool gating, threat detection,
+`RedirectAggro`, and NPC-initiated combat resolving to a kill — actually
+works end to end, not just compiles. Full design in
+`GUARDING_PLANNING.md`.
 
-- [ ] **Assign the job**: hire an NPC, open Assign Job, confirm a
-  "Guarding" family tab exists with two tiles — "Guard (Melee)" and
-  "Guard (Ranged)".
+**Real bug found the same session, not yet fixed: patrol has nothing to
+patrol.** This Guard was assigned with zero Village Flags in the world
+(confirmed live — the Masterwork Flag placed the night before didn't
+survive a save/reload, see the Village-Flag-doesn't-save gap already
+logged in `BUGS_AND_ENHANCEMENTS.md`/`MVP2_PLANNING.md`). `NPCGuarding.
+UpdatePatrol()`'s "no Flag" fallback (`Assets/Scripts/NPCGuarding.cs:184-191`)
+calls `wander.SetPaused(false)`, which hands off to ordinary `NPCWander`
+— not "stands still" as this checklist originally assumed, but genuine
+idle wandering. The "Patrol with a Flag placed" case below is still
+fully unconfirmed as a direct result — needs a Flag placed and kept
+alive (no save/reload) for the length of the test.
+
+- [x] **Assign the job**: confirmed live (2026-08-17) — assigned Guard
+  (Ranged) to a hired Factory Worker via Assign Job.
 - [ ] **Melee equip**: assign Guard (Melee), confirm it asks for a
   Weapon and accepts any Knife tier; the NPC isn't `IsReady` until given
   one.
-- [ ] **Ranged equip**: assign Guard (Ranged), confirm it asks for both
-  a Weapon (any Bow tier) and an Arrow (any Arrow tier) — not ready
-  until both are given.
+- [x] **Ranged equip**: confirmed live (2026-08-17) — the Guard reached
+  `IsReady`/"Working" status and successfully fired on and killed a
+  Wolf, so both Weapon (Bow) and Arrow tool slots were genuinely filled,
+  not just nominally assigned.
 - [ ] **Patrol with a Flag placed**: with a Village Flag in the world,
   confirm an assigned, fully-equipped Guard visibly circles it — roughly
   the Flag's own reveal-radius distance away (35m Crude up to 75m
-  Masterwork), not standing still.
-- [ ] **Patrol with no Flag**: with no Village Flag placed anywhere,
-  confirm the Guard just stands at its current spot instead of erroring
-  or drifting somewhere unexpected.
-- [ ] **Detects and engages a Wolf**: get a `HostileCreature` within the
-  Guard's detection range — confirm it breaks patrol, closes in, and
-  starts attacking (melee: visibly closes to point-blank; ranged: fires
-  from range on a steady cooldown, no manual draw needed).
+  Masterwork), not standing still. **Blocked in practice by the
+  Village-Flag save gap** — needs a Flag placed fresh and the session
+  kept alive (no reload) for the whole test.
+- [x] **Patrol with no Flag**: confirmed live (2026-08-17), though not
+  as originally written — with zero Flags in the world, the Guard
+  doesn't stand still, it falls back to ordinary `NPCWander` idle
+  wandering (`wander.SetPaused(false)`). No error, no crash, just not
+  the "stands at current spot" behavior this line originally predicted
+  — corrected the description above rather than leaving it wrong.
+- [x] **Detects and engages a Wolf**: confirmed live (2026-08-17) — the
+  Ranged Guard engaged and killed a Wolf. Didn't confirm the melee case
+  specifically, or whether it broke off an active patrol to do it (no
+  Flag was present, see above).
 - [ ] **The Wolf fights back**: confirm the Wolf actually damages the
   Guard once engaged (not just the Guard damaging the Wolf one-way) —
   this is `HostileCreature.RedirectAggro` actually working, the whole
-  reason "real health, can die" is meaningful.
+  reason "real health, can die" is meaningful. Not confirmed either way
+  yet — the Guard won, but whether it took damage first isn't known.
 - [ ] **Guard can die**: let a Guard lose a fight — confirm it's
   actually removed (job cleared, GameObject gone), not stuck in a broken
   state, and doesn't respawn.

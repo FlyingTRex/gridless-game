@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Newtonsoft.Json.Linq;
 using UnityEngine;
 
 // Real Furnace state (2026-08-13), replacing the "FurnaceSurface is a bare
@@ -157,6 +158,65 @@ public class Furnace : MonoBehaviour, IInteractable
     }
 
     public void SetAutoRun(bool value) => autoRunEnabled = value;
+
+    // Same "match by outputItem's ItemDatabase ID" reasoning as Campfire.
+    // ActiveRecipeId — avoids a dedicated SmeltableItem database for one
+    // field, since a given output is only ever registered once per Furnace.
+    public string ActiveRecipeId =>
+        activeRecipe != null && ItemDatabase.Instance != null ? ItemDatabase.Instance.IdFor(activeRecipe.outputItem) : null;
+
+    public IEnumerable<string> RecipeQueueIds()
+    {
+        foreach (var recipe in recipeQueue)
+            if (recipe != null && ItemDatabase.Instance != null)
+                yield return ItemDatabase.Instance.IdFor(recipe.outputItem);
+    }
+
+    // Restore path for SAVE_LOAD_PLANNING.md section 11's Furnace follow-up
+    // (2026-08-17) -- mirrors Campfire.RestoreState's shape. Queue/active-
+    // recipe IDs are resolved against this instance's own smeltableItems by
+    // matching outputItem (see ActiveRecipeId above). Source/output
+    // StorageBox links are resolved by the caller (SaveManager already has
+    // the SaveId->StorageBox lookup every other cross-reference in this
+    // project uses) and passed in directly rather than re-resolved here.
+    public void RestoreState(IEnumerable<string> queueIds, string activeRecipeIdValue, float smeltElapsed,
+        bool lit, float fuelRemaining, bool autoRun,
+        StorageBox fuelSource, StorageBox materialsSource, StorageBox output,
+        JArray fuelData, JArray materialsData, JArray outputData)
+    {
+        recipeQueue.Clear();
+        nextQueueIndex = 0;
+        if (queueIds != null && smeltableItems != null)
+        {
+            foreach (var id in queueIds)
+            {
+                var targetItem = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(id) : null;
+                foreach (var recipe in smeltableItems)
+                    if (recipe != null && recipe.outputItem == targetItem) { recipeQueue.Add(recipe); break; }
+            }
+        }
+
+        activeRecipe = null;
+        if (!string.IsNullOrEmpty(activeRecipeIdValue) && smeltableItems != null)
+        {
+            var targetItem = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(activeRecipeIdValue) : null;
+            foreach (var recipe in smeltableItems)
+                if (recipe != null && recipe.outputItem == targetItem) { activeRecipe = recipe; break; }
+        }
+
+        smeltSecondsElapsed = smeltElapsed;
+        isLit = lit;
+        fuelSecondsRemaining = fuelRemaining;
+        autoRunEnabled = autoRun;
+
+        fuelSourceBox = fuelSource;
+        materialsSourceBox = materialsSource;
+        outputBox = output;
+
+        if (fuelData != null) InventorySaveUtility.Restore(fuelInventory, fuelData);
+        if (materialsData != null) InventorySaveUtility.Restore(materialsInventory, materialsData);
+        if (outputData != null) InventorySaveUtility.Restore(outputInventory, outputData);
+    }
 
     public void SetFuelSourceBox(StorageBox box) => fuelSourceBox = box;
     public void SetMaterialsSourceBox(StorageBox box) => materialsSourceBox = box;

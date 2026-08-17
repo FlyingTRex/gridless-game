@@ -37,6 +37,7 @@ public class SaveManager : MonoBehaviour
     private PlayerBodyModel bodyModel;
     private PlayerFame fame;
     private PlayerMapExploration mapExploration;
+    private VillageFlagSpawner villageFlagSpawner;
 
     // Set by Load() so a fresh scene's starting-gear auto-equip (Shirt/
     // Jeans/Belt/Canteen, each guarded on "nothing equipped yet") doesn't
@@ -59,6 +60,7 @@ public class SaveManager : MonoBehaviour
         bodyModel = GetComponent<PlayerBodyModel>();
         fame = GetComponent<PlayerFame>();
         mapExploration = GetComponent<PlayerMapExploration>();
+        villageFlagSpawner = GetComponent<VillageFlagSpawner>();
     }
 
     private void Start()
@@ -76,6 +78,7 @@ public class SaveManager : MonoBehaviour
             ["npcs"] = CaptureWorldObjects<NPCHiring>(CaptureNpc),
             ["gardenPlots"] = CaptureWorldObjects<GardenPlot>(CaptureGardenPlot),
             ["gardenPlots4x4"] = CaptureWorldObjects<GardenPlot4x4>(CaptureGardenPlot4x4),
+            ["placedPieces"] = CaptureWorldObjects<PlacedPiece>(CapturePlacedPiece),
         };
 
         File.WriteAllText(FilePath, data.ToString());
@@ -103,9 +106,10 @@ public class SaveManager : MonoBehaviour
 
         RestoreWorldObjects<StorageBox>(data["storageBoxes"] as JArray, RestoreStorageBox);
         RestoreWorldObjects<ResourceNode>(data["resourceNodes"] as JArray, RestoreResourceNode);
-        RestoreWorldObjects<NPCHiring>(data["npcs"] as JArray, RestoreNpc);
+        RestoreNpcs(data["npcs"] as JArray);
         RestoreWorldObjects<GardenPlot>(data["gardenPlots"] as JArray, RestoreGardenPlot);
         RestoreWorldObjects<GardenPlot4x4>(data["gardenPlots4x4"] as JArray, RestoreGardenPlot4x4);
+        RestorePlacedPieces(data["placedPieces"] as JArray);
     }
 
     // ---- Player ----
@@ -322,6 +326,41 @@ public class SaveManager : MonoBehaviour
         };
     }
 
+    // Bespoke, not the generic RestoreWorldObjects<T> every other category
+    // uses -- same reason as RestorePlacedPieces (2026-08-17, once all
+    // pre-placed NPCs were removed from the scene, see
+    // BUGS_AND_ENHANCEMENTS.md): a hired NPC no longer pre-exists in a
+    // fresh scene at all, VillageFlagSpawner is now the only source of
+    // hireable NPC instances in the game, so restoring one that's missing
+    // means re-instantiating from that same prefab.
+    private void RestoreNpcs(JArray data)
+    {
+        if (data == null) return;
+
+        foreach (var token in data)
+        {
+            if (!(token is JObject obj) || !(obj["state"] is JObject state)) continue;
+
+            string saveId = (string)obj["saveId"];
+            var npc = SaveIdRegistry.Find(saveId)?.GetComponent<NPCHiring>();
+
+            if (npc == null)
+            {
+                var prefab = villageFlagSpawner != null ? villageFlagSpawner.HireableNpcPrefab : null;
+                if (prefab == null) continue;
+
+                var position = ParseVector3(state["position"] as JObject);
+                var instance = Instantiate(prefab, position, Quaternion.identity);
+                npc = instance.GetComponent<NPCHiring>();
+                if (npc == null) continue;
+
+                instance.GetComponent<SaveId>()?.AssignId(saveId);
+            }
+
+            RestoreNpc(npc, state);
+        }
+    }
+
     private static void RestoreNpc(NPCHiring npc, JObject state)
     {
         if (state == null) return;
@@ -431,5 +470,164 @@ public class SaveManager : MonoBehaviour
             float elapsed = (float)(cellObj["elapsed"] ?? 0f);
             plot.RestoreCell(i, seed, count, cellState, elapsed);
         }
+    }
+
+    // ---- Placed structures (SAVE_LOAD_PLANNING.md section 11) ----
+    //
+    // Unlike every capture above, a placed structure doesn't pre-exist in
+    // a freshly loaded scene -- a player-built Village Flag/wall/Campfire
+    // has to be recreated from scratch, not just found-and-restored. Base
+    // state (which BuildPiece, where) covers every plain piece (Wall,
+    // Foundation, Roof Panel, City Statue -- CityStatue.Exists is a pure
+    // scene scan, so just re-existing is the whole fix). A per-type extra-
+    // state hook layers on top for pieces that carry their own runtime
+    // state; only VillageFlag's is built so far (its display name --
+    // tier is already implied by which BuildPiece was placed). Campfire/
+    // Furnace's own richer state (fuel, lit/burn timer, recipe queue,
+    // linked StorageBoxes) is a real separate follow-up, not built here --
+    // see SAVE_LOAD_PLANNING.md section 11's scope note.
+
+    private static JObject CapturePlacedPiece(PlacedPiece piece, SaveId saveId)
+    {
+        var state = new JObject
+        {
+            ["buildPiece"] = BuildPieceDatabase.Instance != null ? BuildPieceDatabase.Instance.IdFor(piece.Piece) : null,
+            ["position"] = CaptureVector3(piece.transform.position),
+            ["yaw"] = piece.transform.eulerAngles.y,
+        };
+
+        if (piece.GetComponent<VillageFlag>() is { } flag)
+            state["villageName"] = flag.DisplayName;
+
+        if (piece.GetComponent<Campfire>() is { } campfire)
+            state["campfire"] = CaptureCampfire(campfire);
+
+        if (piece.GetComponent<Furnace>() is { } furnace)
+            state["furnace"] = CaptureFurnace(furnace);
+
+        return new JObject { ["saveId"] = saveId.Id, ["state"] = state };
+    }
+
+    private static JObject CaptureCampfire(Campfire campfire) => new JObject
+    {
+        ["isLit"] = campfire.IsLit,
+        ["fuelSecondsRemaining"] = campfire.FuelSecondsRemaining,
+        ["activeRecipe"] = campfire.ActiveRecipeId,
+        ["cookSecondsElapsed"] = campfire.CookSecondsElapsed,
+        ["fuel"] = InventorySaveUtility.Capture(campfire.FuelInventory),
+        ["grill"] = InventorySaveUtility.Capture(campfire.GrillSlot),
+        ["cookingPot"] = InventorySaveUtility.Capture(campfire.CookingPotSlot),
+        ["kettle"] = InventorySaveUtility.Capture(campfire.KettleSlot),
+        ["fryingPan"] = InventorySaveUtility.Capture(campfire.FryingPanSlot),
+        ["input"] = InventorySaveUtility.Capture(campfire.InputInventory),
+        ["output"] = InventorySaveUtility.Capture(campfire.OutputInventory),
+    };
+
+    private static JObject CaptureFurnace(Furnace furnace)
+    {
+        var queue = new JArray();
+        foreach (var id in furnace.RecipeQueueIds()) queue.Add(id);
+
+        var fuelSourceId = furnace.FuelSourceBox != null ? furnace.FuelSourceBox.GetComponent<SaveId>() : null;
+        var materialsSourceId = furnace.MaterialsSourceBox != null ? furnace.MaterialsSourceBox.GetComponent<SaveId>() : null;
+        var outputId = furnace.OutputBox != null ? furnace.OutputBox.GetComponent<SaveId>() : null;
+
+        return new JObject
+        {
+            ["recipeQueue"] = queue,
+            ["activeRecipe"] = furnace.ActiveRecipeId,
+            ["smeltSecondsElapsed"] = furnace.SmeltSecondsElapsed,
+            ["isLit"] = furnace.IsLit,
+            ["fuelSecondsRemaining"] = furnace.FuelSecondsRemaining,
+            ["autoRun"] = furnace.AutoRunEnabled,
+            ["fuelSourceBox"] = fuelSourceId != null ? fuelSourceId.Id : null,
+            ["materialsSourceBox"] = materialsSourceId != null ? materialsSourceId.Id : null,
+            ["outputBox"] = outputId != null ? outputId.Id : null,
+            ["fuel"] = InventorySaveUtility.Capture(furnace.FuelInventory),
+            ["materials"] = InventorySaveUtility.Capture(furnace.MaterialsInventory),
+            ["output"] = InventorySaveUtility.Capture(furnace.OutputInventory),
+        };
+    }
+
+    private void RestorePlacedPieces(JArray data)
+    {
+        if (data == null) return;
+
+        foreach (var token in data)
+        {
+            if (!(token is JObject obj) || !(obj["state"] is JObject state)) continue;
+
+            string saveId = (string)obj["saveId"];
+            var existing = SaveIdRegistry.Find(saveId)?.GetComponent<PlacedPiece>();
+            var piece = existing;
+
+            if (piece == null)
+            {
+                var buildPiece = BuildPieceDatabase.Instance != null
+                    ? BuildPieceDatabase.Instance.Find((string)state["buildPiece"])
+                    : null;
+                if (buildPiece == null || buildPiece.prefab == null) continue;
+
+                var position = ParseVector3(state["position"] as JObject);
+                var rotation = Quaternion.Euler(0f, (float)(state["yaw"] ?? 0f), 0f);
+                var instance = Instantiate(buildPiece.prefab, position, rotation);
+
+                piece = instance.GetComponent<PlacedPiece>();
+                if (piece == null) piece = instance.AddComponent<PlacedPiece>();
+                piece.Piece = buildPiece;
+
+                instance.GetComponent<SaveId>()?.AssignId(saveId);
+            }
+
+            if (state["villageName"] != null && piece.GetComponent<VillageFlag>() is { } flag)
+                flag.Rename((string)state["villageName"]);
+
+            if (state["campfire"] is JObject campfireState && piece.GetComponent<Campfire>() is { } campfire)
+                RestoreCampfire(campfire, campfireState);
+
+            if (state["furnace"] is JObject furnaceState && piece.GetComponent<Furnace>() is { } furnace)
+                RestoreFurnace(furnace, furnaceState);
+        }
+    }
+
+    private static void RestoreCampfire(Campfire campfire, JObject state)
+    {
+        campfire.RestoreState(
+            (bool)(state["isLit"] ?? false),
+            (float)(state["fuelSecondsRemaining"] ?? 0f),
+            (string)state["activeRecipe"],
+            (float)(state["cookSecondsElapsed"] ?? 0f),
+            state["fuel"] as JArray,
+            state["grill"] as JArray,
+            state["cookingPot"] as JArray,
+            state["kettle"] as JArray,
+            state["fryingPan"] as JArray,
+            state["input"] as JArray,
+            state["output"] as JArray);
+    }
+
+    private static void RestoreFurnace(Furnace furnace, JObject state)
+    {
+        var queueIds = new List<string>();
+        if (state["recipeQueue"] is JArray queueArray)
+            foreach (var token in queueArray)
+                queueIds.Add((string)token);
+
+        StorageBox Resolve(string key) =>
+            state[key] != null ? SaveIdRegistry.Find((string)state[key])?.GetComponent<StorageBox>() : null;
+
+        furnace.RestoreState(
+            queueIds,
+            (string)state["activeRecipe"],
+            (float)(state["smeltSecondsElapsed"] ?? 0f),
+            (bool)(state["isLit"] ?? false),
+            (float)(state["fuelSecondsRemaining"] ?? 0f),
+            (bool)(state["autoRun"] ?? false),
+            Resolve("fuelSourceBox"),
+            Resolve("materialsSourceBox"),
+            Resolve("outputBox"),
+            state["fuel"] as JArray,
+            state["materials"] as JArray,
+            state["output"] as JArray);
     }
 }

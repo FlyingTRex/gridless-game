@@ -131,6 +131,54 @@ actually settle in across multiple play sessions — likely worth
 promoting ahead of other Phase 2 backlog items once picked back up,
 given how central building a base is to this game's core loop.
 
+**✅ Phase 1 built (2026-08-17), promoted ahead of schedule after the
+gap directly broke a second feature.** Full design in
+`SAVE_LOAD_PLANNING.md` section 11. The vanishing Flag wasn't just
+cosmetic — `NPCGuarding`'s patrol behavior depends on a `VillageFlag`
+existing in the world, so a live-tested Guard that should have been
+circling one was confirmed wandering aimlessly instead, directly caused
+by this gap. New `BuildPieceDatabase` (same `ItemDatabase`-shaped
+stable-ID lookup as every other database, wired into
+`DatabaseRepopulator`) plus a `["placedPieces"]` capture/restore pair in
+`SaveManager.cs`, generic over every `PlacedPiece` (now
+`[RequireComponent(typeof(SaveId))]`) in the scene. Unlike every other
+category, a placed structure doesn't pre-exist in a fresh scene, so
+restore re-instantiates the piece's own prefab at its saved position/
+rotation and reassigns the saved `SaveId` (`SaveId.AssignId`, new) —
+this alone fixes Village Flag, City Statue (a pure existence check, no
+extra state needed), and every plain Wall/Foundation/Roof Panel.
+Village Flag additionally gets its display name restored. Verified via
+compile + direct `BuildPieceDatabase.asset` YAML grep (28 `BuildPiece`
+assets, correctly deterministic-sorted) — **not yet live-tested with a
+real save/reload round trip**, that's next once this is committed.
+**All 6 pre-placed Factory Worker NPCs removed from `TestScene.unity`
+(2026-08-17), Ben's call**: closer to real gameplay — the Village Flag
+spawn loop is now the *only* source of hireable NPCs in the game, no
+"just walk up and hire the guy standing there" starting option. This
+made a third save gap immediately relevant: `SaveManager`'s NPC
+restore only ever found-and-restored a pre-existing scene object, same
+limitation `BuildPiece` had — with zero NPCs baked into the scene
+anymore, a hired NPC would never come back after a reload. Fixed the
+same session, same pattern as Phase 1 below: `SaveManager.RestoreNpcs`
+now re-instantiates from `VillageFlagSpawner.HireableNpcPrefab` (new
+public getter — it's the only prefab any hireable NPC is ever spawned
+from now) when a saved NPC's `SaveId` isn't found in the scene, then
+restores its job/tools/cargo/skills exactly as before.
+
+**✅ Phase 2 built the same session, right after Phase 1**: Campfire and
+Furnace's own richer runtime state now saves too — `Campfire.
+RestoreState`/`Furnace.RestoreState` (new), each capturing/restoring
+lit state, the real-time fuel-burn and cook/smelt timers, the active
+recipe (resolved by matching the recipe's `outputItem` against the
+instance's own registered recipe list — reuses `ItemDatabase` instead
+of needing a dedicated `CookableItem`/`SmeltableItem` database), the
+Furnace's up-to-4 recipe queue, its 3 linked StorageBox references
+(`fuelSourceBox`/`materialsSourceBox`/`outputBox`, resolved via the same
+`SaveIdRegistry` cross-reference pattern NPC deposit containers already
+use), and all of Campfire's 6 inventories / Furnace's 3. Verified via
+compile only so far — **not yet live-tested with a real save/reload
+round trip**, that's the next step before this is considered done.
+
 **A second, worse save gap found the same session: `PlayerMagic`
 doesn't just fail to persist, it actively re-randomizes on every
 reload.** Ben read a Skill Book gaining the Elemental lineage (Spark)

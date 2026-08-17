@@ -5,10 +5,57 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.117-dev` — must always match `GameVersion` in
+**Current version:** `0.3.118-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-17 (2)
+
+### v0.3.118-dev — Built structures + hired NPCs now save/restore; 0 starting NPCs
+
+Live-testing find: a Masterwork Village Flag placed the night before was
+simply gone after a reload, and the knock-on effect was worse than a
+missing decoration — a live-tested Ranged Guard (`NPCGuarding`) that
+should have been circling it was instead wandering aimlessly, since its
+patrol behavior depends on a `VillageFlag` existing in the world at all.
+Root cause: `SaveManager.cs`'s capture list never covered `BuildPiece`
+placements at all — every wall, foundation, Campfire, Furnace, Village
+Flag, and City Statue a player builds vanished on reload. Full design in
+`SAVE_LOAD_PLANNING.md` section 11.
+
+New `BuildPieceDatabase` (`ItemDatabase`-shaped stable-ID lookup, wired
+into `DatabaseRepopulator`, 28 `BuildPiece` assets indexed) plus a
+`["placedPieces"]` capture/restore pair in `SaveManager.cs`. Unlike every
+other saved category, a placed structure doesn't pre-exist in a fresh
+scene, so restore re-instantiates the piece's own prefab at its saved
+position/rotation and reassigns its saved `SaveId` (new
+`SaveId.AssignId`) — fixes Village Flag (plus its display name),
+City Statue, and every plain Wall/Foundation/Roof Panel. Campfire and
+Furnace additionally get their full runtime state back: lit status,
+real-time fuel-burn and cook/smelt timers, the active recipe (resolved
+by matching `outputItem` against the instance's own registered recipe
+list via `ItemDatabase`, sidestepping a dedicated `CookableItem`/
+`SmeltableItem` database), the Furnace's 4-slot recipe queue, its 3
+linked StorageBox references, and every inventory slot on both
+structures.
+
+**0 starting NPCs, Ben's call**: all 6 pre-placed Factory Worker NPCs
+removed from `TestScene.unity` — no more "just walk up and hire the guy
+standing there." The Village Flag spawn loop (`VillageFlagSpawner.cs`)
+is now the only source of hireable NPCs in the game. This immediately
+made the identical save gap relevant to `NPCHiring` — with zero NPCs
+baked into the scene, a hired NPC would never come back after a reload
+either. Fixed the same way: `SaveManager.RestoreNpcs` re-instantiates
+from `VillageFlagSpawner.HireableNpcPrefab` (new public getter) when a
+saved NPC's `SaveId` isn't found in the scene.
+
+Also caught in the same pass: `ItemDatabase.asset` was missing Chicken
+Meat entirely — never repopulated since that item was added — fixed by
+running `DatabaseRepopulator` as part of this work.
+
+**Verified via compile only — not yet live-tested with a real save →
+reload round trip.** That's the immediate next step.
 
 ## 2026-08-17 (1)
 

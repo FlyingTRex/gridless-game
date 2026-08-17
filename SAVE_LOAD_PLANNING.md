@@ -275,6 +275,110 @@ actually built, this needs a small follow-up increment, not a redesign:
 Not urgent — skill books aren't built yet — but flagged here so it isn't
 discovered later as a "why didn't my skill books survive a reload" bug.
 
+## 11. Built structures — real design, upgraded from "deferred" (2026-08-17)
+
+Section 3's deferral of `BuildPiece` placements stopped being an
+academic gap and became a live, player-visible bug: Ben placed a
+Masterwork Village Flag, saved, reloaded, and it was simply gone — and
+the knock-on effect was worse than "one missing decoration," since
+`NPCGuarding`'s patrol behavior (`GUARDING_PLANNING.md`) depends on a
+`VillageFlag` existing in the world at all. A live-tested Ranged Guard
+that should have been circling a Flag was instead wandering aimlessly,
+confirmed directly against `NPCGuarding.UpdatePatrol()`'s own "no Flag
+found" fallback path. Every built structure — Campfire, Furnace,
+Village Flag, City Statue, every wall/foundation/roof piece from
+`PlayerBuilding` — has the identical problem: `SaveManager.cs`'s
+capture list only knows `StorageBox`/`ResourceNode`/`NPCHiring`/
+`GardenPlot`/`GardenPlot4x4`.
+
+### What already exists to build on
+Every real (non-ghost) placed piece already carries `PlacedPiece.Piece`
+— a live reference to the exact `BuildPiece` asset it was built from
+(set by `PlayerBuilding.Confirm` at instantiation). This is almost the
+entire "which prefab do I re-instantiate on load" problem already
+solved — the only piece missing is a stable string-ID lookup for
+`BuildPiece`, the same role `ItemDatabase`/`SkillDatabase`/
+`NPCJobDatabase` already play for their own types (including the
+now-fixed deterministic-sort/dictionary-lookup pattern from the
+`DatabaseRepopulator` gotcha in `CLAUDE.md` — a new `BuildPieceDatabase`
+should follow that same shape from day one, not reinvent a nondeterministic
+version).
+
+### Proposed architecture
+1. **`BuildPieceDatabase`** — new `ItemDatabase`-shaped lookup asset
+   (`IdFor`/`Find`, sorted deterministically, `DatabaseRepopulator`
+   extended to also rebuild this one).
+2. **A new `["placedPieces"]` capture/restore pair in `SaveManager.cs`**,
+   generic over every `PlacedPiece` in the scene with a `SaveId`
+   (`PlacedPiece` needs `[RequireComponent(typeof(SaveId))]` added — it
+   doesn't have one today since nothing ever needed to identify a placed
+   piece persistently before now). Base capture: `BuildPieceDatabase.
+   IdFor(piece.Piece)`, position, yaw. Restore: re-instantiate via
+   `PlayerBuilding`'s own placement path (or a direct
+   `Instantiate(buildPiece.prefab, pos, rot)` + the same `PlacedPiece`/
+   `SaveId` wiring `Confirm` already does) — **not** a generic
+   `Instantiate(prefab)`, since several piece types (Village Flag,
+   Campfire, Furnace) need their own `Awake`/`Start` to run normally
+   afterward, same as any other scene object.
+3. **A small optional extra-state hook** for the handful of piece types
+   that carry real runtime state beyond "which piece, where" — mirrors
+   the existing per-type `CaptureStorageBox`/`CaptureNpc`/etc. pattern
+   already in `SaveManager.cs`, just dispatched by component type after
+   the generic step above re-creates the GameObject:
+   - **`VillageFlag`**: `villageName` (`tier` is already implied by
+     which `BuildPiece` was placed, needs no separate capture).
+   - **`Campfire`**: `isLit`, `fuelSecondsRemaining`, `activeRecipe`
+     (via `ItemDatabase`-style lookup on the `CookableItem`, needs its
+     own ID resolution same as `SmeltableItem`/`FuelItem` would),
+     `cookSecondsElapsed`, plus its 6 `Inventory` slots (Fuel/Grill/
+     CookingPot/Kettle/FryingPan/Input/Output) via the same
+     `InventorySaveUtility.Capture`/`Restore` every other inventory in
+     this project already uses.
+   - **`Furnace`**: same shape as Campfire minus the 4 cooking-accessory
+     slots — fuel inventory, lit/burn-timer state, smelt queue.
+   - **`CityStatue`**: no capture needed at all — `CityStatue.Exists` is
+     already a pure "does one exist in the scene" scan, so restoring the
+     GameObject via step 2 is the entire fix.
+   - Every plain `BuildPiece` with no matching `MonoBehaviour` (Wall,
+     Foundation, Roof Panel, Door Frame) needs **only** step 2 — no
+     extra-state hook at all.
+
+### Scope note
+This is real new work, not a quick prefab-data fix like the Egg icon or
+Campfire `cookableItems` registration gap sitting in the same commit
+queue — closer in size to the original `StorageBox`/`ResourceNode`
+capture work. Ben's call (2026-08-17, mid-playtest, prompted by the
+Village Flag vanishing and immediately breaking Guard patrol): **this
+jumps ahead of the small queued fixes**, since an untested/broken
+Guarding feature and a vanishing Village Flag are actively blocking
+further live testing of both systems, not just cosmetic gaps.
+
+**Phase 1 built (2026-08-17), once the Editor was confirmed closed for
+the day's playtest session**: steps 1-2 above (`BuildPieceDatabase`,
+the generic `["placedPieces"]` capture/restore, re-instantiation on
+load) plus Village Flag's name-only extra-state hook. This alone fixes
+Village Flag, City Statue, and every plain structural piece (Wall/
+Foundation/Roof Panel) — the three bullets in step 3 that needed no new
+ID-resolution plumbing. Verified via compile + a direct
+`BuildPieceDatabase.asset` YAML check (28 `BuildPiece` assets,
+deterministically sorted).
+
+**Phase 2 built immediately after, same session**: Campfire/Furnace's
+own richer state (step 3's other two bullets) is now covered too —
+`Campfire.RestoreState`/`Furnace.RestoreState`, dispatched from the same
+`RestorePlacedPieces` loop right after the base piece is re-instantiated.
+`activeRecipe`/the Furnace's recipe queue resolve by matching each
+recipe's `outputItem` against the instance's own registered recipe
+list via `ItemDatabase` — sidesteps needing a dedicated
+`CookableItem`/`SmeltableItem` database, since a given output is only
+ever registered once per structure. The Furnace's 3 linked StorageBox
+references resolve through the same `SaveIdRegistry` pattern the NPC
+deposit-container cross-reference already established.
+
+**Neither phase has a real save → reload → confirm-it-came-back-correctly
+round trip yet** — both verified via compile only so far. That live test
+is the next step before any of this section is considered done.
+
 ## Cross-references
 
 - `BUGS_AND_ENHANCEMENTS.md`'s "Save/load persistence (v1, deliberately
