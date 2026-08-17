@@ -5,10 +5,40 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.121-dev` — must always match `GameVersion` in
+**Current version:** `0.3.122-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-17 (6)
+
+### v0.3.122-dev — PlayerMagic actually saves now
+
+`PlayerMagic` used to silently re-randomize the player's starting
+lineage on every scene load — no capture, no restore, ever. Hit live
+this session: a skill book's Elemental grant survived a blank-screen
+crash purely by coincidence (the reroll happened to land on Elemental
+again), which is what surfaced the bug in the first place once the
+Magic tab was actually checked.
+
+`PlayerMagic.Awake()` now only assigns a free random starting lineage
+for a genuinely new character, guarded on `SaveManager.SaveExists` (same
+pattern `GardenPlot4x4`'s own fresh-start init already uses).
+`SaveManager` gained a real capture/restore pair for every known lineage
+(via `SkillDatabase` resolution, reusing the existing `PlayerMagic
+.LearnLineage`) and the selected wish (new `PlayerMagic.FindWish`/
+`IdForWish`). A new `AssignRandomLineageIfNone` keeps old save files
+(written before this fix, with no lineage data at all) from loading into
+zero known magic. Also fixed `MagicScreen.cs`'s "Lineage:" header, which
+only ever displayed the single old `StartingLineage` field and could
+show a stale, misleading lineage once a player knew more than one —
+it now lists every lineage from the real `KnownLineages` set.
+
+**Live-tested, full round trip**: read a second lineage book
+(Elemental, on top of Restoration), saved, exited, relaunched — both
+lineages survived, the header listed both, both wishes cast correctly
+(Heal Self, Spark — the latter lighting a Campfire), and both trained
+their skills live (Restoration → 3.0, Elemental → 2.0).
 
 ## 2026-08-17 (5)
 

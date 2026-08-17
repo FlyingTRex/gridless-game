@@ -28,8 +28,15 @@ public class MagicScreen : MonoBehaviour
     {
         GUILayout.Label("Magic", DebugGUI.Header);
 
-        string lineageName = magic.StartingLineage != null ? magic.StartingLineage.skillName : "None";
-        GUILayout.Label($"Lineage: {lineageName}", DebugGUI.Label);
+        // Was magic.StartingLineage (a single field left over from before
+        // PlayerMagic supported knowing more than one lineage) -- showed a
+        // stale/misleading lineage once a skill book granted a second one.
+        // KnownLineages is the real multi-lineage set (2026-08-13,
+        // SKILL_BOOKS_PLANNING.md).
+        string lineageNames = magic.KnownLineages.Count > 0
+            ? string.Join(", ", System.Linq.Enumerable.Select(magic.KnownLineages, l => l.skillName))
+            : "None";
+        GUILayout.Label($"Lineage: {lineageNames}", DebugGUI.Label);
         GUILayout.Label($"Will: {vitals.Will:F0} / {vitals.MaxWill:F0}", DebugGUI.Label);
         GUILayout.Space(10);
 

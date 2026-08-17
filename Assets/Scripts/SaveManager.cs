@@ -20,6 +20,7 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerEquipment))]
 [RequireComponent(typeof(PlayerFame))]
+[RequireComponent(typeof(PlayerMagic))]
 public class SaveManager : MonoBehaviour
 {
     private const string FileName = "save.json";
@@ -38,6 +39,7 @@ public class SaveManager : MonoBehaviour
     private PlayerFame fame;
     private PlayerMapExploration mapExploration;
     private VillageFlagSpawner villageFlagSpawner;
+    private PlayerMagic magic;
 
     // Set by Load() so a fresh scene's starting-gear auto-equip (Shirt/
     // Jeans/Belt/Canteen, each guarded on "nothing equipped yet") doesn't
@@ -61,6 +63,7 @@ public class SaveManager : MonoBehaviour
         fame = GetComponent<PlayerFame>();
         mapExploration = GetComponent<PlayerMapExploration>();
         villageFlagSpawner = GetComponent<VillageFlagSpawner>();
+        magic = GetComponent<PlayerMagic>();
     }
 
     private void Start()
@@ -139,6 +142,8 @@ public class SaveManager : MonoBehaviour
             ["inventory"] = InventorySaveUtility.Capture(playerInventory.Inventory),
             ["equipment"] = CaptureEquipmentSlots(),
             ["mapExploration"] = mapExploration != null ? mapExploration.CaptureRevealedBase64() : null,
+            ["magicLineages"] = CaptureMagicLineages(),
+            ["selectedWish"] = magic != null ? magic.IdForWish(magic.SelectedWish) : null,
         };
     }
 
@@ -183,12 +188,55 @@ public class SaveManager : MonoBehaviour
         if (mapExploration != null && data["mapExploration"] != null)
             mapExploration.RestoreRevealedBase64((string)data["mapExploration"]);
 
+        if (magic != null)
+        {
+            // Lineages first -- SelectWish below refuses a wish outside a
+            // known lineage, so this order matters. LearnLineage no-ops
+            // safely if a lineage's already known (nothing is on a fresh
+            // character yet, since Awake() skipped its own random
+            // assignment specifically because a save exists).
+            if (data["magicLineages"] is JArray lineageArray)
+                foreach (var token in lineageArray)
+                {
+                    var lineage = SkillDatabase.Instance?.Find((string)token);
+                    if (lineage != null) magic.LearnLineage(lineage);
+                }
+
+            // Backward-compat: a save written before this fix existed has
+            // no magicLineages key, so the loop above restored nothing --
+            // give that character the same free random lineage a new one
+            // gets, rather than leaving them with none.
+            magic.AssignRandomLineageIfNone();
+
+            var wish = magic.FindWish((string)data["selectedWish"]);
+            if (wish != null) magic.SelectWish(wish);
+
+            // Covers both a pre-this-fix save (no magicLineages key at all,
+            // so knownLineages is still empty here) and the ordinary case
+            // where selectedWish just wasn't saved for some reason -- same
+            // "pick the first known wish" fallback a fresh character's own
+            // Awake() always ran.
+            magic.SelectDefaultWishIfNone();
+        }
+
         // Every worn item above was restored directly into its
         // PlayerEquipment slot's Inventory, hidden (Stash()ed) by
         // EquipmentSaveUtility.Restore — this re-runs the same bone-attach
         // sweep a gender toggle already triggers so each one becomes
         // visible/carried on the correct bone instead of staying invisible.
         bodyModel?.RefreshAllAnchors();
+    }
+
+    private JArray CaptureMagicLineages()
+    {
+        var array = new JArray();
+        if (magic == null) return array;
+        foreach (var lineage in magic.KnownLineages)
+        {
+            string id = SkillDatabase.Instance != null ? SkillDatabase.Instance.IdFor(lineage) : null;
+            if (id != null) array.Add(id);
+        }
+        return array;
     }
 
     // ---- Shared skill/currency/vector helpers ----

@@ -194,32 +194,47 @@ of needing a dedicated `CookableItem`/`SmeltableItem` database), the
 Furnace's up-to-4 recipe queue, its 3 linked StorageBox references
 (`fuelSourceBox`/`materialsSourceBox`/`outputBox`, resolved via the same
 `SaveIdRegistry` cross-reference pattern NPC deposit containers already
-use), and all of Campfire's 6 inventories / Furnace's 3. Verified via
-compile only so far — **not yet live-tested with a real save/reload
-round trip**, that's the next step before this is considered done.
+use), and all of Campfire's 6 inventories / Furnace's 3. **Live-tested
+2026-08-17, full round trip confirmed for both structures**: a Campfire
+came back lit, with the exact remaining fuel seconds, an active Fried
+Egg recipe still mid-progress, and a previously-finished Fried Egg
+already sitting in the output slot; the Furnace separately confirmed
+with real Materials and Fuel contents intact after the same save → exit
+→ restart cycle. Not just existence in either case — real state. (This
+also needed the separate legacy-fixture migration below — the original
+scene Campfire/Furnace predate `PlacedPiece`
+entirely and had to be retroactively wired in first.)
 
-**A second, worse save gap found the same session: `PlayerMagic`
-doesn't just fail to persist, it actively re-randomizes on every
-reload.** Ben read a Skill Book gaining the Elemental lineage (Spark)
-on top of an already-known Kinetic (Push), then asked to verify Magic
-state actually saves. Checked both `save.json` (zero `magic`/`lineage`/
-`wish` keys anywhere) and `SaveManager.cs` (zero references to
-`PlayerMagic` at all — no capture, no restore). Worse than a silent
-gap: `PlayerMagic.Awake()` **unconditionally** picks a fresh random
-`StartingLineage` and adds it to `knownLineages` every time the
-component initializes, with no check for prior state (there's nothing
-to check against). So a reload doesn't just lose the newly-learned
-Elemental lineage — it can hand the player a completely different
-starting lineage than the one they'd been playing, discarding both the
-original and any book-granted ones. Skill-level *numbers* for whichever
-lineages happen to be trained (Kinetic/Elemental/etc.) likely do
-survive via the generic `PlayerSkills.Levels` → `"skills"` array
-`SaveManager` already captures for every skill regardless of category
-— it's specifically the *which lineages are known* / *which wish is
-selected* state that's unsaved and actively clobbered. Needs its own
-`SaveManager` capture/restore pair (`knownLineages` as a string array,
-`SelectedWish` by id) plus an `Awake()` guard so the random-assignment
-path only fires for a genuinely fresh character, not a restored one.
+**✅ Fixed 2026-08-17.** A second, worse save gap found the previous
+session: `PlayerMagic` didn't just fail to persist, it actively
+re-randomized on every reload. Ben read a Skill Book gaining the
+Elemental lineage (Spark) on top of an already-known Kinetic (Push), then
+hit it live: a blank-screen crash forced a restart, and the Elemental
+lineage was simply gone (a coincidental reroll of the same lineage on
+restart made it briefly look intact before Ben checked the actual Magic
+tab and caught it). Root cause exactly as diagnosed: `PlayerMagic
+.Awake()` unconditionally picked a fresh random `StartingLineage` every
+time, with no save-state check at all — `SaveManager.cs` had zero
+references to `PlayerMagic`, no capture, no restore.
+
+**Fixed**: `Awake()` now only randomizes for a genuinely new character,
+guarded on `SaveManager.SaveExists` (the same pattern `GardenPlot4x4`'s
+own fresh-start init already used). `SaveManager` gained a real
+capture/restore pair — every known lineage (via `SkillDatabase`
+resolution, reusing `PlayerMagic.LearnLineage`) and the selected wish
+(new `PlayerMagic.FindWish`/`IdForWish`). A new `AssignRandomLineageIfNone`
+keeps old save files (written before this fix, with no lineage data at
+all) from ending up with zero magic — they get the same free random
+lineage a new character would. Also fixed `MagicScreen.cs`'s "Lineage:"
+header, which was still reading the single old `StartingLineage` field
+and could show a stale/misleading lineage once a player knew more than
+one — now lists every known lineage from the real `KnownLineages` set.
+**Live-tested 2026-08-17, full confirmation**: read a second lineage
+book (Elemental, on top of an already-known Restoration), saved, exited,
+relaunched — both lineages survived, the Magic tab header correctly
+listed both, both wishes (Heal Self and Spark) worked when cast, and
+both trained their skills live (Restoration → 3.0, Elemental → 2.0).
+Genuinely fixed, not just compile-verified.
 
 ### 3. Digging + water scarcity, built into the new space from day one
 

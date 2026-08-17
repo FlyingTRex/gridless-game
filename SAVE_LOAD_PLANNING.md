@@ -384,12 +384,25 @@ firing reliably when `RequireComponent` auto-adds it via a runtime
 explicitly calling `GenerateIfMissing()` right after
 `AddComponent<PlacedPiece>()` in both `PlayerBuilding.Confirm` and
 `AdminSpawnScreen.SpawnPiece`. **Re-tested the same day — a placed
-Village Flag now genuinely survives a save/reload.** Campfire/Furnace's
-richer state (Phase 2) hasn't had its own dedicated live confirmation
-yet — same underlying fix applies to them too (they're captured through
-the same `PlacedPiece`/`SaveId` pair), but worth a direct check
-(lit/fuel/recipe-queue state specifically) rather than assuming it
-carries over automatically.
+Village Flag now genuinely survives a save/reload.**
+
+**Campfire/Furnace's richer state (Phase 2) had its own real gap on
+top**: the *original* Campfire and Furnace were fixtures hand-placed
+directly in `TestScene.unity` from early in the project, predating the
+whole `PlacedPiece`/`SaveId` system entirely — confirmed live (2026-08-17)
+when the Village Flag correctly survived a reload but the Campfire right
+next to it lost all lit/fuel/utensil/ingredient state anyway. Fixed via
+a one-off migration (same shape as the original StorageBox/ResourceNode/
+NPCHiring migration): the scene Campfire got a real `PlacedPiece`
+(linked to `CampfirePiece.asset`) + `SaveId`; the Furnace, which has no
+`BuildPiece`/prefab at all, got its own direct `SaveId` and became a
+standalone top-level `SaveManager` category. **Re-tested the same day —
+full round trip confirmed**: lit status, exact remaining fuel seconds,
+mid-cook progress on an active recipe, and a finished item already
+sitting in the output slot all survived a real save → exit → restart,
+not just the structure's existence. Section 11's built-structure save
+work is now considered done — both phases genuinely hold up under a
+real save/reload, not just compile-verified.
 
 ## Cross-references
 

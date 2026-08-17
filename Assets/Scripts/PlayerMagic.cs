@@ -78,17 +78,64 @@ public class PlayerMagic : MonoBehaviour
         skills = GetComponent<PlayerSkills>();
         vitals = GetComponent<PlayerVitals>();
 
-        if (allLineages != null && allLineages.Length > 0)
+        // Only a genuinely new character gets the free random lineage
+        // (design-brief.md's "no lineage-less players") -- a save file
+        // means SaveManager.Load() (Start(), after every Awake()) is about
+        // to call RestoreLineages/SelectWish with the real saved data, so
+        // randomizing here would just get immediately overwritten anyway,
+        // except it wasn't: PlayerMagic previously had no save/restore at
+        // all, so this ran unconditionally every load and silently
+        // discarded whatever the player had actually learned. Same
+        // SaveManager.SaveExists guard GardenPlot4x4's own fresh-start
+        // init already uses.
+        if (!SaveManager.SaveExists && allLineages != null && allLineages.Length > 0)
         {
             StartingLineage = allLineages[Random.Range(0, allLineages.Length)];
             knownLineages.Add(StartingLineage);
         }
 
+        SelectDefaultWishIfNone();
+    }
+
+    // Backward-compat fallback for a save file written before this fix
+    // existed (no magicLineages key at all, so nothing was restored) --
+    // gives that character the same free random lineage a genuinely new
+    // one gets, rather than leaving them with none. No-ops if lineage
+    // restore already populated something real.
+    public void AssignRandomLineageIfNone()
+    {
+        if (knownLineages.Count > 0 || allLineages == null || allLineages.Length == 0) return;
+        StartingLineage = allLineages[Random.Range(0, allLineages.Length)];
+        knownLineages.Add(StartingLineage);
+    }
+
+    // Picks the first known wish as the R default -- same fallback Awake()
+    // always ran, pulled out so SaveManager can re-run it after restoring
+    // knownLineages for a loaded character (Awake() itself has nothing to
+    // pick from yet when a save exists, since lineages aren't restored
+    // until Start()). No-ops if a wish is already selected (e.g. the saved
+    // SelectedWish was successfully restored).
+    public void SelectDefaultWishIfNone()
+    {
+        if (SelectedWish != null) return;
         foreach (var wish in KnownWishes)
         {
             SelectedWish = wish;
             break;
         }
+    }
+
+    // ---- Save/load (SAVE_LOAD_PLANNING.md, 2026-08-17 follow-up) ----
+
+    public string IdForLineage(SkillDefinition lineage) => lineage != null ? lineage.name : null;
+    public string IdForWish(WishRecipe wish) => wish != null ? wish.name : null;
+
+    public WishRecipe FindWish(string id)
+    {
+        if (string.IsNullOrEmpty(id) || allWishes == null) return null;
+        foreach (var wish in allWishes)
+            if (wish != null && wish.name == id) return wish;
+        return null;
     }
 
     public bool IsLineageKnown(SkillDefinition lineage) =>
