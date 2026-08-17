@@ -165,6 +165,25 @@ public getter — it's the only prefab any hireable NPC is ever spawned
 from now) when a saved NPC's `SaveId` isn't found in the scene, then
 restores its job/tools/cargo/skills exactly as before.
 
+**Real bug found live testing Phase 1 itself (2026-08-17): the fix
+didn't actually work the first time.** Ben admin-spawned a Village Flag,
+saved, restarted — `save.json` showed `"placedPieces": []`, completely
+empty. Root cause: `PlacedPiece.cs`'s `[RequireComponent(typeof(SaveId))]`
+gets triggered by a runtime `AddComponent<PlacedPiece>()` call (both
+`PlayerBuilding.Confirm` and `AdminSpawnScreen.SpawnPiece` add it this
+way), and `SaveId.Reset()` — which generates its GUID — doesn't reliably
+fire when a required component is auto-added via a scripted
+`AddComponent` call, only via the Editor's own "Add Component" button.
+This is the exact gotcha `SaveId.cs`'s own migration-script comment
+already documents, just not applied to this new code path. Result: every
+placed structure's `SaveId.Id` silently stayed empty, and both
+`SaveIdRegistry.Register` and `CaptureWorldObjects` quietly skip
+anything with an empty ID — no error, no warning. **Fixed** by calling
+`GetComponent<SaveId>()?.GenerateIfMissing()` explicitly right after
+`AddComponent<PlacedPiece>()` at both call sites. Compile-verified;
+still needs the real save/reload round trip to confirm the fix actually
+holds this time.
+
 **✅ Phase 2 built the same session, right after Phase 1**: Campfire and
 Furnace's own richer runtime state now saves too — `Campfire.
 RestoreState`/`Furnace.RestoreState` (new), each capturing/restoring

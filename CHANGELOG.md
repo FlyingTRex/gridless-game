@@ -5,10 +5,36 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.118-dev` — must always match `GameVersion` in
+**Current version:** `0.3.119-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-17 (3)
+
+### v0.3.119-dev — Fix: placed structures still weren't actually saving
+
+v0.3.118-dev's built-structure persistence shipped compile-verified only
+— live testing it immediately after found it didn't actually work.
+Ben admin-spawned a Village Flag, saved, restarted, and `save.json`
+showed `"placedPieces": []`, completely empty.
+
+Root cause: `PlacedPiece.cs`'s `[RequireComponent(typeof(SaveId))]` gets
+triggered by a runtime `AddComponent<PlacedPiece>()` call (both
+`PlayerBuilding.Confirm` and `AdminSpawnScreen.SpawnPiece` add it this
+way) — and `SaveId.Reset()`, which generates its GUID, doesn't reliably
+fire when a required component is auto-added via a scripted
+`AddComponent` call, only via the Editor's own "Add Component" button.
+`SaveId.cs`'s own migration-script comment already documented this exact
+gotcha; it just wasn't applied to this new code path. Every placed
+structure's `SaveId.Id` silently stayed empty, and both
+`SaveIdRegistry.Register` and `CaptureWorldObjects` quietly skip
+anything with an empty ID — no error, no warning, no hint anything was
+wrong short of reading the actual save file.
+
+Fixed by calling `GetComponent<SaveId>()?.GenerateIfMissing()` explicitly
+right after `AddComponent<PlacedPiece>()` at both call sites. Compile-
+verified; still needs a real save/reload round trip to confirm it holds.
 
 ## 2026-08-17 (2)
 

@@ -389,6 +389,14 @@ public class PlayerBuilding : MonoBehaviour
         RemoveIngredients(armedPiece);
         var real = Instantiate(armedPiece.prefab, position, rotation);
         real.AddComponent<PlacedPiece>().Piece = armedPiece;
+        // RequireComponent's auto-added SaveId doesn't reliably fire Reset()
+        // when triggered by a runtime AddComponent call (same gotcha
+        // SaveId.cs's own migration-script comment already flags) -- left
+        // implicit, every placed structure's id silently stays empty and
+        // SaveManager quietly never saves it. Confirmed live 2026-08-17: a
+        // placed Village Flag vanished on reload with save.json showing
+        // "placedPieces": [].
+        real.GetComponent<SaveId>()?.GenerateIfMissing();
         skills?.GainExperience(armedPiece.trainedSkill, armedPiece.skillGain);
 
         // City Statue Fame grant (VILLAGE_FLAG_PLANNING.md section 6) --

@@ -249,6 +249,10 @@ public class AdminSpawnScreen : MonoBehaviour
 
         var instance = Instantiate(piece.prefab, position, Quaternion.identity);
         instance.AddComponent<PlacedPiece>().Piece = piece;
+        // Same explicit-generate fix as PlayerBuilding.Confirm -- see its
+        // comment for why RequireComponent's auto-added SaveId can't be
+        // trusted to have a real id otherwise.
+        instance.GetComponent<SaveId>()?.GenerateIfMissing();
     }
 #else
     public void DrawContent()
