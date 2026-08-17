@@ -801,8 +801,19 @@ fixed v0.3.16-dev)
   that a downgrade + a skill-gain message can legitimately show
   together — incidentally the same live moment that caught the
   `PlayerAutosave` toast-position bug (see `CHANGELOG.md` v0.3.114-dev).
-  Remaining outcomes (Bad/Spectacular Failure, Brilliant Success) still
-  unconfirmed. Craft a batch of
+  **Follow-up, same session**: two more crafts landed the Brilliant
+  Success outcome — "Incredible! You crafted a [Fine/Masterwork] Trimmed
+  Stick — far better than intended!" — confirming that outcome fires
+  live too and correctly produces the next tier up (Fine, then
+  Masterwork) rather than just a message. Also confirms
+  `PlayerSkills`' skill-gain toast rotates between multiple message
+  templates ("Nicely done!", "Great work!", "Excellent!" all seen
+  across these crafts, not always the same wording). **Bad Failure also
+  confirmed live**: materials lost, no Health damage, matching "the
+  materials were ruined" specifically (distinct from Spectacular
+  Failure's "the materials were destroyed... and you were hurt" — Ben
+  confirmed no Health hit, so this was Bad Failure not Spectacular).
+  Only Spectacular Failure remains unconfirmed live now. Craft a batch of
   Crude tools/Trimmed Stick (low skill margin, riskiest odds — roughly
   63% Success / 20% Barely Fail / 12% Bad Failure / 3% Spectacular / 2%
   Brilliant) and confirm all 5 outcomes are actually reachable, not just
@@ -3197,6 +3208,11 @@ anything.
   whether this was the pre-placed found book or a freshly written one —
   doesn't matter for what this line verifies, since `PlayerReading.
   TryRead` doesn't distinguish book provenance.
+  **Independently reproduced (Ben, 2026-08-16)**: same exact scenario —
+  already knew Kinetic (Push active), picked up and read a Spark
+  (Elemental) book, Magic screen now lists both wishes (Push still
+  Active, Spark available to Select). Two independent players now
+  confirm this mechanic works, not just one.
 - [x] **Write half confirmed live (Ben, 2026-08-16)**: wrote several
   Spark (Elemental) wish books via the Writing tab — Paper/Ink consumed,
   real `SkillBookPickup` instances produced (visible as stashed clones
@@ -3818,7 +3834,13 @@ ground instead of falling through.
   AND 1 Egg (both should always drop, no chance roll on either).
 - [ ] **Skill gain**: check the Gathering skill's XP before/after
   skinning — confirm it increased (same skill Wolf's own skinning
-  trains, not a new one).
+  trains, not a new one). **Wolf half confirmed live (Ben, 2026-08-16,
+  console)**: killed and skinned a Wolf, Gathering jumped +0.463 and
+  crossed the Rudimentary tier (10.038), which correctly auto-granted
+  +1 Fame via `PlayerSkills.TierUnlocked` — a second independent
+  confirmation of the Fame-on-tier-unlock hook (first was Woodworking,
+  see this file's Dexterity section). Chicken's own skinning-trains-
+  Gathering still needs its own separate confirmation.
 - [ ] **Tool gate**: try skinning without a Knife equipped — confirm the
   hold either doesn't start or doesn't complete (same gate Wolf uses).
 - [ ] **Respawn**: wait out the 180s respawn delay (or check back later)
@@ -4092,15 +4114,21 @@ v0.3.105-dev — added below to close that gap.
 - [x] **Rename via right-click**: confirmed live (2026-08-16) — works
   when aimed at the flag itself (banner or pole), not just the pole as
   before the fix. Renamed name also correctly appears on the Player Map
-  marker label.
-- [ ] **Build a Flag**: place any tier of Village Flag — confirm it
-  registers (no error) and `VillageFlagSpawner`'s timer visibly starts
-  accruing (add a temporary debug log if needed to confirm).
+  marker label. Re-confirmed same day on a Masterwork-tier Flag,
+  clicking the banner specifically (not the staff) — collider fix holds
+  across tiers.
+- [x] **Build a Flag**: confirmed live (2026-08-16) — placed a Normal
+  tier Flag ("Phoenix"), registered with no error.
 - [ ] **No Flag = no timer**: with zero Flags placed, confirm no NPC ever
   spawns from this system, however long you wait.
-- [ ] **A spawn actually happens**: after the (possibly shortened)
-  interval elapses, confirm a new NPC appears roughly `spawnDistanceFromFlag`
-  (40m) from the Flag and visibly walks toward it.
+- [x] **A spawn actually happens**: confirmed live (2026-08-16, console)
+  — `[VillageFlag] Spawned NPC near VillageFlag_Normal(Clone) (tier
+  Normal), interval was 24.0min, stick-around 12.5min`. The interval
+  exactly matches hand-computed math (30min ÷ 1.0 Fame multiplier ×
+  0.8 Normal-tier multiplier = 24.0min) — confirms `VillageFlagSpawner
+  .CurrentIntervalMinutes`'s formula is correct, not just that a spawn
+  eventually happens. First real live confirmation of what had been the
+  single largest untested surface area in the whole project.
 - [ ] **Arrival behavior**: confirm the NPC stops directed movement once
   within ~2m of the Flag and resumes ordinary wandering nearby — not
   frozen in place.
@@ -4230,10 +4258,8 @@ instances pre-placed in `TestScene.unity`. Full design context in
   Built-in-shader-under-URP gotcha causes (looks fine structurally,
   renders nothing), so a passing YAML check on the material alone
   doesn't prove this.
-- [ ] **Idle/wander**: watch a Rabbit from a distance — confirm it
-  alternates between standing still and walking to a nearby point,
-  looping indefinitely, with the Run animation actually playing while it
-  moves (not sliding).
+- [x] **Idle/wander**: confirmed live (2026-08-16, screenshot) — a
+  Rabbit visibly hopping/moving around.
 - [ ] **Flees on approach**: walk toward a Rabbit — confirm it breaks
   off wandering and runs directly away once you're within range, faster
   than its normal wander pace.
@@ -4260,20 +4286,16 @@ not just a `.meta`/prefab YAML grep, given what this feature's own icon
 bug turned out to be). Full design context in `MVP2_PLANNING.md` item 8
 and `CHANGELOG.md`'s v0.3.108-dev entry.
 
-- [ ] **Renders correctly as a world pickup**: kill and skin a Chicken,
-  confirm the dropped Chicken Meat pickup is actually visible (drumstick
-  shape — meat mass + bone + knuckle), not invisible or a generic gray
-  cube fallback.
-- [ ] **Icon renders correctly**: confirm the inventory slot icon and
-  (if picked up) preview icon both show the full drumstick silhouette —
-  bone and knuckle visible, not just the meat ball. This is the exact
-  bug that was found and fixed this session (glTFast material-remap
-  silently not applying — see `CLAUDE.md`'s embedded-glTF-material
-  gotcha, 2026-08-16 update).
-- [ ] **Drop chance/count**: kill several Chickens, confirm Chicken Meat
-  drops alongside Feather/Egg (not replacing them) at a sane rate — no
-  drop-chance was specified beyond the field default, confirm it isn't
-  set to always/never unintentionally.
+- [x] **Renders correctly as a world pickup**: confirmed live
+  (2026-08-16, screenshot) — the dropped Chicken Meat drumstick is
+  clearly visible on the ground (meat + bone + knuckle), alongside a
+  dropped Feather (also confirming that fix's world-pickup rendering,
+  not just the baked icon).
+- [ ] **Icon renders correctly**: still needs a direct look at the
+  inventory slot icon specifically (the world-pickup mesh is now
+  confirmed, which is a different render path than the baked icon).
+- [x] **Drop chance/count**: confirmed live — Chicken Meat dropped
+  alongside Feather in the same kill, not replacing it.
 - [ ] **Stacks/behaves as an ordinary item**: pick it up, confirm it
   stacks normally in inventory and can be dropped/picked back up.
 - [ ] **Not built yet, by design**: no `EdibleItem`/cooking recipe for
@@ -4294,10 +4316,7 @@ together in a real session, not just the setup-time diagnostic render.
 
 - [x] **Renders correctly**: confirmed live (screenshot) — correctly
   textured, no white/invisible/missing-shader issue.
-- [ ] **Idle/wander**: watch a Pig from a distance — confirm it
-  alternates between standing still and walking to a nearby point,
-  looping indefinitely, with the Run animation actually playing while it
-  moves (not sliding).
+- [x] **Idle/wander**: confirmed live (2026-08-16) — "piggy is moving."
 - [x] **Flees on approach**: confirmed live (screenshot) — Pig running
   directly away from the player.
 - [ ] **Resumes wandering after fleeing**: back off and give it space —
@@ -4313,16 +4332,18 @@ together in a real session, not just the setup-time diagnostic render.
 - [ ] **Not built yet, by design**: retrofitting `PreyWander` onto
   Chicken/Deer (they still stand still); taming.
 
-## 56. Autosave, v1 (v0.3.114-dev)
+## 56. Autosave, v1 (v0.3.114-dev, toast position fixed v0.3.115-dev)
 
-New — not yet walked through in Play mode at all (verified so far only
-via compile + direct scene YAML grep). Full context in
-`SAVE_LOAD_PLANNING.md`.
+**Live evidence, 2026-08-16**: Ben confirmed the autosave firing live
+during the Village Flag spawn wait — "Game autosaved." toast appeared
+top-center, cleanly clear of everything else on screen (confirms the
+v0.3.115-dev y=150 fix actually holds up live, not just in theory).
 
-- [ ] **Fires automatically**: sit idle (or play normally) for 10 real
-  minutes — confirm a save actually happens with no player action (check
-  `Player.log`/`Debug.Log` output, or the save file's modified
-  timestamp) and a "Game autosaved." toast appears top-center.
+- [x] **Fires automatically**: confirmed live — toast appeared with no
+  player action during a real play session.
+- [ ] Precise 10-minute timing not independently verified (toast was
+  seen, but not timestamped against a clock) — close enough to trust
+  for now.
 - [ ] **Toast timing**: confirm the toast stays visible for ~15 seconds
   then clears on its own, and doesn't block/obscure other HUD elements
   (Vitals bars, `PlayerSkills`' own tier-unlock toast if one happens to
@@ -4332,5 +4353,5 @@ via compile + direct scene YAML grep). Full context in
   Save button still saves immediately and shows its own existing
   in-menu "Saved." message, independent of the 10-minute autosave timer
   (doesn't reset the timer, doesn't skip the next autosave).
-- [ ] **Repeats**: stay in a session past 20+ minutes — confirm a second
-  (and third) autosave actually fires on schedule, not just once.
+- [x] **Repeats**: confirmed live (2026-08-16) — a second autosave fired
+  later in the same session, not just once.

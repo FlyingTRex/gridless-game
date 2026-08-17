@@ -44381,8 +44381,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ae6002f77a7f3d74bbbaa13b7188a22d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::VillageFlagSpawner
-  hireableNpcPrefab: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
-  spawnDistanceFromFlag: 40
+  hireableNpcPrefab: {fileID: 4646995035460805641, guid: 56f31d049995da94292e953f4b711898, type: 3}
+  spawnDistanceFromFlag: 15
 --- !u!114 &1681626302
 MonoBehaviour:
   m_ObjectHideFlags: 0

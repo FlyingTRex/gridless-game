@@ -114,6 +114,46 @@ originally proposed — Player, Storage Boxes, ore/resource nodes, Hireable
 NPCs — with loose world pickups/built structures/Lockbox/Bank contents
 still explicitly deferred, not silently dropped.
 
+**The real cost of the "built structures" cut, confirmed live
+(2026-08-16):** Ben planted and named a Village Flag ("Phoenix"),
+saved, and asked whether it would survive a reload — checked
+`save.json` directly and confirmed it isn't captured at all (`SaveManager
+.Save()`'s exact 5 categories: `StorageBox`/`ResourceNode`/`NPCHiring`/
+`GardenPlot`/`GardenPlot4x4` — no generic `BuildPiece` category exists).
+Worth being explicit about the actual blast radius, not just "built
+structures" as an abstract scope note: **this means every wall,
+foundation, Campfire, Furnace, Anvil, City Statue, Lockbox, and Bank
+branch a player places also vanishes on reload** — a player who builds
+a whole house today, saves, and reopens the game later would load back
+into an empty field. Fine for a short test session (nothing is lost as
+long as the game stays open), but a real blocker for anyone trying to
+actually settle in across multiple play sessions — likely worth
+promoting ahead of other Phase 2 backlog items once picked back up,
+given how central building a base is to this game's core loop.
+
+**A second, worse save gap found the same session: `PlayerMagic`
+doesn't just fail to persist, it actively re-randomizes on every
+reload.** Ben read a Skill Book gaining the Elemental lineage (Spark)
+on top of an already-known Kinetic (Push), then asked to verify Magic
+state actually saves. Checked both `save.json` (zero `magic`/`lineage`/
+`wish` keys anywhere) and `SaveManager.cs` (zero references to
+`PlayerMagic` at all — no capture, no restore). Worse than a silent
+gap: `PlayerMagic.Awake()` **unconditionally** picks a fresh random
+`StartingLineage` and adds it to `knownLineages` every time the
+component initializes, with no check for prior state (there's nothing
+to check against). So a reload doesn't just lose the newly-learned
+Elemental lineage — it can hand the player a completely different
+starting lineage than the one they'd been playing, discarding both the
+original and any book-granted ones. Skill-level *numbers* for whichever
+lineages happen to be trained (Kinetic/Elemental/etc.) likely do
+survive via the generic `PlayerSkills.Levels` → `"skills"` array
+`SaveManager` already captures for every skill regardless of category
+— it's specifically the *which lineages are known* / *which wish is
+selected* state that's unsaved and actively clobbered. Needs its own
+`SaveManager` capture/restore pair (`knownLineages` as a string array,
+`SelectedWish` by id) plus an `Awake()` guard so the random-assignment
+path only fires for a genuinely fresh character, not a restored one.
+
 ### 3. Digging + water scarcity, built into the new space from day one
 
 Original digging plan (Shovel + dig sites + new raw material) unchanged from
@@ -395,6 +435,40 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
+- [ ] **Dumbbell — a held exercise item, trains Strength faster + trains
+  Constitution too (Ben's idea, 2026-08-16).** Same "secret exercise
+  bonus" shape Soccer already established (`PlayerConstitution
+  .GrantSoccerKickGain`, triggered by `SoccerBall.cs` on a real kick) —
+  holding a ~5lb Dumbbell in hand would need its own trigger (an active-
+  use/swing action, not just passive equip, to avoid being strictly
+  better than actually doing something) that grants a Strength gain
+  rate boost on top of `PlayerEncumbrance`'s existing load-ratio system,
+  plus a direct Constitution gain the way Soccer's kick distance already
+  does. Not scoped in detail — needs a decision on the actual trigger
+  (hold-and-swing? a repeated-click rep count?) before it's buildable.
+  - **Recipe idea (Ben, 2026-08-16): Furnace, 20 Ingots.** Metal type
+    left unspecified — needs a decision (any of the 5 ore types? a
+    specific one, e.g. Iron?) before this is buildable, and 20 is a
+    large raw-material ask relative to every other Furnace recipe
+    checked so far (`IronIngotRecipe` is the only shipped Furnace
+    recipe today) — worth sanity-checking that number against real
+    ore-gathering pacing before treating it as final.
+  - **Soccer Ball recipe change idea (Ben, 2026-08-16): Ink + Leather.**
+    Flagging a real conflict: `SoccerBallRecipe.asset` already exists
+    and ships with 3x Cloth (trains Sewing) — not confirmed whether
+    this is meant to *replace* that recipe or whether the existing one
+    was overlooked. Needs a decision before either changing the shipped
+    recipe or leaving Cloth as-is.
+  - **Soccer Nets idea (Ben, 2026-08-16): a real multiplayer minigame,
+    not just the existing solo kick-around.** A placeable Build piece
+    (a goal/net) would turn `SoccerBall.cs`'s existing physics-toy
+    kicking into an actual playable game once real players exist to
+    play against — explicitly a multiplayer-only payoff, ties directly
+    into `MULTIPLAYER_PLANNING.md`'s still-unbuilt shared-world-object
+    work rather than anything buildable solo today. Worth keeping this
+    tied to that doc rather than scoping it in isolation. Not designed
+    further (goal detection/scoring, match rules, etc. all open).
+    **Recipe idea (Ben, 2026-08-16): Sticks and Rope.**
 - [x] **Player Map explored-state save/load — fixed, v0.3.99-dev
   (2026-08-16).** Caught live by Ben (explored, saved, reloaded, map
   reset to fog). `PlayerMapExploration.CaptureRevealedBase64()`/
@@ -756,6 +830,69 @@ signs off on scope and order.
   `PlayerCoinDrop.cs` was already fixed for) — all 49 switched to
   `ContinuousDynamic`, matching the 25 that already had it right. See
   `CHANGELOG.md` v0.3.112-dev.
+
+- [ ] **Egg has no icon at all, found live by Ben (2026-08-16) — not yet
+  fixed.** `Egg.asset` has both `icon` and `previewIcon` set to
+  `{fileID: 0}` (null), same as Feather's bug before its fix. The world
+  model exists (`EggPickup.prefab` has a real mesh + collider, confirmed
+  separately during the dropped-loot audit above), so this is very
+  likely the same "never baked, not broken" case Feather turned out to
+  be — needs an `IconBaker` pass, not necessarily a model fix. Not
+  attempted yet.
+- [ ] **The real remaining Cooking-deadlock blocker: `Campfire.prefab`'s
+  `cookableItems` array never included `FriedEggCookable` — found live
+  by Ben (2026-08-16), not yet fixed.** Lowering `FriedEggCookable
+  .requiredSkillLevel` to 0 (this file's earlier entry) was correct but
+  not sufficient — confirmed live that dragging Egg into the Campfire's
+  Ingredients box gets rejected and snaps back. Root cause: `Campfire.cs`
+  builds the Ingredients box's entire allowlist (`Inventory`'s
+  `restrictedTo`) purely from whichever `CookableItem`s are in its own
+  serialized `cookableItems` array — checked `Campfire.prefab` directly,
+  it only has 5 recipes registered (`RawMeatToCookedMeatCookable`,
+  `GrilledMeatCookable`, `SteakAndPotatoesCookable`, `HerbalTeaCookable`,
+  `MeatStewCookable`). `FriedEggCookable` was never added, a pre-existing
+  gap unrelated to anything touched this session (Fried Egg shipped
+  v0.3.97-dev). Same reason Chicken Meat is also correctly rejected — no
+  recipe uses it at all yet (expected, not a bug). **Fix: add
+  `FriedEggCookable` to `Campfire.prefab`'s `cookableItems` array** —
+  one line, a prefab data edit, not yet applied.
+- [ ] **`NPCSeekFlag` has no timeout while still approaching — only
+  after arrival, found live by Ben (2026-08-16) while the Village Flag
+  spawn loop's first real test ran long.** `Update()`'s countdown
+  (`stickAroundSecondsRemaining -= Time.deltaTime`) sits *after* the
+  early-return for `!hasArrived && distance > ArriveRange` — so the
+  despawn timer never starts ticking until the NPC gets within 2m of
+  the Flag. `MoveToward`'s obstacle handling is a simple raycast-and-
+  deflect with no stuck-detection at all, so an NPC that gets wedged
+  against terrain/a tree/a rock on the way in could plausibly wander
+  there forever, never arriving and never timing out either — a real
+  possible soft-lock. Live evidence: a Flag's first real spawn (24.0min
+  interval, matching the hand-computed formula exactly) never produced
+  a visible arrival after 14+ minutes of searching, well past the
+  expected ~27-second walk time at `moveSpeed=1.5`. Not confirmed
+  whether this specific instance was actually stuck vs. just not found
+  — but the missing "stuck while still walking" timeout is a real gap
+  either way. Worth a `MoveToward`-level stuck-detection fallback (e.g.
+  "hasn't made meaningful progress in N seconds, despawn/reset anyway")
+  on top of the existing arrival-based one.
+- [ ] **`SaveId` collision-regeneration observed live for the first
+  time, found by Ben (2026-08-16) diffing two saves.** CLAUDE.md's own
+  `SaveId` gotcha entry already flagged this couldn't be verified in
+  batch mode, only a real Play session — this may be the first real
+  evidence either way. Between two save-file reads taken earlier vs.
+  later in the same continuous session, 6 of 7 `NPCHiring`-tagged NPCs
+  had completely different `saveId` strings (only the one carrying old
+  Mining cargo matched). Mechanically this is expected to be harmless —
+  `SaveId.OnEnable()`'s collision-healing only reassigns the ID string
+  on the colliding instance, never touches the underlying state — but
+  it has a real practical cost: it made reliably diffing "is this the
+  same NPC across two saves" impossible during this same session's live
+  investigation (see the Village Flag spawn entry above). Worth a
+  closer look at what actually triggered the mass regeneration here
+  (suspected: the compile-during-Play-mode incident earlier this same
+  session forced an unsaved exit/restart, likely reloading the scene
+  and re-triggering every NPC's `Awake`/`OnEnable` in a new, differently
+  -ordered pass) — not confirmed, just the leading theory.
 
 - [ ] **Verify Berry Seed's embedded-material remap actually took (2026-08-16
   follow-up).** Chicken Meat's icon bug (see `CHANGELOG.md` v0.3.108-dev,

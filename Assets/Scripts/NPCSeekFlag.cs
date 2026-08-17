@@ -15,9 +15,11 @@ using UnityEngine;
 [RequireComponent(typeof(NPCHiring))]
 public class NPCSeekFlag : MonoBehaviour
 {
-    // Matches every other "close enough to interact" range in this
-    // project (AnvilSurface/FurnaceSurface/DeskSurface all use 2m).
-    private const float ArriveRange = 2f;
+    // Wider than the usual 2m "close enough to interact" range
+    // (AnvilSurface/FurnaceSurface/DeskSurface) -- Ben's call, 2026-08-16:
+    // this NPC is just idling near the Flag waiting to be hired, not
+    // interacting with it, so it doesn't need to walk all the way in.
+    private const float ArriveRange = 5f;
 
     [SerializeField] private float moveSpeed = 1.5f;
     [SerializeField] private float obstacleCheckDistance = 1.5f;
@@ -99,20 +101,40 @@ public class NPCSeekFlag : MonoBehaviour
         if (toTarget.sqrMagnitude < 0.0001f) return;
 
         Vector3 desired = toTarget.normalized;
-        Vector3 moveDir = desired;
-
-        Vector3 origin = transform.position + Vector3.up * 0.5f;
-        if (Physics.Raycast(origin, desired, out var hit, obstacleCheckDistance, ~0, QueryTriggerInteraction.Ignore))
-        {
-            Vector3 deflected = Vector3.Cross(Vector3.up, hit.normal).normalized;
-            if (Vector3.Dot(deflected, desired) < 0f) deflected = -deflected;
-            moveDir = deflected;
-        }
+        Vector3 moveDir = FindClearDirection(desired);
 
         Vector3 flatTarget = transform.position + moveDir * moveSpeed * Time.deltaTime;
         Vector3 newPos = new Vector3(flatTarget.x, transform.position.y, flatTarget.z);
         newPos.y = GroundHeight.Sample(newPos, transform.position.y);
         transform.position = newPos;
         wander.FaceToward(transform.position + moveDir);
+    }
+
+    // Steers around an obstacle by widening the search angle left/right of
+    // the desired direction until a clear ray is found -- replaces the old
+    // single normal-based deflection (2026-08-16), which could point
+    // straight into a second obstacle at a corner and stall the NPC there
+    // permanently (observed live: spawned near the timber-frame building,
+    // never closed the distance to the Flag).
+    private Vector3 FindClearDirection(Vector3 desired)
+    {
+        Vector3 origin = transform.position + Vector3.up * 0.5f;
+        if (!Physics.Raycast(origin, desired, obstacleCheckDistance, ~0, QueryTriggerInteraction.Ignore))
+            return desired;
+
+        for (float angle = 15f; angle <= 90f; angle += 15f)
+        {
+            Vector3 right = Quaternion.Euler(0f, angle, 0f) * desired;
+            if (!Physics.Raycast(origin, right, obstacleCheckDistance, ~0, QueryTriggerInteraction.Ignore))
+                return right;
+
+            Vector3 left = Quaternion.Euler(0f, -angle, 0f) * desired;
+            if (!Physics.Raycast(origin, left, obstacleCheckDistance, ~0, QueryTriggerInteraction.Ignore))
+                return left;
+        }
+
+        // Every tested direction blocked (fully surrounded) -- reverse
+        // rather than stand still forever.
+        return -desired;
     }
 }

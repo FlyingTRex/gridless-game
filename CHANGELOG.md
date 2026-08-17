@@ -5,10 +5,41 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.115-dev` — must always match `GameVersion` in
+**Current version:** `0.3.116-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-16 (23)
+
+### v0.3.116-dev — Village Flag NPC: wider arrival range, real obstacle
+avoidance, swapped to the Kevin Iglesias model
+
+Live-testing find: the NPC spawned by the Village Flag near the timber-
+frame building never closed the distance — `NPCSeekFlag.MoveToward`'s old
+obstacle handling only tried a single perpendicular deflection off
+whatever it hit, which could point straight into a second obstacle at a
+corner and stall the NPC there permanently. Replaced with a real
+directional search (`FindClearDirection`): tries the desired heading
+first, then widens outward left/right in 15° steps until it finds a clear
+raycast, falling back to a full reverse only if genuinely surrounded.
+`ArriveRange` also widened 2m → 5m (Ben's call — this NPC is idling near
+the Flag waiting to be hired, not interacting with it the way an
+Anvil/Furnace/Desk surface requires, so it doesn't need to walk all the
+way in).
+
+Also swapped `VillageFlagSpawner`'s `hireableNpcPrefab` from
+`NPCFactoryWorker.prefab` (the old blocky placeholder model, visibly out
+of place next to every other NPC) to `NPCFactoryWorkerMale.prefab` (the
+Kevin Iglesias Human Dummy model already used for the game's other
+pre-placed hires) — a scene-only reference swap, no new asset.
+
+**Still carrying two explicit TEMP TEST VALUES in `VillageFlagSpawner.cs`
+from this same live-testing stretch** (`BaseIntervalMinutes` 30→3,
+`spawnDistanceFromFlag` 40→15, both marked `REVERT before committing` in
+comments) — committed as-is at Ben's explicit request so live testing of
+the spawn loop can continue at the faster pace. **Revert both before this
+becomes anything other than an active test build.**
 
 ## 2026-08-16 (22)
 

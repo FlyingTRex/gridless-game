@@ -12,7 +12,10 @@ using UnityEngine;
 public class VillageFlagSpawner : MonoBehaviour
 {
     // Ben's number, confirmed 2026-08-16.
-    private const float BaseIntervalMinutes = 30f;
+    // TEMP TEST VALUE (2026-08-16) -- was 30f, lowered to 3f for live
+    // testing the spawn loop without a 24-40min real wait. REVERT to 30f
+    // before committing.
+    private const float BaseIntervalMinutes = 3f;
 
     // Proposed anchor from the design doc, not yet Ben-confirmed as final
     // -- picked as the working number rather than leaving this unset,
@@ -25,7 +28,9 @@ public class VillageFlagSpawner : MonoBehaviour
     // How far out from the target Flag a freshly spawned NPC appears --
     // far enough that the walk-in is a real, visible thing, not
     // instant-adjacent.
-    [SerializeField] private float spawnDistanceFromFlag = 40f;
+    // TEMP TEST VALUE (2026-08-16) -- was 40f, lowered to 15f for live
+    // testing. REVERT to 40f before committing.
+    [SerializeField] private float spawnDistanceFromFlag = 15f;
 
     private PlayerFame playerFame;
     private float spawnTimerSeconds;
