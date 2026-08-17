@@ -307,7 +307,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.120-dev";
+    private const string GameVersion = "0.3.121-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

@@ -29,6 +29,13 @@ using UnityEngine;
 // inventories still exist underneath (Ben's call: on-board slots + auto-
 // top-up/drain, not a raw passthrough) so a temporarily unlinked or
 // out-of-range box doesn't stall production outright.
+// SaveId added 2026-08-17 (SAVE_LOAD_PLANNING.md section 11) -- unlike
+// Campfire, there's no BuildPiece/prefab for a Furnace at all (it's a
+// single fixed world fixture, not player-buildable), so it can't join the
+// PlacedPiece system the same way. Captured/restored as its own simple
+// top-level SaveManager category instead, same "always pre-exists in the
+// scene, just find-and-restore" shape StorageBox already uses.
+[RequireComponent(typeof(SaveId))]
 public class Furnace : MonoBehaviour, IInteractable
 {
     public const int MaxQueueSize = 4;

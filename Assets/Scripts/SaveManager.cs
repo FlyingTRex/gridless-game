@@ -79,6 +79,8 @@ public class SaveManager : MonoBehaviour
             ["gardenPlots"] = CaptureWorldObjects<GardenPlot>(CaptureGardenPlot),
             ["gardenPlots4x4"] = CaptureWorldObjects<GardenPlot4x4>(CaptureGardenPlot4x4),
             ["placedPieces"] = CaptureWorldObjects<PlacedPiece>(CapturePlacedPiece),
+            ["furnaces"] = CaptureWorldObjects<Furnace>((furnace, saveId) =>
+                new JObject { ["saveId"] = saveId.Id, ["state"] = CaptureFurnace(furnace) }),
         };
 
         File.WriteAllText(FilePath, data.ToString());
@@ -110,6 +112,7 @@ public class SaveManager : MonoBehaviour
         RestoreWorldObjects<GardenPlot>(data["gardenPlots"] as JArray, RestoreGardenPlot);
         RestoreWorldObjects<GardenPlot4x4>(data["gardenPlots4x4"] as JArray, RestoreGardenPlot4x4);
         RestorePlacedPieces(data["placedPieces"] as JArray);
+        RestoreWorldObjects<Furnace>(data["furnaces"] as JArray, RestoreFurnace);
     }
 
     // ---- Player ----
@@ -502,8 +505,10 @@ public class SaveManager : MonoBehaviour
         if (piece.GetComponent<Campfire>() is { } campfire)
             state["campfire"] = CaptureCampfire(campfire);
 
-        if (piece.GetComponent<Furnace>() is { } furnace)
-            state["furnace"] = CaptureFurnace(furnace);
+        // Furnace is NOT handled here -- there's no BuildPiece/prefab for
+        // one at all (a single fixed world fixture, not player-buildable),
+        // so it's its own top-level SaveManager category instead (see
+        // Save()/Load() and CaptureFurnace/RestoreFurnace below).
 
         return new JObject { ["saveId"] = saveId.Id, ["state"] = state };
     }
@@ -584,9 +589,6 @@ public class SaveManager : MonoBehaviour
 
             if (state["campfire"] is JObject campfireState && piece.GetComponent<Campfire>() is { } campfire)
                 RestoreCampfire(campfire, campfireState);
-
-            if (state["furnace"] is JObject furnaceState && piece.GetComponent<Furnace>() is { } furnace)
-                RestoreFurnace(furnace, furnaceState);
         }
     }
 

@@ -898,14 +898,13 @@ signs off on scope and order.
   `ContinuousDynamic`, matching the 25 that already had it right. See
   `CHANGELOG.md` v0.3.112-dev.
 
-- [ ] **Egg has no icon at all, found live by Ben (2026-08-16) — not yet
-  fixed.** `Egg.asset` has both `icon` and `previewIcon` set to
-  `{fileID: 0}` (null), same as Feather's bug before its fix. The world
-  model exists (`EggPickup.prefab` has a real mesh + collider, confirmed
-  separately during the dropped-loot audit above), so this is very
-  likely the same "never baked, not broken" case Feather turned out to
-  be — needs an `IconBaker` pass, not necessarily a model fix. Not
-  attempted yet.
+- [x] **Egg has no icon at all, found live by Ben (2026-08-16) — fixed
+  2026-08-17.** Confirmed it was exactly the predicted "never baked, not
+  broken" case, not a model problem — a plain `IconBaker` pass (`-modelPath
+  Assets/Prefabs/EggPickup.prefab -itemAssetPath Assets/Data/Egg.asset
+  -previewResolution 128`) wired both `icon` and `previewIcon`. Verified by
+  actually reading the rendered PNGs, not just trusting the batch log — both
+  show a real, visible egg, not a blank/black frame.
 - [ ] **`NPCSeekFlag` has no timeout while still approaching — only
   after arrival, found live by Ben (2026-08-16) while the Village Flag
   spawn loop's first real test ran long.** `Update()`'s countdown

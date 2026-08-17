@@ -5,10 +5,44 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.120-dev` — must always match `GameVersion` in
+**Current version:** `0.3.121-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-17 (5)
+
+### v0.3.121-dev — Egg icon fixed; Campfire/Furnace legacy fixtures joined the save system
+
+**Egg icon**: `Egg.asset` had `icon`/`previewIcon` both null since it
+shipped — a plain `IconBaker` pass (`EggPickup.prefab` → `Egg.asset`,
+128px preview) fixed it. Confirmed by actually reading the rendered
+PNGs, not just trusting the batch log — both show a real, visible egg.
+
+**Campfire/Furnace save gap**: live testing v0.3.119-dev's Village Flag
+fix immediately surfaced a second, different bug — a Campfire's lit
+state/fuel/utensils/ingredients reset to empty after every reload, even
+though the Flag itself now correctly persisted. Root cause: this
+project's original Campfire and Furnace are fixtures hand-placed
+directly in `TestScene.unity` back when the game was first built —
+they predate the whole `PlacedPiece`/`SaveId` save system entirely, so
+`CaptureWorldObjects<PlacedPiece>` never even saw them. Fixed via a
+one-off Editor migration (mirrors the original 2026-08-13 StorageBox/
+ResourceNode/NPCHiring migration): the scene's Campfire retroactively
+got a real `PlacedPiece` (linked to `CampfirePiece.asset`) + `SaveId`.
+The Furnace has no `BuildPiece`/prefab at all (a single fixed fixture,
+never player-buildable), so it got its own direct `[RequireComponent
+(typeof(SaveId))]` and became a standalone top-level `SaveManager`
+category (`["furnaces"]`, found-and-restored the same simple way
+`StorageBox` already is) instead of trying to force it through the
+`PlacedPiece` system. Both migrated components verified via direct YAML
+read (real non-empty GUIDs), not just a clean batch log.
+
+Also (minor, side effect of the earlier truncated grep confusion):
+confirmed live that `Campfire.prefab`'s `cookableItems` array already
+includes `FriedEggCookable` — that registration gap was already fixed
+by an earlier pull, this doc/session had it listed as still-open in
+error.
 
 ## 2026-08-17 (4)
 
