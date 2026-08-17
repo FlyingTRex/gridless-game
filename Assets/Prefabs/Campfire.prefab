@@ -277,6 +277,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0beff3248b9272b4cb3dcfef6a9ed2bc, type: 2}
   - {fileID: 11400000, guid: 72e78b666bc1b1e468b861ec210de9fd, type: 2}
   - {fileID: 11400000, guid: 9ddbc55528cb3db4d86ae2f42b2654c0, type: 2}
+  - {fileID: 11400000, guid: 40f8270badc581542af52c8f8a9c0687, type: 2}
   cookRange: 3
   grillItem: {fileID: 11400000, guid: 535cccdcb25013e4ba1ec01a7e6d9575, type: 2}
   cookingPotItem: {fileID: 11400000, guid: 7c208505d745bce49b264179f04f6fa8, type: 2}

@@ -511,6 +511,19 @@ public class InventoryScreen : MonoBehaviour
                 return true;
             }
         }
+        // Bow/Arrow aren't IEquippable (no worn slot, no carrier) — same
+        // plain-ItemDefinition-held-in-a-hand category as Pickaxe/Axe, so
+        // this popup never offered Equip for them (found live by Ben,
+        // 2026-08-17). Drag-to-hand already worked via TryDrop's own
+        // plain-item branch; this just exposes the same operation as a
+        // click, same reasoning every other action here mirrors its drag
+        // equivalent.
+        else if (pendingActionItem != null && (pendingActionItem.isRangedWeapon || pendingActionItem.isArrow)
+            && GUILayout.Button("Equip"))
+        {
+            TryEquipToHand(pendingActionItem, pendingActionSource);
+            return true;
+        }
 
         if (GUILayout.Button("Drop"))
         {
@@ -666,6 +679,24 @@ public class InventoryScreen : MonoBehaviour
             case Shirt shirt: return shirtCarrier.Equip(shirt, source);
             case Jeans jeans: return jeansCarrier.Equip(jeans, source);
             default: return false;
+        }
+    }
+
+    // Bow/Arrow's "Equip" — moves the whole available stack (mirrors a
+    // plain click having no drag-modifier concept, same amount a drag
+    // would carry by default) into the first free hand, Left then Right.
+    // MoveAsManyAsFit already no-ops cleanly if a hand can't take it (wrong
+    // type occupying it, etc.), same as the drag path this mirrors.
+    private void TryEquipToHand(ItemDefinition item, Inventory source)
+    {
+        int quantity = source.GetCount(item);
+        if (quantity <= 0) return;
+
+        foreach (var handName in new[] { "Left Hand", "Right Hand" })
+        {
+            var hand = equipment.GetSlot(handName);
+            if (hand != null && InventoryTransfer.MoveAsManyAsFit(source, hand, item, quantity) > 0)
+                return;
         }
     }
 

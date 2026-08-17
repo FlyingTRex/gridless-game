@@ -14,7 +14,11 @@ using UnityEngine;
 public class NPCJobScreen : MonoBehaviour
 {
     private const float PanelWidth = 480f;
-    private const float PanelHeight = 420f;
+    // Bumped 420 -> 460 alongside the tab-wrapping fix below (2026-08-17) —
+    // headroom for a second tab row now that families no longer fit in one
+    // (5 families x 130px > 480px panel width), same "window needs more
+    // room" class of fix NPCHiringScreen's own Stats scroll view got.
+    private const float PanelHeight = 460f;
     private const float TabWidth = 130f;
     private const float TabHeight = 28f;
 
@@ -106,18 +110,35 @@ public class NPCJobScreen : MonoBehaviour
         GUILayout.EndArea();
     }
 
+    // Wraps onto additional rows once families no longer fit in one
+    // (2026-08-17 — found live by Ben with 5 families wired in: at 130px
+    // each, only 3 fit in the 480px panel before this fix, so Guarding's
+    // tab rendered off-panel and was never clickable). tabsPerRow is
+    // computed from the panel/tab widths rather than hardcoded, so this
+    // keeps working as more families get added later.
     private void DrawFamilyTabs()
     {
+        if (families == null) return;
+
+        int tabsPerRow = Mathf.Max(1, Mathf.FloorToInt(PanelWidth / TabWidth));
+
         GUILayout.BeginHorizontal();
-        if (families != null)
+        int inRow = 0;
+        for (int i = 0; i < families.Length; i++)
         {
-            for (int i = 0; i < families.Length; i++)
+            if (families[i] == null) continue;
+
+            if (inRow == tabsPerRow)
             {
-                if (families[i] == null) continue;
-                var style = currentFamilyIndex == i ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
-                if (GUILayout.Button(families[i].skillName, style, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
-                    currentFamilyIndex = i;
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                inRow = 0;
             }
+
+            var style = currentFamilyIndex == i ? DebugGUI.TabSelected : DebugGUI.TabUnselected;
+            if (GUILayout.Button(families[i].skillName, style, GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
+                currentFamilyIndex = i;
+            inRow++;
         }
         GUILayout.EndHorizontal();
     }

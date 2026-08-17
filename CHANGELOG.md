@@ -5,10 +5,44 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.116-dev` — must always match `GameVersion` in
+**Current version:** `0.3.117-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-17 (1)
+
+### v0.3.117-dev — Three small fixes found live by Ben right after the MVP2 status review
+
+- **`NPCJobScreen`'s family tabs overflowed the panel, making Guarding
+  unreachable.** Found live: with 5 job families now wired in (Mining/
+  Woodworking/Gathering/Metalworking/Guarding) at a fixed 130px each, only
+  3 fit inside the 480px panel — Guarding's tab rendered off-panel and
+  was never clickable, a ticking problem as more families get added later.
+  `DrawFamilyTabs()` now wraps onto additional rows (`tabsPerRow` computed
+  from `PanelWidth`/`TabWidth` rather than hardcoded, so it keeps working
+  as the family list grows). `PanelHeight` bumped 420 → 460 for the extra
+  row's headroom.
+- **Egg still couldn't be cooked — the real, previously-diagnosed blocker,
+  now actually fixed.** `BUGS_AND_ENHANCEMENTS.md` already root-caused this
+  live on 2026-08-16: `Campfire.prefab`'s `cookableItems` array never
+  included `FriedEggCookable` (only 5 other recipes were registered), so
+  `Campfire.cs`'s Ingredients-box allowlist rejected Egg outright regardless
+  of the earlier `requiredSkillLevel` fix. Added `FriedEggCookable` to the
+  array — one line, a prefab data edit, no code change. (Chicken Meat still
+  correctly gets rejected — no recipe uses it yet, unrelated and not a bug.)
+- **Bow/Arrow had no right-click Equip option.** Both are plain
+  `ItemDefinition`s (not `IEquippable`), same category as Pickaxe/Axe, so
+  `InventoryScreen`'s click-action popup never offered Equip for them —
+  drag-to-hand already worked, this was just a missing shortcut. Added an
+  `Equip` branch to `DrawPendingActions()` for `isRangedWeapon`/`isArrow`
+  items, dispatching to a new `TryEquipToHand()` that moves the item's
+  whole available stack into the first free hand (Left, then Right) via
+  the same `InventoryTransfer.MoveAsManyAsFit` call the drag path already
+  uses — same operation, just reachable from a click too.
+
+Verified via batch-mode compile (clean, `Tundra build success`, return
+code 0) — not yet live-tested in Play mode.
 
 ## 2026-08-16 (23)
 

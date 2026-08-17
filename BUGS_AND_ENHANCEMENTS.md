@@ -839,23 +839,6 @@ signs off on scope and order.
   likely the same "never baked, not broken" case Feather turned out to
   be — needs an `IconBaker` pass, not necessarily a model fix. Not
   attempted yet.
-- [ ] **The real remaining Cooking-deadlock blocker: `Campfire.prefab`'s
-  `cookableItems` array never included `FriedEggCookable` — found live
-  by Ben (2026-08-16), not yet fixed.** Lowering `FriedEggCookable
-  .requiredSkillLevel` to 0 (this file's earlier entry) was correct but
-  not sufficient — confirmed live that dragging Egg into the Campfire's
-  Ingredients box gets rejected and snaps back. Root cause: `Campfire.cs`
-  builds the Ingredients box's entire allowlist (`Inventory`'s
-  `restrictedTo`) purely from whichever `CookableItem`s are in its own
-  serialized `cookableItems` array — checked `Campfire.prefab` directly,
-  it only has 5 recipes registered (`RawMeatToCookedMeatCookable`,
-  `GrilledMeatCookable`, `SteakAndPotatoesCookable`, `HerbalTeaCookable`,
-  `MeatStewCookable`). `FriedEggCookable` was never added, a pre-existing
-  gap unrelated to anything touched this session (Fried Egg shipped
-  v0.3.97-dev). Same reason Chicken Meat is also correctly rejected — no
-  recipe uses it at all yet (expected, not a bug). **Fix: add
-  `FriedEggCookable` to `Campfire.prefab`'s `cookableItems` array** —
-  one line, a prefab data edit, not yet applied.
 - [ ] **`NPCSeekFlag` has no timeout while still approaching — only
   after arrival, found live by Ben (2026-08-16) while the Village Flag
   spawn loop's first real test ran long.** `Update()`'s countdown
