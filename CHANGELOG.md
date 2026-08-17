@@ -5,10 +5,21 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.119-dev` — must always match `GameVersion` in
+**Current version:** `0.3.120-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-17 (4)
+
+### v0.3.120-dev — Village Flag spawn: real values locked in
+
+Live testing across the last two versions confirmed both the spawn-loop
+math and the Village-Flag save fix actually work, so `VillageFlagSpawner`
+no longer needs its temp test values. `BaseIntervalMinutes` reverted to
+the real 30 real-minute baseline. `spawnDistanceFromFlag` kept
+permanently lower than its original 40m — 20m, Ben's call — rather than
+reverting all the way back.
 
 ## 2026-08-17 (3)
 

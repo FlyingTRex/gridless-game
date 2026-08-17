@@ -375,9 +375,21 @@ ever registered once per structure. The Furnace's 3 linked StorageBox
 references resolve through the same `SaveIdRegistry` pattern the NPC
 deposit-container cross-reference already established.
 
-**Neither phase has a real save → reload → confirm-it-came-back-correctly
-round trip yet** — both verified via compile only so far. That live test
-is the next step before any of this section is considered done.
+**Live-tested 2026-08-17, and it initially failed**: a placed Village
+Flag came back as `"placedPieces": []` — completely empty — on the first
+real save → reload round trip. Root-caused to `SaveId.Reset()` not
+firing reliably when `RequireComponent` auto-adds it via a runtime
+`AddComponent<PlacedPiece>()` call (see `BUGS_AND_ENHANCEMENTS.md` and
+`CHANGELOG.md`'s v0.3.119-dev entry for the full diagnosis). Fixed by
+explicitly calling `GenerateIfMissing()` right after
+`AddComponent<PlacedPiece>()` in both `PlayerBuilding.Confirm` and
+`AdminSpawnScreen.SpawnPiece`. **Re-tested the same day — a placed
+Village Flag now genuinely survives a save/reload.** Campfire/Furnace's
+richer state (Phase 2) hasn't had its own dedicated live confirmation
+yet — same underlying fix applies to them too (they're captured through
+the same `PlacedPiece`/`SaveId` pair), but worth a direct check
+(lit/fuel/recipe-queue state specifically) rather than assuming it
+carries over automatically.
 
 ## Cross-references
 
