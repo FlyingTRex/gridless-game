@@ -23,6 +23,11 @@ MonoBehaviour:
     - {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
     - {fileID: 11400000, guid: eea31ec6d54844c19e9c541ae9472293, type: 2}
     - {fileID: 11400000, guid: 1057569e62d24c378b9411ac3f1ab1fc, type: 2}
+    - {fileID: 11400000, guid: a67d07436f5fc524d89eea1db611639f, type: 2}
+    - {fileID: 11400000, guid: 91717703ebfa7cd43bcb71d38e18a24f, type: 2}
+    - {fileID: 11400000, guid: 28d13770ea3c6d74ba9d52d409e4f3d0, type: 2}
+    - {fileID: 11400000, guid: 614863323974c0841a88087adb1e3ed1, type: 2}
+    - {fileID: 11400000, guid: 70a4d1be2fb2cca4688cf3ea178193f0, type: 2}
     attachBone: 8
     attachPositionOffset: {x: 0, y: 0.05, z: -0.18}
     attachEulerOffset: {x: 0, y: -90, z: 0}

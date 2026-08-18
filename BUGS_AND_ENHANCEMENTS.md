@@ -693,6 +693,23 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
+- [x] **Campfire cooking was single-shot only (no auto-repeat) and had
+  no auto-relight — found live by Ben (2026-08-18) asking "is that by
+  design?" No, both were just gaps. Fixed same night, v0.3.126-dev.**
+  `Campfire` gained an opt-in `Auto-Run` toggle (off by default, same
+  shape as `Furnace.AutoRunEnabled`/`FurnaceScreen`'s own toggle): when
+  on, `Update()` calls `TryLight()` whenever unlit with fuel still
+  present, and `TickCooking()` re-calls `StartCooking()` with the same
+  recipe right after one finishes (safe to call unconditionally —
+  `StartCooking` already refuses if ingredients/accessory/skill/output
+  space aren't satisfiable, so no new checks were needed). Saved/restored
+  via a new `["autoRun"]` key alongside the rest of Campfire's state.
+  **Confirmed live 2026-08-18** — both halves work (relight and
+  auto-repeat). First test looked like a false negative ("autocooking
+  doesn't appear to work") but turned out to be the toggle just never
+  switched on — not a bug. **Follow-up fixed same night, v0.3.127-dev**:
+  moved the toggle up to right under the Lit/Unlit status line, above
+  Cooking Utensils, so it's no longer buried at the bottom of the panel.
 - [ ] **Dumbbell — a held exercise item, trains Strength faster + trains
   Constitution too (Ben's idea, 2026-08-16).** Same "secret exercise
   bonus" shape Soccer already established (`PlayerConstitution
@@ -1055,6 +1072,106 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **Fried Egg can't be eaten — no "Eat" option in its right-click
+  popup, found live by Ben (2026-08-18). Fixed same night, v0.3.126-dev.**
+  `PlayerEating.edibles` is a hand-maintained array on the Player object
+  in `TestScene.unity`, not an auto-discovered list — checked directly,
+  and Cooked Meat/Grilled Meat/Steak and Potatoes/Herbal Tea/Meat Stew
+  are all correctly present, but `FriedEggEdible.asset` (guid
+  `4d80ad9c55cab6542bbf76f8adbd8bb3`) is missing from the list.
+  `FriedEggEdible.asset` itself is fully correct (Eat, restores 5
+  Hunger + 5 Health) — this is purely a scene-data registration gap,
+  same shape as the `Campfire.cookableItems`/`FriedEggCookable`
+  registration gap already logged below. Likely missed at the same
+  time Fried Egg was added as Cooking's level-0 entry point
+  (v0.3.112-dev) — its Cookable got registered, its Edible didn't.
+  Fixed by adding the guid to `PlayerEating.edibles` in the scene.
+  **Confirmed live 2026-08-18** — a follow-up audit of all 6 cooked-item
+  Edibles found every one correctly registered and eatable/drinkable now
+  (Herbal Tea correctly uses `verb: Drink`, read directly by
+  `InventoryScreen`'s popup button, not hardcoded) — Fried Egg was the
+  only gap, and it's closed.
+- [x] **`CampfireScreen`'s Ingredients grid never shows a stack count for
+  any item with a baked icon — found live by Ben (2026-08-18). Fixed
+  same night, v0.3.126-dev.** `CampfireScreen.DrawBox` puts the count into
+  the slot's `GUIContent` text (`itemName + " x{count}"`), but that text
+  is unconditionally replaced with an empty string whenever
+  `slot.item.icon != null` — so a stack of 15-16 Egg (which got a real
+  baked icon last session) renders as a single unlabeled icon with no
+  quantity anywhere. `InventoryScreen.DrawSlotBox` hit this exact same
+  shape once and already has the fix: a separate `QTY: {count}` label
+  drawn *below* the icon box, independent of whether the item has an
+  icon. `CampfireScreen.DrawBox` never got that treatment when it was
+  built — needs the same below-box label added (Grill/Cooking Pot/
+  Kettle/Frying Pan/Left Hand/Right Hand are all capacity-1 so this
+  barely matters there, but Ingredients/Output/Fuel are real stacks).
+  **Confirmed hitting Output too, same session** — 2 successfully-cooked
+  Egg in a row landed in the Cooked Items box as one unlabeled icon,
+  no "x2" anywhere, same root cause (`DrawGrid(current.OutputInventory,
+  ...)` goes through the same `DrawBox`). **Also confirmed hitting Fuel**
+  — the wood stack in `DrawSingleBox(current.FuelInventory)` shows the
+  same way, no count, same root cause (`fuelInventory`'s capacity is 1
+  *slot*, not 1 item — it can still stack several Sticks, same as any
+  other slot). **Confirmed live 2026-08-18** — Ingredients, Output, and
+  Backpack/Hands transfer slots all showed correct `QTY:` labels.
+- [x] **Campfire cooking-utensil slots (Grill/Cooking Pot/Kettle/Frying
+  Pan) appeared not to survive save/reload — found live by Ben
+  (2026-08-18), resolved 2026-08-18, was never a real bug.** After
+  equipping accessories and saving/reloading, `CampfireScreen` had
+  appeared to come back with all 4 utensil slots empty. Checked the real
+  save file directly first: capture was already confirmed correct (a
+  genuine `"campfire"` block with `fryingPan: [{item: "FryingPan",
+  count: 1}]`, matching what was actually equipped). Added temporary
+  `[CampfireSaveDiagnostic]` logging to `SaveManager.RestorePlacedPieces`
+  rather than guess further — **a live save→reload with the Console open
+  confirmed the restore path was correct all along**:
+  `existing=Campfire` resolved properly (not falling into the broken
+  buildPiece-instantiate branch), and the Frying Pan slot count went
+  cleanly 0→1 across the restore. The original failure report simply
+  didn't reproduce; nothing needed fixing. Diagnostic logging removed
+  (v0.3.129-dev).
+- [x] **Payment timer genuinely ran a ~300s cycle instead of 3600s —
+  found live by Ben (2026-08-17), root-caused and fixed 2026-08-18,
+  v0.3.130-dev.** A Miner ("Tekim Robot") read "Working — payment due in
+  298s" right after being paid, then "5s" shortly after — a real ~300s
+  cycle, not a display glitch, despite `NPCHiring.workDurationSeconds =
+  3600f` checking out correct on every direct `.cs` grep. Root cause,
+  found by grepping the actual prefab instead of just the script:
+  `NPCFactoryWorker.prefab` had a stale serialized override,
+  `workDurationSeconds: 300`, left over from before the field's C#
+  default was bumped 300→3600 — the exact "changed `[SerializeField]`
+  default doesn't apply to existing scene/prefab instances" gotcha
+  `CLAUDE.md` already documents. Both `NPCFactoryWorkerMale.prefab` and
+  `NPCFactoryWorkerFemale.prefab` (what `VillageFlagSpawner` actually
+  spawns) are nested prefab variants of this same base with no override
+  of their own, so both silently inherited the stale value too. Fixed by
+  correcting the base prefab's value to 3600; confirmed no other override
+  exists on Male/Female or anywhere in `TestScene.unity`. Compile-verified
+  (all 3 prefabs reimported cleanly); not yet live-confirmed.
+- [ ] **An NPC's custom name reverted to default at the same moment its
+  payment timer flipped to "Waiting for payment" — found live by Ben
+  (2026-08-17), still unresolved.** Split off from the timer bug above,
+  which is now fixed and explains the *short-cycle* half of the original
+  report but not this half. `PlayerAutosave` was checked and ruled out
+  (`Update()` only ever calls `saveManager.Save()`, never `Load()`).
+  Prime remaining suspect, not yet confirmed: `NPCHiring.OnPaymentDue`
+  fires at the exact instant `isWaitingForPayment` flips true — the same
+  instant the name reverted — but its only known subscriber
+  (`PlayerNPCPaymentToast`) just sets a toast string and doesn't touch
+  `NPCDialogue`/naming at all, so the mechanism connecting the two is
+  still unexplained. Needs a live Console-open repro next session to
+  catch it in the act.
+- [x] **`NPCGathering.MaxRangeFromDeposit` (the work-range leash, added
+  2026-08-17) doesn't survive save/reload — found live by Ben same
+  night ("the npc leash isn't saving on reset either"). Fixed
+  2026-08-18, v0.3.128-dev.** `SaveManager`'s NPC capture/restore never
+  read or wrote this field, so a leash value set via `NPCHiringScreen`'s
+  "Work range" control silently reset to the 50f default on every
+  reload — same shape as every other "new field, forgot to wire it into
+  save/load" gap this project has hit before. Fixed by adding
+  `maxRangeFromDeposit` to `SaveManager.CaptureNpc`/`RestoreNpc` (fixed
+  alongside `NPCGuarding.PatrolRadius`, the new equivalent leash below,
+  same fix in the same pass). Compile-verified; not yet live-confirmed.
 - [x] **Deposit Container UI shown for job kinds that never use it,
   found live by Ben (2026-08-17). Fixed same night.** `NPCJobScreen`
   showed a "Set Deposit Container" button for *every* non-Crafting job,
@@ -1070,48 +1187,73 @@ signs off on scope and order.
   `kind == Gathering` explicitly instead of `!= Crafting`; the leash
   field checks the NPC's actual assigned job kind. Compile-verified,
   confirmed live — leash field now only appears for the Mine Ore job.
-- [ ] **`NPCGuarding`'s patrol radius reuses `VillageFlagRevealRadius`,
+- [x] **`NPCGuarding`'s patrol radius reused `VillageFlagRevealRadius`,
   a scale tuned for a different quantity — found live by Ben
-  (2026-08-17), not yet fixed.** A Guard visibly wandering far from its
-  Flag on the Map turned out to be exactly correct per the code: a
-  Masterwork Flag's `VillageFlagRevealRadius` is 75f, giving the Guard a
-  75-meter-radius (150m-diameter) patrol circle — huge relative to this
-  project's 200×200 unit terrain. This is the exact "a tier-scaling
-  ratio tuned for one quantity doesn't transfer to another" gotcha
-  `CLAUDE.md` already documents (previously hit by Encumbrance reusing
-  the capacity/price `Modifier` table) — `VillageFlagRevealRadius` was
-  tuned for the Player Map's fog reveal, not for how far a Guard should
-  roam from its post. Needs its own dedicated, much smaller patrol-radius
-  table, independent of the Map reveal scale.
-- [ ] **A Mining NPC's target ore node appeared not to break/deplete,
-  observed live by Ben (2026-08-17), unresolved — diagnostic logging
-  added, not yet root-caused.** Watched a Miner (confirmed genuinely
-  working — 12 Silver Ore in cargo, Mining skill training) standing at
-  a node that didn't visibly disappear. Likely just a normal mid-
-  `harvestDuration` (3s) snapshot rather than a real bug, but not
-  confirmed either way. Added two temporary `[GatherDiagnostic]`
-  `Debug.Log` calls to `NPCGathering.cs` — `FindTarget` logs which
-  target (with instance ID) it settles on each scan, `HarvestCurrentTarget`
-  logs the harvest result plus `IsAvailable` read immediately after the
-  call. A repeated identical instance ID across multiple harvest
-  attempts, or `stillAvailable=true` right after a `succeeded=true`
-  harvest, would prove a real bug in `ResourceNode.TryHarvestForNPC`'s
-  break/hide step; anything else likely confirms this was just a timing
-  snapshot. **Remove both logs once resolved either way** — not
-  intended to ship permanently.
-- [ ] **Leather Backpack silently rejected as an NPC tool, found live by
-  Ben (2026-08-17), not yet fixed.** There are two separate Backpack item
-  families — the original plain `Backpack` ladder and the newer `Leather
-  Backpack` ladder (added later, once Deer/Hide closed the raw-material
-  gap). All 4 jobs that need a Backpack tool (`MineOreJob`/`ChopWoodJob`/
-  `ForageJob`/`MetalworkingJob`) only list the original plain Backpack's
-  5 tier guids in their "Backpack" `ToolRequirement.acceptableItems` —
-  none of them were ever updated to also accept the Leather Backpack
-  tiers, so giving an NPC a Leather Backpack of any tier is flatly
-  rejected. Same shape as the Campfire/`FriedEggCookable` registration
-  gap from earlier this session — a newer item variant never backfilled
-  into an existing acceptable-items list. Fix: add all 5 Leather Backpack
-  tier guids to each of the 4 jobs' Backpack requirement.
+  (2026-08-17). Fully resolved 2026-08-18 across 3 fix passes
+  (v0.3.128/129/132-dev) — three separate real bugs, not one.** A Guard
+  visibly wandering far from its Flag on the Map turned out to be
+  exactly correct per the code: a Masterwork Flag's
+  `VillageFlagRevealRadius` is 75f, giving the Guard a 75m patrol
+  radius — huge relative to this project's 200×200 unit terrain, the
+  exact "a tier-scaling ratio tuned for one quantity doesn't transfer to
+  another" gotcha `CLAUDE.md` already documents. **Bug 1, fixed
+  v0.3.128-dev**: rather than a second dedicated tier table, made patrol
+  radius a player-set leash instead, same shape as
+  `NPCGathering.MaxRangeFromDeposit` — `NPCGuarding.PatrolRadius`, a
+  matching "Patrol radius (around Flag):" row in `NPCHiringScreen`, both
+  leashes now persisting through save/reload. **Bug 2, found live
+  testing the same night, fixed v0.3.129-dev**: with a small (2m) radius
+  set, the Guard never got any closer to the Flag at all — the orbiting
+  patrol target's tangential speed works out to exactly
+  `radius × (moveSpeed/radius) = moveSpeed`, the Guard's own top speed,
+  *regardless of radius*, so a small radius made the target uncatchable
+  from outside (the original 35-75m radii always masked this). Fixed by
+  splitting `UpdatePatrol()` into an approach phase (walk straight at
+  the nearest point on the circle) and an orbit phase (only once already
+  within range). **Bug 3, found live testing that same fix, fixed
+  v0.3.132-dev — the real final answer**: the Guard still wasn't
+  approaching the Flag, but this time it turned out to not be a movement
+  bug at all — `[GuardDiagnostic]` logging (added, then removed once
+  this was solved) showed it correctly `Attacking` a Wolf, and a
+  screenshot confirmed the Wolf was already dead. The actual bug:
+  `ThreatStillValid()` only ever checked distance, never whether the
+  creature was still alive, and a killed creature's `GameObject` is
+  never destroyed (`SkinnableCreature.Complete()` just
+  `SetVisible(false)`s it and schedules a much-later `Respawn()`), so
+  `currentThreat` never went null — the Guard stayed locked in
+  `Attacking` forever, futilely trying to re-damage a corpse
+  (`TakeDamage` early-returns once `isDead`). Confirmed live: even
+  manually skinning the Wolf didn't unstick it, since skinning only
+  hides the object, it doesn't destroy or revive it. Fixed by checking
+  `IsDead` in both `ThreatStillValid()` and `FindNearestThreat()`.
+  Compile-verified; not yet live-confirmed.
+- [x] **A Mining NPC's target ore node appeared not to break/deplete,
+  observed live by Ben (2026-08-17) — resolved 2026-08-18, was never a
+  real bug.** Watched a Miner (confirmed genuinely working — 12 Silver
+  Ore in cargo, Mining skill training) standing at a node that didn't
+  visibly disappear. Temporary `[GatherDiagnostic]` logging confirmed it
+  live: `Harvest on 'Boulder' ... succeeded=True item=Small Rock count=6
+  stillAvailable=False` — a successful harvest correctly leaves the node
+  unavailable immediately after, proving `ResourceNode.TryHarvestForNPC`
+  was always working correctly. Was just a normal mid-`harvestDuration`
+  snapshot, not a real bug. Diagnostic logging removed (v0.3.129-dev).
+- [x] **Leather Backpack silently rejected as an NPC tool, found live by
+  Ben (2026-08-17). Fixed 2026-08-18, v0.3.127-dev.** There are two
+  separate Backpack item families — the original plain `Backpack` ladder
+  and the newer `Leather Backpack` ladder (added later, once Deer/Hide
+  closed the raw-material gap). All 4 jobs that need a Backpack tool
+  (`MineOreJob`/`ChopWoodJob`/`ForageJob`/`MetalworkingJob`) only listed
+  the original plain Backpack's 5 tier guids in their "Backpack"
+  `ToolRequirement.acceptableItems` — none of them were ever updated to
+  also accept the Leather Backpack tiers, so giving an NPC a Leather
+  Backpack of any tier was flatly rejected. Same shape as the Campfire/
+  `FriedEggCookable` registration gap from earlier this session — a
+  newer item variant never backfilled into an existing acceptable-items
+  list. Fixed by adding all 5 Leather Backpack tier guids to each of the
+  4 jobs' Backpack requirement — confirmed via direct grep, no other job
+  asset has a "Backpack" requirement besides these 4. **Confirmed live
+  2026-08-18** — a Miner shown visibly wearing a Leather Backpack
+  (distinct mottled texture from the plain canvas Backpack).
 - [ ] **NPC tool-giving only checks the player's top-level inventory,
   never a worn container's nested contents, found live by Ben
   (2026-08-17), not yet fixed.** `NPCJobScreen.HasAny`/`NPCJob
@@ -1135,7 +1277,20 @@ signs off on scope and order.
   after its work-range leash was tightened to 15m (giving it even less
   room to route around anything in the way). Now the most-confirmed
   live bug of the whole session — worth prioritizing over most other
-  open items next time this is picked up.
+  open items next time this is picked up. **Confirmed a fourth+fifth
+  time (2026-08-18)**: a Miner visibly stuck oscillating between move
+  and mining animations near a small bush, and separately near a
+  Boulder — a related but distinct symptom from the earlier full-freeze
+  reports (cycling, not fully frozen). Theory: `IsActingOnTarget` flips
+  purely on straight-line distance to the target crossing `harvestRange`,
+  so an obstacle between the NPC and its target could make the
+  deflection oscillate distance back and forth across that boundary
+  without ever actually routing around the obstacle. **v0.3.133-dev**:
+  re-added temporary `[MinerStuckDiagnostic]` logging to
+  `NPCGathering.cs` (every move↔harvest transition, plus throttled
+  obstacle-hit detail) to confirm this theory live before attempting the
+  actual fix (the known-working widening-search pattern from
+  `NPCSeekFlag`). **Remove the diagnostic logs once resolved.**
 - [x] **Cooking skill can never be trained from 0 through normal play — a
   real progression deadlock, found live by Ben (2026-08-16). Fixed
   v0.3.112-dev.** Every `CookableItem` recipe that actually grants

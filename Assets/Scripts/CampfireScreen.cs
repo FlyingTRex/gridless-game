@@ -108,6 +108,21 @@ public class CampfireScreen : MonoBehaviour
             ? $"Lit — {Mathf.CeilToInt(current.FuelSecondsRemaining)}s of fuel left"
             : "Unlit", DebugGUI.Label);
 
+        // Auto-Run (2026-08-18) -- moved up here from the bottom of the
+        // panel per Ben's live feedback the same night ("maybe move that
+        // above the recipes?") -- buried below Fuel/the Light button, it
+        // was easy to miss entirely (a first test looked like "auto-run
+        // doesn't work" but was actually just never switched on). Relights
+        // itself from whatever fuel remains once the current unit burns
+        // out, and re-cooks the last recipe as long as its ingredients/
+        // accessory/skill are still satisfiable. Off by default (matches
+        // Furnace), so cooking stays single-shot unless explicitly opted
+        // into.
+        bool autoRun = current.AutoRunEnabled;
+        bool newAutoRun = GUILayout.Toggle(autoRun, autoRun ? "Auto-Run: ON" : "Auto-Run: OFF");
+        if (newAutoRun != autoRun)
+            current.SetAutoRun(newAutoRun);
+
         scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(ScrollHeight));
 
         GUILayout.Label("Cooking Utensils", DebugGUI.Header);
@@ -235,7 +250,9 @@ public class CampfireScreen : MonoBehaviour
             for (int col = 0; col < columns && drawn < capacity; col++, drawn++)
             {
                 if (col > 0) GUILayout.Space(BoxGap);
+                GUILayout.BeginVertical(GUILayout.Width(BoxSize));
                 DrawBox(inventory, drawn < slots.Count ? slots[drawn] : null, dragSourceOnly);
+                GUILayout.EndVertical();
             }
             GUILayout.EndHorizontal();
 
@@ -243,12 +260,15 @@ public class CampfireScreen : MonoBehaviour
         }
     }
 
-    // A single capacity-1 box with no label row above it (Fuel).
+    // A single capacity-1 box (1 slot, not necessarily 1 item -- a Fuel
+    // slot can still hold a whole Stick stack) with no label row above it.
     private void DrawSingleBox(Inventory inventory)
     {
         if (inventory == null) return;
         var slots = inventory.Slots;
+        GUILayout.BeginVertical(GUILayout.Width(BoxSize));
         DrawBox(inventory, slots.Count > 0 ? slots[0] : null, dragSourceOnly: false);
+        GUILayout.EndVertical();
     }
 
     // A single capacity-1 box with a name label above it (each Utensil,
@@ -274,6 +294,7 @@ public class CampfireScreen : MonoBehaviour
             GUILayout.Box(GUIContent.none, DebugGUI.Slot, GUILayout.Width(BoxSize), GUILayout.Height(BoxSize));
             if (!dragSourceOnly)
                 RegisterDropZone(GUILayoutUtility.GetLastRect(), inventory);
+            GUILayout.Label(string.Empty, DebugGUI.Label, GUILayout.Width(BoxSize));
             return;
         }
 
@@ -295,6 +316,15 @@ public class CampfireScreen : MonoBehaviour
         HandleSlotMouseDown(rect, inventory, slot);
         if (!dragSourceOnly)
             RegisterDropZone(rect, inventory);
+
+        // QTY label below the box (2026-08-18) -- separate from the box's own
+        // GUIContent text so it still shows for icon-bearing items, same fix
+        // InventoryScreen.DrawSlotBox already has (that text is unconditionally
+        // blanked out whenever slot.item.icon != null, dropping the count
+        // entirely for any item with a baked icon -- found live, a stack of
+        // 15+ Egg showed as one unlabeled icon).
+        string qtyLabel = isDragSource || slot.item.maxStack <= 1 ? "" : $"QTY: {slot.count}";
+        GUILayout.Label(qtyLabel, DebugGUI.Label, GUILayout.Width(BoxSize));
     }
 
     private void RegisterDropZone(Rect rect, Inventory inventory)

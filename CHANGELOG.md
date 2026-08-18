@@ -5,10 +5,253 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.125-dev` — must always match `GameVersion` in
+**Current version:** `0.3.133-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-18 (8)
+
+### v0.3.133-dev — Diagnostic logging for the Miner-stuck-cycling-animations bug
+
+Re-adds targeted logging for the top-priority backlog bug (weak
+single-deflection obstacle avoidance), this time aimed at a more specific
+symptom Ben reported live: a Miner near a Boulder cycling between move and
+mining animations rather than being fully frozen. Theory: `IsActingOnTarget`
+(what drives the animation split) flips purely on straight-line distance
+to the target crossing `harvestRange` — if an obstacle sits between the
+NPC and its target, `MoveToward`'s deflection could plausibly nudge
+distance back and forth across that boundary without ever actually
+routing around the obstacle, producing exactly this flicker.
+
+`NPCGathering.cs` now logs (not throttled — the point is catching a fast
+flip-flop) every time it crosses the move↔harvest boundary, with the
+live distance/target/position, plus a throttled (2/sec) log whenever
+`MoveToward`'s raycast actually detects an obstacle, including which
+collider, the hit point, and the resulting deflection vector. Next live
+session near a stuck Miner should make the actual mechanism obvious.
+
+Compile-verified via batch-mode Unity (0 errors). Not yet live-tested —
+Editor was closed for this pass.
+
+## 2026-08-18 (7)
+
+### v0.3.132-dev — Fix: Guard stayed locked onto a threat forever after killing it
+
+Solves the real Guard-stuck mystery, found via the `[GuardDiagnostic]`
+logging added last pass: the Guard was never broken at all — it was
+correctly in `Attacking` state, having actually found and killed a Wolf
+(confirmed live: the Wolf was lying dead nearby, then manually skinned by
+Ben). The bug is what happens *after* a kill: `ThreatStillValid()` only
+ever checked distance, never whether the creature was still alive, and a
+killed creature's `GameObject` is never destroyed —
+`SkinnableCreature.Complete()` just `SetVisible(false)`s it and schedules
+a much-later `Respawn()` — so `currentThreat` never actually went null.
+The Guard stayed locked in `Attacking`, futilely trying to re-damage a
+corpse it could never touch again (`TakeDamage` early-returns once
+`isDead`), never returning to patrol. Confirmed live: even manually
+skinning the Wolf didn't unstick it, since skinning only hides the object,
+it doesn't destroy or revive it.
+
+Fixed by checking `IsDead` in both `ThreatStillValid()` (drops a dead
+threat immediately) and `FindNearestThreat()` (never picks a dead
+creature as a new target in the first place — matters for the window
+before a kill's corpse eventually respawns). Also removed the
+`[GuardDiagnostic]` logging now that it's served its purpose.
+
+Compile-verified via batch-mode Unity (0 errors). Not yet live-tested —
+Editor was closed for this pass.
+
+## 2026-08-18 (6)
+
+### v0.3.131-dev — Diagnostic logging for the Guard-still-not-moving bug
+
+Live-testing v0.3.129-dev's patrol approach/orbit fix found the Guard
+still isn't approaching the Flag at all — confirmed via the Player Map
+that there's only one Flag on the whole terrain (ruling out the "stuck on
+a different, older Flag" theory), and the Guard was stationary for 5+
+real minutes with the player standing right at the Flag. Two close static
+re-reads of `NPCGuarding.cs` found nothing conclusively wrong —
+`NPCWander`/`NPCFreeze` both correctly gate on `isPaused`, the approach/
+orbit math looks right on paper. Added temporary `[GuardDiagnostic]`
+logging (once/second, not every frame) covering: whether `Update()` even
+reaches the patrol branch (vs. bailing on `isPaused`/not-ready, or
+latching onto a `currentThreat` that only turns to face and never moves),
+and inside `UpdatePatrol()` itself — which Flag it resolved, distance/
+radius/mode (approach vs. orbit), and the actual before/after position
+delta around the `MoveToward` call. Next live session with the Console
+open should make the actual blocker obvious instead of guessing a third
+time.
+
+Compile-verified via batch-mode Unity (0 errors). Not yet live-tested —
+Editor was closed for this pass.
+
+## 2026-08-18 (5)
+
+### v0.3.130-dev — Fix: hired NPCs were really running a 300s pay cycle, not 3600s
+
+Solves the payment-timer mystery flagged 2026-08-17 (a timer reading
+"298s" right after payment, then "5s" shortly after — genuinely
+inconsistent with `NPCHiring.workDurationSeconds = 3600f`, which kept
+checking out correct on every direct code grep). Root cause, found by
+grepping prefabs/scene directly instead of the script: `NPCFactoryWorker
+.prefab` had a **stale serialized override**, `workDurationSeconds: 300`,
+left over from before the field's C# default was bumped 300→3600 (see the
+field's own comment — "testing/playing across a longer session made 5
+minutes too short a leash"). Exactly the "changed `[SerializeField]`
+default doesn't apply to existing scene/prefab instances" gotcha
+`CLAUDE.md` already documents — the code was always right, the prefab was
+silently overriding it back the whole time. Confirmed both
+`NPCFactoryWorkerMale.prefab` and `NPCFactoryWorkerFemale.prefab` (the
+prefabs `VillageFlagSpawner` actually spawns) are nested prefab variants
+of `NPCFactoryWorker.prefab` with no override of their own, so they were
+both silently inheriting the stale 300 the whole time too. Fixed by
+correcting the base prefab's value to `3600`; confirmed no separate
+override exists on either Male/Female or anywhere in `TestScene.unity`
+(consistent with 0 pre-placed NPCs since v0.3.118-dev).
+
+The other half of that original report — an NPC's custom name reverting
+to default at the same moment — remains unexplained and is **not** what
+this fix addresses; logged separately in `BUGS_AND_ENHANCEMENTS.md`.
+
+Compile-verified via batch-mode Unity (0 errors, all 3 prefabs reimported
+cleanly). Not yet live-tested — Editor was closed for this pass.
+
+## 2026-08-18 (4)
+
+### v0.3.129-dev — Fix: Guard patrol math couldn't converge on a small radius; diagnostics cleaned up
+
+Live-testing v0.3.128-dev's new player-set patrol leash immediately found a
+real bug: Ben set a 2m radius and the Guard never got any closer to the
+Flag. Root cause — the orbiting patrol target's tangential speed works out
+to exactly `radius × (moveSpeed / radius) = moveSpeed`, the Guard's own top
+speed, **regardless of radius**. At the original 35-75m radii this was
+invisible (the target crawled slowly enough to always be reachable), but at
+2m the target now circles as fast as the Guard can walk — a Guard starting
+outside the circle was chasing a point that never got any closer, since
+keeping up angularly ate its entire speed budget.
+
+Fixed by splitting `NPCGuarding.UpdatePatrol()` into two modes: **approach**
+(walk straight toward the nearest point on the circle — a fixed, catchable
+target — whenever outside `patrolRadius + 0.5m` tolerance) and **orbit**
+(only once already within range, using an angle recomputed from the Guard's
+own current bearing each frame rather than a persistently-incrementing one,
+so there's no jump entering orbit mode).
+
+Also confirmed, via direct Console evidence during the same live session,
+that two previously-open mysteries were both non-issues:
+- **Campfire utensil-slot persistence** — `[CampfireSaveDiagnostic]` logs
+  showed `existing=Campfire` resolving correctly and a clean 0→1 slot-count
+  round-trip on the Frying Pan. The original failure report didn't
+  reproduce; capture/restore code was correct all along.
+- **"Ore not breaking"** — `[GatherDiagnostic]` logs showed
+  `succeeded=True ... stillAvailable=False` on a real harvest, confirming
+  `ResourceNode.TryHarvestForNPC` correctly marks nodes unavailable. Was
+  always just a mid-timer snapshot, not a real bug.
+
+Both temporary diagnostic logging blocks removed from `SaveManager.cs` and
+`NPCGathering.cs` now that they've served their purpose.
+
+Compile-verified via batch-mode Unity (0 errors, real full pass). The
+patrol fix itself is not yet live-tested — Editor was closed for this pass.
+
+## 2026-08-18 (3)
+
+### v0.3.128-dev — Guard patrol radius is now a player-set leash, not a reused tier-scale
+
+Fixes the `NPCGuarding` patrol-radius bug flagged 2026-08-17 (a Masterwork
+Flag gave every Guard a 75m patrol circle, since it was reusing
+`CraftTierScale.VillageFlagRevealRadius` — a scale tuned for the Player
+Map's fog reveal, not a Guard's patrol size). Ben's fix, chosen over a new
+dedicated tier table: make it a per-NPC configurable leash, same shape as
+`NPCGathering.MaxRangeFromDeposit`, rather than tying it to Flag tier at
+all.
+
+- `NPCGuarding` gained a `patrolRadius` field (default 15f, min-clamped 1f)
+  and `PatrolRadius` property, replacing the `VillageFlagRevealRadius` call
+  in `UpdatePatrol()` entirely.
+- `NPCHiringScreen` gained a "Patrol radius (around Flag):" row, same
+  text-field-plus-Set-button shape as the existing "Work range (from
+  deposit box):" row, gated on the NPC's actual assigned job kind being
+  Guarding.
+- **Also fixed the already-logged leash-persistence bug for both leashes
+  at once**: neither `NPCGathering.MaxRangeFromDeposit` nor the new
+  `NPCGuarding.PatrolRadius` were ever captured by `SaveManager`, so both
+  silently reset to their component defaults on every reload. Both now
+  round-trip through `CaptureNpc`/`RestoreNpc`.
+
+Compile-verified via batch-mode Unity (0 errors, real full pass). Not yet
+live-tested — Editor was closed for this pass.
+
+## 2026-08-18 (2)
+
+### v0.3.127-dev — Auto-Run toggle moved up; Leather Backpack now a valid NPC tool
+
+Two small fixes, both requested directly after the Cooking playtest above:
+
+- **Auto-Run toggle moved to the top of `CampfireScreen`**, right under the
+  Lit/Unlit status line — it was buried at the very bottom of the panel
+  (below Fuel, next to Light), easy to miss entirely (caused a false "auto-run
+  doesn't work" report during tonight's playtest that turned out to just be
+  the toggle never having been switched on).
+- **Leather Backpack (all 5 tiers) was silently rejected as an NPC tool** —
+  `MineOreJob`/`ChopWoodJob`/`ForageJob`/`MetalworkingJob` only listed the
+  original plain Backpack ladder's 5 tier guids in their "Backpack"
+  `ToolRequirement.acceptableItems`, never backfilled once the newer Leather
+  Backpack ladder shipped. Added all 5 Leather Backpack tier guids to each of
+  the 4 jobs.
+
+Compile-verified via batch-mode Unity (0 errors, real full pass), both
+changes confirmed present via direct grep. Not yet live-tested — Editor was
+closed for this pass.
+
+## 2026-08-18
+
+### v0.3.126-dev — Cooking fixes: Fried Egg edible, quantity display, Auto-Run
+
+A live Cooking playtest (Ben, 2026-08-18) confirmed the skill/quality system
+end-to-end (gate hiding/unlocking Steak and Potatoes at 15, success/failure
+rolls, XP gain, tier unlock, multi-item Output stacking) but surfaced 4 real
+gaps, all fixed same session:
+
+- **Fried Egg couldn't be eaten** — `PlayerEating.edibles` in `TestScene.unity`
+  is a hand-maintained array, and `FriedEggEdible.asset` was missing from it
+  (every other cooked item's Edible was present). Added.
+- **No quantity shown** on `CampfireScreen`'s Ingredients/Output/Fuel slots for
+  any item with a baked icon — `DrawBox` put the count into the box's
+  `GUIContent` text, which gets blanked out the moment `slot.item.icon != null`.
+  Added a separate `QTY: {count}` label below the box, same fix
+  `InventoryScreen.DrawSlotBox` already has for this exact case.
+- **No Auto-Run** — Campfire cooking was single-shot (had to click "Cook"
+  once per item even with a full ingredient stack) and the fire always went
+  out after exactly one fuel unit even with more stacked in the slot, since
+  neither auto-relight nor auto-repeat existed. Added an opt-in `Auto-Run`
+  toggle (off by default, same shape as `Furnace.AutoRunEnabled`) that
+  relights from remaining fuel and re-cooks the last recipe as long as it's
+  still satisfiable. Saved/restored alongside the rest of Campfire's state.
+- **Utensil slots (Grill/Cooking Pot/Kettle/Frying Pan) appeared not to
+  survive save/reload** — static review of the capture/restore path,
+  `SaveId`, and the scene's Campfire `PrefabInstance` found nothing
+  conclusively wrong; everything looks structurally correct. Added temporary
+  `[CampfireSaveDiagnostic]` logging to `SaveManager.RestorePlacedPieces`
+  instead of guessing further — next live save→reload with the Console open
+  will pin down whether `existing` resolves to the right object. **Not yet
+  fixed** — see `BUGS_AND_ENHANCEMENTS.md`.
+
+Compile-verified via batch-mode Unity (0 errors, real full pass).
+
+**Live-tested same night, immediately after.** All 3 real fixes confirmed
+working: Fried Egg is eatable, `QTY:` labels show correctly across
+Ingredients/Output/Fuel/Transfer slots, and Auto-Run genuinely relights +
+auto-repeats once toggled on (an initial "doesn't appear to work" report
+turned out to be the toggle simply never having been switched on, not a
+bug). Also ran a full audit of all 6 cooked-item Edibles while at it —
+every one now correctly registered and eatable/drinkable (Herbal Tea
+correctly uses `verb: Drink`). Follow-up requested: the Auto-Run toggle
+sits at the bottom of the panel and is easy to miss — move it up near the
+Lit/Unlit status line. The utensil-slot save/reload bug is still open,
+diagnostic logging still in place, needs a live save→reload with the
+Console open to actually read the output.
 
 ## 2026-08-17 (9)
 

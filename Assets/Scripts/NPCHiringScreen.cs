@@ -31,6 +31,7 @@ public class NPCHiringScreen : MonoBehaviour
     private bool isOpen;
     private Vector2 statsScroll;
     private string rangeText = "";
+    private string patrolRangeText = "";
 
     public bool IsOpen => isOpen;
 
@@ -57,6 +58,8 @@ public class NPCHiringScreen : MonoBehaviour
         // blocks typing.
         var gathering = npc.GetComponent<NPCGathering>();
         rangeText = gathering != null ? gathering.MaxRangeFromDeposit.ToString("F0") : "";
+        var guarding = npc.GetComponent<NPCGuarding>();
+        patrolRangeText = guarding != null ? guarding.PatrolRadius.ToString("F0") : "";
         SetOpen(true);
     }
 
@@ -165,10 +168,10 @@ public class NPCHiringScreen : MonoBehaviour
                 freeze.SetFrozen(GUILayout.Toggle(freeze.IsFrozen, "Frozen (stay in place)"));
 
             // Work-range leash (2026-08-17, "NPC management") -- only
-            // meaningful for a Gathering NPC (Guarding already has its own
-            // Flag-patrol radius; Crafting walks to a fixed bench). Anchored
-            // to the NPC's own DepositContainer, not the Flag -- see
-            // NPCGathering.MaxRangeFromDeposit's own comment for why.
+            // meaningful for a Gathering NPC (Crafting walks to a fixed
+            // bench). Anchored to the NPC's own DepositContainer, not the
+            // Flag -- see NPCGathering.MaxRangeFromDeposit's own comment
+            // for why.
             //
             // Gated on the NPC's actual ASSIGNED job kind, not just
             // "has an NPCGathering component" -- every NPC prefab carries
@@ -187,6 +190,26 @@ public class NPCHiringScreen : MonoBehaviour
                 if (GUILayout.Button("Set", GUILayout.Width(50))
                     && float.TryParse(rangeText, out var parsed))
                     gathering.MaxRangeFromDeposit = parsed;
+                GUILayout.EndHorizontal();
+            }
+
+            // Patrol radius leash (2026-08-18) -- same shape as the
+            // Gathering leash above, replacing NPCGuarding's original
+            // CraftTierScale.VillageFlagRevealRadius(patrolFlag.Tier) reuse
+            // (found live: a Masterwork Flag gave every Guard a 75m patrol
+            // circle, since that scale was tuned for the Player Map's fog
+            // reveal, not a Guard's patrol size). Anchored to the nearest
+            // placed Village Flag, same as NPCGuarding.UpdatePatrol already
+            // targets.
+            var guarding = current.GetComponent<NPCGuarding>();
+            if (guarding != null && assignedJob != null && assignedJob.kind == NPCJobDefinition.JobKind.Guarding)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Patrol radius (around Flag):", DebugGUI.Label, GUILayout.Width(220));
+                patrolRangeText = GUILayout.TextField(patrolRangeText, GUILayout.Width(50));
+                if (GUILayout.Button("Set", GUILayout.Width(50))
+                    && float.TryParse(patrolRangeText, out var parsedPatrol))
+                    guarding.PatrolRadius = parsedPatrol;
                 GUILayout.EndHorizontal();
             }
 

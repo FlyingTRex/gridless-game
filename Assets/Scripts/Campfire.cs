@@ -105,6 +105,16 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     private float cookSecondsElapsed;
     private string lastCookMessage;
     private float lastCookMessageExpireTime;
+    // Auto-Run (2026-08-18) -- opt-in continuous operation, same shape as
+    // Furnace.autoRunEnabled: auto-relights from whatever fuel remains in
+    // the slot once the current unit burns out, and auto-repeats the last
+    // recipe cooked as long as its ingredients/accessory/skill are still
+    // satisfiable. Off by default, same as Furnace -- found live by Ben
+    // (2026-08-18): cooking a stack of Egg took 15 separate clicks, and the
+    // fire went out after exactly one Stick even with more stacked in the
+    // slot, since neither half of "keep going" ever existed for Campfire
+    // the way it already does for Furnace.
+    private bool autoRunEnabled;
 
     public string DisplayName => "Campfire";
     public Inventory FuelInventory => fuelInventory;
@@ -119,6 +129,8 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     public float FuelSecondsRemaining => fuelSecondsRemaining;
     public CookableItem ActiveRecipe => activeRecipe;
     public float CookSecondsElapsed => cookSecondsElapsed;
+    public bool AutoRunEnabled => autoRunEnabled;
+    public void SetAutoRun(bool value) => autoRunEnabled = value;
 
     // Read by CampfireScreen to show a brief result toast under the Recipe
     // section once cooking completes — Campfire has no OnGUI of its own
@@ -199,6 +211,10 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
             if (fuelSecondsRemaining <= 0f)
                 SetLit(false);
         }
+        else if (autoRunEnabled && HasFuel)
+        {
+            TryLight();
+        }
 
         TickCooking();
         TickWarmth();
@@ -231,9 +247,18 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         cookSecondsElapsed += Time.deltaTime;
         if (cookSecondsElapsed < activeRecipe.cookDurationSeconds) return;
 
-        ResolveCookingOutcome(activeRecipe);
+        var finishedRecipe = activeRecipe;
+        ResolveCookingOutcome(finishedRecipe);
         activeRecipe = null;
         cookSecondsElapsed = 0f;
+
+        // Auto-repeat (2026-08-18) -- StartCooking() already does every
+        // satisfiability check (accessory/ingredients/water/skill/output
+        // space) and simply refuses if any of them fail now, so this is
+        // safe to just try unconditionally rather than duplicating those
+        // checks here.
+        if (autoRunEnabled)
+            StartCooking(finishedRecipe);
     }
 
     // Chance-of-creation roll for cooking, mirroring
@@ -440,11 +465,12 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     // database (see ActiveRecipeId above).
     public void RestoreState(bool lit, float fuelRemaining, string activeRecipeId, float cookElapsed,
         JArray fuelData, JArray grillData, JArray cookingPotData, JArray kettleData, JArray fryingPanData,
-        JArray inputData, JArray outputData)
+        JArray inputData, JArray outputData, bool autoRun)
     {
         SetLit(lit);
         fuelSecondsRemaining = fuelRemaining;
         cookSecondsElapsed = cookElapsed;
+        autoRunEnabled = autoRun;
 
         activeRecipe = null;
         if (!string.IsNullOrEmpty(activeRecipeId) && cookableItems != null)

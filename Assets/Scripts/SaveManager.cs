@@ -348,6 +348,8 @@ public class SaveManager : MonoBehaviour
     {
         var job = npc.Job;
         var dialogue = npc.GetComponent<NPCDialogue>();
+        var gathering = npc.GetComponent<NPCGathering>();
+        var guarding = npc.GetComponent<NPCGuarding>();
 
         var toolsObj = new JObject();
         foreach (var kv in job.EquippedTools)
@@ -380,6 +382,14 @@ public class SaveManager : MonoBehaviour
                 ["cargo"] = InventorySaveUtility.Capture(npc.Cargo.Inventory),
                 ["skills"] = CaptureSkills(npc.Skills.Levels),
                 ["position"] = CaptureVector3(npc.transform.position),
+                // Both leashes (2026-08-18) -- found live not persisting
+                // (BUGS_AND_ENHANCEMENTS.md): neither NPCGathering's
+                // work-range leash nor NPCGuarding's patrol radius (new
+                // this same fix, replacing the old VillageFlagRevealRadius
+                // tier-scale reuse) were ever captured, so both silently
+                // reset to their component defaults on every reload.
+                ["maxRangeFromDeposit"] = gathering != null ? gathering.MaxRangeFromDeposit : (float?)null,
+                ["patrolRadius"] = guarding != null ? guarding.PatrolRadius : (float?)null,
             },
         };
     }
@@ -473,6 +483,18 @@ public class SaveManager : MonoBehaviour
 
         if (state["position"] is JObject pos)
             npc.transform.position = ParseVector3(pos);
+
+        if (state["maxRangeFromDeposit"] != null)
+        {
+            var gathering = npc.GetComponent<NPCGathering>();
+            if (gathering != null) gathering.MaxRangeFromDeposit = (float)state["maxRangeFromDeposit"];
+        }
+
+        if (state["patrolRadius"] != null)
+        {
+            var guarding = npc.GetComponent<NPCGuarding>();
+            if (guarding != null) guarding.PatrolRadius = (float)state["patrolRadius"];
+        }
     }
 
     // ---- Garden Plot (single-cell POC) ----
@@ -598,6 +620,7 @@ public class SaveManager : MonoBehaviour
         ["fryingPan"] = InventorySaveUtility.Capture(campfire.FryingPanSlot),
         ["input"] = InventorySaveUtility.Capture(campfire.InputInventory),
         ["output"] = InventorySaveUtility.Capture(campfire.OutputInventory),
+        ["autoRun"] = campfire.AutoRunEnabled,
     };
 
     private static JObject CaptureFurnace(Furnace furnace)
@@ -689,7 +712,8 @@ public class SaveManager : MonoBehaviour
             state["kettle"] as JArray,
             state["fryingPan"] as JArray,
             state["input"] as JArray,
-            state["output"] as JArray);
+            state["output"] as JArray,
+            (bool)(state["autoRun"] ?? false));
     }
 
     private static void RestoreFurnace(Furnace furnace, JObject state)

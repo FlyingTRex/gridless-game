@@ -179,7 +179,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::NPCHiring
   hireCoinType: 0
   hireCoinAmount: 10
-  workDurationSeconds: 300
+  workDurationSeconds: 3600
 --- !u!114 &4055500810525801307
 MonoBehaviour:
   m_ObjectHideFlags: 0

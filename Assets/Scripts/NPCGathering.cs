@@ -95,6 +95,20 @@ public class NPCGathering : MonoBehaviour
     private bool isPaused;
     private bool isReturning;
 
+    // [MinerStuckDiagnostic] (2026-08-18) -- temporary, remove once the
+    // "Miner stuck cycling move/mining animations near an obstacle" bug
+    // (BUGS_AND_ENHANCEMENTS.md, the weak-obstacle-avoidance entry) is
+    // root-caused. IsActingOnTarget flips on harvestTimer crossing 0, which
+    // itself is driven purely by straight-line distance to the target --
+    // theory is an obstacle (a Boulder) sits between the NPC and its
+    // target, and MoveToward's deflection nudges distance back and forth
+    // across the harvestRange boundary without the NPC ever actually
+    // routing around the obstacle. Logs on every move<->harvest transition
+    // (not throttled -- the whole point is catching a fast flip-flop) plus
+    // whenever MoveToward's raycast actually detects an obstacle.
+    private bool lastWasMoving;
+    private float obstacleLogTimer;
+
     // Driven by NPCDialogue the same way it already pauses NPCWander --
     // talking to the NPC should freeze it completely, not just whichever
     // component happens to be moving it at that moment.
@@ -178,7 +192,17 @@ public class NPCGathering : MonoBehaviour
         Vector3 targetPos = currentTarget.transform.position;
         float distance = Vector3.Distance(transform.position, targetPos);
 
-        if (distance > harvestRange)
+        bool isMoving = distance > harvestRange;
+        if (isMoving != lastWasMoving)
+        {
+            Debug.Log($"[MinerStuckDiagnostic] {gameObject.name} switched to "
+                + $"{(isMoving ? "MOVING" : "HARVESTING")} -- distance={distance:F2}m "
+                + $"(harvestRange={harvestRange}), target='{currentTarget.name}' at {targetPos}, "
+                + $"self at {transform.position}");
+            lastWasMoving = isMoving;
+        }
+
+        if (isMoving)
         {
             MoveToward(targetPos, currentTarget.gameObject);
             harvestTimer = 0f;
@@ -284,19 +308,6 @@ public class NPCGathering : MonoBehaviour
             foreach (var pickup in FindObjectsByType<Pickup>(FindObjectsSortMode.None))
                 ConsiderPickup(pickup, ref bestDistance);
         }
-
-        // Temporary diagnostic (2026-08-17, BUGS_AND_ENHANCEMENTS.md --
-        // "ore he is trying to work on isn't breaking"). Logs which target
-        // FindTarget actually settled on and its instance ID, so a repeat
-        // sighting of the identical ID across multiple harvest attempts
-        // would prove the node isn't actually breaking/going unavailable,
-        // rather than this just being a normal mid-harvestTimer snapshot.
-        // Remove once the real cause is found and fixed (or ruled out).
-        if (currentTarget != null)
-            Debug.Log($"[GatherDiagnostic] {gameObject.name} targeting '{currentTarget.name}' "
-                + $"(instanceID={currentTarget.GetInstanceID()}, kind={targetKind}) at {bestDistance:F1}m");
-        else
-            Debug.Log($"[GatherDiagnostic] {gameObject.name} found nothing to target within {searchRadius}m");
     }
 
     // True if pos is within maxRangeFromDeposit of the assigned deposit
@@ -369,14 +380,6 @@ public class NPCGathering : MonoBehaviour
             case TargetKind.Harvest:
                 var harvestable = (INPCHarvestable)currentTarget;
                 bool succeeded = harvestable.TryHarvestForNPC(out var item, out var count);
-                // Temporary diagnostic (2026-08-17, see FindTarget's own
-                // comment) -- IsAvailable read AFTER the call, so a still-
-                // true value here on a successful harvest would mean
-                // TryHarvestForNPC isn't actually marking the node broken.
-                Debug.Log($"[GatherDiagnostic] Harvest on '{currentTarget.name}' "
-                    + $"(instanceID={currentTarget.GetInstanceID()}) succeeded={succeeded} "
-                    + $"item={(item != null ? item.itemName : "<none>")} count={count} "
-                    + $"stillAvailable={harvestable.IsAvailable}");
                 if (succeeded)
                 {
                     cargo.Inventory.AddItem(item, count);
@@ -426,6 +429,15 @@ public class NPCGathering : MonoBehaviour
             Vector3 deflected = Vector3.Cross(Vector3.up, hit.normal).normalized;
             if (Vector3.Dot(deflected, desired) < 0f) deflected = -deflected;
             moveDir = deflected;
+
+            obstacleLogTimer -= Time.deltaTime;
+            if (obstacleLogTimer <= 0f)
+            {
+                obstacleLogTimer = 0.5f;
+                Debug.Log($"[MinerStuckDiagnostic] {gameObject.name} obstacle hit: "
+                    + $"'{hit.collider.gameObject.name}' at {hit.point}, desired={desired}, "
+                    + $"deflected={deflected}, distanceToObstacle={hit.distance:F2}m");
+            }
         }
 
         Vector3 flatTarget = transform.position + moveDir * moveSpeed * Time.deltaTime;

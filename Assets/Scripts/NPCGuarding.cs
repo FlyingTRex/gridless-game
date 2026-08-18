@@ -24,6 +24,24 @@ public class NPCGuarding : MonoBehaviour
     [SerializeField] private float moveSpeed = 2.2f;
     [SerializeField] private float obstacleCheckDistance = 1.5f;
 
+    // Player-set patrol radius (2026-08-18) -- replaces the original
+    // CraftTierScale.VillageFlagRevealRadius(patrolFlag.Tier) reuse, found
+    // live by Ben (2026-08-17): a Masterwork Flag gave every Guard a 75m
+    // patrol radius, since that scale was tuned for the Player Map's fog
+    // reveal, not for how far a Guard should roam from its post -- the
+    // exact "a tier-scaling ratio tuned for one quantity doesn't transfer
+    // to another" gotcha CLAUDE.md already documents. Ben's own fix
+    // (2026-08-18): make it the same kind of per-NPC configurable leash
+    // NPCGathering.MaxRangeFromDeposit already is, rather than inventing a
+    // second tier table -- same UI pattern in NPCHiringScreen, just
+    // anchored to the patrol Flag instead of a deposit box.
+    [SerializeField] private float patrolRadius = 15f;
+    public float PatrolRadius
+    {
+        get => patrolRadius;
+        set => patrolRadius = Mathf.Max(1f, value);
+    }
+
     private const float MeleeBaseDamage = 9f;
     private const float MeleeCooldown = 0.7f;
     private const float RangedBaseDamageMin = 2f;
@@ -40,8 +58,12 @@ public class NPCGuarding : MonoBehaviour
     private bool isPaused;
     private float attackTimer;
 
+    // Slack around patrolRadius before switching from "approach" to
+    // "orbit" mode below -- without it, a Guard sitting exactly on the
+    // boundary could flicker between the two modes every frame.
+    private const float ApproachTolerance = 0.5f;
+
     private VillageFlag patrolFlag;
-    private float patrolAngle;
 
     private HostileCreature currentThreat;
 
@@ -90,9 +112,18 @@ public class NPCGuarding : MonoBehaviour
         UpdatePatrol();
     }
 
+    // Found live by Ben (2026-08-18): a Guard stayed locked in Attacking
+    // forever after actually killing its Wolf. Root cause -- a killed
+    // creature's GameObject is never destroyed (SkinnableCreature.Complete
+    // just SetVisible(false)s it and schedules a much-later Respawn()),
+    // so currentThreat never goes null and this check never caught it,
+    // since it only ever looked at distance. Checking IsDead here fixes
+    // both the pre-skin corpse (still sitting there, collider active
+    // until skinned) and the post-skin invisible-but-not-destroyed case
+    // the live report actually hit.
     private bool ThreatStillValid()
     {
-        if (currentThreat == null) return false;
+        if (currentThreat == null || currentThreat.IsDead) return false;
         float distance = Vector3.Distance(transform.position, currentThreat.transform.position);
         return distance <= giveUpRadius;
     }
@@ -104,6 +135,8 @@ public class NPCGuarding : MonoBehaviour
 
         foreach (var hostile in FindObjectsByType<HostileCreature>(FindObjectsSortMode.None))
         {
+            if (hostile.IsDead) continue;
+
             float dist = Vector3.Distance(transform.position, hostile.transform.position);
             if (dist >= bestDist) continue;
             bestDist = dist;
@@ -171,14 +204,28 @@ public class NPCGuarding : MonoBehaviour
         return weapon != null && weapon.isRangedWeapon;
     }
 
-    // Circles the anchor Flag at its own Player Map reveal radius (Ben's
-    // framing: "would simulate patrolling around the village") -- a slowly
-    // advancing target point on the circle, walked toward with the same
-    // straight-line MoveToward every other NPC movement script uses, not
-    // real path-following. No Flag placed -- falls back to standing at
-    // wherever it currently is (detection ring still active), same
-    // "nothing to do, don't crash" fallback NPCCrafting/NPCTraining
-    // already use for their own unmet prerequisites.
+    // Circles the anchor Flag at this Guard's own configurable patrolRadius
+    // (Ben's framing: "would simulate patrolling around the village"),
+    // walked toward with the same straight-line MoveToward every other NPC
+    // movement script uses, not real path-following. No Flag placed --
+    // falls back to standing at wherever it currently is (detection ring
+    // still active), same "nothing to do, don't crash" fallback
+    // NPCCrafting/NPCTraining already use for their own unmet
+    // prerequisites.
+    //
+    // Two modes, found live by Ben (2026-08-18) setting a 2m leash and the
+    // Guard never getting any closer to the Flag: the orbiting target
+    // point's tangential speed works out to exactly `radius * (moveSpeed /
+    // radius) = moveSpeed` -- the Guard's own top speed, REGARDLESS of
+    // radius. At the original 35-75m radii this was invisible (the target
+    // crawled around slowly enough to always be reachable), but at a small
+    // radius the target now circles as fast as the Guard can walk, so a
+    // Guard starting outside the circle was chasing a point that never
+    // gets any closer -- most of its speed budget goes into keeping up
+    // angularly, none into closing the gap. Fixed by splitting into an
+    // approach phase (walk straight toward the nearest point on the
+    // circle, a fixed target the Guard can actually catch) and only
+    // orbiting once already within patrolRadius (+ tolerance).
     private void UpdatePatrol()
     {
         if (patrolFlag == null)
@@ -192,15 +239,36 @@ public class NPCGuarding : MonoBehaviour
 
         wander.SetPaused(true);
 
-        float radius = CraftTierScale.VillageFlagRevealRadius(patrolFlag.Tier);
-        float angularSpeed = radius > 0.01f ? moveSpeed / radius : 0f;
-        patrolAngle += angularSpeed * Time.deltaTime;
-
         Vector3 center = patrolFlag.transform.position;
-        Vector3 offset = new Vector3(Mathf.Cos(patrolAngle), 0f, Mathf.Sin(patrolAngle)) * radius;
-        Vector3 target = center + offset;
-        target.y = GroundHeight.Sample(target, center.y);
+        float radius = patrolRadius;
 
+        Vector3 toGuard = transform.position - center;
+        toGuard.y = 0f;
+        float distanceFromCenter = toGuard.magnitude;
+
+        Vector3 target;
+        if (distanceFromCenter > radius + ApproachTolerance)
+        {
+            // Outside the circle -- head for the nearest point on it along
+            // the current bearing, a static target rather than a fast-
+            // orbiting one.
+            Vector3 dir = distanceFromCenter > 0.01f ? toGuard.normalized : Vector3.forward;
+            target = center + dir * radius;
+        }
+        else
+        {
+            // Within the circle -- orbit smoothly. Recomputed from the
+            // Guard's own current bearing each frame (not a persistently
+            // incrementing angle) so there's no jump on first entering the
+            // circle and nothing to drift out of sync with its real
+            // position.
+            float currentAngle = distanceFromCenter > 0.01f ? Mathf.Atan2(toGuard.z, toGuard.x) : 0f;
+            float angularStep = radius > 0.01f ? (moveSpeed / radius) * Time.deltaTime : 0f;
+            float nextAngle = currentAngle + angularStep;
+            target = center + new Vector3(Mathf.Cos(nextAngle), 0f, Mathf.Sin(nextAngle)) * radius;
+        }
+
+        target.y = GroundHeight.Sample(target, center.y);
         MoveToward(target, patrolFlag.gameObject);
     }
 
