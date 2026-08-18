@@ -5,10 +5,88 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.133-dev` — must always match `GameVersion` in
+**Current version:** `0.3.136-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-18 (11)
+
+### v0.3.136-dev — Round-2 diagnostic logging for the still-unexplained Miner drift
+
+Live-testing v0.3.135-dev's `harvestRange` widening (2m → 3m) found the
+oscillation just re-centered exactly on the new boundary rather than
+disappearing — direct evidence this is a real logic-anchored bug, not
+ambient noise around wherever the NPC happens to settle. Also live-ruled-
+out this session: `job.IsReady` flicker (reads a stable dictionary, no
+flicker candidate) and a second interleaved NPC sharing the same generic
+clone name (confirmed via both the Roster and the Map — only one Miner
+exists, assigned and nearby).
+
+Every quick theory now exhausted (Apply Root Motion, Rigidbody physics,
+`CharacterController`, obstacle deflection, job-family mistargeting,
+`job.IsReady` flicker, duplicate NPCs), so `NPCGathering.cs` gained a
+second, more targeted diagnostic: logs unconditionally whenever
+`transform.position` differs between the top of one frame and the top of
+the next *while the component itself wasn't the one moving it*
+(`lastWasMoving == false`) — narrowed to just the anomalous case so it
+doesn't drown in normal per-frame movement noise during an actual
+approach. This should directly answer whether something outside
+`NPCGathering.Update()` entirely is responsible, since the component's
+own Harvesting branch only ever calls `FaceToward` (rotation-only).
+
+Compile-verified via batch-mode Unity (0 errors). Needs a live session to
+read the output — next step for this specific mystery.
+
+## 2026-08-18 (10)
+
+### v0.3.135-dev — Mitigate the Miner position-oscillation bug: harvestRange 2m → 3m
+
+With the wrong-target bug fixed (v0.3.134-dev) and root motion/physics/
+`CharacterController` all ruled out live, the underlying position drift
+itself (~0.1m each move↔harvest transition) is still unexplained — but
+Ben's fix doesn't need the mechanism understood: `harvestRange` bumped
+2m → 3m gives a full extra meter of margin, comfortably absorbing drift
+of that size regardless of cause. Checked for a stale prefab override
+before just touching the C# default (same gotcha as `workDurationSeconds`
+two passes ago) and found one — `NPCFactoryWorker.prefab` had
+`harvestRange: 2` baked in, so both the code default and the prefab
+value were updated together. Confirmed no separate override exists on
+`NPCFactoryWorkerMale`/`Female` or in `TestScene.unity`.
+
+Compile-verified via batch-mode Unity (0 errors). Not yet live-tested —
+Editor was closed for this pass.
+
+## 2026-08-18 (9)
+
+### v0.3.134-dev — Fix: Mining/Woodworking NPCs could target bushes meant for Forage
+
+Live-testing the `[MinerStuckDiagnostic]` logging from the last pass ruled
+out both leading theories (Apply Root Motion confirmed enabled on the NPC
+Animator but disabling it live changed nothing; no Rigidbody exists on
+either the NPC or `HerbBush`, ruling out physics push-back) but surfaced
+the real underlying issue: a Mining-job NPC walked straight past ore to
+reach the nearest HerbBush, then tried to play its Mining swing animation
+on it. Root cause — `NPCGathering.FindTarget()`'s `INPCSearchable` pool
+(BerryBush/HerbBush) has no tool requirement at all (searching is
+bare-handed), so unlike the `INPCHarvestable` pool (naturally segregated
+by RequiredTools — a Miner's Pickaxe can't satisfy a Tree's Axe
+requirement), nothing stopped *any* Gathering-kind job from freely
+targeting a bush purely on distance. Exact same shape as the
+already-fixed `collectLoosePickups` gap from 2026-08-13 (a Mine Ore NPC
+"stuck gathering sticks").
+
+Fixed with the same pattern: `NPCJobDefinition` gained a
+`searchesBushes` bool (default false), gating the Searchable pool scan in
+`FindTarget()`. Only `ForageJob.asset` sets it true; `MineOreJob`/
+`ChopWoodJob` correctly have no override. This should also eliminate the
+specific repro that drove the position-oscillation investigation, though
+the underlying distance-flip-flop mechanism itself remains technically
+unexplained — `[MinerStuckDiagnostic]` logging left in place in case it
+recurs with a legitimate Forage NPC targeting a real bush.
+
+Compile-verified via batch-mode Unity (0 errors). Not yet live-tested —
+Editor was closed for this pass.
 
 ## 2026-08-18 (8)
 

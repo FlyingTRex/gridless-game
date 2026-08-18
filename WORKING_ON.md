@@ -117,7 +117,38 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   obstacle between the NPC and its target could make `MoveToward`'s
   deflection oscillate across that boundary without ever routing around
   it. Logs every move↔harvest transition plus throttled obstacle-hit
-  detail. Compile-verified; needs a live session near a stuck Miner to
-  read the output. Not yet committed.
+  detail.
+
+  **Live-tested same night — obstacle-deflection theory was wrong.**
+  Zero `obstacle hit` lines appeared despite many move↔harvest flips.
+  Also ruled out live: Apply Root Motion (confirmed enabled, disabling
+  it live changed nothing) and physics push-back (no `Rigidbody` on
+  either the NPC or `HerbBush`). The real finding: the Mining NPC was
+  targeting a HerbBush at all — walked right past ore to reach it, then
+  tried to play its Mining animation on it. **Fixed, v0.3.134-dev**:
+  `NPCJobDefinition` gained a `searchesBushes` bool (same pattern as the
+  existing `collectLoosePickups` gate, same underlying bug shape) —
+  only `ForageJob` sets it true, so Mining/Woodworking NPCs can no
+  longer target bushes at all. The raw distance-oscillation mechanism
+  itself is still technically unexplained; `[MinerStuckDiagnostic]`
+  logging left in place in case it recurs with a legitimate Forage NPC.
+  Original Boulder full-freeze reports (the actual obstacle-avoidance
+  bug, 3x confirmed) remain separate and still unfixed.
+
+  **Live-tested — confirmed the bug is target-agnostic, not bush-
+  specific**: with the family fix in place, the Miner correctly targeted
+  real ore, but showed the exact same oscillation. **Mitigated (not
+  root-caused), v0.3.135-dev**: `harvestRange` bumped 2m → 3m (found and
+  fixed a matching stale `NPCFactoryWorker.prefab` override, same gotcha
+  as `workDurationSeconds`). **Live-tested again — oscillation just
+  re-centered on the new 3m boundary instead of disappearing**, proving
+  it's logic-anchored, not physical drift. Also ruled out live:
+  `job.IsReady` flicker, and a second interleaved NPC (confirmed via
+  Roster + Map — only one Miner exists). **v0.3.136-dev**: added a
+  second, more targeted diagnostic — logs whenever position changes
+  between frames specifically while the component itself wasn't moving
+  it, cutting out normal per-frame movement noise. Compile-verified.
+  Needs a live session to read the output — the next and hopefully final
+  step for this mystery. Not yet committed.
 
 - 2026-08-17 — Ben+Claude — **Built structures + Village-Flag-spawned NPCs now save/restore** (`SAVE_LOAD_PLANNING.md` section 11, `BUGS_AND_ENHANCEMENTS.md`): new `BuildPieceDatabase` + a `["placedPieces"]` capture/restore pair in `SaveManager.cs` that re-instantiates a placed structure (Village Flag/Campfire/Furnace/walls/City Statue) from scratch on load instead of assuming it already exists in the scene, plus full Campfire/Furnace runtime state (lit/fuel timer/recipe queue/linked StorageBoxes). Same re-instantiate-on-restore pattern extended to `NPCHiring` (`SaveManager.RestoreNpcs`), since **all 6 pre-placed Factory Worker NPCs were removed from `TestScene.unity` the same session** (Ben's call — closer to real gameplay: 0 starting NPCs, the Village Flag spawn loop (`VillageFlagSpawner.cs`) is now the only source of hireable NPCs in the game, and a hired NPC now persists across a save/reload the same way a placed structure does). Compile-verified only — **not yet live-tested with a real save → reload round trip**, that's next. `VillageFlagSpawner.cs` still carries its two TEMP TEST VALUES (3min interval / 15m spawn distance) from last night, not yet reverted.

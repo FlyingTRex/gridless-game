@@ -1288,9 +1288,49 @@ signs off on scope and order.
   without ever actually routing around the obstacle. **v0.3.133-dev**:
   re-added temporary `[MinerStuckDiagnostic]` logging to
   `NPCGathering.cs` (every move↔harvest transition, plus throttled
-  obstacle-hit detail) to confirm this theory live before attempting the
-  actual fix (the known-working widening-search pattern from
-  `NPCSeekFlag`). **Remove the diagnostic logs once resolved.**
+  obstacle-hit detail). **Investigated live 2026-08-18 — the obstacle-
+  deflection theory was wrong for this specific repro.** The log capture
+  showed zero `obstacle hit` lines despite many move↔harvest flips,
+  ruling out the raycast-deflection mechanism entirely for this case.
+  Also ruled out live: Apply Root Motion (confirmed enabled on the NPC
+  Animator, but disabling it live changed nothing) and physics
+  push-back (neither the NPC nor `HerbBush` has a `Rigidbody`). The
+  *actual* cause of this specific repro turned out to be a completely
+  different bug — see the `searchesBushes` entry below, now fixed. The
+  raw distance-oscillation mechanism itself is still technically
+  unexplained, but may not recur now that Mining/Woodworking NPCs can no
+  longer target bushes at all. Diagnostic logging left in place in case
+  a legitimate Forage NPC hits the same oscillation against a real bush.
+  **Confirmed still happening against real ore too, same night** — with
+  the bush bug fixed, a Miner correctly targeted a Copper Ore Node but
+  showed the exact same oscillation pattern, proving it's target-type-
+  agnostic, not specific to bushes. **Mitigated (not root-caused),
+  v0.3.135-dev**: `NPCGathering.harvestRange` bumped 2m → 3m (Ben's
+  call) — the observed drift is only ~0.1m each transition, so a full
+  extra meter of margin absorbs it regardless of cause. Checked for (and
+  found) a stale `harvestRange: 2` override baked into
+  `NPCFactoryWorker.prefab`, same gotcha as `workDurationSeconds` two
+  passes earlier — fixed both the code default and the prefab value
+  together. **Original Boulder full-freeze reports (the first 3 confirmations)
+  remain a distinct, still-unfixed bug** — the known-working
+  widening-search pattern from `NPCSeekFlag` (v0.3.116-dev) is still the
+  right fix for those, not yet applied to `NPCGathering`/`NPCCrafting`/
+  `NPCTraining`/`NPCGuarding`.
+- [x] **Mining/Woodworking-job NPCs could target bushes meant for
+  Forage — found live by Ben (2026-08-18) investigating the bug above:
+  a Mining NPC walked past ore to reach the nearest HerbBush, then tried
+  to play its Mining swing animation on it. Fixed same night,
+  v0.3.134-dev.** `NPCGathering.FindTarget()`'s `INPCSearchable` pool
+  (BerryBush/HerbBush) has no tool requirement at all (searching is
+  bare-handed), so unlike the `INPCHarvestable` pool (naturally
+  segregated by `RequiredTools` — a Miner's Pickaxe can't satisfy a
+  Tree's Axe requirement), nothing stopped *any* Gathering-kind job from
+  freely targeting a bush purely on distance. Exact same shape as the
+  already-fixed `collectLoosePickups` gap from 2026-08-13 (a Mine Ore
+  NPC "stuck gathering sticks"). Fixed with the same pattern:
+  `NPCJobDefinition` gained a `searchesBushes` bool (default false)
+  gating the Searchable pool scan; only `ForageJob.asset` sets it true.
+  Compile-verified; not yet live-confirmed.
 - [x] **Cooking skill can never be trained from 0 through normal play — a
   real progression deadlock, found live by Ben (2026-08-16). Fixed
   v0.3.112-dev.** Every `CookableItem` recipe that actually grants

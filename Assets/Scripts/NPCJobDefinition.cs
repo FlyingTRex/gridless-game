@@ -74,4 +74,19 @@ public class NPCJobDefinition : ScriptableObject
     // only job whose targets (BerryBush/HerbBush) don't yield directly and
     // need a follow-up collection step.
     public bool collectLoosePickups = false;
+
+    // Whether NPCGathering.FindTarget also scans BerryBush/HerbBush (the
+    // INPCSearchable pool) for this job -- added 2026-08-18 after a live
+    // bug report (Ben: a Mine Ore NPC walked right past ore to reach the
+    // nearest bush, then tried to play its Mining swing animation on it).
+    // Root cause, same shape as collectLoosePickups' own gap: the
+    // Harvestable pool (ResourceNode/ChoppableTree) is naturally segregated
+    // by RequiredTools (a Miner's Pickaxe doesn't satisfy a Tree's Axe
+    // requirement, so it can never actually target one), but
+    // INPCSearchable has no tool requirement at all -- BerryBush/HerbBush
+    // don't need one, since searching is bare-handed -- so nothing stopped
+    // any Gathering-kind job from freely targeting a bush purely on
+    // distance. False (default) means this job never looks at bushes at
+    // all -- only ForageJob sets this true.
+    public bool searchesBushes = false;
 }

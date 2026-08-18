@@ -49,7 +49,12 @@ public class NPCGathering : MonoBehaviour
     private enum TargetKind { None, Harvest, Search, Pickup }
 
     [SerializeField] private float searchRadius = 50f;
-    [SerializeField] private float harvestRange = 2f;
+    // Bumped 2 -> 3 (2026-08-18) -- Ben's fix for the still-unexplained
+    // position-oscillation bug (BUGS_AND_ENHANCEMENTS.md): the observed
+    // drift is only ~0.1m each transition, so a full extra meter of
+    // margin absorbs it regardless of root cause. Doesn't explain the
+    // mystery, just makes the symptom stop mattering in practice.
+    [SerializeField] private float harvestRange = 3f;
     [SerializeField] private float harvestDuration = 3f;
     [SerializeField] private float moveSpeed = 1.5f;
 
@@ -109,6 +114,20 @@ public class NPCGathering : MonoBehaviour
     private bool lastWasMoving;
     private float obstacleLogTimer;
 
+    // Between-frame position tracking (2026-08-18, round 2) -- every
+    // simpler theory (Apply Root Motion, Rigidbody physics, a
+    // CharacterController, job.IsReady flicker, a second interleaved NPC)
+    // has been live-ruled-out. This directly answers the one remaining
+    // question: does the position change *during* NPCGathering's own
+    // Harvesting branch (which per its own code should be structurally
+    // impossible -- only FaceToward runs there, which is rotation-only),
+    // or does something *outside* this component move the NPC between one
+    // Update() call and the next. Logs unconditionally (not throttled)
+    // whenever position differs from what it was at the top of the
+    // previous frame, while a target is actively assigned.
+    private Vector3 lastFrameTopPosition;
+    private bool hasLastFrameTopPosition;
+
     // Driven by NPCDialogue the same way it already pauses NPCWander --
     // talking to the NPC should freeze it completely, not just whichever
     // component happens to be moving it at that moment.
@@ -140,6 +159,30 @@ public class NPCGathering : MonoBehaviour
 
     private void Update()
     {
+        // [MinerStuckDiagnostic] round 2 -- logged before the isPaused/
+        // ready gates, so it fires every real frame regardless of this
+        // component's own state, catching movement from literally
+        // anything else touching this transform.
+        if (currentTarget != null)
+        {
+            Vector3 frameTopPos = transform.position;
+            // Only interesting when we weren't the one moving last frame --
+            // during an active MOVING phase, position changing every frame
+            // is expected and would otherwise drown this out.
+            if (hasLastFrameTopPosition && !lastWasMoving && frameTopPos != lastFrameTopPosition)
+            {
+                Debug.Log($"[MinerStuckDiagnostic] {gameObject.name} POSITION CHANGED WHILE NOT MOVING -- "
+                    + $"was {lastFrameTopPosition} at the top of the last frame, now {frameTopPos} "
+                    + $"(delta={Vector3.Distance(lastFrameTopPosition, frameTopPos):F4}m), isPaused={isPaused}");
+            }
+            lastFrameTopPosition = frameTopPos;
+            hasLastFrameTopPosition = true;
+        }
+        else
+        {
+            hasLastFrameTopPosition = false;
+        }
+
         if (isPaused) return;
 
         // Bench-crafting sibling check (2026-08-16, section 7) -- job.IsReady
@@ -291,11 +334,20 @@ public class NPCGathering : MonoBehaviour
         foreach (var tree in FindObjectsByType<ChoppableTree>(FindObjectsSortMode.None))
             ConsiderHarvestable(tree, tree, ref bestDistance);
 
-        foreach (var berry in FindObjectsByType<BerryBush>(FindObjectsSortMode.None))
-            ConsiderSearchable(berry, berry, ref bestDistance);
+        // Gated per-job (NPCJobDefinition.searchesBushes) -- see that
+        // field's own comment for the live bug report (a Mining NPC
+        // walking past ore to reach the nearest bush, then trying to
+        // "mine" it) that caused this. BerryBush/HerbBush have no
+        // RequiredTools of their own, so unlike the Harvestable pool
+        // above, nothing else was gating this by job relevance.
+        if (job.AssignedJob != null && job.AssignedJob.searchesBushes)
+        {
+            foreach (var berry in FindObjectsByType<BerryBush>(FindObjectsSortMode.None))
+                ConsiderSearchable(berry, berry, ref bestDistance);
 
-        foreach (var herb in FindObjectsByType<HerbBush>(FindObjectsSortMode.None))
-            ConsiderSearchable(herb, herb, ref bestDistance);
+            foreach (var herb in FindObjectsByType<HerbBush>(FindObjectsSortMode.None))
+                ConsiderSearchable(herb, herb, ref bestDistance);
+        }
 
         // Gated per-job (NPCJobDefinition.collectLoosePickups) -- only
         // Forage needs this pool (it's what closes the loop after an

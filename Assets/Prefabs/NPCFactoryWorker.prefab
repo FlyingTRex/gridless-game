@@ -254,7 +254,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCGathering
   searchRadius: 50
-  harvestRange: 2
+  harvestRange: 3
   harvestDuration: 3
   moveSpeed: 1.5
   obstacleCheckDistance: 1.5
