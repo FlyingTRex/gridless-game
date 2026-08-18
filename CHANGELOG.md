@@ -5,10 +5,37 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.124-dev` — must always match `GameVersion` in
+**Current version:** `0.3.125-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-17 (9)
+
+### v0.3.125-dev — Fix: job-kind-gated UI was showing for the wrong jobs
+
+Live-testing the NPC management pass immediately found two real UI bugs,
+both the same root pattern: `NPCJobScreen`'s "Set Deposit Container"
+button showed for *every* non-Crafting job, including Guarding — but
+`NPCGuarding` never reads `job.DepositContainer` at all, so setting one
+on a Guard visibly did nothing and genuinely misled Ben live. The new
+work-range leash field had the identical issue: it checked "does this
+NPC have an `NPCGathering` component" (true for every NPC, since all
+three job components coexist on the same prefab) instead of "is
+Gathering this NPC's actual current job." Both fixed by checking the
+NPC's real assigned job kind explicitly instead of inferring it from
+component presence or a `!=` exclusion. Confirmed live — the leash field
+now only appears for the Mine Ore job.
+
+Also found and logged, not yet fixed: `NPCGuarding`'s patrol radius
+reuses `CraftTierScale.VillageFlagRevealRadius` (tuned for the Player
+Map's fog reveal, not patrol distance) — a Masterwork Flag gives a Guard
+a 75m-radius patrol circle, huge relative to the 200×200 unit terrain,
+explaining a Guard observed wandering far from its post. And the
+already-logged weak obstacle-avoidance pattern in `NPCGathering`/
+`NPCCrafting`/`NPCTraining`/`NPCGuarding` was confirmed live a second and
+third time tonight (a Miner stalling near a Boulder, twice) — now the
+most-confirmed live bug of the whole session.
 
 ## 2026-08-17 (8)
 

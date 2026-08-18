@@ -169,8 +169,17 @@ public class NPCHiringScreen : MonoBehaviour
             // Flag-patrol radius; Crafting walks to a fixed bench). Anchored
             // to the NPC's own DepositContainer, not the Flag -- see
             // NPCGathering.MaxRangeFromDeposit's own comment for why.
+            //
+            // Gated on the NPC's actual ASSIGNED job kind, not just
+            // "has an NPCGathering component" -- every NPC prefab carries
+            // all three job components at once (they each bail out early
+            // if the assigned job isn't their own kind), so a component-
+            // presence check alone showed this field for a Guard too,
+            // which genuinely misled Ben live (2026-08-17): setting it did
+            // nothing, since NPCGathering.Update() itself bails out
+            // immediately for a non-Gathering job.
             var gathering = current.GetComponent<NPCGathering>();
-            if (gathering != null)
+            if (gathering != null && assignedJob != null && assignedJob.kind == NPCJobDefinition.JobKind.Gathering)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Work range (from deposit box):", DebugGUI.Label, GUILayout.Width(220));

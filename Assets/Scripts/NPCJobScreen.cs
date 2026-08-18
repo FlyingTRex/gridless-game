@@ -171,9 +171,19 @@ public class NPCJobScreen : MonoBehaviour
             // NPCCraftingScreen for its own materials/output box pickers and
             // recipe queue instead, same one-modal-at-a-time handoff
             // DrawDepositContainer already uses for targeting.
+            //
+            // Guarding-kind jobs don't use DepositContainer either --
+            // NPCGuarding never reads job.DepositContainer at all (it
+            // patrols a Village Flag instead). This used to fall into the
+            // same "else" as Gathering and show "Set Deposit Container"
+            // regardless, which genuinely misled Ben live (2026-08-17): he
+            // set one on a Guard, it visibly did nothing, because nothing
+            // ever reads it for that job kind. Only Gathering actually
+            // uses DepositContainer -- checked explicitly now instead of
+            // "everything that isn't Crafting."
             if (def.kind == NPCJobDefinition.JobKind.Crafting)
                 DrawCraftingQueueButton();
-            else
+            else if (def.kind == NPCJobDefinition.JobKind.Gathering)
                 DrawDepositContainer(job);
         }
 

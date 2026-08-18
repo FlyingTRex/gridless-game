@@ -1055,6 +1055,34 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **Deposit Container UI shown for job kinds that never use it,
+  found live by Ben (2026-08-17). Fixed same night.** `NPCJobScreen`
+  showed a "Set Deposit Container" button for *every* non-Crafting job,
+  including Guarding — but `NPCGuarding` never reads
+  `job.DepositContainer` at all (it patrols a Village Flag instead), so
+  setting one on a Guard did nothing and genuinely misled Ben live ("has
+  a set point" / "isn't moving toward it"). Same root pattern hit the
+  new work-range leash field too — it only checked "does this NPC have
+  an `NPCGathering` component" (true for every NPC, since all three job
+  components coexist on the same prefab), not "is Gathering actually
+  this NPC's current job," so it also showed (harmlessly, but
+  confusingly) for a Guard. Both fixed: `NPCJobScreen` now checks
+  `kind == Gathering` explicitly instead of `!= Crafting`; the leash
+  field checks the NPC's actual assigned job kind. Compile-verified,
+  confirmed live — leash field now only appears for the Mine Ore job.
+- [ ] **`NPCGuarding`'s patrol radius reuses `VillageFlagRevealRadius`,
+  a scale tuned for a different quantity — found live by Ben
+  (2026-08-17), not yet fixed.** A Guard visibly wandering far from its
+  Flag on the Map turned out to be exactly correct per the code: a
+  Masterwork Flag's `VillageFlagRevealRadius` is 75f, giving the Guard a
+  75-meter-radius (150m-diameter) patrol circle — huge relative to this
+  project's 200×200 unit terrain. This is the exact "a tier-scaling
+  ratio tuned for one quantity doesn't transfer to another" gotcha
+  `CLAUDE.md` already documents (previously hit by Encumbrance reusing
+  the capacity/price `Modifier` table) — `VillageFlagRevealRadius` was
+  tuned for the Player Map's fog reveal, not for how far a Guard should
+  roam from its post. Needs its own dedicated, much smaller patrol-radius
+  table, independent of the Map reveal scale.
 - [ ] **A Mining NPC's target ore node appeared not to break/deplete,
   observed live by Ben (2026-08-17), unresolved — diagnostic logging
   added, not yet root-caused.** Watched a Miner (confirmed genuinely
@@ -1102,7 +1130,12 @@ signs off on scope and order.
   still duplicated, unfixed, in these 4 other NPC movement scripts. Worth
   considering pulling into one shared helper this time instead of
   fixing/copy-pasting a 5th near-identical block — see `CHANGELOG.md`
-  v0.3.123-dev.
+  v0.3.123-dev. **Confirmed live a second and third time the same
+  night** — a Miner stalled next to a Boulder mid-harvest, and again
+  after its work-range leash was tightened to 15m (giving it even less
+  room to route around anything in the way). Now the most-confirmed
+  live bug of the whole session — worth prioritizing over most other
+  open items next time this is picked up.
 - [x] **Cooking skill can never be trained from 0 through normal play — a
   real progression deadlock, found live by Ben (2026-08-16). Fixed
   v0.3.112-dev.** Every `CookableItem` recipe that actually grants
