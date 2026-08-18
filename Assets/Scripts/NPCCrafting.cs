@@ -57,6 +57,14 @@ public class NPCCrafting : MonoBehaviour
     private bool isPaused;
     private Component targetSurface;
 
+    // See NPCGathering.wasActive's comment for the full story -- this
+    // component's own `!ready` branch used to call wander.SetPaused(false)
+    // unconditionally every idle frame (i.e. every frame for any NPC whose
+    // job isn't Crafting), racing against whichever job component actually
+    // is active for real ownership of the pause state. Only release on a
+    // genuine active-to-inactive transition.
+    private bool wasActive;
+
     public void SetPaused(bool paused) => isPaused = paused;
 
     public IReadOnlyList<CraftingRecipe> RecipeQueue => recipeQueue;
@@ -159,9 +167,11 @@ public class NPCCrafting : MonoBehaviour
             activeRecipe = null;
             targetSurface = null;
             craftTimer = 0f;
-            wander.SetPaused(false);
+            if (wasActive) wander.SetPaused(false);
+            wasActive = false;
             return;
         }
+        wasActive = true;
 
         if (activeRecipe == null || !IsSatisfiable(activeRecipe))
         {

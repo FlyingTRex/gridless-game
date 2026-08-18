@@ -99,6 +99,30 @@ public class NPCGathering : MonoBehaviour
     private float harvestTimer;
     private bool isPaused;
     private bool isReturning;
+    private Vector3 harvestLockPosition;
+
+    // Found live by Ben (2026-08-18) after an extensive elimination
+    // process for the still-mysterious Miner position-drift bug -- see
+    // BUGS_AND_ENHANCEMENTS.md. NPCGathering/NPCCrafting/NPCGuarding all
+    // live permanently on every NPC prefab and all run their own Update()
+    // every frame regardless of which job is actually assigned (the
+    // established "bail early if wrong kind" convention). The `!ready`
+    // branch used to call wander.SetPaused(false) unconditionally on
+    // *every* idle frame, not just when actually releasing a pause this
+    // component itself was holding -- so for e.g. a Mining-job NPC,
+    // NPCCrafting's and NPCGuarding's own `!ready` branches were each
+    // independently calling SetPaused(false) every single frame, racing
+    // against NPCGathering's own SetPaused(true) with no defined winner
+    // (Unity doesn't guarantee Update() order between sibling components).
+    // On whichever frames the "wrong kind" component happened to run
+    // after the active one, NPCWander's own independent wander target-
+    // seeking would silently take over movement for a frame before the
+    // active job component reclaimed control next frame -- a very
+    // plausible match for the observed small, semi-consistent drift.
+    // wasActive tracks whether *this* component was the one actually
+    // holding the pause, so it only ever releases it on a genuine
+    // active-to-inactive transition, never on every idle frame.
+    private bool wasActive;
 
     // [MinerStuckDiagnostic] (2026-08-18) -- temporary, remove once the
     // "Miner stuck cycling move/mining animations near an obstacle" bug
@@ -196,9 +220,11 @@ public class NPCGathering : MonoBehaviour
             currentTarget = null;
             targetKind = TargetKind.None;
             isReturning = false;
-            wander.SetPaused(false);
+            if (wasActive) wander.SetPaused(false);
+            wasActive = false;
             return;
         }
+        wasActive = true;
 
         if (isReturning)
         {
@@ -251,6 +277,15 @@ public class NPCGathering : MonoBehaviour
             harvestTimer = 0f;
             return;
         }
+
+        // Position lock (2026-08-18, Ben's idea) -- belt-and-suspenders on
+        // top of the wasActive fix above: whatever the true cause of the
+        // drift turns out to be, forcibly re-asserting the exact position
+        // captured the instant this NPC settled into range guarantees zero
+        // visible movement while harvesting, regardless of what (if
+        // anything) still touches this transform between frames.
+        if (harvestTimer <= 0f) harvestLockPosition = transform.position;
+        transform.position = harvestLockPosition;
 
         wander.FaceToward(targetPos);
         harvestTimer += Time.deltaTime;

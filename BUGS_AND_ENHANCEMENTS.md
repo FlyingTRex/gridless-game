@@ -1072,6 +1072,20 @@ signs off on scope and order.
 
 ## Bugs
 
+- [ ] **Player Map screen rendered blank, found live by Ben (2026-08-18),
+  cause unconfirmed — forced an Editor restart.** Opening the Map (`M`)
+  showed nothing instead of the usual fog/terrain view. Not reproduced
+  or root-caused — happened once, immediately after Claude mistakenly
+  edited `FirstPersonController.cs` (a live version-bump edit, unrelated
+  in intent) while the Editor was already open and Play mode was
+  running, so a Unity auto-recompile/domain-reload triggered by that
+  external file change during an active session is the prime suspect,
+  but not confirmed. Flagging for awareness rather than as a diagnosed
+  bug — if this recurs *without* an external mid-session file edit as a
+  possible cause, it's a real, separate issue worth investigating
+  properly (check `PlayerMapExploration`'s fog texture generation,
+  `MapScreen.OnGUI`'s draw calls, and whether the terrain reference it
+  reads is still valid after a domain reload).
 - [x] **Fried Egg can't be eaten — no "Eat" option in its right-click
   popup, found live by Ben (2026-08-18). Fixed same night, v0.3.126-dev.**
   `PlayerEating.edibles` is a hand-maintained array on the Player object
@@ -1311,11 +1325,43 @@ signs off on scope and order.
   found) a stale `harvestRange: 2` override baked into
   `NPCFactoryWorker.prefab`, same gotcha as `workDurationSeconds` two
   passes earlier — fixed both the code default and the prefab value
-  together. **Original Boulder full-freeze reports (the first 3 confirmations)
-  remain a distinct, still-unfixed bug** — the known-working
-  widening-search pattern from `NPCSeekFlag` (v0.3.116-dev) is still the
-  right fix for those, not yet applied to `NPCGathering`/`NPCCrafting`/
-  `NPCTraining`/`NPCGuarding`.
+  together.
+
+  **The oscillation itself: root-caused and fixed for real, v0.3.137-dev
+  — a different bug from obstacle avoidance entirely.** Found by fully
+  enumerating every component on the NPC prefab instead of continuing to
+  test individual movement-system theories: `NPCGathering`/`NPCCrafting`/
+  `NPCGuarding` all live permanently on every NPC prefab and each one's
+  own `!ready` branch called `wander.SetPaused(false)`
+  **unconditionally on every idle frame**, not just on a genuine
+  active→inactive transition. So for a Mining-job NPC, `NPCCrafting`'s
+  and `NPCGuarding`'s own `!ready` branches were both independently
+  calling `SetPaused(false)` every single frame, racing against
+  `NPCGathering`'s own `SetPaused(true)` with no defined winner (Unity
+  doesn't guarantee `Update()` order between sibling components). On
+  whichever frames the "wrong kind" component ran after the active one,
+  `NPCWander`'s own independent wander-target-seeking silently took over
+  movement for a frame before the active job reclaimed control —
+  matching the observed drift exactly. Fixed in all three components
+  with a `wasActive` flag (only releases the pause on a genuine
+  transition); `NPCTraining`/`NPCSeekFlag`/`NPCFlee` checked and
+  confirmed to not have this pattern. Also added a belt-and-suspenders
+  safeguard in `NPCGathering`'s Harvesting branch (Ben's idea): position
+  is snapshotted on settling into range and forcibly re-asserted every
+  frame while harvesting. **Live-confirmed immediately** — clean single
+  MOVING→HARVESTING transitions per target, no oscillation, correctly
+  moved to a new ore node after each harvest.
+
+  **Original Boulder full-freeze reports (the first 3 confirmations)
+  remain open — this fix may or may not also explain them, untested.**
+  These were a genuinely different symptom (fully frozen, not
+  oscillating) and could still be the raycast-deflection-into-a-second-
+  obstacle mechanism this entry's title describes, or could turn out to
+  be the exact same `wander.SetPaused` race manifesting differently near
+  an obstacle. Worth a live retest before assuming either way. If still
+  broken, the known-working widening-search pattern from `NPCSeekFlag`
+  (v0.3.116-dev) is still the right fix, not yet applied to these 4
+  scripts.
 - [x] **Mining/Woodworking-job NPCs could target bushes meant for
   Forage — found live by Ben (2026-08-18) investigating the bug above:
   a Mining NPC walked past ore to reach the nearest HerbBush, then tried

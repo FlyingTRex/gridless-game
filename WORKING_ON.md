@@ -147,8 +147,37 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   Roster + Map — only one Miner exists). **v0.3.136-dev**: added a
   second, more targeted diagnostic — logs whenever position changes
   between frames specifically while the component itself wasn't moving
-  it, cutting out normal per-frame movement noise. Compile-verified.
-  Needs a live session to read the output — the next and hopefully final
-  step for this mystery. Not yet committed.
+  it, cutting out normal per-frame movement noise.
+
+  **SOLVED, v0.3.137-dev.** The new diagnostic caught it: a real,
+  deterministic `POSITION CHANGED WHILE NOT MOVING` event with a
+  consistent ~0.13m magnitude. Root cause found by fully enumerating
+  every component on the NPC prefab: `NPCGathering`/`NPCCrafting`/
+  `NPCGuarding` all live permanently on every NPC and each one's `!ready`
+  branch called `wander.SetPaused(false)` **unconditionally every idle
+  frame**, not just on a genuine transition — so for our Mining NPC,
+  `NPCCrafting`'s and `NPCGuarding`'s own inactive branches were both
+  independently fighting `NPCGathering`'s own `SetPaused(true)` every
+  frame, with no guaranteed winner (Unity doesn't order sibling
+  components' `Update()` calls). On losing frames, `NPCWander`'s own
+  independent wander logic silently took over for a beat. Fixed with a
+  `wasActive` flag in all three (only releases on a real transition);
+  `NPCTraining`/`NPCSeekFlag`/`NPCFlee` confirmed clean already. Also
+  added a position-lock safeguard in `NPCGathering`'s Harvesting branch
+  (Ben's idea, belt-and-suspenders). **Live-confirmed immediately** —
+  clean single transitions, no oscillation, correctly moves to a new
+  target after each harvest. Closes the entire Miner-stuck saga from
+  tonight. Original Boulder full-freeze reports still open separately,
+  untested against this fix.
+
+  **Also found live**: Claude mistakenly edited `FirstPersonController.cs`
+  (a version bump) while the Editor was already open for testing —
+  should not have happened, is exactly the kind of edit the standing
+  "don't touch code/assets while the Editor's open" rule exists for.
+  Immediately after, the Player Map screen rendered blank and forced an
+  Editor restart — plausibly connected (an external file change during
+  Play mode can trigger an unexpected recompile/domain reload), but not
+  confirmed; logged as its own open item in `BUGS_AND_ENHANCEMENTS.md`
+  in case it recurs independently.
 
 - 2026-08-17 — Ben+Claude — **Built structures + Village-Flag-spawned NPCs now save/restore** (`SAVE_LOAD_PLANNING.md` section 11, `BUGS_AND_ENHANCEMENTS.md`): new `BuildPieceDatabase` + a `["placedPieces"]` capture/restore pair in `SaveManager.cs` that re-instantiates a placed structure (Village Flag/Campfire/Furnace/walls/City Statue) from scratch on load instead of assuming it already exists in the scene, plus full Campfire/Furnace runtime state (lit/fuel timer/recipe queue/linked StorageBoxes). Same re-instantiate-on-restore pattern extended to `NPCHiring` (`SaveManager.RestoreNpcs`), since **all 6 pre-placed Factory Worker NPCs were removed from `TestScene.unity` the same session** (Ben's call — closer to real gameplay: 0 starting NPCs, the Village Flag spawn loop (`VillageFlagSpawner.cs`) is now the only source of hireable NPCs in the game, and a hired NPC now persists across a save/reload the same way a placed structure does). Compile-verified only — **not yet live-tested with a real save → reload round trip**, that's next. `VillageFlagSpawner.cs` still carries its two TEMP TEST VALUES (3min interval / 15m spawn distance) from last night, not yet reverted.

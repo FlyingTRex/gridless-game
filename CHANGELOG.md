@@ -5,10 +5,51 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.136-dev` — must always match `GameVersion` in
+**Current version:** `0.3.137-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-18 (12)
+
+### v0.3.137-dev — FIXED: the Miner position-oscillation mystery, for real this time
+
+Root cause found by fully enumerating every component on the NPC prefab
+rather than continuing to test individual movement-system theories:
+`NPCGathering`/`NPCCrafting`/`NPCGuarding` all live permanently on every
+NPC prefab (the established "bail early if wrong job kind" convention)
+and all run their own `Update()` every frame regardless of which job is
+actually assigned. Each one's `!ready` branch called
+`wander.SetPaused(false)` **unconditionally on every idle frame**, not
+just when genuinely releasing a pause it held — so for a Mining-job NPC,
+`NPCCrafting`'s and `NPCGuarding`'s own `!ready` branches were both
+independently calling `SetPaused(false)` every single frame, racing
+against `NPCGathering`'s own `SetPaused(true)` with no defined winner
+(Unity doesn't guarantee `Update()` order between sibling components).
+On whichever frames the "wrong kind" component happened to run after the
+active one, `NPCWander`'s own independent wander-target-seeking silently
+took over movement for a frame before the active job component reclaimed
+control next frame — exactly matching the small, semi-consistent drift
+chased across the last several passes.
+
+Fixed in all three components with a `wasActive` flag: each only calls
+`wander.SetPaused(false)` on a genuine active→inactive transition, never
+on every idle frame. `NPCTraining`/`NPCSeekFlag`/`NPCFlee` were checked
+and confirmed to not have this pattern already. Also added a
+belt-and-suspenders safeguard (Ben's idea) in `NPCGathering`'s Harvesting
+branch: the position is snapshotted the instant the NPC settles into
+range and forcibly re-asserted every frame while harvesting, guaranteeing
+zero visible drift regardless of what (if anything) else ever touches
+this transform in the future.
+
+**Live-confirmed immediately** — clean single MOVING→HARVESTING
+transitions per target, no oscillation, held the full harvest duration,
+correctly moved on to a new ore node afterward. This closes out the
+entire Miner-stuck saga from tonight (bush-targeting, harvestRange
+mitigation, and now the actual root cause) and very likely explains
+every prior "NPC seems stuck/frozen" report across the whole project,
+not just Mining — `NPCCrafting`/`NPCGuarding` had the identical bug for
+their own respective off-duty NPCs.
 
 ## 2026-08-18 (11)
 

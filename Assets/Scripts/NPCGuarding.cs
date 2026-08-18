@@ -67,6 +67,14 @@ public class NPCGuarding : MonoBehaviour
 
     private HostileCreature currentThreat;
 
+    // See NPCGathering.wasActive's comment for the full story -- this
+    // component's own `!ready` branch used to call wander.SetPaused(false)
+    // unconditionally every idle frame (i.e. every frame for any NPC whose
+    // job isn't Guarding), racing against whichever job component actually
+    // is active for real ownership of the pause state. Only release on a
+    // genuine active-to-inactive transition.
+    private bool wasActive;
+
     public void SetPaused(bool paused) => isPaused = paused;
 
     // Read by NPCVitals so regen pauses during a fight, same "recovers
@@ -92,9 +100,11 @@ public class NPCGuarding : MonoBehaviour
         {
             state = State.Patrolling;
             currentThreat = null;
-            wander.SetPaused(false);
+            if (wasActive) wander.SetPaused(false);
+            wasActive = false;
             return;
         }
+        wasActive = true;
 
         if (currentThreat == null || !ThreatStillValid())
         {
