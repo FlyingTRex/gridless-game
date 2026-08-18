@@ -8,6 +8,7 @@ using UnityEngine;
 // itself first, same as Talk does, rather than trying to show two modal
 // panels at once.
 [RequireComponent(typeof(PlayerCurrency))]
+[RequireComponent(typeof(PlayerInventory))]
 public class NPCHiringScreen : MonoBehaviour
 {
     private const float PanelWidth = 340f;
@@ -22,18 +23,21 @@ public class NPCHiringScreen : MonoBehaviour
     private const float StatsViewHeight = 230f;
 
     private PlayerCurrency wallet;
+    private PlayerInventory playerInventory;
     private NPCJobScreen jobScreen;
     private NPCTrainingScreen trainingScreen;
     private PlayerFame fame;
     private NPCHiring current;
     private bool isOpen;
     private Vector2 statsScroll;
+    private string rangeText = "";
 
     public bool IsOpen => isOpen;
 
     private void Awake()
     {
         wallet = GetComponent<PlayerCurrency>();
+        playerInventory = GetComponent<PlayerInventory>();
         jobScreen = GetComponent<NPCJobScreen>();
         trainingScreen = GetComponent<NPCTrainingScreen>();
         fame = GetComponent<PlayerFame>();
@@ -46,6 +50,13 @@ public class NPCHiringScreen : MonoBehaviour
     {
         if (Cursor.lockState != CursorLockMode.Locked) return;
         current = npc;
+        // Re-synced from the live component every time this screen opens
+        // (rather than kept live-bound), same "parsed on click, not kept
+        // as a live-bound number" convention AdminSpawnScreen's own
+        // quantity field already uses -- a partially-typed value never
+        // blocks typing.
+        var gathering = npc.GetComponent<NPCGathering>();
+        rangeText = gathering != null ? gathering.MaxRangeFromDeposit.ToString("F0") : "";
         SetOpen(true);
     }
 
@@ -142,6 +153,34 @@ public class NPCHiringScreen : MonoBehaviour
                 return;
             }
 
+            // Freeze toggle (2026-08-17, "NPC management") -- a checkbox
+            // reads its current state at a glance, same convention
+            // FurnaceScreen's own Auto-Run toggle already established,
+            // rather than a button whose label you have to read to know
+            // whether it's on or off. NPCFreeze is optional (GetComponent,
+            // no RequireComponent chain forcing it onto every NPC prefab)
+            // so this quietly no-ops for any NPC that doesn't have one yet.
+            var freeze = current.GetComponent<NPCFreeze>();
+            if (freeze != null)
+                freeze.SetFrozen(GUILayout.Toggle(freeze.IsFrozen, "Frozen (stay in place)"));
+
+            // Work-range leash (2026-08-17, "NPC management") -- only
+            // meaningful for a Gathering NPC (Guarding already has its own
+            // Flag-patrol radius; Crafting walks to a fixed bench). Anchored
+            // to the NPC's own DepositContainer, not the Flag -- see
+            // NPCGathering.MaxRangeFromDeposit's own comment for why.
+            var gathering = current.GetComponent<NPCGathering>();
+            if (gathering != null)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Work range (from deposit box):", DebugGUI.Label, GUILayout.Width(220));
+                rangeText = GUILayout.TextField(rangeText, GUILayout.Width(50));
+                if (GUILayout.Button("Set", GUILayout.Width(50))
+                    && float.TryParse(rangeText, out var parsed))
+                    gathering.MaxRangeFromDeposit = parsed;
+                GUILayout.EndHorizontal();
+            }
+
             GUILayout.Space(10);
             DrawStats();
         }
@@ -187,11 +226,20 @@ public class NPCHiringScreen : MonoBehaviour
     // Chunk 4 (2026-08-10) -- the NPC's cargo (NPCCargo, what the mining
     // loop has collected but not yet deposited) is the other half of
     // "what is this NPC actually doing," alongside its stats above.
+    //
+    // "Take" buttons added 2026-08-17 ("NPC management") -- this used to
+    // be read-only, which meant an unpaid/fired NPC's cargo was
+    // effectively stuck (never actually lost -- Fire()/ClearJob() don't
+    // touch NPCCargo -- just unreachable, no player-facing way to get it
+    // back). Reuses InventoryTransfer.MoveAsManyAsFit, same utility every
+    // other inventory-to-inventory transfer in this project already uses.
+    // Since NPCHiringScreen.Open has no proximity check, this works
+    // remotely from the Roster too, no need to physically walk to the NPC.
     private void DrawCargo()
     {
         var slots = current.Cargo.Inventory.Slots;
         bool any = false;
-        foreach (var slot in slots)
+        foreach (var slot in new System.Collections.Generic.List<Inventory.Slot>(slots))
         {
             if (slot.item == null) continue;
             if (!any)
@@ -200,7 +248,19 @@ public class NPCHiringScreen : MonoBehaviour
                 GUILayout.Label("Carrying", DebugGUI.Header);
                 any = true;
             }
-            GUILayout.Label($"{slot.item.itemName} x{slot.count}", DebugGUI.Label);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"{slot.item.itemName} x{slot.count}", DebugGUI.Label, GUILayout.Width(200));
+            if (GUILayout.Button("Take", GUILayout.Width(70)))
+                InventoryTransfer.MoveAsManyAsFit(current.Cargo.Inventory, playerInventory.Inventory, slot.item);
+            GUILayout.EndHorizontal();
+        }
+
+        if (any && GUILayout.Button("Take All", GUILayout.Width(100)))
+        {
+            foreach (var slot in new System.Collections.Generic.List<Inventory.Slot>(current.Cargo.Inventory.Slots))
+                if (slot.item != null)
+                    InventoryTransfer.MoveAsManyAsFit(current.Cargo.Inventory, playerInventory.Inventory, slot.item);
         }
     }
 }

@@ -17,7 +17,13 @@ public class MapScreen : MonoBehaviour
     private static readonly Color RevealedColor = new Color(0.36f, 0.42f, 0.3f, 1f);
     private static readonly Color PlayerMarkerColor = new Color(0.95f, 0.85f, 0.2f, 1f);
     private static readonly Color FlagMarkerColor = new Color(0.85f, 0.25f, 0.2f, 1f);
+    // Not-hired blue kept as the base NpcMarkerColor; the other three are
+    // the hired-NPC status states (2026-08-17, "NPC management" -- see
+    // DrawNpcMarkers/NpcStatusColor).
     private static readonly Color NpcMarkerColor = new Color(0.3f, 0.65f, 0.9f, 1f);
+    private static readonly Color NpcWorkingColor = new Color(0.3f, 0.85f, 0.35f, 1f);
+    private static readonly Color NpcWaitingColor = new Color(0.9f, 0.55f, 0.15f, 1f);
+    private static readonly Color NpcIdleColor = new Color(0.85f, 0.85f, 0.3f, 1f);
 
     private const float MapFraction = 0.8f; // square map area, 80% of the shorter screen dimension
     private const float MarkerSize = 10f;
@@ -174,6 +180,14 @@ public class MapScreen : MonoBehaviour
     // just a different source type and color. A fresh FindObjectsByType
     // scan every OnGUI frame means these track each NPC's actual live
     // position for free, same as the Flag markers already do.
+    //
+    // Color-coded by status (2026-08-17, "NPC management" follow-up) --
+    // same status categories NPCRosterScreen's own DrawRow already
+    // computes, duplicated here rather than shared (same "small enough to
+    // just repeat" call as every other per-script MoveToward duplication
+    // in this project) since the two screens have no natural common base
+    // to hang a shared helper off. Lets "who needs attention" read at a
+    // glance on the Map without opening the Roster at all.
     private void DrawNpcMarkers(Rect mapRect)
     {
         foreach (var npc in FindObjectsByType<NPCHiring>(FindObjectsSortMode.None))
@@ -182,7 +196,7 @@ public class MapScreen : MonoBehaviour
             var markerRect = new Rect(center.x - NpcMarkerSize / 2f, center.y - NpcMarkerSize / 2f, NpcMarkerSize, NpcMarkerSize);
 
             var prevColor = GUI.color;
-            GUI.color = NpcMarkerColor;
+            GUI.color = NpcStatusColor(npc);
             GUI.DrawTexture(markerRect, Texture2D.whiteTexture);
             GUI.color = prevColor;
 
@@ -192,6 +206,13 @@ public class MapScreen : MonoBehaviour
             var labelRect = new Rect(center.x - labelSize.x / 2f, markerRect.y - labelSize.y - 2f, labelSize.x, labelSize.y);
             GUI.Label(labelRect, content, NpcLabelStyle);
         }
+    }
+
+    private static Color NpcStatusColor(NPCHiring npc)
+    {
+        if (!npc.IsHired) return NpcMarkerColor;
+        if (npc.IsWaitingForPayment) return NpcWaitingColor;
+        return npc.Job.IsReady ? NpcWorkingColor : NpcIdleColor;
     }
 
     private static GUIStyle npcLabelStyle;

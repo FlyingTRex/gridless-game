@@ -12,19 +12,26 @@ using UnityEngine.InputSystem;
 // walk-up-and-press-E interaction would, so this is a faster way to
 // reach an NPC's existing menu, not a second copy of it.
 [RequireComponent(typeof(NPCHiringScreen))]
+[RequireComponent(typeof(PlayerCurrency))]
+[RequireComponent(typeof(PlayerInteraction))]
 public class NPCRosterScreen : MonoBehaviour
 {
     private Vector2 scrollPos;
     private bool isOpen;
     private NPCHiringScreen hiringScreen;
+    private PlayerCurrency wallet;
     private Transform playerTransform;
+    private Camera playerCamera;
+    private NPCHiring tracked;
 
     public bool IsOpen => isOpen;
 
     private void Awake()
     {
         hiringScreen = GetComponent<NPCHiringScreen>();
+        wallet = GetComponent<PlayerCurrency>();
         playerTransform = transform;
+        playerCamera = GetComponent<PlayerInteraction>().PlayerCamera;
     }
 
     private void Update()
@@ -51,6 +58,14 @@ public class NPCRosterScreen : MonoBehaviour
 
     private void OnGUI()
     {
+        // Drawn regardless of whether the Roster itself is open (2026-08-17,
+        // "NPC management" -- a waypoint compass toward a Roster-tracked
+        // NPC needs to work during normal gameplay, not just while this
+        // panel is up). Auto-clears once the tracked NPC no longer exists
+        // -- Unity's overridden == null check on a destroyed Object handles
+        // that for free, no explicit cleanup needed.
+        DrawWaypoint();
+
         if (!isOpen) return;
 
         var screenRect = new Rect(0, 0, Screen.width, Screen.height);
@@ -65,13 +80,32 @@ public class NPCRosterScreen : MonoBehaviour
             .OrderBy(n => n.GetComponent<NPCDialogue>()?.DisplayName ?? "")
             .ToList();
 
+        // "Needs attention" count + Pay All (2026-08-17, "NPC management"
+        // follow-up) -- with several NPCs running at once, walking the
+        // list to pay each one individually is exactly the friction this
+        // whole screen exists to remove. Skips (doesn't stop at) any NPC
+        // whose coin type you can't currently afford, same "best effort,
+        // no all-or-nothing" convention as everything else that iterates
+        // and transfers in this project.
+        var waiting = npcs.Where(n => n.IsHired && n.IsWaitingForPayment).ToList();
+        if (waiting.Count > 0)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label($"{waiting.Count} NPC{(waiting.Count == 1 ? "" : "s")} waiting for payment", DebugGUI.Warning, GUILayout.Width(260));
+            if (GUILayout.Button("Pay All", GUILayout.Width(100)))
+                foreach (var npc in waiting)
+                    npc.TryPay(wallet);
+            GUILayout.EndHorizontal();
+            GUILayout.Space(6);
+        }
+
         if (npcs.Count == 0)
         {
             GUILayout.Label("No NPCs in the world right now.", DebugGUI.Label);
         }
         else
         {
-            scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(Screen.height - 160f));
+            scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(Screen.height - 200f));
             foreach (var npc in npcs)
                 DrawRow(npc);
             GUILayout.EndScrollView();
@@ -105,6 +139,44 @@ public class NPCRosterScreen : MonoBehaviour
             SetOpen(false);
             hiringScreen?.Open(npc);
         }
+
+        bool isTracked = tracked == npc;
+        if (GUILayout.Button(isTracked ? "Stop" : "Locate", GUILayout.Width(70)))
+            tracked = isTracked ? null : npc;
+
         GUILayout.EndHorizontal();
+    }
+
+    // Compass arrow near top-center of the screen, rotated to point toward
+    // the tracked NPC's current horizontal direction relative to where the
+    // player is looking -- same purpose as a quest-marker in other games,
+    // for the "I do want to actually walk over there" case (job
+    // reassignment, checking on someone in person) that Take-cargo/Freeze
+    // don't already cover remotely.
+    private void DrawWaypoint()
+    {
+        if (tracked == null || playerCamera == null) return;
+
+        Vector3 toTarget = tracked.transform.position - playerCamera.transform.position;
+        toTarget.y = 0f;
+        if (toTarget.sqrMagnitude < 0.01f) return;
+
+        Vector3 forward = playerCamera.transform.forward;
+        forward.y = 0f;
+        forward.Normalize();
+        float angle = Vector3.SignedAngle(forward, toTarget.normalized, Vector3.up);
+
+        var arrowRect = new Rect(Screen.width / 2f - 15f, 10f, 30f, 30f);
+        var arrowStyle = new GUIStyle(GUI.skin.label) { fontSize = 26, alignment = TextAnchor.MiddleCenter };
+
+        var prevMatrix = GUI.matrix;
+        GUIUtility.RotateAroundPivot(angle, arrowRect.center);
+        GUI.Label(arrowRect, "▲", arrowStyle);
+        GUI.matrix = prevMatrix;
+
+        string name = tracked.GetComponent<NPCDialogue>()?.DisplayName ?? "NPC";
+        float dist = Vector3.Distance(playerCamera.transform.position, tracked.transform.position);
+        var labelStyle = new GUIStyle(GUI.skin.label) { alignment = TextAnchor.MiddleCenter };
+        GUI.Label(new Rect(Screen.width / 2f - 80f, 42f, 160f, 20f), $"{name} ({dist:F0}m)", labelStyle);
     }
 }

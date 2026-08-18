@@ -205,6 +205,41 @@ also needed the separate legacy-fixture migration below — the original
 scene Campfire/Furnace predate `PlacedPiece`
 entirely and had to be retroactively wired in first.)
 
+- [x] **A renamed Village Flag lost its name on the *next* reload after
+  that, found live by Ben (2026-08-17). Fixed same session.** Root cause
+  found via a temporary diagnostic log (added specifically to chase
+  this, then removed once fixed): `SaveManager.RestorePlacedPieces`
+  re-instantiates a missing structure from its raw `BuildPiece.prefab`,
+  which has no `PlacedPiece`/`SaveId` baked in — those only ever get
+  added via `AddComponent` after placement. Adding `PlacedPiece` there
+  triggers `RequireComponent`'s auto-add of `SaveId`, whose `Reset()`
+  doesn't reliably fire for a runtime `AddComponent` (the exact same
+  gotcha the original v0.3.119-dev placement-time fix already covers —
+  just hit a second time, in the restore path instead of the placement
+  path, and missed the first time). The freshly-added `SaveId.id` stayed
+  `null`, and calling `AssignId(saveId)` on it threw a real
+  `ArgumentNullException` inside `SaveIdRegistry.Unregister`
+  (`Dictionary.TryGetValue(null, ...)`, confirmed live in the Console) —
+  which silently aborted the rest of that loop iteration in
+  `RestorePlacedPieces`, including the `villageName` restore step that
+  runs right after. That's why the Flag itself kept coming back (its
+  base restoration already completed before the crash) while its name
+  quietly reverted to default every time.
+
+  Two fixes, not one: `SaveIdRegistry.Unregister` now guards against a
+  null/empty `Id` (the same defensive guard `Register` already had,
+  protects every future caller of this pattern, not just this one call
+  site); and `RestorePlacedPieces` (plus `RestoreNpcs`, same pattern,
+  cheap insurance even though it hadn't shown the crash) now calls
+  `GenerateIfMissing()` immediately before `AssignId()`, matching the
+  original fix's own pattern. **Live-tested end to end**: renamed a
+  Flag, saved (confirmed via the diagnostic log — full correct entry
+  with the renamed `villageName` captured), exited, relaunched — the
+  crash is gone and the mechanism is confirmed sound; the rename-survival
+  round trip itself is the next thing to verify with the fix actually in
+  place (the repro that found this bug happened *before* the fix, so a
+  fresh round trip is still worth double-checking).
+
 **✅ Fixed 2026-08-17.** A second, worse save gap found the previous
 session: `PlayerMagic` didn't just fail to persist, it actively
 re-randomized on every reload. Ben read a Skill Book gaining the
@@ -574,6 +609,70 @@ meant to remove:
 Compile-verified, component confirmed added to the Player in
 `TestScene.unity` via direct YAML check; not yet live-tested in Play
 mode.
+
+**✅ A further "NPC management" pass built the same night (2026-08-17),
+in 5 chunks, each compiled clean before moving to the next**:
+
+1. **Tool Swap, not just Give.** `NPCJobScreen.DrawToolRequirements` used
+   to only ever show a "Give" button while a tool slot was empty —
+   upgrading an already-equipped tool meant firing the NPC and losing
+   every other tool too. Now lists every owned tier the player could
+   hand over (excluding whichever is already equipped), so a specific
+   tier can be picked deliberately rather than `TryGiveTool`'s old
+   "whichever comes first" behavior. New `NPCJob.SwapTool` handles both
+   the empty-slot and already-equipped cases identically, returning the
+   replaced tool to the player's inventory instead of destroying it.
+2. **`NPCFreeze`** — a "Frozen (stay in place)" checkbox toggle on
+   `NPCHiringScreen` (`GUILayout.Toggle`, matching `FurnaceScreen`'s
+   Auto-Run convention rather than a relabeled button). Built as a
+   standalone, reusable component (optional `GetComponent` references,
+   no `RequireComponent` chain) specifically so a future Traveling
+   Trader — which won't be an `NPCHiring` at all per
+   `COMMERCE_PLANNING.md` — can reuse it later instead of it being
+   Hiring-screen-specific. Re-asserts pause every frame while frozen so
+   it wins over any other system trying to unpause the same components.
+   Added to both NPC prefabs, verified in the saved prefab YAML.
+3. **Take / Take All cargo buttons.** `NPCHiringScreen.DrawCargo` used to
+   be read-only — an unpaid or fired NPC's cargo was never actually lost
+   (`Fire()`/`ClearJob()` don't touch `NPCCargo`), just permanently
+   unreachable with no player-facing way to get it back. Reuses
+   `InventoryTransfer.MoveAsManyAsFit`, same utility every other
+   inventory-to-inventory transfer in this project already uses. Works
+   remotely from the Roster too — `NPCHiringScreen.Open` has no
+   proximity check.
+4. **Deposit-anchored work-range leash**, prompted by the live Miner-
+   wandering-far incident. `NPCGathering.searchRadius` re-centers on
+   wherever the NPC currently stands, which let it drift outward
+   indefinitely across successive hops — each hop only ever needed to
+   be within range of wherever it had *already* wandered to, not of
+   home. New `MaxRangeFromDeposit` (configurable via a text field +
+   "Set" button on `NPCHiringScreen`, only shown for a Gathering NPC)
+   is a second, independent check anchored to the NPC's actual
+   `DepositContainer` position — a fixed point that can't drift no
+   matter how many hops it's taken. Deliberately **not** anchored to
+   the Village Flag — that's the right anchor for `NPCGuarding`'s
+   existing patrol radius, but a Gatherer's real "home" is the box it
+   walks back to, not a Flag that might be placed far from it.
+5. **Color-coded Map markers + Roster "needs attention" tools.**
+   `MapScreen.DrawNpcMarkers` now colors each dot by status (green =
+   working, orange = waiting for payment, yellow = idle/missing tools,
+   blue = not hired) instead of one flat color, so "who needs
+   attention" reads at a glance without opening the Roster.
+   `NPCRosterScreen` gained a waiting-count header + "Pay All" button
+   (skips, doesn't block on, any NPC whose coin type isn't currently
+   affordable), a per-row "Locate"/"Stop" toggle that drives a new
+   waypoint compass (rotates to point toward the tracked NPC, drawn
+   even while the Roster itself is closed), and `NPCHiring` gained a
+   static `OnPaymentDue` event, subscribed to by a new
+   `PlayerNPCPaymentToast` for a passive notification the moment any
+   NPC's work cycle completes — checked its toast Y-position (270)
+   against all 7 other existing top-center toasts in the project before
+   picking it, the exact discipline the original `PlayerAutosave`/
+   `PlayerCrafting` collision (v0.3.115-dev) established.
+
+All 5 compiled clean; `PlayerNPCPaymentToast` confirmed added to the
+Player via direct scene YAML check. None of the 5 chunks live-tested in
+Play mode yet.
 
 **Related, logged separately**: the identical need applies to the
 player once multiplayer exists (other players need a name to see) — see
@@ -956,6 +1055,22 @@ signs off on scope and order.
 
 ## Bugs
 
+- [ ] **A Mining NPC's target ore node appeared not to break/deplete,
+  observed live by Ben (2026-08-17), unresolved — diagnostic logging
+  added, not yet root-caused.** Watched a Miner (confirmed genuinely
+  working — 12 Silver Ore in cargo, Mining skill training) standing at
+  a node that didn't visibly disappear. Likely just a normal mid-
+  `harvestDuration` (3s) snapshot rather than a real bug, but not
+  confirmed either way. Added two temporary `[GatherDiagnostic]`
+  `Debug.Log` calls to `NPCGathering.cs` — `FindTarget` logs which
+  target (with instance ID) it settles on each scan, `HarvestCurrentTarget`
+  logs the harvest result plus `IsAvailable` read immediately after the
+  call. A repeated identical instance ID across multiple harvest
+  attempts, or `stillAvailable=true` right after a `succeeded=true`
+  harvest, would prove a real bug in `ResourceNode.TryHarvestForNPC`'s
+  break/hide step; anything else likely confirms this was just a timing
+  snapshot. **Remove both logs once resolved either way** — not
+  intended to ship permanently.
 - [ ] **Leather Backpack silently rejected as an NPC tool, found live by
   Ben (2026-08-17), not yet fixed.** There are two separate Backpack item
   families — the original plain `Backpack` ladder and the newer `Leather

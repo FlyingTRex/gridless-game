@@ -79,6 +79,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
       insertIndex: -1
       addedObject: {fileID: 696106526971673107}
+    - targetCorrespondingSourceObject: {fileID: 384420937806375696, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4425298897259684747}
   m_SourcePrefab: {fileID: 100100000, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
 --- !u!4 &3723363638363862720 stripped
 Transform:
@@ -131,6 +134,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCEquipmentVisual
   animator: {fileID: 2843087143138281475}
+--- !u!114 &4425298897259684747
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6623683994618491491}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44b3e622f8c2bb0469056149344dd946, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::NPCFreeze
 --- !u!1001 &8583638018399594631
 PrefabInstance:
   m_ObjectHideFlags: 0

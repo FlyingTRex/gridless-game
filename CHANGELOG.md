@@ -5,10 +5,60 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.123-dev` — must always match `GameVersion` in
+**Current version:** `0.3.124-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-17 (8)
+
+### v0.3.124-dev — Real bug fix (Flag rename crash) + a full NPC management pass
+
+**Real save bug found and fixed**: a renamed Village Flag lost its name
+on the *next* reload, root-caused via a temporary diagnostic log (added,
+used, then removed once fixed) to an `ArgumentNullException` in
+`SaveIdRegistry.Unregister` — `SaveManager.RestorePlacedPieces`
+re-instantiates a missing structure from its raw `BuildPiece.prefab`,
+which has no `SaveId` baked in; `RequireComponent`'s auto-add doesn't
+reliably fire `Reset()` for a runtime `AddComponent` (same gotcha the
+original v0.3.119-dev placement fix covers, just hit a second time in
+the restore path). The freshly-added `SaveId.id` stayed null, and
+`AssignId` calling `Unregister` on it threw — silently aborting the rest
+of that restore iteration, including the `villageName` restore step
+right after. Fixed with two changes: `SaveIdRegistry.Unregister` now
+guards against a null/empty `Id`, and `RestorePlacedPieces`/`RestoreNpcs`
+both call `GenerateIfMissing()` before `AssignId()`. **Live-tested end to
+end** — renamed a Flag, saved, exited, relaunched, name survived.
+
+**A full "NPC management" pass, 5 chunks, each compiled clean before the
+next**:
+1. **Tool Swap** — `NPCJobScreen` used to only show "Give" on an empty
+   tool slot; upgrading an equipped tool meant firing the NPC and
+   losing everything else too. New `NPCJob.SwapTool` lists every owned
+   tier and lets a specific one be picked, returning the replaced tool
+   to the player's inventory instead of destroying it.
+2. **`NPCFreeze`** — a "Frozen (stay in place)" toggle on
+   `NPCHiringScreen`, built as a standalone reusable component (no
+   `RequireComponent` chain) so a future Traveling Trader can reuse it
+   without being an `NPCHiring`.
+3. **Take / Take All cargo buttons** — `NPCHiringScreen`'s cargo display
+   was read-only; an unpaid/fired NPC's cargo was never actually lost
+   but was permanently unreachable. Works remotely from the Roster too.
+4. **Deposit-anchored work-range leash** — `NPCGathering.searchRadius`
+   re-centers on wherever the NPC currently stands, letting it drift
+   outward indefinitely across hops (very likely what stranded the
+   Miner from earlier tonight). New `MaxRangeFromDeposit`, configurable
+   per NPC via `NPCHiringScreen`, anchors to the actual `DepositContainer`
+   position instead — deliberately not the Village Flag, which is the
+   right anchor for Guarding's patrol but not for a Gatherer's home base.
+5. **Color-coded Map markers + Roster tools** — `MapScreen.DrawNpcMarkers`
+   now tints each dot by status. `NPCRosterScreen` gained a waiting-count
+   header + "Pay All", a per-row "Locate"/"Stop" driving a new waypoint
+   compass, and `NPCHiring` gained a static `OnPaymentDue` event feeding
+   a new `PlayerNPCPaymentToast` (Y=270, checked against all 7 other
+   existing toasts before picking it).
+
+All 5 chunks compile-verified; none live-tested in Play mode yet.
 
 ## 2026-08-17 (7)
 

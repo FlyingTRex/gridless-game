@@ -53,6 +53,25 @@ public class NPCGathering : MonoBehaviour
     [SerializeField] private float harvestDuration = 3f;
     [SerializeField] private float moveSpeed = 1.5f;
 
+    // Leash anchored to the NPC's own DepositContainer, not its current
+    // position (2026-08-17, "NPC management" -- Ben's ask, prompted by a
+    // Miner observed live wandering far from base and getting stuck).
+    // searchRadius above re-centers on wherever the NPC currently stands,
+    // which lets it drift outward indefinitely across successive hops --
+    // each hop only ever needs to be within searchRadius of wherever it
+    // ALREADY wandered to, not of home. This is a second, independent
+    // check anchored to a fixed point (the deposit box), so it can't
+    // drift no matter how many hops it's taken. No effect at all if no
+    // deposit container is assigned yet (same "nothing to check against
+    // yet" fallback every other DepositContainer-dependent path in this
+    // file already uses). Configurable per NPC via NPCHiringScreen.
+    [SerializeField] private float maxRangeFromDeposit = 50f;
+    public float MaxRangeFromDeposit
+    {
+        get => maxRangeFromDeposit;
+        set => maxRangeFromDeposit = Mathf.Max(1f, value);
+    }
+
     // How far ahead to check for something blocking the direct path, and
     // how far around it to deflect -- Ben's call, 2026-08-10: "build a
     // collision idea to allow the npc to hit something and change
@@ -265,11 +284,36 @@ public class NPCGathering : MonoBehaviour
             foreach (var pickup in FindObjectsByType<Pickup>(FindObjectsSortMode.None))
                 ConsiderPickup(pickup, ref bestDistance);
         }
+
+        // Temporary diagnostic (2026-08-17, BUGS_AND_ENHANCEMENTS.md --
+        // "ore he is trying to work on isn't breaking"). Logs which target
+        // FindTarget actually settled on and its instance ID, so a repeat
+        // sighting of the identical ID across multiple harvest attempts
+        // would prove the node isn't actually breaking/going unavailable,
+        // rather than this just being a normal mid-harvestTimer snapshot.
+        // Remove once the real cause is found and fixed (or ruled out).
+        if (currentTarget != null)
+            Debug.Log($"[GatherDiagnostic] {gameObject.name} targeting '{currentTarget.name}' "
+                + $"(instanceID={currentTarget.GetInstanceID()}, kind={targetKind}) at {bestDistance:F1}m");
+        else
+            Debug.Log($"[GatherDiagnostic] {gameObject.name} found nothing to target within {searchRadius}m");
+    }
+
+    // True if pos is within maxRangeFromDeposit of the assigned deposit
+    // box, or if there's no deposit box assigned yet to check against
+    // (same "nothing to check against yet" fallback every other
+    // DepositContainer-dependent path in this file already uses).
+    private bool WithinLeash(Vector3 pos)
+    {
+        var box = job.DepositContainer;
+        if (box == null) return true;
+        return Vector3.Distance(box.transform.position, pos) <= maxRangeFromDeposit;
     }
 
     private void ConsiderHarvestable(Component comp, INPCHarvestable target, ref float bestDistance)
     {
         if (!target.IsAvailable) return;
+        if (!WithinLeash(comp.transform.position)) return;
 
         bool hasToolReq = target.RequiredTools != null && target.RequiredTools.Length > 0;
         if (hasToolReq && !job.HasAnyTool(target.RequiredTools)) return;
@@ -288,6 +332,7 @@ public class NPCGathering : MonoBehaviour
     private void ConsiderSearchable(Component comp, INPCSearchable target, ref float bestDistance)
     {
         if (!target.IsAvailable) return;
+        if (!WithinLeash(comp.transform.position)) return;
 
         float dist = Vector3.Distance(transform.position, comp.transform.position);
         if (dist >= bestDistance) return;
@@ -304,6 +349,8 @@ public class NPCGathering : MonoBehaviour
     // own bush search produced.
     private void ConsiderPickup(Pickup pickup, ref float bestDistance)
     {
+        if (!WithinLeash(pickup.transform.position)) return;
+
         var item = pickup.Item;
         if (item == null || !encumbrance.CanPickUp(item.weight * pickup.Quantity)) return;
 
@@ -321,7 +368,16 @@ public class NPCGathering : MonoBehaviour
         {
             case TargetKind.Harvest:
                 var harvestable = (INPCHarvestable)currentTarget;
-                if (harvestable.TryHarvestForNPC(out var item, out var count))
+                bool succeeded = harvestable.TryHarvestForNPC(out var item, out var count);
+                // Temporary diagnostic (2026-08-17, see FindTarget's own
+                // comment) -- IsAvailable read AFTER the call, so a still-
+                // true value here on a successful harvest would mean
+                // TryHarvestForNPC isn't actually marking the node broken.
+                Debug.Log($"[GatherDiagnostic] Harvest on '{currentTarget.name}' "
+                    + $"(instanceID={currentTarget.GetInstanceID()}) succeeded={succeeded} "
+                    + $"item={(item != null ? item.itemName : "<none>")} count={count} "
+                    + $"stillAvailable={harvestable.IsAvailable}");
+                if (succeeded)
                 {
                     cargo.Inventory.AddItem(item, count);
                     skills.GainExperience(job.AssignedJob.family, harvestable.SkillGain);

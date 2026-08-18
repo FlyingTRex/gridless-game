@@ -95,6 +95,28 @@ public class NPCJob : MonoBehaviour
         return false;
     }
 
+    // Swaps whichever item currently fills this requirement's slot for a
+    // different one the player explicitly picked (2026-08-17, "NPC
+    // management" -- Ben's ask: "the ability to swap them for improved
+    // versions"). Unlike Fire()'s tool-wipe, the replaced tool is returned
+    // to the player's inventory, not lost -- this is a deliberate upgrade
+    // action, not abandoning the NPC. No-ops if newItem isn't actually one
+    // of this requirement's acceptableItems, or if the player doesn't
+    // currently have one on hand.
+    public bool SwapTool(ToolRequirement requirement, ItemDefinition newItem, PlayerInventory playerInventory)
+    {
+        if (requirement?.acceptableItems == null || newItem == null || playerInventory == null) return false;
+        if (System.Array.IndexOf(requirement.acceptableItems, newItem) < 0) return false;
+        if (playerInventory.GetCount(newItem) <= 0) return false;
+
+        var previous = GetEquipped(requirement.label);
+        playerInventory.RemoveItem(newItem, 1);
+        equippedTools[requirement.label] = newItem;
+        if (previous != null) playerInventory.AddItem(previous, 1);
+
+        return true;
+    }
+
     // Switching to a genuinely different job (or being fired) loses every
     // equipped tool for good -- Ben's explicit call, no return-to-player-
     // inventory step. Re-assigning the SAME job (e.g. re-confirming after

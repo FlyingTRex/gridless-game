@@ -110,7 +110,17 @@ public class NPCHiring : MonoBehaviour, IInteractable
 
         isWaitingForPayment = true;
         workTimer = 0f;
+        OnPaymentDue?.Invoke(this);
     }
+
+    // Fired exactly once at the moment an NPC's work cycle completes and
+    // it starts waiting for payment (2026-08-17, "NPC management" -- Ben's
+    // ask for awareness of payment coming due without having to babysit
+    // the Roster). A static event rather than a direct player reference --
+    // NPCHiring has no reason to know about the player otherwise, and this
+    // keeps the notification concern entirely on the listener's side
+    // (PlayerNPCPaymentToast).
+    public static event System.Action<NPCHiring> OnPaymentDue;
 
     public void Complete(GameObject player)
     {

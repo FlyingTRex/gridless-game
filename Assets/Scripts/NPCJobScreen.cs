@@ -216,6 +216,16 @@ public class NPCJobScreen : MonoBehaviour
         }
     }
 
+    // Reworked 2026-08-17 ("NPC management" -- Ben's ask: "the ability to
+    // swap them for improved versions") -- used to only ever show a "Give"
+    // button while a slot was empty, so upgrading an already-equipped tool
+    // meant firing the NPC and losing every other tool too. Now lists
+    // every owned tier the player could hand over (excluding whichever is
+    // already equipped), letting them pick a SPECIFIC tier rather than
+    // TryGiveTool's old "whichever comes first" behavior. SwapTool handles
+    // both the empty-slot and already-equipped cases identically, and
+    // returns the replaced tool to the player's inventory rather than
+    // losing it.
     private void DrawToolRequirements(NPCJobDefinition def, NPCJob job)
     {
         if (def.toolRequirements == null) return;
@@ -225,21 +235,30 @@ public class NPCJobScreen : MonoBehaviour
             if (req == null) continue;
             var equipped = job.GetEquipped(req.label);
 
-            GUILayout.BeginHorizontal();
             GUILayout.Label(equipped != null ? $"{req.label}: {equipped.itemName}" : $"{req.label}: —",
-                equipped != null ? DebugGUI.Label : DebugGUI.Warning, GUILayout.Width(260));
+                equipped != null ? DebugGUI.Label : DebugGUI.Warning);
 
-            if (equipped == null)
+            bool anyOwned = false;
+            if (req.acceptableItems != null)
             {
-                bool canGive = HasAny(req);
-                GUI.enabled = canGive;
-                if (GUILayout.Button("Give", GUILayout.Width(80)))
-                    job.TryGiveTool(req, playerInventory);
-                GUI.enabled = true;
-                if (!canGive)
-                    GUILayout.Label("(none in inventory)", DebugGUI.Warning);
+                foreach (var candidate in req.acceptableItems)
+                {
+                    if (candidate == null || candidate == equipped) continue;
+                    int owned = playerInventory.GetCount(candidate);
+                    if (owned <= 0) continue;
+
+                    anyOwned = true;
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(20);
+                    string verb = equipped == null ? "Give" : "Swap to";
+                    if (GUILayout.Button($"{verb} {candidate.itemName} (have {owned})", GUILayout.Width(240)))
+                        job.SwapTool(req, candidate, playerInventory);
+                    GUILayout.EndHorizontal();
+                }
             }
-            GUILayout.EndHorizontal();
+
+            if (equipped == null && !anyOwned)
+                GUILayout.Label("(none in inventory)", DebugGUI.Warning);
         }
     }
 
@@ -256,11 +275,4 @@ public class NPCJobScreen : MonoBehaviour
         return current.Skills.GetLevel(def.family) >= required;
     }
 
-    private bool HasAny(ToolRequirement req)
-    {
-        if (req.acceptableItems == null) return false;
-        foreach (var item in req.acceptableItems)
-            if (item != null && playerInventory.GetCount(item) > 0) return true;
-        return false;
-    }
 }

@@ -413,7 +413,16 @@ public class SaveManager : MonoBehaviour
                 npc = instance.GetComponent<NPCHiring>();
                 if (npc == null) continue;
 
-                instance.GetComponent<SaveId>()?.AssignId(saveId);
+                // Same defensive GenerateIfMissing()-before-AssignId() as
+                // RestorePlacedPieces, cheap insurance against the same
+                // ArgumentNullException class of crash even though NPC
+                // prefabs are Instantiate()d whole (Reset() reliably fires
+                // at least once there, unlike PlacedPiece's AddComponent-
+                // after-Instantiate pattern) so this path hasn't actually
+                // shown the crash.
+                var npcSaveId = instance.GetComponent<SaveId>();
+                npcSaveId?.GenerateIfMissing();
+                npcSaveId?.AssignId(saveId);
             }
 
             RestoreNpc(npc, state);
@@ -644,7 +653,19 @@ public class SaveManager : MonoBehaviour
                 if (piece == null) piece = instance.AddComponent<PlacedPiece>();
                 piece.Piece = buildPiece;
 
-                instance.GetComponent<SaveId>()?.AssignId(saveId);
+                // GenerateIfMissing() before AssignId() -- confirmed live
+                // 2026-08-17: AddComponent<PlacedPiece> here triggers
+                // RequireComponent's auto-add of SaveId, whose Reset()
+                // doesn't reliably fire for a runtime AddComponent (same
+                // gotcha the original placement-time fix covers). Without
+                // this, AssignId's internal Unregister call hit a null Id
+                // and threw ArgumentNullException, silently aborting the
+                // rest of this iteration -- including the villageName
+                // restore below, which is why a renamed Flag came back
+                // with its default name after this exact crash.
+                var saveIdComponent = instance.GetComponent<SaveId>();
+                saveIdComponent?.GenerateIfMissing();
+                saveIdComponent?.AssignId(saveId);
             }
 
             if (state["villageName"] != null && piece.GetComponent<VillageFlag>() is { } flag)
