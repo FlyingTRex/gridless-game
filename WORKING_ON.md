@@ -194,6 +194,50 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   `InventoryScreen.GetWornContainers()`'s slot/`IInventoryHolder`
   lookup), routing `NPCJob.TryGiveTool`/`SwapTool` and `NPCJobScreen`'s
   "have N" display through it. Compile-verified only, not yet
-  live-tested. Not yet committed.
+  live-tested.
+
+  **Category C re-audit (2026-08-18, doc-only, no code touched)**: went
+  through all 5 large planning-stub entries (crafting/skills redesign,
+  Magic System, Building System, "Equip directly from a container,"
+  "Simplify item-holding") against current code. Found and corrected
+  stale claims in 3 of them — Magic System's "learnable lineages/Fireball
+  both blocked" claims were both false (Skill Books and combat both
+  shipped since), Building System's "Pole/Door/Roof not built" was false
+  (all three are real shipped pieces now), and "Equip directly from a
+  container" turned out fully stale — closed outright, a real Equip
+  button already exists via right-click on any slot. Also confirmed one
+  claim (the crafting/skills redesign's Mining-vs-Gathering split) and
+  one design gap ("Simplify item-holding") are both still genuinely
+  accurate, not stale.
+
+  **Real incident, logged for accountability**: at Ben's own explicit
+  request, ran a deliberate controlled test — edited a `.cs` file (a
+  trivial comment) while the Editor was open and Play mode was running,
+  to see if it reproduced the earlier blank-Map-screen incident. It did,
+  and worse: the edit triggered a live Unity domain reload mid-Play-mode
+  (confirmed via the "Running managed callbacks" progress dialog), which
+  wiped every NPC's equipped tools (`NPCJob.equippedTools` is a plain
+  in-memory `Dictionary`, not serialized, so a domain reload resets it
+  to empty) and left the tab menu screen blank too — a different screen
+  than last time, confirming this is systemic runtime-state corruption
+  across the whole scene, not a single script's bug. This fully explains
+  and confirms the mechanism behind the earlier blank-Map incident. Test
+  comment reverted once the Editor was closed; a proper lesson-learned
+  memory was saved (`feedback_never_edit_code_while_editor_open_not_even_tiny`).
+
+  **Bug-list clearing pass (2026-08-18, v0.3.139-dev)**: fixed the
+  `InventoryScreen` action-popup click-through bug (root-caused live,
+  `HandleSlotEvents` now gates on `pendingActionItem == null`), the
+  `requiresCanteenWater` held-only gap (fixed in both `PlayerCrafting`
+  and `Campfire`, same root cause), gave 24 `ItemDefinition`s real
+  `weight` values (proposed a full table, Ben approved as-is), and
+  swapped `LeatherBackpackRecipe`'s placeholder ingredients for real
+  Leather (existed since Deer hunting shipped, recipe was just never
+  updated). Checked `WovenGrassCloth.mat`'s near-black-metallic concern
+  directly against the rendered icon — closed as a non-issue. Bow
+  Release animation and both open `IconBaker` icon entries were
+  reconsidered but correctly left alone — bigger rework / already
+  investigated dead ends, not quick fixes. Compile-verified only, not
+  yet live-tested. Not yet committed.
 
 - 2026-08-17 — Ben+Claude — **Built structures + Village-Flag-spawned NPCs now save/restore** (`SAVE_LOAD_PLANNING.md` section 11, `BUGS_AND_ENHANCEMENTS.md`): new `BuildPieceDatabase` + a `["placedPieces"]` capture/restore pair in `SaveManager.cs` that re-instantiates a placed structure (Village Flag/Campfire/Furnace/walls/City Statue) from scratch on load instead of assuming it already exists in the scene, plus full Campfire/Furnace runtime state (lit/fuel timer/recipe queue/linked StorageBoxes). Same re-instantiate-on-restore pattern extended to `NPCHiring` (`SaveManager.RestoreNpcs`), since **all 6 pre-placed Factory Worker NPCs were removed from `TestScene.unity` the same session** (Ben's call — closer to real gameplay: 0 starting NPCs, the Village Flag spawn loop (`VillageFlagSpawner.cs`) is now the only source of hireable NPCs in the game, and a hired NPC now persists across a save/reload the same way a placed structure does). Compile-verified only — **not yet live-tested with a real save → reload round trip**, that's next. `VillageFlagSpawner.cs` still carries its two TEMP TEST VALUES (3min interval / 15m spawn distance) from last night, not yet reverted.

@@ -14,4 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Sunglasses
   maxStack: 1
+  weight: 0.2
   worldPickupPrefab: {fileID: 0}

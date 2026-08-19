@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Masterwork Leather Backpack
   maxStack: 1
+  weight: 3
   tier: 4
   worldPickupPrefab: {fileID: 2309509377528759565, guid: 4aa6b3ec8aaa01740a0321dfd4e4ee15, type: 3}
   icon: {fileID: 21300000, guid: 2d04a060a6b344c4fb550000aeb2fe5a, type: 3}

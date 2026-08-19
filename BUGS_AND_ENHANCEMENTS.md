@@ -693,6 +693,17 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
+- [ ] **A deposit `StorageBox` filling up should notify the player, not
+  just silently sit there (Ben's idea, 2026-08-18).** A full box the
+  player hasn't noticed can silently strand a Gathering NPC's cargo or
+  stall its work loop (it walks back to deposit, has nowhere to put
+  anything, presumably keeps trying) with no way to find out short of
+  physically checking. Worth a toast (same pattern as
+  `PlayerNPCPaymentToast`) fired once a linked deposit box crosses some
+  "nearly full" threshold, or once an NPC's own deposit attempt actually
+  fails to fit anything. Not scoped/built — needs a decision on the
+  exact trigger condition (box capacity threshold vs. an actual failed-
+  deposit event) before implementation.
 - [x] **Campfire cooking was single-shot only (no auto-repeat) and had
   no auto-relight — found live by Ben (2026-08-18) asking "is that by
   design?" No, both were just gaps. Fixed same night, v0.3.126-dev.**
@@ -1072,6 +1083,23 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **`InventoryScreen`'s action popup (Equip/Unequip/Eat/Drop, etc.)
+  lost clicks to whatever inventory slot is visually underneath it —
+  found live by Ben (2026-08-18). Fixed same night, v0.3.139-dev.**
+  "when I use the drop function, if the window is over an inventory
+  slot, I can't click the buttons — it registers the click on the
+  inventory slot instead." Root cause: `DrawPendingActionMenu`'s own
+  comment says it's "Drawn last so it sits on top" — true visually, but
+  `HandleSlotEvents` (the underlying grid's own click handling, called
+  earlier in the same `OnGUI` pass while laying out the grid)
+  unconditionally consumed the `MouseDown` event via `e.Use()` with no
+  check for whether the action popup was currently open. Since this
+  screen uses plain `GUILayout`/`GUI.Button` calls rather than real
+  `GUI.Window`-based modal layering, draw order alone doesn't grant
+  input priority — code order does, and the grid's own handler ran
+  first. Fixed by gating `HandleSlotEvents` on `pendingActionItem ==
+  null`, so the underlying grid stops consuming clicks entirely while
+  the action popup is open. Compile-verified; not yet live-confirmed.
 - [x] **`NPCHiringScreen`/`NPCJobScreen` never paused the NPC while open —
   only `Talk` did, found live by Ben (2026-08-18): "walked up, talked,
   and the npc still moved" while the Assign Job menu was open. Fixed
@@ -1548,13 +1576,14 @@ signs off on scope and order.
   gable-end roof piece exists yet. Ben's call: ship as-is for now, revisit
   once a real gable-end/hip-roof piece exists. See `MVP2_PLANNING.md`
   item 10.
-- [ ] **`WovenGrassCloth.mat` also has `metallicFactor: 1` (2026-08-14).**
-  Found while checking whether the `IconBaker` near-black-metallic bug
-  (fixed same day, see `CHANGELOG.md`'s v0.3.58-dev entry) affected
-  anything besides the new Ingot family — this material shares the same
-  property but hasn't been checked for the same near-black icon problem.
-  Not investigated further this session; worth a quick look if its icon
-  ever looks suspiciously dark/flat.
+- [x] **`WovenGrassCloth.mat` also has `metallicFactor: 1` (2026-08-14) —
+  checked 2026-08-18, closed as a non-issue.** Found while checking
+  whether the `IconBaker` near-black-metallic bug (fixed same day, see
+  `CHANGELOG.md`'s v0.3.58-dev entry) affected anything besides the new
+  Ingot family. Directly viewed `WovenGrassClothItemIcon.png` — renders
+  as a clear, legible green woven-cloth icon, not the near-black
+  silhouette symptom the Ingots had. `metallicFactor: 1` alone doesn't
+  automatically trigger the bug; no re-bake needed here.
 - [x] **Hireable, autonomous NPCs — v1 COMPLETE (2026-08-10), all 6 chunks
   shipped same day (v0.1.192-dev through v0.1.198-dev).** This closes out
   the last of Phase 1's 11 MVP items — see `docs/design-brief.md`'s MVP
@@ -1707,16 +1736,18 @@ signs off on scope and order.
     (assign job, give tools, pay, fire) rather than duplicating that UI.
     Not scoped/started — logging so it doesn't get lost, not committed to
     a specific design yet.
-- [ ] **`CraftingRecipe.requiresCanteenWater` only checks a Canteen held
-  in a hand, not one attached to a Belt (2026-08-10).**
-  `PlayerCrafting.FindEquippedCanteen` only looks at `PlayerEquipment`'s
-  Left/Right Hand slots. A Belt-worn Canteen (the Belt system supports
-  carrying a Canteen on an attachment point as an alternative to a hand,
-  per `CHANGELOG.md`'s Belt entry) would silently fail Healing Paste's
-  water-gate check even with plenty of water aboard. Not yet hit live,
-  flagged proactively rather than found the hard way — fix would mean
-  reaching into `Belt`'s own attachment points the same way `PlayerLoot`/
-  `PlayerCanteen` already do for equip-destination purposes.
+- [x] **`CraftingRecipe.requiresCanteenWater` only checked a Canteen held
+  in a hand, not one attached to a Belt (2026-08-10). Fixed 2026-08-18,
+  v0.3.139-dev.** `PlayerCrafting.FindEquippedCanteen` only looked at
+  `PlayerEquipment`'s Left/Right Hand slots — a Belt-worn Canteen would
+  have silently failed Healing Paste's water-gate check even with
+  plenty of water aboard. Fixed by also checking the worn `Belt`'s own
+  `Inventory` for a clipped Canteen (`slot.equipment is Canteen`), the
+  same data relationship `PlayerBelt.DropClippedEquipment` already
+  accounts for elsewhere. **Also found and fixed the identical gap in
+  `Campfire.FindPlayerCanteen`** (Herbal Tea's own water check) while
+  fixing this — same root cause, same fix, both call sites now
+  consistent. Compile-verified; not yet live-confirmed.
 - [ ] **Melee weapon damage framework built (2026-08-14, v0.3.61-dev) —
   ranged still open.** Superseded the original "five weapon-usage skills"
   plan (Archery/Spear/Sword/Gun/Bare-handed) with one shared **Melee**
@@ -1778,18 +1809,31 @@ signs off on scope and order.
   the player's visual stance back to standing after the shot. Fix would
   mean either a masked layer (bigger rework) or per-stance return
   transitions in both Animator Controllers.
-- [ ] **32 `ItemDefinition` items still need a deliberate `weight` value —
-  all currently sitting at the untuned 1 lb default (2026-08-10).**
-  `CraftTierScale.WeightModifier` (Backpack/Knife/Axe/Hammer/Pickaxe
-  ladders) and the Small Rock/Ore hand-tuned values are done; everything
-  else (raw/refined materials, the Trimmed Stick and Leather Backpack
-  ladders, standalone gear, wearable gadgets, Soccer Ball) hasn't been
-  touched yet. Full categorized list, with the already-tuned values for
-  reference:
-  https://claude.ai/code/artifact/7d9bc035-141e-457d-98bf-c7e45da9464c
-  *(Reported by Ben — "go through all items, and create an artifact of
-  the items that need a weight assigned... log an enhancement with the
-  link... so we can go back and build this later.")*
+  **Reconsidered 2026-08-18 during a bug-list clearing pass** — genuinely
+  bigger than a quick fix, needs real Animator Controller state-graph
+  work verified live, not safe to attempt blind. Left as-is.
+- [x] **32 `ItemDefinition` items needed a deliberate `weight` value —
+  all sitting at the untuned 1 lb default (2026-08-10). Fixed
+  2026-08-18, v0.3.139-dev.** The original artifact turned out partly
+  stale by the time this was picked up — checked every listed item's
+  actual current state directly rather than trusting the doc: Stick
+  (0.5), Plank (3), the full Trimmed Stick ladder (all 0.5), and Rock
+  (1.5) had all already been tuned since 2026-08-10, leaving 24 genuinely
+  untouched. Proposed a full table (calibrated against the already-tuned
+  Backpack/Knife/ore families) for Ben's review before applying — raw
+  materials (Fiber 0.1, Iron Ore 1.2, Berry 0.05, Berry Seed 0.02),
+  refined materials (Rope 0.4, Cloth 0.3, Iron 2.5, Copper 2, Nail 0.02,
+  Woven Grass Cloth 0.3), the Leather Backpack ladder (7.5/6/5/4/3,
+  mirroring the plain Backpack ladder exactly), standalone gear (Crude
+  Fiber Backpack 5, Crude Fiber Belt 0.5, Storage Box 15), wearable
+  gadgets (Canteen 1, Sunglasses 0.2, Navigation Computer 1.5, Personal
+  Health Monitor 1, Mining Face Shield 2), and Soccer Ball (1). Approved
+  as-is, applied to all 24 assets, confirmed via direct grep. 3 of the
+  24 (Sunglasses/NavComputer/HealthMonitor) turned out to be legacy
+  assets predating several `ItemDefinition` fields (`tier`/`icon`/
+  `previewIcon` not even serialized) — only `weight` was added, the rest
+  is a separate, out-of-scope gap. Compile-verified; not yet
+  live-confirmed.
 - [ ] **Upgrading a placed Twig Door to Plank Door visibly misaligns it
   in the frame — a real gap on one side, live-confirmed by Ben
   2026-08-10 ("door issue is really bad when upgraded to plank").**
@@ -1825,6 +1869,8 @@ signs off on scope and order.
   intensity (shared by every icon, Twig included — risky to touch
   without re-baking the whole existing set). Left unfixed per Ben's
   call rather than picking one of those trade-offs unilaterally.
+  **Reconsidered 2026-08-18 during a bug-list clearing pass** — still
+  correctly left as Ben's own deliberate trade-off call, not touched.
 - [ ] **`IconBaker`'s tight-fit framing renders `TwigGablePanelPieceIcon`
   tiny and off-center, tried multiple camera directions, none worked
   (2026-08-10).** Not a bad-angle problem — a bad angle reads as
@@ -1853,6 +1899,10 @@ signs off on scope and order.
   Two independent confirmations now; worth prioritizing a real fix if a
   third asset hits it, rather than accumulating more manual-bake
   one-offs.
+  **Reconsidered 2026-08-18 during a bug-list clearing pass** — this is
+  an already-investigated dead end (root cause not found after real
+  effort, shipped deliberately per Ben's call), not a quick fix; left
+  untouched rather than repeat the same blind guessing.
 - [x] **"Rock" item (`MediumRock.asset`) — deleted, v0.3.89-dev.** Confirmed
   orphaned (nothing referenced it) during the 2026-08-15 efficiency
   audit; deleted outright per Ben's call rather than inventing a use for
@@ -2052,14 +2102,14 @@ signs off on scope and order.
     rather than 4 recipes that all cost the same placeholder materials
     with nothing but a name distinguishing them.
   *(Reported by Ben.)*
-- [ ] **`LeatherBackpackRecipe.asset` (new, v0.1.134-dev) uses placeholder
-  ingredients (6x Cloth + 4x Rope) — explicitly temporary.** Ben's
-  direct call: build the recipe shape now, swap in real
-  Leather/hide-tanning materials once that chain exists (no raw
-  "Leather"/"Hide" material exists in the game yet — no
-  hunting/skinning system built). Don't read the current ingredient
-  list as a design decision; it's a placeholder standing in until a
-  real material exists to replace it.
+- [x] **`LeatherBackpackRecipe.asset` (new, v0.1.134-dev) used placeholder
+  ingredients (6x Cloth + 4x Rope) — explicitly temporary. Fixed
+  2026-08-18, v0.3.139-dev.** Ben's original call: build the recipe
+  shape now, swap in real Leather/hide-tanning materials once that
+  chain exists. Leather has existed as a real, obtainable item since
+  Deer hunting shipped (2026-08-15, v0.3.95-dev) — swapped the
+  placeholder for 4x Leather + 2x Rope. Compile-verified; not yet
+  live-confirmed.
 - [x] **Belt — new equippable, worn at Waist, holds generic attachment
   points instead of a normal inventory — shipped 2026-08-06 (Normal tier
   only), see `CHANGELOG.md` v0.1.75-dev.**
@@ -2309,6 +2359,19 @@ signs off on scope and order.
   Don't start implementing any further piece of this without
   re-reading the full design-brief section first — it's too
   interlocking to build from memory of this one-line summary.
+  **Re-audited 2026-08-18 (Category C pass) — this specific claim
+  confirmed still accurate, not stale**: checked every ore-related
+  `ResourceNode` prefab directly (`Boulder`/`CopperOreChunk`/
+  `GoldOreChunk`/`IronOreChunk`/`SilverOreChunk`/`PlatinumOreChunk`/
+  `MediumRockChunk`) — every single one still trains `Gathering`, none
+  train `Mining`, even though a real `Mining.asset` `SkillDefinition`
+  now exists (added later purely for the NPC job-family system —
+  `MineOreJob.family` — never wired to the player's own mining action
+  at all). `Log.prefab` by contrast does correctly train `Woodworking`.
+  The rest of this entry (the much larger material-web/tier/interaction
+  redesign) was not independently re-verified clause-by-clause this
+  pass — still assume it needs a fresh read against current code before
+  touching, per its own standing warning above.
 - [ ] **Magic System — three real wishes shipped (v0.1.148 through
   v0.1.155-dev), most of it still design-only.** See `docs/design-brief.md`'s
   **Magic System** section for the full plan. **Shipped:** Will (sixth
@@ -2340,18 +2403,27 @@ signs off on scope and order.
   roll (50%→90% by skill margin, mirroring `PlayerCrafting`'s
   chance-of-creation shape) — success costs 60 Will, failure costs 40 and
   still trains the skill (same numbers for all three so far, no reason
-  given yet to differ). **Still not built:** Fireball (needs a combat
-  system that doesn't exist), Illusion's own wish (still completely
-  empty), found and scribed Scrolls, learnable additional lineages (both
-  ride the not-yet-built Phase 2 skill-books mechanic — every character is
-  permanently stuck on their one starting lineage until that's built), the
-  Scribing skill itself, and tool-tier speed bonuses (same gap gathering
-  has). **Real simplification, not an oversight:** no wish's roll
-  weakest-links against any material/fuel-tier input — the design-brief's
-  original weakest-link-quality idea for wishes was superseded by the
-  success/failure roll instead, flagged directly in that doc, not left
-  implying both are true. Don't assume any of the deferred pieces exist
-  without checking — this is a large, only-partially-built system.
+  given yet to differ). **Still not built:** Fireball, Illusion's own
+  wish (still completely empty), found and scribed Scrolls, and the
+  Scribing skill itself. **Real simplification, not an oversight:** no
+  wish's roll weakest-links against any material/fuel-tier input — the
+  design-brief's original weakest-link-quality idea for wishes was
+  superseded by the success/failure roll instead, flagged directly in
+  that doc, not left implying both are true. Don't assume any of the
+  deferred pieces exist without checking — this is a large,
+  only-partially-built system.
+  **Re-audited 2026-08-18 (Category C pass) — two claims here were
+  stale, now corrected above.** "Learnable additional lineages... ride
+  the not-yet-built Phase 2 skill-books mechanic" was true when written
+  but Skill Books shipped 2026-08-13 (`SKILL_BOOKS_PLANNING.md`) and
+  `PlayerMagic` now has a real `knownLineages` set + `LearnLineage`, not
+  a single fixed `StartingLineage` — a player genuinely can learn
+  additional lineages today via a found/written wish book. "Fireball
+  (needs a combat system that doesn't exist)" is also stale — melee
+  (v0.3.61-dev) and ranged (v0.3.86-dev) combat both shipped since this
+  was written. Confirmed via direct check that no `Fireball` `WishRecipe`
+  asset exists yet, so it's still genuinely unbuilt — just not for the
+  reason originally stated; nothing currently blocks building it.
 - [ ] **Building System — Foundation + Plank upgrade, shipped v0.1.156
   through v0.1.157-dev, most of it still design-only.** See
   `docs/design-brief.md`'s **Building System** section for the full
@@ -2388,17 +2460,26 @@ signs off on scope and order.
   in `PlayerBuilding` (previously only Foundation-to-Foundation flat
   tiling worked). Shipped at 5.1m × ~2.6m, not the design-brief's
   spec'd 3m height — a real, not-yet-resolved deviation, see that doc's
-  Building System section. **Still not built:** Pole, Door (both meant
-  to reuse this exact same machinery, not a second pass),
-  Floor/Ceiling/Window/Roof, Stairs/Ramps (vertical connectors — need a
-  new two-height socket shape), Shelves/furniture (mount to Wall, not
-  designed), Rock/Metal material tiers beyond Nails (blocked on their
-  own crafting-pipeline chains), mixed-material-structure rules,
-  structural-integrity requirements beyond "a socket exists,"
-  Equip-to-Define (no equipment-function system for a shell to plug
-  into yet), and territory/ownership restrictions (no multiplayer/
-  macro-layer exists). Don't assume any deferred piece exists without
-  checking.
+  Building System section. **Still not built:** Floor/Ceiling/Window,
+  Stairs/Ramps (vertical connectors — need a new two-height socket
+  shape), Shelves/furniture (mount to Wall, not designed), Rock/Metal
+  material tiers beyond Nails (blocked on their own crafting-pipeline
+  chains), mixed-material-structure rules, structural-integrity
+  requirements beyond "a socket exists," Equip-to-Define (no
+  equipment-function system for a shell to plug into yet), and
+  territory/ownership restrictions (no multiplayer/macro-layer exists).
+  Don't assume any deferred piece exists without checking.
+  **Re-audited 2026-08-18 (Category C pass) — 3 of the originally-listed
+  "still not built" pieces are stale, now removed above.** Pole
+  (`TwigPolePiece`/`PlankPolePiece`), Door
+  (`TwigDoorPiece`/`PlankDoorPiece` + matching Door-Frame-Wall variants),
+  and Roof (`TwigRoofPanelPiece`/`PlankRoofPiece`) are all real, built
+  prefabs today — confirmed via direct file check, not just a doc
+  cross-reference. (Roof's own known gable-end-geometry bug is logged
+  separately above — it exists and mostly works, just has a real
+  content gap on non-square footprints.) Floor/Ceiling/Window/Stairs/
+  Ramps/Shelves genuinely still don't exist — checked directly, no
+  matching prefabs found for any of them.
 - [ ] **Simplify item-holding to two states: equipped or inventory-stored — no
   ad-hoc "held in a hand" third state.** Today `PlayerLoot`'s pickup priority is
   Backpack → Left Hand → Right Hand → evict-into-world (`CHANGELOG.md`
@@ -2423,6 +2504,12 @@ signs off on scope and order.
     equippable: Canteen, Sunglasses, NavigationComputer, PersonalHealthMonitor.)
   - **Manual drop from inventory:** unchanged — goes straight to the ground.
 
+  **Re-audited 2026-08-18 (Category C pass) — confirmed still accurate,
+  not stale.** Checked `PlayerLoot.cs` directly: it still evicts
+  (physically drops) whatever's occupying the first hand to make room
+  for a new item when no backpack is equipped, exactly as described —
+  this gap was never closed.
+
   *(Reported by Ben. The despawn timer on dropped items that was originally
   part of this same request shipped separately in `v0.1.48-dev` (15 min),
   shortened to 2 min and extended to cover equipment/coins too in
@@ -2430,13 +2517,19 @@ signs off on scope and order.
   equipped-item unequip-fallback drop path described above, since that
   path isn't built yet either — despawn now covers every *existing* drop
   action, not this still-hypothetical one.)*
-- [ ] **Equip directly from a container.** Same underlying gap as "Eat/Drink
-  directly from a container" below — `DrawContainerContents` (backpack contents
-  and storage boxes alike) treats every item as a generic move-popup button
-  regardless of `entry.equipment`, so an equippable item sitting in a backpack
-  (Sunglasses, a spare Canteen, Navigation Computer, Personal Health Monitor) has
-  no direct Equip button; it has to be moved out to a hand or the main inventory
-  first. *(Reported by Ben.)*
+- [x] **Equip directly from a container — stale, already fixed, closed
+  2026-08-18 (Category C re-audit).** Same underlying gap as "Eat/Drink
+  directly from a container" below was originally, but right-clicking
+  any slot (`InventoryScreen.HandleSlotEvents`) now opens a real action
+  popup with a genuine "Equip"/"Unequip" button whenever the slot holds
+  an `IEquippable`, and that handler is explicitly shared by "the main
+  inventory grid, the equipment slot list, and every container's
+  contents grid (backpack, boot slots, storage boxes)" per its own
+  comment — confirmed by reading the code directly, not just trusting
+  the doc. Very likely fixed as a side effect of the 2026-08-12
+  drag-and-drop rework that unified all three grid types onto one
+  shared popup-based interaction model, well after this was originally
+  logged; nobody circled back to close the entry out at the time.
 - [x] **Eat directly from a container — fixed v0.1.161-dev, same fix as
   "Can't eat a Berry" above.** Food items sitting in a backpack (or other
   container) couldn't be eaten in place — `DrawInventorySection` in

@@ -792,6 +792,17 @@ public class InventoryScreen : MonoBehaviour
     // trying to tune the threshold around it).
     private void HandleSlotEvents(Rect rect, Inventory inventory, Inventory.Slot slot)
     {
+        // Found live by Ben (2026-08-18): a click on an action-popup button
+        // that visually overlapped a grid slot underneath it registered on
+        // the slot instead. DrawPendingActionMenu is drawn last so it sits
+        // on top *visually*, but this handler runs earlier in the same
+        // OnGUI pass while laying out the grid and unconditionally consumes
+        // MouseDown via e.Use() -- with plain GUILayout controls (no real
+        // GUI.Window modal layering), draw order doesn't grant input
+        // priority, code order does. Skip entirely while the action popup
+        // is open so the grid stops competing for clicks meant for it.
+        if (pendingActionItem != null) return;
+
         var e = Event.current;
         if (e.type != EventType.MouseDown || !rect.Contains(e.mousePosition)) return;
 

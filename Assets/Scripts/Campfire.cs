@@ -375,6 +375,9 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         return canteen != null && canteen.Liquid == LiquidType.Water && canteen.Amount >= recipe.canteenWaterAmount;
     }
 
+    // Checks both hands and a Belt-clipped Canteen (2026-08-18 -- same
+    // gap as PlayerCrafting.FindEquippedCanteen, fixed the same way; see
+    // that method's own comment for why).
     private Canteen FindPlayerCanteen()
     {
         var equipment = player != null ? player.GetComponent<PlayerEquipment>() : null;
@@ -383,6 +386,14 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         foreach (var handSlotName in PlayerEquipSlots.Hands)
             if (equipment.GetEquipped(handSlotName) is Canteen canteen)
                 return canteen;
+
+        var wornBelt = player != null ? player.GetComponent<PlayerBelt>()?.Equipped : null;
+        if (wornBelt != null)
+        {
+            foreach (var slot in wornBelt.Inventory.Slots)
+                if (slot.equipment is Canteen clippedCanteen)
+                    return clippedCanteen;
+        }
 
         return null;
     }

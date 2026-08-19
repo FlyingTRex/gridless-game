@@ -30,6 +30,7 @@ public class PlayerCrafting : MonoBehaviour
     private PlayerEquipment equipment;
     private PlayerVitals vitals;
     private PlayerDexterity dexterity;
+    private PlayerBelt belt;
     private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
     // Recipes a skill book has specifically granted, bypassing the normal
@@ -72,6 +73,7 @@ public class PlayerCrafting : MonoBehaviour
         equipment = GetComponent<PlayerEquipment>();
         vitals = GetComponent<PlayerVitals>();
         dexterity = GetComponent<PlayerDexterity>();
+        belt = GetComponent<PlayerBelt>();
     }
 
     // Every Inventory a recipe is allowed to draw materials from: the main
@@ -197,6 +199,13 @@ public class PlayerCrafting : MonoBehaviour
         return canteen != null && canteen.Liquid == LiquidType.Water && canteen.Amount >= recipe.canteenWaterAmount;
     }
 
+    // Checks both hands and a Belt-clipped Canteen (2026-08-18 -- found
+    // live proactively, not the hard way: a Canteen clipped to a worn
+    // Belt is a pure data relationship registered in the Belt's own
+    // Inventory, same as PlayerBelt.DropClippedEquipment already has to
+    // account for -- it was never covered here, so a Belt-worn Canteen
+    // silently failed this water-gate check even with plenty of water
+    // aboard).
     private Canteen FindEquippedCanteen()
     {
         if (equipment == null) return null;
@@ -205,6 +214,14 @@ public class PlayerCrafting : MonoBehaviour
         {
             if (equipment.GetEquipped(handSlotName) is Canteen canteen)
                 return canteen;
+        }
+
+        var wornBelt = belt != null ? belt.Equipped : null;
+        if (wornBelt != null)
+        {
+            foreach (var slot in wornBelt.Inventory.Slots)
+                if (slot.equipment is Canteen clippedCanteen)
+                    return clippedCanteen;
         }
 
         return null;

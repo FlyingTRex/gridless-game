@@ -5,10 +5,53 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.138-dev` — must always match `GameVersion` in
+**Current version:** `0.3.139-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-18 (14)
+
+### v0.3.139-dev — Bug-list clearing pass: action popup, worn Canteen, item weights
+
+A batch pass through the open bugs list, split into what actually needed
+fixing vs. what turned out to already be fine or was previously
+deliberately deferred:
+
+- **`InventoryScreen`'s action popup lost clicks to the slot underneath
+  it** — `HandleSlotEvents` now no-ops entirely while `pendingActionItem
+  != null`, so the grid stops competing for input with the popup drawn
+  on top of it.
+- **A Canteen clipped to a worn Belt was invisible to both
+  `requiresCanteenWater` checks** (`PlayerCrafting.FindEquippedCanteen`
+  and `Campfire.FindPlayerCanteen`) — both only ever checked hands. Both
+  now also check the worn Belt's own `Inventory` for a clipped Canteen,
+  same relationship `PlayerBelt.DropClippedEquipment` already accounts
+  for elsewhere.
+- **24 `ItemDefinition`s given real, deliberate `weight` values**
+  (raw/refined materials, the Leather Backpack ladder, standalone gear,
+  wearable gadgets, Soccer Ball) — the original 2026-08-10 backlog
+  artifact turned out to be partly stale (Stick/Plank/the Trimmed Stick
+  ladder/Rock were already tuned since), re-verified each item's actual
+  current state before touching anything.
+- **`LeatherBackpackRecipe.asset`'s placeholder ingredients (6 Cloth + 4
+  Rope) swapped for real materials** (4 Leather + 2 Rope) — Leather has
+  existed as a real, obtainable item (Deer kills) since 2026-08-15, and
+  was specifically waiting on this recipe to be updated.
+
+**Investigated but not touched, found to need more than a quick fix:**
+Bow Release animation always returning to StandingIdle needs a real
+Animator Controller rework (masked layer or per-stance transitions), not
+safe to do blind without live iteration. Both open `IconBaker` icon
+entries (`TwigGablePanelPieceIcon` tiny/off-center, the Plank-tier
+color/lighting trade-off) turn out to already be investigated dead ends
+— both were shipped as-is per Ben's own explicit call after real
+troubleshooting, not oversights; re-attempting either blind would just
+repeat abandoned guesswork. `WovenGrassCloth.mat`'s near-black-metallic
+concern checked directly against the rendered icon — renders correctly,
+closed as a non-issue.
+
+Compile-verified via batch-mode Unity (0 errors). Not yet live-tested.
 
 ## 2026-08-18 (13)
 

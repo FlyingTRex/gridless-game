@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Crude Fiber Backpack
   maxStack: 1
+  weight: 5
   tier: 0
   worldPickupPrefab: {fileID: 818966939834246973, guid: 81d232e6b79d865438ba7b68355d7876, type: 3}
   icon: {fileID: 21300000, guid: 90f0947c368c24f45bcfc39044b869d0, type: 3}

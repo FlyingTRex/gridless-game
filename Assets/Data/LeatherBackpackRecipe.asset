@@ -13,10 +13,10 @@ MonoBehaviour:
   m_Name: LeatherBackpackRecipe
   m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
   ingredients:
-  - item: {fileID: 11400000, guid: 6b78535dea7c4347802f104ad57352a1, type: 2}
-    count: 6
-  - item: {fileID: 11400000, guid: fc31fc9fd8d24ad397bc4e646de0e557, type: 2}
+  - item: {fileID: 11400000, guid: ba302e2b0eb19af4ba74d05ab9c67789, type: 2}
     count: 4
+  - item: {fileID: 11400000, guid: fc31fc9fd8d24ad397bc4e646de0e557, type: 2}
+    count: 2
   outputItem: {fileID: 11400000, guid: 28d13770ea3c6d74ba9d52d409e4f3d0, type: 2}
   outputCount: 1
   bonusItem: {fileID: 0}

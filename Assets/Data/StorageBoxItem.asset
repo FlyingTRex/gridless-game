@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
   itemName: Storage Box
   maxStack: 20
+  weight: 15
   tier: 0
   worldPickupPrefab: {fileID: 7370304361906988028, guid: 8e4096612f450cd4a9833d0708b0c760, type: 3}
   icon: {fileID: 21300000, guid: ca298836ff4b42f45812f10978f7ee1f, type: 3}
