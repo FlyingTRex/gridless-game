@@ -286,6 +286,14 @@ public class FurnaceScreen : MonoBehaviour
         HandleSlotMouseDown(rect, inventory, slot);
         if (!dragSourceOnly)
             RegisterDropZone(rect, inventory);
+
+        // QTY label below the box -- separate from the box's own GUIContent
+        // text so it still shows for icon-bearing items, same fix
+        // CampfireScreen.DrawBox already got (that text is unconditionally
+        // blanked out whenever slot.item.icon != null, dropping the count
+        // entirely for any item with a baked icon -- found live, 2026-08-18).
+        string qtyLabel = isDragSource || slot.item.maxStack <= 1 ? "" : $"QTY: {slot.count}";
+        GUILayout.Label(qtyLabel, DebugGUI.Label, GUILayout.Width(BoxSize));
     }
 
     private void RegisterDropZone(Rect rect, Inventory inventory)

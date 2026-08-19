@@ -607,8 +607,21 @@ meant to remove:
   `GameMenuScreen.ControlsList` updated.
 
 Compile-verified, component confirmed added to the Player in
-`TestScene.unity` via direct YAML check; not yet live-tested in Play
-mode.
+`TestScene.unity` via direct YAML check. **Live-confirmed 2026-08-18** —
+Ben confirmed every Roster row shows Manage/Locate as expected, Manage
+genuinely opens the real `NPCHiringScreen` (not a second copy), named
+NPCs (auto-assigned + player-renamed) show correctly on the Map, and the
+color-coded dots are visibly differentiated (green for working NPCs like
+"Mining Dude"/"Wren", blue for unhired "Factory Worker" spawns), and the
+markers genuinely track live position (a moving NPC's dot moves with it
+in real time, not a stale per-open snapshot), and the Locate toggle
+correctly flips to "Stop" when activated *and* actually shows a real
+waypoint compass — pointer, name, and live distance ("Wren (17m)") —
+and flips back to "Locate" (compass gone) on Stop, the full round trip.
+**Payment-due toast confirmed 2026-08-18** — Ben saw the toast fire the
+moment his NPC's work cycle completed, no Roster/Map check needed.
+**"Pay All" also confirmed 2026-08-18** — closes out all 5 chunks of the
+2026-08-17 NPC-management pass, every piece now live-confirmed.
 
 **✅ A further "NPC management" pass built the same night (2026-08-17),
 in 5 chunks, each compiled clean before moving to the next**:
@@ -622,6 +635,10 @@ in 5 chunks, each compiled clean before moving to the next**:
    "whichever comes first" behavior. New `NPCJob.SwapTool` handles both
    the empty-slot and already-equipped cases identically, returning the
    replaced tool to the player's inventory instead of destroying it.
+   **Live-confirmed 2026-08-18** — Ben swapped a Miner's equipped
+   Masterwork Pickaxe for a Fine one pulled straight from his worn
+   Backpack, and confirmed the displaced Masterwork Pickaxe came back to
+   his own inventory afterward instead of vanishing.
 2. **`NPCFreeze`** — a "Frozen (stay in place)" checkbox toggle on
    `NPCHiringScreen` (`GUILayout.Toggle`, matching `FurnaceScreen`'s
    Auto-Run convention rather than a relabeled button). Built as a
@@ -671,8 +688,9 @@ in 5 chunks, each compiled clean before moving to the next**:
    `PlayerCrafting` collision (v0.3.115-dev) established.
 
 All 5 compiled clean; `PlayerNPCPaymentToast` confirmed added to the
-Player via direct scene YAML check. None of the 5 chunks live-tested in
-Play mode yet.
+Player via direct scene YAML check. **Chunk 3 (Take/Take All) live-
+confirmed 2026-08-18** — Ben pulled an NPC's full cargo via Take All.
+Chunks 1, 2, 4, 5 still not live-tested in Play mode.
 
 **Related, logged separately**: the identical need applies to the
 player once multiplayer exists (other players need a name to see) — see
@@ -704,6 +722,44 @@ signs off on scope and order.
   fails to fit anything. Not scoped/built — needs a decision on the
   exact trigger condition (box capacity threshold vs. an actual failed-
   deposit event) before implementation.
+- [ ] **Only 1 of the Leather Backpack ladder's 5 tiers has a recipe at
+  all (Ben's ask, 2026-08-18).** Checked directly: `Assets/Data/` only
+  has `LeatherBackpackRecipe.asset` (the plain/Normal tier, just fixed to
+  use real Leather+Rope) — Crude/Rudimentary/Fine/Masterwork Leather
+  Backpack are all real `ItemDefinition`s (weights already tuned, see the
+  v0.3.139-dev weight pass) with **no way to craft them at all**. Real
+  open design question before building, not just "copy the pattern 4
+  more times": which convention does this family follow? The plain
+  Backpack/Knife/Bow ladder uses a skill+`CraftOutcomeRoll` quality
+  ladder off one fixed recipe (better Sewing skill → better tier, same
+  ingredients every time); Stone/Iron Arrow instead uses **tier-matched
+  ingredients** (a Crude Trimmed Stick deterministically produces a Crude
+  Arrow, no roll). Leather Backpack's single existing recipe has no
+  `lowerTierItem`/`higherTierItem` wired and no obvious tier-matched raw
+  material the way Arrow has Trimmed Stick — needs a decision on which
+  shape before the other 4 tiers get built, not assumed from the ask
+  alone.
+- [ ] **A Guard below ~30% health should pause patrolling and heal in
+  place, still fighting back if attacked (Ben's idea, 2026-08-18).**
+  `NPCVitals` regen (1 HP/sec) already only runs while `!IsFighting`
+  (i.e. while `Patrolling`, not `Chasing`/`Attacking`), so this wouldn't
+  change the regen *rate* — a wounded Guard already heals whenever it's
+  not mid-fight. What it would actually buy: right now a critically
+  wounded Guard keeps walking its patrol circle exactly like a full-health
+  one, so it can wander into a *second* threat before recovering from the
+  first. Holding position instead reduces that exposure without going
+  passive — `FindNearestThreat()` already runs every frame ahead of the
+  `Patrolling` branch, so "still fights if attacked" falls out for free,
+  no change needed to `Chasing`/`Attacking` at all, just skip the
+  `UpdatePatrol()` movement call while below threshold.
+  Two things worth deciding before building: (1) **hysteresis** — this
+  file already debounces two other flicker risks this way
+  (`ApproachTolerance`, `wasActive`); resuming patrol at the same 30%
+  line it paused at would let it flap right at the boundary, so pause at
+  30% but only resume once healed back up to something higher (e.g.
+  60%). (2) **hold position vs. retreat toward the Flag** — freezing in
+  place is the simple version; retreating toward the Flag while healing
+  reads better but is a bigger change. Not scoped/built.
 - [ ] **Gameplay audio system — genuinely doesn't exist yet; a survey of
   every imported asset pack found nothing worth reusing (2026-08-16).
   Reclassified from Bugs to Enhancements, 2026-08-18 — this was never a
@@ -868,7 +924,13 @@ signs off on scope and order.
   value is read each frame. Needs a design pass to pick the actual
   curve/anchor points (does the existing per-wish `GrowMaxWill` stay as
   an *additional* source on top, or is it superseded entirely?) before
-  building.
+  building. **Design pass done, 2026-08-18 — see `MAGIC_PLANNING.md`'s
+  Will-cost section.** Resolved: `GrowMaxWill` stays as an additive
+  per-wish-mastery bonus layered on top of a new Intelligence-driven
+  baseline (`100 + 4.42 × (Intelligence_displayed - 2)^1.5`, same curve
+  shape as Constitution, a fresh coefficient), not superseded — a
+  high-Intelligence character who's never cast a wish shouldn't have the
+  same ceiling as one who's actually practiced. Not built yet.
 - [ ] **Universal degradation** — nothing lasts forever; gear, buildings, and
   vehicles decay if left unmaintained.
 - [x] **Gardening — 16-cell grid built, v0.3.79-dev (2026-08-15).** See
@@ -1107,6 +1169,35 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **None of the 6 new Iron Arrow recipes (`IronArrowheadRecipe` + 5
+  tier recipes) actually appear in the Crafting screen, found live by
+  Ben (2026-08-18) — a real miss from the same session that built them,
+  not a stale claim. Fixed 2026-08-18.** Root cause confirmed directly,
+  not guessed: `PlayerCrafting.recipes` is a hand-maintained
+  `[SerializeField]` array on the Player object in `TestScene.unity`, not
+  a dynamic `AssetDatabase` scan — the exact same "registration array,
+  easy to forget a new entry" shape that already bit `PlayerEating.edibles`
+  (Fried Egg) and `GuardRangedJob`'s tool-acceptance lists this same
+  session. `BuildIronArrows.cs` created all 6 new `CraftingRecipe` assets
+  correctly (confirmed via direct guid grep) but never added them to this
+  array. Fixed via a throwaway batch-mode script
+  (`Assets/Editor/RegisterIronRecipes.cs`, deleted after running):
+  appended all 6 new recipe guids to the Player's `recipes` array
+  (61 → 67), explicit `Scene`-handle `SaveScene()` (not the ambient
+  `SaveOpenScenes()`, per `CLAUDE.md`'s own silent-no-op gotcha for this
+  exact pattern). Verified by grepping `TestScene.unity` directly for all
+  6 new recipe guids, not trusting the script's log. Compile-verified;
+  not yet live-confirmed.
+- [x] **`FurnaceScreen` never shows a stack-count label for any item with
+  a baked icon, found live by Ben (2026-08-18) while making Iron
+  Ingots. Fixed 2026-08-18.** Same exact shape as the already-fixed
+  `CampfireScreen` Ingredients/Output/Fuel gap (v0.3.126-dev):
+  `FurnaceScreen.DrawBox` builds its `GUIContent` text as
+  `itemName + " x{count}"`, but unconditionally replaces it with an
+  empty string whenever `slot.item.icon != null`. Fixed with the
+  identical pattern `CampfireScreen.DrawBox` already has: a separate
+  `QTY: {count}` label drawn below the icon box, independent of whether
+  the item has an icon. Compile-verified; not yet live-confirmed.
 - [x] **`InventoryScreen`'s action popup (Equip/Unequip/Eat/Drop, etc.)
   lost clicks to whatever inventory slot is visually underneath it —
   found live by Ben (2026-08-18). Fixed same night, v0.3.139-dev.**
@@ -1123,7 +1214,8 @@ signs off on scope and order.
   input priority — code order does, and the grid's own handler ran
   first. Fixed by gating `HandleSlotEvents` on `pendingActionItem ==
   null`, so the underlying grid stops consuming clicks entirely while
-  the action popup is open. Compile-verified; not yet live-confirmed.
+  the action popup is open. **Live-confirmed 2026-08-18** — Ben confirmed
+  the Drop popup no longer loses clicks to the slot underneath it.
 - [x] **`NPCHiringScreen`/`NPCJobScreen` never paused the NPC while open —
   only `Talk` did, found live by Ben (2026-08-18): "walked up, talked,
   and the npc still moved" while the Assign Job menu was open. Fixed
@@ -1137,8 +1229,9 @@ signs off on scope and order.
   pattern, and calling it from both screens' `SetOpen()`. Deliberately
   not routed through `NPCFreeze` — that toggle represents a deliberate
   player "stay frozen" choice that a temporary UI-open pause must not
-  silently clear when the screen closes. Compile-verified; not yet
-  live-confirmed.
+  silently clear when the screen closes. **Live-confirmed 2026-08-18** —
+  Ben opened an NPC's management screen and confirmed it stops moving
+  while open.
 - [x] **Player Map screen rendered blank, found live by Ben (2026-08-18) —
   root-caused and fixed 2026-08-18.** Genuinely root-caused this time, not
   just explained away by the domain-reload incident that was the prime
@@ -1155,11 +1248,11 @@ signs off on scope and order.
   `WorldToCell`/`CaptureRevealedBase64`/`RestoreRevealedBase64`), not just
   `Awake()` — the Map now self-heals (rebuilding a fresh, empty-fog grid)
   the moment anything touches it after the backing state goes missing,
-  regardless of what causes that, instead of rendering blank. Compile-
-  verified; not yet live-confirmed with an actual repro (the trigger case
-  — an external file edit during Play mode — is one the project has since
-  agreed to never do again, so this is defense-in-depth rather than a fix
-  aimed at a mechanism expected to recur).
+  regardless of what causes that, instead of rendering blank. **Live-
+  confirmed 2026-08-18** — Ben opened the Map normally (no forced repro
+  of the original trigger — that mechanism is one the project has since
+  agreed to never do again) and confirmed it renders correctly: fog,
+  revealed terrain, Village Flag/NPC markers, vitals HUD all showing.
 - [x] **Fried Egg can't be eaten — no "Eat" option in its right-click
   popup, found live by Ben (2026-08-18). Fixed same night, v0.3.126-dev.**
   `PlayerEating.edibles` is a hand-maintained array on the Player object
@@ -1259,7 +1352,9 @@ signs off on scope and order.
   save/load" gap this project has hit before. Fixed by adding
   `maxRangeFromDeposit` to `SaveManager.CaptureNpc`/`RestoreNpc` (fixed
   alongside `NPCGuarding.PatrolRadius`, the new equivalent leash below,
-  same fix in the same pass). Compile-verified; not yet live-confirmed.
+  same fix in the same pass). **Live-confirmed 2026-08-18** — Ben set a
+  leash value, reopened the Editor, confirmed it was still there instead
+  of reset to the 50f default.
 - [x] **Deposit Container UI shown for job kinds that never use it,
   found live by Ben (2026-08-17). Fixed same night.** `NPCJobScreen`
   showed a "Set Deposit Container" button for *every* non-Crafting job,
@@ -1314,7 +1409,8 @@ signs off on scope and order.
   manually skinning the Wolf didn't unstick it, since skinning only
   hides the object, it doesn't destroy or revive it. Fixed by checking
   `IsDead` in both `ThreatStillValid()` and `FindNearestThreat()`.
-  Compile-verified; not yet live-confirmed.
+  **Live-confirmed 2026-08-18** — Ben watched a Guard actually engage and
+  patrol correctly, all 3 fixes holding together.
 - [x] **A Mining NPC's target ore node appeared not to break/deplete,
   observed live by Ben (2026-08-17) — resolved 2026-08-18, was never a
   real bug.** Watched a Miner (confirmed genuinely working — 12 Silver
@@ -1358,7 +1454,9 @@ signs off on scope and order.
   giving `GetTotalCount`/`RemoveOne` that check the main inventory first
   then every worn container (Back/Waist/Chest/Leg). `NPCJob
   .TryGiveTool`/`SwapTool` and `NPCJobScreen`'s "have N" display all
-  route through it now. Compile-verified; not yet live-confirmed.
+  route through it now. **Live-confirmed 2026-08-18** — Ben gave a Guard
+  a Knife straight out of a worn Backpack, no manual pull-out-first step
+  needed.
 - [ ] **Weak single-deflection obstacle avoidance still present in
   `NPCGathering`/`NPCCrafting`/`NPCTraining`/`NPCGuarding`, found live by
   Ben (2026-08-17) via a Guard permanently stuck near a Boulder, not yet
@@ -1398,6 +1496,10 @@ signs off on scope and order.
   unexplained, but may not recur now that Mining/Woodworking NPCs can no
   longer target bushes at all. Diagnostic logging left in place in case
   a legitimate Forage NPC hits the same oscillation against a real bush.
+  **Removed 2026-08-18** — the real root cause (below) was found and
+  live-confirmed durable across a second, later session the same day, so
+  the logging had done its job; all `[MinerStuckDiagnostic]` lines and
+  their backing fields pulled from `NPCGathering.cs`.
   **Confirmed still happening against real ore too, same night** — with
   the bush bug fixed, a Miner correctly targeted a Copper Ore Node but
   showed the exact same oscillation pattern, proving it's target-type-
@@ -1433,7 +1535,9 @@ signs off on scope and order.
   is snapshotted on settling into range and forcibly re-asserted every
   frame while harvesting. **Live-confirmed immediately** — clean single
   MOVING→HARVESTING transitions per target, no oscillation, correctly
-  moved to a new ore node after each harvest.
+  moved to a new ore node after each harvest. **Reconfirmed in a later
+  session the same day** — still holding up after the subsequent NPC-
+  management pass and Iron Arrow work, not a one-off.
 
   **Original Boulder full-freeze reports (the first 3 confirmations)
   remain open — this fix may or may not also explain them, untested.**
@@ -1459,7 +1563,8 @@ signs off on scope and order.
   NPC "stuck gathering sticks"). Fixed with the same pattern:
   `NPCJobDefinition` gained a `searchesBushes` bool (default false)
   gating the Searchable pool scan; only `ForageJob.asset` sets it true.
-  Compile-verified; not yet live-confirmed.
+  **Live-confirmed 2026-08-18** — Ben watched a Miner correctly ignore
+  nearby bushes and stay on ore.
 - [x] **Cooking skill can never be trained from 0 through normal play — a
   real progression deadlock, found live by Ben (2026-08-16). Fixed
   v0.3.112-dev.** Every `CookableItem` recipe that actually grants
@@ -1618,9 +1723,9 @@ signs off on scope and order.
   grepping both saved prefabs' YAML directly for the new piece's guid at
   the expected transforms, not just trusting the script's log — confirmed
   correct in both `RectangularHouseTwig.prefab` and
-  `RectangularHousePlank.prefab`. Compile-verified (the batch-mode run
-  itself is a full script compile); not yet live-confirmed with an actual
-  look at the building in Play mode. See `MVP2_PLANNING.md` item 10.
+  `RectangularHousePlank.prefab`. **Live-confirmed 2026-08-18** — Ben
+  looked at the actual building in Play mode, gable end closes correctly,
+  no more roof panel poking through. See `MVP2_PLANNING.md` item 10.
 - [x] **`WovenGrassCloth.mat` also has `metallicFactor: 1` (2026-08-14) —
   checked 2026-08-18, closed as a non-issue.** Found while checking
   whether the `IconBaker` near-black-metallic bug (fixed same day, see
@@ -1792,7 +1897,10 @@ signs off on scope and order.
   accounts for elsewhere. **Also found and fixed the identical gap in
   `Campfire.FindPlayerCanteen`** (Herbal Tea's own water check) while
   fixing this — same root cause, same fix, both call sites now
-  consistent. Compile-verified; not yet live-confirmed.
+  consistent. **Live-confirmed 2026-08-18** — Ben confirmed with a
+  worn-Belt Canteen (not held), Healing Paste crafted successfully. The
+  Campfire/Herbal Tea half shares the identical fix but hasn't been
+  separately re-tested — low risk given it's the same code shape.
 - [ ] **Melee weapon damage framework built (2026-08-14, v0.3.61-dev) —
   ranged still open.** Superseded the original "five weapon-usage skills"
   plan (Archery/Spear/Sword/Gun/Bare-handed) with one shared **Melee**
@@ -2187,8 +2295,9 @@ signs off on scope and order.
   shape now, swap in real Leather/hide-tanning materials once that
   chain exists. Leather has existed as a real, obtainable item since
   Deer hunting shipped (2026-08-15, v0.3.95-dev) — swapped the
-  placeholder for 4x Leather + 2x Rope. Compile-verified; not yet
-  live-confirmed.
+  placeholder for 4x Leather + 2x Rope. **Live-confirmed 2026-08-18** —
+  Ben opened the recipe in-game, shows a real 4 Leather / 2 Rope
+  ingredient list.
 - [x] **Belt — new equippable, worn at Waist, holds generic attachment
   points instead of a normal inventory — shipped 2026-08-06 (Normal tier
   only), see `CHANGELOG.md` v0.1.75-dev.**
@@ -2554,9 +2663,8 @@ signs off on scope and order.
   (`TwigDoorPiece`/`PlankDoorPiece` + matching Door-Frame-Wall variants),
   and Roof (`TwigRoofPanelPiece`/`PlankRoofPiece`) are all real, built
   prefabs today — confirmed via direct file check, not just a doc
-  cross-reference. (Roof's own known gable-end-geometry bug is logged
-  separately above — it exists and mostly works, just has a real
-  content gap on non-square footprints.) Floor/Ceiling/Window/Stairs/
+  cross-reference. (Roof's own gable-end-geometry bug, logged separately
+  above, is now fixed and live-confirmed as of 2026-08-18.) Floor/Ceiling/Window/Stairs/
   Ramps/Shelves genuinely still don't exist — checked directly, no
   matching prefabs found for any of them.
 - [ ] **Simplify item-holding to two states: equipped or inventory-stored — no

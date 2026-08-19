@@ -25,7 +25,7 @@ specced yet.
 9. **Cooking** — ✅ Done (2026-08-16). Gardening's 16-cell grid built (v0.3.79-dev), 7 crops with real seed-packet models (v0.3.80-dev), 6 of 7 crops grow through real Wild Harvest growth-stage art (v0.3.81-dev), and real harvested-pickup visuals too (v0.3.83-dev) — only Corn's visuals stay placeholder throughout (not in the pack). The 4 Campfire cooking accessories (Grill/Cooking Pot/Kettle/Frying Pan) have real models, icons, and Forging-skill recipes (v0.3.90-dev), each with at least one recipe (v0.3.91-dev through v0.3.94-dev): Grilled Meat, Steak and Potatoes, Herbal Tea (the first recipe needing water — added `CookableItem.requiresCanteenWater`/`Campfire.HasCanteenWater`), Meat Stew — each with its own real merged model. Cooking's skill/quality-tier system is built (v0.3.93-dev, `COOKING_SKILL_PLANNING.md`) — a real success/fail outcome via `CraftOutcomeRoll`, gated by Cooking level, mild Health hit on the worst roll. **Seed sourcing closed v0.3.96-dev (2026-08-16)**: `CropDefinition.seedDropChance` (30%) gives harvesting a chance to return a seed, and 7 `GardenPlot4x4` instances scattered around `TestScene.unity` (pre-seeded, one per crop, 7 Ready cells each) give a fresh game a real in-world first-seed source — not the originally-envisioned wild-forage nodes, but closes the same gap (Ben's call). **First real live-test pass (2026-08-16)**: Ben ran the base Campfire cook cycle fully start-to-finish — all 4 utensils seated simultaneously with distinct icons, fuel countdown ("Lit — Ns of fuel left"), the Recipe section's live percentage counter, the finished Cooked Meat landing in a Cooked Items box, drag-out to Backpack, eating it, and the "No recipes available..." empty-state message all confirmed working together, not just individually compiled. Also confirmed the Cooked Items box's drag-in restriction actually holds live (`dragSourceOnly: true` — only drags out, never in). See `TEST_FEATURE_PLAN.md` section 21. **Real bug found and fixed same session (v0.3.112-dev)**: Cooking skill was genuinely unreachable from 0 — every XP-granting recipe required Cooking 5+, and the only recipe reachable at 0 granted no XP at all, a true progression deadlock, not just a slow grind. Fixed by lowering Fried Egg to `requiredSkillLevel: 0`, giving the game a real entry point.
 
 **Fully closed out 2026-08-18 — updated from the stale "still open" note above.** The `Campfire.prefab.cookableItems` registration gap (Egg couldn't be cooked despite the skill fix) was fixed the same night it was found (v0.3.126-dev), alongside two more real live-found gaps: `CampfireScreen`'s Ingredients/Output/Fuel grids showed no stack-count label for any iconed item (same fix `InventoryScreen` already had, just never applied here), and cooking had no auto-repeat/auto-relight at all (new opt-in `Auto-Run` toggle, mirroring `Furnace.AutoRunEnabled`). All three live-confirmed working together in a real session. Cooking is genuinely done, not just compile-verified.
-10. **"Prefab" buildings** — ✅ Fully done. Built and placed in `TestScene.unity` (v0.3.69-dev/v0.3.70-dev) — a dev-facing Editor menu tool, 4 composite buildings (Small Hut/Rectangular House × Twig/Plank). **Rectangular House's gable-end roof gap fixed 2026-08-18 (v0.3.140-dev)** — a real Gable Panel piece already existed in the project (built at some point, never placed), just needed swapping in for the misapplied sideways roof panel at each short end; verified via direct prefab YAML grep. Compile-verified, not yet live-confirmed.
+10. **"Prefab" buildings** — ✅ Fully done. Built and placed in `TestScene.unity` (v0.3.69-dev/v0.3.70-dev) — a dev-facing Editor menu tool, 4 composite buildings (Small Hut/Rectangular House × Twig/Plank). **Rectangular House's gable-end roof gap fixed 2026-08-18 (v0.3.140-dev)** — a real Gable Panel piece already existed in the project (built at some point, never placed), just needed swapping in for the misapplied sideways roof panel at each short end; verified via direct prefab YAML grep. **Live-confirmed 2026-08-18** — Ben looked at the building in Play mode, gable end closes correctly.
 
 ## First ideation pass (2026-08-12)
 
@@ -376,3 +376,49 @@ gable-end roof issue.
   scope question answered before any of this clustering applies to it.
 
 Build order not yet decided.
+
+## Pending Live Testing (as of 2026-08-18)
+
+Everything below is compile-verified only — shipped and correct on paper,
+never actually watched running. Kept here (not just in chat) so it
+survives past one conversation. Move an item to `CHANGELOG.md`/mark it
+tested in `TEST_FEATURE_PLAN.md` once confirmed, and delete it from this
+list — don't let it go stale here the way `MVP2_PLANNING.md`'s own status
+lines did before the 2026-08-18 refresh above.
+
+### Editor OK Playtesting
+Quick in-session checks, no standalone build needed:
+
+- **Iron Arrow** (v0.3.142-dev) — recipe-registration gap fixed 2026-08-18
+  (the 6 recipes are now in `PlayerCrafting.recipes`, verified via YAML
+  grep). Ready to test now: craft an Iron Arrowhead (Anvil), assemble a
+  batch of arrows from a tier-matched Trimmed Stick, fire one, and hand a
+  set to a Guard to confirm the tool-list update took.
+- The **`NPCFreeze`** "stay frozen" toggle — last unconfirmed piece of
+  the 2026-08-17 NPC-management pass (Tool Swap, cargo Take/Take All, and
+  the deposit-anchored work-range leash all confirmed 2026-08-18).
+- Bow Release animation stance-snap and per-tier hunting damage numbers —
+  quick spot checks, not previously vetted in detail.
+
+### Compiled Game testing
+Needs sustained real time or an unattended run — a standalone build is
+the natural way to run these without holding the Editor's project lock:
+
+- **Village Flag spawn timer at its real interval** — `VillageFlagSpawner.cs`
+  currently still ships with the TEMP TEST VALUES (30→3min interval,
+  40→15m distance) from 2026-08-16, never reverted. Needs a real-pace
+  confirmation before calling item 2 fully done.
+- **`NPCSeekFlag` stuck-detection / soft-lock risk** — no timeout exists
+  while an NPC is still approaching a Flag (only after arrival). Needs a
+  long unattended watch to see if one ever gets permanently wedged.
+- **Original Boulder full-freeze reports** — a distinct symptom from the
+  now-fixed oscillation bug; untested against that fix. May already be
+  resolved as a side effect, may still need the `NPCSeekFlag`-style
+  widening-search fix ported over.
+- **NPC name reverts to default the instant payment comes due** — still
+  fully unexplained; needs a live Console-open watch to catch in the act.
+- **`SaveId` mass regeneration** — observed once across two saves in the
+  same session; cause unconfirmed, worth watching for a repeat.
+- **Multi-day NPC work-shift timer** — still the 5-real-minute stand-in;
+  a real revisit needs persistence to already be trustworthy across a
+  multi-day span, which it now should be.

@@ -124,34 +124,6 @@ public class NPCGathering : MonoBehaviour
     // active-to-inactive transition, never on every idle frame.
     private bool wasActive;
 
-    // [MinerStuckDiagnostic] (2026-08-18) -- temporary, remove once the
-    // "Miner stuck cycling move/mining animations near an obstacle" bug
-    // (BUGS_AND_ENHANCEMENTS.md, the weak-obstacle-avoidance entry) is
-    // root-caused. IsActingOnTarget flips on harvestTimer crossing 0, which
-    // itself is driven purely by straight-line distance to the target --
-    // theory is an obstacle (a Boulder) sits between the NPC and its
-    // target, and MoveToward's deflection nudges distance back and forth
-    // across the harvestRange boundary without the NPC ever actually
-    // routing around the obstacle. Logs on every move<->harvest transition
-    // (not throttled -- the whole point is catching a fast flip-flop) plus
-    // whenever MoveToward's raycast actually detects an obstacle.
-    private bool lastWasMoving;
-    private float obstacleLogTimer;
-
-    // Between-frame position tracking (2026-08-18, round 2) -- every
-    // simpler theory (Apply Root Motion, Rigidbody physics, a
-    // CharacterController, job.IsReady flicker, a second interleaved NPC)
-    // has been live-ruled-out. This directly answers the one remaining
-    // question: does the position change *during* NPCGathering's own
-    // Harvesting branch (which per its own code should be structurally
-    // impossible -- only FaceToward runs there, which is rotation-only),
-    // or does something *outside* this component move the NPC between one
-    // Update() call and the next. Logs unconditionally (not throttled)
-    // whenever position differs from what it was at the top of the
-    // previous frame, while a target is actively assigned.
-    private Vector3 lastFrameTopPosition;
-    private bool hasLastFrameTopPosition;
-
     // Driven by NPCDialogue the same way it already pauses NPCWander --
     // talking to the NPC should freeze it completely, not just whichever
     // component happens to be moving it at that moment.
@@ -183,30 +155,6 @@ public class NPCGathering : MonoBehaviour
 
     private void Update()
     {
-        // [MinerStuckDiagnostic] round 2 -- logged before the isPaused/
-        // ready gates, so it fires every real frame regardless of this
-        // component's own state, catching movement from literally
-        // anything else touching this transform.
-        if (currentTarget != null)
-        {
-            Vector3 frameTopPos = transform.position;
-            // Only interesting when we weren't the one moving last frame --
-            // during an active MOVING phase, position changing every frame
-            // is expected and would otherwise drown this out.
-            if (hasLastFrameTopPosition && !lastWasMoving && frameTopPos != lastFrameTopPosition)
-            {
-                Debug.Log($"[MinerStuckDiagnostic] {gameObject.name} POSITION CHANGED WHILE NOT MOVING -- "
-                    + $"was {lastFrameTopPosition} at the top of the last frame, now {frameTopPos} "
-                    + $"(delta={Vector3.Distance(lastFrameTopPosition, frameTopPos):F4}m), isPaused={isPaused}");
-            }
-            lastFrameTopPosition = frameTopPos;
-            hasLastFrameTopPosition = true;
-        }
-        else
-        {
-            hasLastFrameTopPosition = false;
-        }
-
         if (isPaused) return;
 
         // Bench-crafting sibling check (2026-08-16, section 7) -- job.IsReady
@@ -262,14 +210,6 @@ public class NPCGathering : MonoBehaviour
         float distance = Vector3.Distance(transform.position, targetPos);
 
         bool isMoving = distance > harvestRange;
-        if (isMoving != lastWasMoving)
-        {
-            Debug.Log($"[MinerStuckDiagnostic] {gameObject.name} switched to "
-                + $"{(isMoving ? "MOVING" : "HARVESTING")} -- distance={distance:F2}m "
-                + $"(harvestRange={harvestRange}), target='{currentTarget.name}' at {targetPos}, "
-                + $"self at {transform.position}");
-            lastWasMoving = isMoving;
-        }
 
         if (isMoving)
         {
@@ -516,15 +456,6 @@ public class NPCGathering : MonoBehaviour
             Vector3 deflected = Vector3.Cross(Vector3.up, hit.normal).normalized;
             if (Vector3.Dot(deflected, desired) < 0f) deflected = -deflected;
             moveDir = deflected;
-
-            obstacleLogTimer -= Time.deltaTime;
-            if (obstacleLogTimer <= 0f)
-            {
-                obstacleLogTimer = 0.5f;
-                Debug.Log($"[MinerStuckDiagnostic] {gameObject.name} obstacle hit: "
-                    + $"'{hit.collider.gameObject.name}' at {hit.point}, desired={desired}, "
-                    + $"deflected={deflected}, distanceToObstacle={hit.distance:F2}m");
-            }
         }
 
         Vector3 flatTarget = transform.position + moveDir * moveSpeed * Time.deltaTime;

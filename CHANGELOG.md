@@ -5,10 +5,32 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.142-dev` — must always match `GameVersion` in
+**Current version:** `0.3.143-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-18 (18)
+
+### v0.3.143-dev — Iron Arrow recipe registration, Furnace QTY labels, diagnostic cleanup
+
+Three fixes from a live-testing session that put v0.3.142-dev's Iron
+Arrow build through its paces:
+
+- **Iron Arrow's 6 new recipes never appeared in Crafting at all** —
+  `PlayerCrafting.recipes` is a hand-maintained array on the Player
+  object in `TestScene.unity`, not a dynamic scan, and the recipes were
+  never added to it. Fixed via a throwaway batch script, verified by
+  grepping the scene for all 6 recipe guids directly.
+- **`FurnaceScreen` showed no stack-count label** for any item with a
+  baked icon (Iron Ore, Iron Ingot, ...) — same root cause as the
+  already-fixed `CampfireScreen` gap, just never applied here. Same fix.
+- Pulled the leftover `[MinerStuckDiagnostic]` logging and its 4 backing
+  fields from `NPCGathering.cs` — the oscillation fix it was tracking has
+  now been live-confirmed durable across two separate sessions.
+
+See `BUGS_AND_ENHANCEMENTS.md` for full detail. Compile-verified; not yet
+live-confirmed.
 
 ## 2026-08-18 (17)
 

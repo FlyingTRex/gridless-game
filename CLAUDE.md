@@ -147,6 +147,27 @@ four by a wide margin. Several real open questions (what Ascend to the
 Stars actually does, whether routes are mutually exclusive) are
 explicitly logged as unresolved game-design calls, not decided here.
 
+**Magic lineage wish-ladder planning lives in `MAGIC_PLANNING.md`.**
+Planning only as of 2026-08-18, prompted by a critical ("be mean") look at
+whether the open backlog actually advances `ENDGAME_PLANNING.md`'s stated
+goal or is just more horizontal survival content. Real finding: almost
+nothing in the backlog ties to the endgame at all — Magic is the one
+section that does, since Arcane Propulsion is the recommended nearest
+route. **Key decision (Ben's call): Keystone requires all four lineages,
+not any one** — this drives the whole plan's build-order principle
+(lockstep tiers: no lineage ships more than one tier ahead of the others,
+since a player working toward Keystone can't skip a weak one). Illusion
+currently sits at zero wishes while Elemental/Kinetic/Restoration each
+have one — closing that gap (a Decoy wish, which mostly reuses
+`HostileCreature.RedirectAggro` already built for the Guard-saga fix) is
+the recommended next Magic build step, not a broad push across all four.
+Also flags two real design collisions to avoid: an Elemental
+ore-smelting wish would undercut the real Furnace/fuel economy already
+built, and a Restoration Resurrect wish would contradict
+`NPCVitals.Die()`'s explicit "permanent death" design. The flat 60/40
+Will cost every existing wish shares won't survive a real power ladder —
+needs its own per-tier table, not a reused one.
+
 **Multiplayer conversion exploration lives in `MULTIPLAYER_PLANNING.md`.**
 Audits the single-player codebase (2026-08-13) against what converting to
 dedicated-server multiplayer via Mirror Networking (imported this session)
