@@ -143,7 +143,7 @@ public class PlayerRangedCombat : MonoBehaviour
         if (camera == null) return;
 
         float baseDamage = Random.Range(BaseDamageMin, BaseDamageMax);
-        float damage = (baseDamage + CraftTierScale.ArrowDamageBonus(arrow.tier) + CraftTierScale.BowDamageBonus(bow.tier)) * drawFraction;
+        float damage = (baseDamage + arrow.EffectiveArrowDamageBonus + CraftTierScale.BowDamageBonus(bow.tier)) * drawFraction;
         float range = BaseRange * drawFraction;
         float spread = CraftTierScale.ArrowAccuracySpreadDegrees(arrow.tier) * (1f - dexterity / 100f * 0.3f);
 

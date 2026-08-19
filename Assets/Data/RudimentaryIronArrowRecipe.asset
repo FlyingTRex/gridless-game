@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92d301792e8030a012592c540fbc7d6b, type: 3}
+  m_Name: RudimentaryIronArrowRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
+  ingredients:
+  - item: {fileID: 11400000, guid: f55e5ee776d12d1428a2510064aa214e, type: 2}
+    count: 1
+  - item: {fileID: 11400000, guid: 24efea937f552b444bc67f45ca22f387, type: 2}
+    count: 1
+  outputItem: {fileID: 11400000, guid: 3bd82af5cfdb1324f8e68c00738f9aa5, type: 2}
+  outputCount: 5
+  bonusItem: {fileID: 0}
+  bonusCount: 1
+  lowerTierItem: {fileID: 0}
+  higherTierItem: {fileID: 0}
+  trainedSkill: {fileID: 11400000, guid: a05cd28340d5c8b41bcf4af8f1892fe0, type: 2}
+  skillGain: 1
+  requiredTools: []
+  requiredToolLabel: 
+  requiresAnvilSurface: 0
+  requiresCanteenWater: 0
+  canteenWaterAmount: 20
+  requiresFurnace: 0

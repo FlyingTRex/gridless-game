@@ -34,8 +34,14 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 6ceda30a2cf06a34fb8946390f7410cd, type: 2}
     - {fileID: 11400000, guid: 89564ee1538961f4ba40029d91f8fcaf, type: 2}
     - {fileID: 11400000, guid: 83a2d595ddf0dee41b73cb3c6047e8b2, type: 2}
+    - {fileID: 11400000, guid: 9499d0c9bcad5fa42a911e84c77aa9a5, type: 2}
+    - {fileID: 11400000, guid: 3bd82af5cfdb1324f8e68c00738f9aa5, type: 2}
+    - {fileID: 11400000, guid: 52900507de0900741b3504cfffc42cac, type: 2}
+    - {fileID: 11400000, guid: 7eaa701d97944da4296698331b3ea582, type: 2}
+    - {fileID: 11400000, guid: aae5673d05201844f866927854e4b02a, type: 2}
     attachBone: 17
     attachPositionOffset: {x: 0, y: 0, z: 0}
     attachEulerOffset: {x: 0, y: 0, z: 0}
   workAnimation: 0
   collectLoosePickups: 0
+  searchesBushes: 0

@@ -704,6 +704,30 @@ signs off on scope and order.
   fails to fit anything. Not scoped/built — needs a decision on the
   exact trigger condition (box capacity threshold vs. an actual failed-
   deposit event) before implementation.
+- [ ] **Gameplay audio system — genuinely doesn't exist yet; a survey of
+  every imported asset pack found nothing worth reusing (2026-08-16).
+  Reclassified from Bugs to Enhancements, 2026-08-18 — this was never a
+  regression, just a system that hasn't been built yet.** Prompted by
+  traskmi reporting he heard rain in a live session — real, confirmed via
+  `WeatherMakerFallingParticleScript`'s own Light/Medium/Heavy
+  `AudioSource` trio (see `CLAUDE.md`'s Weather Maker section for the full
+  mechanism), riding on the `AudioListener` already added to the Player
+  for Weather Maker. That's ambient weather audio only, not a general
+  system — no combat hit sounds, arrow whoosh, footsteps, crafting/UI
+  sounds, or anything player-triggered exists anywhere. Checked whether
+  any already-imported pack has usable audio sitting dormant before
+  assuming a from-scratch build is the only option: `LJPackages` (All
+  Seasons environment pack) ships one ambient sound file each for
+  Desert/Spring/Winter, unreferenced by `TestScene.unity`; `Mirror/
+  Examples` bundles its own demo audio (Kenney RPG pack + 10 OpenGameArt
+  sounds), also unreferenced — both are generic pack filler, not tailored
+  to this game, not worth wiring up as a shortcut. Rabbits, Animal pack
+  deluxe v2, ithappy, Kevin Iglesias, and NV3D ship no audio at all.
+  **`Assets/Audio/` already exists as an empty scaffold** (just a
+  `.gitkeep`) — presumably set up in advance by an earlier session for
+  whenever this actually gets built, no content in it yet. Real system
+  design (which events trigger what, how clips get sourced/generated,
+  mixer setup) not started.
 - [x] **Campfire cooking was single-shot only (no auto-repeat) and had
   no auto-relight — found live by Ben (2026-08-18) asking "is that by
   design?" No, both were just gaps. Fixed same night, v0.3.126-dev.**
@@ -1115,20 +1139,27 @@ signs off on scope and order.
   player "stay frozen" choice that a temporary UI-open pause must not
   silently clear when the screen closes. Compile-verified; not yet
   live-confirmed.
-- [ ] **Player Map screen rendered blank, found live by Ben (2026-08-18),
-  cause unconfirmed — forced an Editor restart.** Opening the Map (`M`)
-  showed nothing instead of the usual fog/terrain view. Not reproduced
-  or root-caused — happened once, immediately after Claude mistakenly
-  edited `FirstPersonController.cs` (a live version-bump edit, unrelated
-  in intent) while the Editor was already open and Play mode was
-  running, so a Unity auto-recompile/domain-reload triggered by that
-  external file change during an active session is the prime suspect,
-  but not confirmed. Flagging for awareness rather than as a diagnosed
-  bug — if this recurs *without* an external mid-session file edit as a
-  possible cause, it's a real, separate issue worth investigating
-  properly (check `PlayerMapExploration`'s fog texture generation,
-  `MapScreen.OnGUI`'s draw calls, and whether the terrain reference it
-  reads is still valid after a domain reload).
+- [x] **Player Map screen rendered blank, found live by Ben (2026-08-18) —
+  root-caused and fixed 2026-08-18.** Genuinely root-caused this time, not
+  just explained away by the domain-reload incident that was the prime
+  suspect: `PlayerMapExploration.revealed`/`gridWidth`/`gridHeight`/
+  `worldBounds` are plain fields, not `[SerializeField]` — a mid-Play-mode
+  domain reload (the exact hazard confirmed elsewhere this same session,
+  see `CLAUDE.md`) resets them to null/0 without `Awake()` running again,
+  since Unity's domain reload only restores serialized state. `MapScreen
+  .EnsureTexture()` then silently built a 0×0 `Texture2D` from the zeroed
+  grid dimensions instead of throwing — no exception, no log line, just a
+  blank map, exactly matching the original report. Fixed with a new
+  `EnsureInitialized()` lazily called from every public entry point
+  (`GridWidth`/`GridHeight`/`WorldBounds`/`IsRevealed`/`RevealCircle`/
+  `WorldToCell`/`CaptureRevealedBase64`/`RestoreRevealedBase64`), not just
+  `Awake()` — the Map now self-heals (rebuilding a fresh, empty-fog grid)
+  the moment anything touches it after the backing state goes missing,
+  regardless of what causes that, instead of rendering blank. Compile-
+  verified; not yet live-confirmed with an actual repro (the trigger case
+  — an external file edit during Play mode — is one the project has since
+  agreed to never do again, so this is defense-in-depth rather than a fix
+  aimed at a mechanism expected to recur).
 - [x] **Fried Egg can't be eaten — no "Eat" option in its right-click
   popup, found live by Ben (2026-08-18). Fixed same night, v0.3.126-dev.**
   `PlayerEating.edibles` is a hand-maintained array on the Player object
@@ -1563,19 +1594,33 @@ signs off on scope and order.
     one recipe, not the whole tier). Not attempted at all yet.
   Not blocking — `MVP2_PLANNING.md` item 7 is considered done; this is a
   verification follow-up, not a known-broken feature.
-- [ ] **`RectangularHouseTwig`/`RectangularHousePlank` prefab buildings have
-  broken roof geometry at both gable ends (2026-08-14).** The existing
-  `RoofPanel`/`Roof` build piece is designed for a square footprint where
-  4 equal panels meet at one center point (confirmed correct on the
-  square `SmallHutTwig`/`SmallHutPlank` prefab buildings) — on the
-  elongated 2-Foundation Rectangular House, the ridge is a *line*, not a
-  point, and the short end walls' roof panels visibly poke through past
-  the ridge instead of closing off a proper gable end. Not a placement-
-  math bug (confirmed via render screenshot, verified against
-  `PlayerBuilding`'s own socket-snap formulas) — a real content gap, no
-  gable-end roof piece exists yet. Ben's call: ship as-is for now, revisit
-  once a real gable-end/hip-roof piece exists. See `MVP2_PLANNING.md`
-  item 10.
+- [x] **`RectangularHouseTwig`/`RectangularHousePlank` prefab buildings had
+  broken roof geometry at both gable ends (2026-08-14) — fixed
+  2026-08-18.** Stale by the time it was picked back up: a real Gable
+  Panel piece (`TwigGablePanelPiece`/`PlankGablePiece` — full `BuildPiece`
+  + model + recipe + icons, self-pairing on a Wall's `WallTop` socket the
+  same way `RoofPanel` does) already existed in the project, just never
+  placed anywhere — this entry's original "no gable-end roof piece exists
+  yet" claim no longer held. The actual bug was narrower than described:
+  both pre-built house prefabs capped their short (gable) ends with a
+  `RoofPanel`/`PlankRoofPiece` instance rotated 90° sideways instead of a
+  real vertical gable infill — confirmed by reading the prefab YAML
+  directly (6 roof-tagged children each, 4 correctly tiling the long
+  eaves, the other 2 at the short-end `WallTop` sockets, x=-2.5 and x=7.5,
+  rotated ±90°). Fixed via a throwaway batch-mode Editor script
+  (`Assets/Editor/FixGableEnds.cs`, deleted after running, per
+  `CLAUDE.md`'s scene/prefab-edit convention): swapped those 2 misapplied
+  roof-panel instances per prefab for the correct Gable Panel piece at the
+  exact same transform (same socket, same position/rotation — no new
+  placement math needed, since the Gable Panel's own local origin is
+  already its base-center attach point, matching the convention
+  `RoofPanel`'s eave-at-origin trick already established). Verified by
+  grepping both saved prefabs' YAML directly for the new piece's guid at
+  the expected transforms, not just trusting the script's log — confirmed
+  correct in both `RectangularHouseTwig.prefab` and
+  `RectangularHousePlank.prefab`. Compile-verified (the batch-mode run
+  itself is a full script compile); not yet live-confirmed with an actual
+  look at the building in Play mode. See `MVP2_PLANNING.md` item 10.
 - [x] **`WovenGrassCloth.mat` also has `metallicFactor: 1` (2026-08-14) —
   checked 2026-08-18, closed as a non-issue.** Found while checking
   whether the `IconBaker` near-black-metallic bug (fixed same day, see
@@ -1772,35 +1817,69 @@ signs off on scope and order.
   now built** — see `GUARDING_PLANNING.md` and `CHANGELOG.md`'s
   v0.3.106-dev entry: `NPCGuarding.cs` fires a ranged attack using the
   same `CraftTierScale.ArrowDamageBonus`/`BowDamageBonus` math, just on a
-  fixed cooldown instead of the player's manual draw-and-hold. Gun, Iron
-  Arrowhead, and gameplay sound (combat hits, arrow whoosh, footsteps,
-  crafting/UI — no such system exists; **not** the same gap as ambient
-  weather audio, which works — see the "Gameplay audio system" entry
-  below) are still separate, explicitly open gaps. Bare-handed's own
+  fixed cooldown instead of the player's manual draw-and-hold. Gun and
+  gameplay sound (combat hits, arrow whoosh, footsteps, crafting/UI — no
+  such system exists; **not** the same gap as ambient weather audio, which
+  works — see the "Gameplay audio system" entry in the Enhancements
+  backlog above) are still separate, explicitly open gaps. **Iron Arrow —
+  built 2026-08-18, see its own entry below.** Bare-handed's own
   numbers (9 dmg, 0.7s cooldown) are still first-pass, not vetted against
   a real weapon-tier progression.
-- [ ] **Gameplay audio system — genuinely doesn't exist yet; a survey of
-  every imported asset pack found nothing worth reusing (2026-08-16).**
-  Prompted by traskmi reporting he heard rain in a live session — real,
-  confirmed via `WeatherMakerFallingParticleScript`'s own Light/Medium/
-  Heavy `AudioSource` trio (see `CLAUDE.md`'s Weather Maker section for
-  the full mechanism), riding on the `AudioListener` already added to
-  the Player for Weather Maker. That's ambient weather audio only, not a
-  general system — no combat hit sounds, arrow whoosh, footsteps,
-  crafting/UI sounds, or anything player-triggered exists anywhere.
-  Checked whether any already-imported pack has usable audio sitting
-  dormant before assuming a from-scratch build is the only option:
-  `LJPackages` (All Seasons environment pack) ships one ambient sound
-  file each for Desert/Spring/Winter, unreferenced by `TestScene.unity`;
-  `Mirror/Examples` bundles its own demo audio (Kenney RPG pack + 10
-  OpenGameArt sounds), also unreferenced — both are generic pack filler,
-  not tailored to this game, not worth wiring up as a shortcut. Rabbits,
-  Animal pack deluxe v2, ithappy, Kevin Iglesias, and NV3D ship no audio
-  at all. **`Assets/Audio/` already exists as an empty scaffold** (just
-  a `.gitkeep`) — presumably set up in advance by an earlier session for
-  whenever this actually gets built, no content in it yet. Real system
-  design (which events trigger what, how clips get sourced/generated,
-  mixer setup) not started.
+- [x] **Iron Arrow — built 2026-08-18.** Ben's ask: an Iron equivalent of
+  Stone Arrow, arrowheads from Iron Ingot instead of Stone, no tier ladder
+  on the arrowhead itself, assembled arrow tier matched to the crafted
+  Trimmed Stick, and stronger damage than Stone. Asked to "be mean" and
+  evaluate first — real critique before building: a literal ×2 on
+  `ArrowDamageBonus` would leave Crude Iron dealing the same 0 bonus as
+  Crude Stone (the table starts at 0), break the tier system's promise
+  that "Masterwork" means the same relative power across every item
+  family, and every arrow is destroyed on fire with no recovery
+  (`PlayerRangedCombat.Fire` calls `RemoveItem` unconditionally,
+  hit or miss) — so an Iron Arrow economy burns a real, competed-for Iron
+  Ingot per shot, forever, not a one-time craft. Also flagged upfront:
+  `GuardRangedJob`'s Arrow `ToolRequirement.acceptableItems` is a
+  hardcoded guid list, the exact "Leather Backpack silently rejected as
+  an NPC tool" gotcha shape — a new arrow family needed that list updated
+  or a Guard handed Iron Arrows would silently refuse them.
+
+  Built to a countered proposal instead of the literal ask: Iron beats
+  Stone at every tier including Crude (Stone 0/1/2/4/6 → Iron
+  **2/3/4.5/7/9.5**, ~58% higher ceiling, not 100%), `IronArrowheadRecipe`
+  (1 Iron Ingot → 2 Iron Arrowhead, trains Metalworking, requires the
+  Anvil — mirrors Shovel's own Metalworking+Anvil precedent, not Stone
+  Arrowhead's Stonework) plus 5 assembly recipes (1 Iron Arrowhead + 1
+  tier-matched Trimmed Stick → 5 arrows, trains Woodworking — identical
+  shape to the existing Stone Arrow recipes). New
+  `ItemDefinition.arrowDamageBonus` (sentinel `-1` = "use the shared
+  `CraftTierScale.ArrowDamageBonus(tier)` table," every existing arrow
+  unaffected) lets a different arrow *material* deal different damage at
+  the same nominal `CraftTier` — deliberately not a second
+  material-keyed table bolted onto `CraftTierScale` itself, per that
+  file's own "a scale tuned for one thing doesn't transfer to another"
+  gotcha. `PlayerRangedCombat.Fire`/`NPCGuarding`'s ranged-attack roll
+  both read the new `EffectiveArrowDamageBonus` property instead of
+  calling `CraftTierScale.ArrowDamageBonus` directly.
+
+  Visually distinct from Stone, not just a reskin-by-name: reused the
+  exact same `StoneArrow.glb`/`StoneArrowhead.glb` geometry (Stone
+  Arrow's own 5 tiers already share one identical mesh — no per-tier
+  visual differentiation exists in this family to begin with) but swapped
+  the Tip/Arrowhead submaterial to a new metallic `IronArrowheadMetal.mat`
+  via a batch script's per-instance material retarget (matched by the
+  *embedded* glTF material name, `StoneArrowTip_mat`/
+  `StoneArrowheadStone_mat` — first attempt matched on the extracted
+  `.mat` asset's name instead and silently swapped nothing, caught by a
+  small diagnostic dump of every renderer's actual material name rather
+  than assuming). Confirmed by reading the baked icon PNGs directly:
+  `IronArrowheadIcon.png` renders visibly darker steel-gray with a
+  metallic sheen against `StoneArrowheadIcon.png`'s pale tan, not
+  identical images with different names.
+
+  `GuardRangedJob`'s Arrow `acceptableItems` updated to include all 5 new
+  guids alongside the existing 5 Stone ones (10 total) — verified via
+  direct YAML grep, no duplicates. `DatabaseRepopulator` re-run
+  (Items 126 → 132). Compile-verified; not yet live-confirmed (craft an
+  Iron Arrowhead, assemble arrows, fire one, hand a set to a Guard).
 - [ ] **Bow Release animation always returns to StandingIdle
   specifically (2026-08-15), not whatever stance the player was
   actually in before drawing.** Known limitation from choosing a

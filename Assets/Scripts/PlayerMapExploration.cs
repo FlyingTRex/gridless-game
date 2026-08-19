@@ -34,12 +34,30 @@ public class PlayerMapExploration : MonoBehaviour
     // re-reading the whole grid every OnGUI frame regardless of change.
     public int RevealVersion { get; private set; }
 
-    public int GridWidth => gridWidth;
-    public int GridHeight => gridHeight;
-    public Bounds WorldBounds => worldBounds;
+    public int GridWidth { get { EnsureInitialized(); return gridWidth; } }
+    public int GridHeight { get { EnsureInitialized(); return gridHeight; } }
+    public Bounds WorldBounds { get { EnsureInitialized(); return worldBounds; } }
 
     private void Awake()
     {
+        EnsureInitialized();
+    }
+
+    // Lazily (re)builds the grid if it's ever found missing when accessed —
+    // not just a defensive no-op. A live incident (2026-08-18, see
+    // BUGS_AND_ENHANCEMENTS.md's "Player Map screen rendered blank" entry)
+    // traced to exactly this: `revealed`/`gridWidth`/`gridHeight` are plain
+    // fields, not [SerializeField], so a mid-Play-mode domain reload
+    // (CLAUDE.md's own documented hazard) resets them to null/0 without
+    // Awake() running again — MapScreen.EnsureTexture then silently built a
+    // 0x0 Texture2D instead of throwing, which is why the screen went
+    // blank with nothing in the log. Guarding every public entry point
+    // means the Map self-heals (loses only unsaved-this-session reveal
+    // progress) instead of rendering blank, regardless of what causes
+    // `revealed` to go missing.
+    private void EnsureInitialized()
+    {
+        if (revealed != null) return;
         worldBounds = global::WorldBounds.GetPlayableBounds();
         gridWidth = Mathf.Max(1, Mathf.CeilToInt(worldBounds.size.x / CellSize));
         gridHeight = Mathf.Max(1, Mathf.CeilToInt(worldBounds.size.z / CellSize));
@@ -53,6 +71,7 @@ public class PlayerMapExploration : MonoBehaviour
 
     public bool IsRevealed(int cellX, int cellZ)
     {
+        EnsureInitialized();
         if (cellX < 0 || cellX >= gridWidth || cellZ < 0 || cellZ >= gridHeight) return false;
         return revealed[cellX, cellZ];
     }
@@ -64,6 +83,7 @@ public class PlayerMapExploration : MonoBehaviour
     // a new caller.
     public void RevealCircle(Vector3 worldPos, float radiusMeters)
     {
+        EnsureInitialized();
         WorldToCell(worldPos, out int centerX, out int centerZ);
         int cellRadius = Mathf.CeilToInt(radiusMeters / CellSize);
         float radiusSqCells = (radiusMeters / CellSize) * (radiusMeters / CellSize);
@@ -93,6 +113,7 @@ public class PlayerMapExploration : MonoBehaviour
 
     public void WorldToCell(Vector3 worldPos, out int cellX, out int cellZ)
     {
+        EnsureInitialized();
         cellX = Mathf.FloorToInt((worldPos.x - worldBounds.min.x) / CellSize);
         cellZ = Mathf.FloorToInt((worldPos.z - worldBounds.min.z) / CellSize);
     }
@@ -107,6 +128,7 @@ public class PlayerMapExploration : MonoBehaviour
 
     public string CaptureRevealedBase64()
     {
+        EnsureInitialized();
         int totalBits = gridWidth * gridHeight;
         var bytes = new byte[(totalBits + 7) / 8];
         int bitIndex = 0;
@@ -128,6 +150,7 @@ public class PlayerMapExploration : MonoBehaviour
     // than assuming it exactly matches the current gridWidth/gridHeight.
     public void RestoreRevealedBase64(string base64)
     {
+        EnsureInitialized();
         if (string.IsNullOrEmpty(base64)) return;
 
         byte[] bytes;

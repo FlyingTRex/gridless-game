@@ -5,10 +5,86 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.139-dev` — must always match `GameVersion` in
+**Current version:** `0.3.142-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-18 (17)
+
+### v0.3.142-dev — Iron Arrow: a stronger, Iron-Ingot-based Stone Arrow counterpart
+
+Ben's ask, evaluated critically before building (see
+`BUGS_AND_ENHANCEMENTS.md` for the full "be mean" critique) rather than
+built to the literal spec — a flat ×2 on the existing damage table would
+have left Crude Iron identical to Crude Stone (the table starts at 0) and
+broken the tier system's "Masterwork means the same relative power
+everywhere" promise. Shipped instead: Iron beats Stone at every tier
+(0/1/2/4/6 → **2/3/4.5/7/9.5**, ~58% higher ceiling, not 100%).
+
+- `IronArrowheadRecipe` (1 Iron Ingot → 2 Iron Arrowhead, Metalworking,
+  requires the Anvil) + 5 assembly recipes (1 Iron Arrowhead + 1
+  tier-matched Trimmed Stick → 5 arrows, Woodworking) — same shape as the
+  existing Stone Arrow family.
+- New `ItemDefinition.arrowDamageBonus` (sentinel `-1` = use the shared
+  `CraftTierScale.ArrowDamageBonus(tier)` table) lets a different arrow
+  material deal different damage at the same `CraftTier`, without a
+  second material-keyed table on `CraftTierScale` itself.
+  `PlayerRangedCombat`/`NPCGuarding` both read the new
+  `ItemDefinition.EffectiveArrowDamageBonus` now.
+- Visually distinct, not just a reskin-by-name: reused Stone Arrow's
+  shared geometry (all 5 Stone tiers already share one mesh) with the
+  Tip/Arrowhead submaterial swapped to a new metallic
+  `IronArrowheadMetal.mat` — verified by reading the baked icon PNGs
+  directly, not just trusting the batch log.
+- `GuardRangedJob`'s hardcoded Arrow `acceptableItems` list updated with
+  the 5 new guids (the exact "Leather Backpack silently rejected as an
+  NPC tool" gotcha shape, caught before it recurred) — a Guard can be
+  handed either Stone or Iron Arrows now.
+
+Compile-verified; not yet live-confirmed.
+
+## 2026-08-18 (16)
+
+### v0.3.141-dev — Player Map blank-screen root cause fixed; audio system reclassified
+
+`PlayerMapExploration`'s fog-of-war grid (`revealed`/`gridWidth`/
+`gridHeight`/`worldBounds`) lives in plain (non-`[SerializeField]`)
+fields, populated only in `Awake()`. A mid-Play-mode domain reload (the
+exact hazard this session already confirmed elsewhere) resets those
+fields without `Awake()` running again, and `MapScreen.EnsureTexture()`
+silently built a 0×0 `Texture2D` from the zeroed dimensions instead of
+throwing — no error, just a blank Map. Fixed with a new
+`EnsureInitialized()` lazily called from every public entry point on
+`PlayerMapExploration`, not just `Awake()` — the Map now self-heals
+instead of rendering blank if its backing state ever goes missing, for
+any reason. See `BUGS_AND_ENHANCEMENTS.md` for the full story.
+Compile-verified; not yet live-confirmed (the trigger case is one the
+project has since agreed to avoid entirely, so there's no cheap way to
+force a repro).
+
+Also moved the "Gameplay audio system" entry from Bugs to Enhancements —
+it was never a regression, just a system that hasn't been built yet.
+Doc-only, no code change.
+
+## 2026-08-18 (15)
+
+### v0.3.140-dev — Gable-end roof geometry fixed on both Rectangular House prefabs
+
+`RectangularHouseTwig`/`RectangularHousePlank` capped their short (gable)
+ends with a `RoofPanel` rotated 90° sideways instead of a real vertical
+gable infill — the sloped panel poked through past the ridge instead of
+closing the triangular gap. Turned out the real fix already existed and
+was just never used: a proper Gable Panel piece
+(`TwigGablePanelPiece`/`PlankGablePiece`, full `BuildPiece` + model +
+recipe + icons) was built at some earlier point but never placed into
+either pre-built house. Swapped the 2 misapplied roof-panel instances per
+prefab for the correct Gable Panel at the identical `WallTop` socket
+transform via a throwaway batch-mode script
+(`Assets/Editor/FixGableEnds.cs`, deleted after running). Verified by
+grepping both saved prefabs' YAML for the new piece's guid at the
+expected position/rotation. See `BUGS_AND_ENHANCEMENTS.md` for the full
+story. Compile-verified; not yet live-confirmed in Play mode.
 
 ## 2026-08-18 (14)
 

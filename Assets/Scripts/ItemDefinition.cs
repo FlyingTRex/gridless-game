@@ -71,4 +71,19 @@ public class ItemDefinition : ScriptableObject
     // when scanning the off-hand slot so a plain Stick or other non-ammo
     // item can't accidentally get fired/consumed as if it were an arrow.
     public bool isArrow;
+
+    // Optional per-item override of CraftTierScale.ArrowDamageBonus(tier)
+    // — sentinel -1 (default) means "use the shared tier table," same as
+    // every other arrow. Exists so a different arrow *material* (Iron vs.
+    // Stone, both spanning the same 5-tier CraftTier ladder) can deal
+    // different damage at the same nominal tier without a second
+    // material-keyed table bolted onto CraftTierScale — the "a scale
+    // tuned for one thing doesn't transfer to another" gotcha (see
+    // CLAUDE.md) applies just as much to a hypothetical second axis on an
+    // existing scale as it does to reusing one scale for a new quantity.
+    // Iron Arrow (2026-08-18) is the first and, as of writing, only user.
+    public float arrowDamageBonus = -1f;
+
+    public float EffectiveArrowDamageBonus =>
+        arrowDamageBonus >= 0f ? arrowDamageBonus : CraftTierScale.ArrowDamageBonus(tier);
 }

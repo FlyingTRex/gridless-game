@@ -188,7 +188,7 @@ public class NPCGuarding : MonoBehaviour
         if (weapon != null && weapon.isRangedWeapon)
         {
             var arrow = job.GetEquipped("Arrow");
-            float bonus = arrow != null ? CraftTierScale.ArrowDamageBonus(arrow.tier) : 0f;
+            float bonus = arrow != null ? arrow.EffectiveArrowDamageBonus : 0f;
             bonus += CraftTierScale.BowDamageBonus(weapon.tier);
             damage = Random.Range(RangedBaseDamageMin, RangedBaseDamageMax) + bonus;
         }

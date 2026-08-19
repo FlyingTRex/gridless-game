@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ec5aab24f0b112f4a86df5ac52d4ed46, type: 3}
+  m_Name: FineIronArrow
+  m_EditorClassIdentifier: Assembly-CSharp::ItemDefinition
+  itemName: Fine Iron Arrow
+  maxStack: 20
+  weight: 0.12
+  tier: 3
+  worldPickupPrefab: {fileID: 5308886810308793697, guid: e68e458edfa164b4b9f64dbe3069f02d, type: 3}
+  icon: {fileID: 21300000, guid: d3a663ad1f9cdc24cb4b9966fda8862e, type: 3}
+  previewIcon: {fileID: 21300000, guid: 7684b67537b80e440a02458b288a4925, type: 3}
+  baseItem: {fileID: 0}
+  isMeleeWeapon: 0
+  isRangedWeapon: 0
+  isArrow: 1
+  arrowDamageBonus: 7
