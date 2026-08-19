@@ -68,6 +68,24 @@ public class NPCHiring : MonoBehaviour, IInteractable
     // Read/written by SaveManager.
     public float WorkTimer => workTimer;
 
+    // Shared by NPCHiringScreen/NPCJobScreen (2026-08-18, Ben's live report
+    // -- "walked up, talked, and the npc still moved" while the Assign Job
+    // menu was open) so managing an NPC via either screen holds it still
+    // the same way Talk already does, instead of leaving it free to wander
+    // off mid-interaction. Mirrors NPCDialogue.BeginDialogue/EndDialogue's
+    // exact same four-component pause pattern -- not reused directly from
+    // there since NPCDialogue's own isTalking state is a separate concern,
+    // and not routed through NPCFreeze either, since that toggle represents
+    // a deliberate player choice ("stay frozen") that a temporary UI-open
+    // pause must not silently clear on close.
+    public void SetMovementPaused(bool paused)
+    {
+        GetComponent<NPCWander>()?.SetPaused(paused);
+        GetComponent<NPCGathering>()?.SetPaused(paused);
+        GetComponent<NPCCrafting>()?.SetPaused(paused);
+        GetComponent<NPCGuarding>()?.SetPaused(paused);
+    }
+
     public void RestoreHiringState(bool hired, bool waitingForPayment, float timer)
     {
         isHired = hired;

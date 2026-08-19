@@ -180,4 +180,20 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   confirmed; logged as its own open item in `BUGS_AND_ENHANCEMENTS.md`
   in case it recurs independently.
 
+  **v0.3.138-dev, same night — two more real bugs found live back to
+  back.** (1) Neither `NPCHiringScreen` nor `NPCJobScreen` ever paused
+  the NPC while open (only `Talk` did) — Ben: "walked up, talked, and
+  the npc still moved" while Assign Job was open. Fixed with a new
+  `NPCHiring.SetMovementPaused(bool)`, mirroring `NPCDialogue`'s exact
+  four-component pause pattern, called from both screens' `SetOpen()`.
+  (2) NPC tool-giving only ever checked the player's main inventory —
+  live-reproduced exactly as logged 2026-08-17: every tool requirement
+  for a new hire (Wren) read "(none in inventory)" despite the player
+  visibly carrying everything needed inside a worn Masterwork Leather
+  Backpack. Fixed with a new `PlayerCarriedItems.cs` (mirrors
+  `InventoryScreen.GetWornContainers()`'s slot/`IInventoryHolder`
+  lookup), routing `NPCJob.TryGiveTool`/`SwapTool` and `NPCJobScreen`'s
+  "have N" display through it. Compile-verified only, not yet
+  live-tested. Not yet committed.
+
 - 2026-08-17 — Ben+Claude — **Built structures + Village-Flag-spawned NPCs now save/restore** (`SAVE_LOAD_PLANNING.md` section 11, `BUGS_AND_ENHANCEMENTS.md`): new `BuildPieceDatabase` + a `["placedPieces"]` capture/restore pair in `SaveManager.cs` that re-instantiates a placed structure (Village Flag/Campfire/Furnace/walls/City Statue) from scratch on load instead of assuming it already exists in the scene, plus full Campfire/Furnace runtime state (lit/fuel timer/recipe queue/linked StorageBoxes). Same re-instantiate-on-restore pattern extended to `NPCHiring` (`SaveManager.RestoreNpcs`), since **all 6 pre-placed Factory Worker NPCs were removed from `TestScene.unity` the same session** (Ben's call — closer to real gameplay: 0 starting NPCs, the Village Flag spawn loop (`VillageFlagSpawner.cs`) is now the only source of hireable NPCs in the game, and a hired NPC now persists across a save/reload the same way a placed structure does). Compile-verified only — **not yet live-tested with a real save → reload round trip**, that's next. `VillageFlagSpawner.cs` still carries its two TEMP TEST VALUES (3min interval / 15m spawn distance) from last night, not yet reverted.

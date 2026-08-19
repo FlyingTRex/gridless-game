@@ -10,6 +10,7 @@ using UnityEngine;
 // CraftingScreen.disciplines/PlayerCrafting.recipes -- only one family
 // (Mining) and one job (Mine Ore) exist today.
 [RequireComponent(typeof(PlayerInventory))]
+[RequireComponent(typeof(PlayerEquipment))]
 [RequireComponent(typeof(PlayerNPCDeposit))]
 public class NPCJobScreen : MonoBehaviour
 {
@@ -26,6 +27,7 @@ public class NPCJobScreen : MonoBehaviour
     [SerializeField] private NPCJobDefinition[] jobs;
 
     private PlayerInventory playerInventory;
+    private PlayerEquipment equipment;
     private PlayerNPCDeposit deposit;
 
     // Optional -- not every project setup wires NPCCraftingScreen onto the
@@ -42,6 +44,7 @@ public class NPCJobScreen : MonoBehaviour
     private void Awake()
     {
         playerInventory = GetComponent<PlayerInventory>();
+        equipment = GetComponent<PlayerEquipment>();
         deposit = GetComponent<PlayerNPCDeposit>();
         craftingScreen = GetComponent<NPCCraftingScreen>();
     }
@@ -57,8 +60,12 @@ public class NPCJobScreen : MonoBehaviour
 
     private void SetOpen(bool value)
     {
+        if (!value) current?.SetMovementPaused(false);
+
         isOpen = value;
         if (!value) current = null;
+        else current.SetMovementPaused(true);
+
         Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = value;
     }
@@ -254,7 +261,7 @@ public class NPCJobScreen : MonoBehaviour
                 foreach (var candidate in req.acceptableItems)
                 {
                     if (candidate == null || candidate == equipped) continue;
-                    int owned = playerInventory.GetCount(candidate);
+                    int owned = PlayerCarriedItems.GetTotalCount(playerInventory, equipment, candidate);
                     if (owned <= 0) continue;
 
                     anyOwned = true;
@@ -262,7 +269,7 @@ public class NPCJobScreen : MonoBehaviour
                     GUILayout.Space(20);
                     string verb = equipped == null ? "Give" : "Swap to";
                     if (GUILayout.Button($"{verb} {candidate.itemName} (have {owned})", GUILayout.Width(240)))
-                        job.SwapTool(req, candidate, playerInventory);
+                        job.SwapTool(req, candidate, playerInventory, equipment);
                     GUILayout.EndHorizontal();
                 }
             }

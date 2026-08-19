@@ -73,21 +73,22 @@ public class NPCJob : MonoBehaviour
         return false;
     }
 
-    // Pulls the first acceptable item the player's main inventory has for
-    // this requirement, removes exactly one, and equips it. Only the main
-    // inventory is checked (not hands/backpack) -- simplest first pass,
-    // same scope-cut every other tool-gated system this session started
-    // with before anyone asked for more.
-    public bool TryGiveTool(ToolRequirement requirement, PlayerInventory playerInventory)
+    // Pulls the first acceptable item the player is carrying for this
+    // requirement, removes exactly one, and equips it. Checks the main
+    // inventory first, then every worn container (Backpack, etc.) via
+    // PlayerCarriedItems -- found live 2026-08-18: the original main-
+    // inventory-only scope silently rejected tools the player genuinely
+    // had, just stored in a worn Backpack rather than the main 4-slot
+    // inventory (the normal way to carry more than a handful of items).
+    public bool TryGiveTool(ToolRequirement requirement, PlayerInventory playerInventory, PlayerEquipment equipment)
     {
         if (requirement?.acceptableItems == null || playerInventory == null) return false;
 
         foreach (var item in requirement.acceptableItems)
         {
             if (item == null) continue;
-            if (playerInventory.GetCount(item) <= 0) continue;
+            if (!PlayerCarriedItems.RemoveOne(playerInventory, equipment, item)) continue;
 
-            playerInventory.RemoveItem(item, 1);
             equippedTools[requirement.label] = item;
             return true;
         }
@@ -102,15 +103,15 @@ public class NPCJob : MonoBehaviour
     // to the player's inventory, not lost -- this is a deliberate upgrade
     // action, not abandoning the NPC. No-ops if newItem isn't actually one
     // of this requirement's acceptableItems, or if the player doesn't
-    // currently have one on hand.
-    public bool SwapTool(ToolRequirement requirement, ItemDefinition newItem, PlayerInventory playerInventory)
+    // currently have one on hand (main inventory or a worn container,
+    // 2026-08-18 -- see TryGiveTool's own comment for why).
+    public bool SwapTool(ToolRequirement requirement, ItemDefinition newItem, PlayerInventory playerInventory, PlayerEquipment equipment)
     {
         if (requirement?.acceptableItems == null || newItem == null || playerInventory == null) return false;
         if (System.Array.IndexOf(requirement.acceptableItems, newItem) < 0) return false;
-        if (playerInventory.GetCount(newItem) <= 0) return false;
+        if (!PlayerCarriedItems.RemoveOne(playerInventory, equipment, newItem)) return false;
 
         var previous = GetEquipped(requirement.label);
-        playerInventory.RemoveItem(newItem, 1);
         equippedTools[requirement.label] = newItem;
         if (previous != null) playerInventory.AddItem(previous, 1);
 

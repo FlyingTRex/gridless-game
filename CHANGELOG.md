@@ -5,10 +5,38 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.137-dev` — must always match `GameVersion` in
+**Current version:** `0.3.138-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-18 (13)
+
+### v0.3.138-dev — Fix: NPC screens didn't pause the NPC; tool-giving ignored worn containers
+
+Two more real bugs found live back-to-back:
+
+- **Managing an NPC via `NPCHiringScreen`/`NPCJobScreen` never paused it**
+  — only `Talk` (via `NPCDialogue`) did. Ben: "walked up, talked, and the
+  npc still moved" while the Assign Job menu was open. Added
+  `NPCHiring.SetMovementPaused(bool)`, mirroring `NPCDialogue.BeginDialogue`/
+  `EndDialogue`'s exact four-component pause pattern
+  (`NPCWander`/`NPCGathering`/`NPCCrafting`/`NPCGuarding`) — not routed
+  through `NPCFreeze`, since that toggle represents a deliberate player
+  choice a temporary UI-open pause must not silently clear on close. Both
+  screens now pause on open, unpause on close.
+- **NPC tool-giving only ever checked the player's main inventory** — a
+  Pickaxe/Backpack genuinely being carried inside a worn Backpack (the
+  normal way to carry more than a handful of items) always read "0 in
+  inventory," a known gap logged since 2026-08-17. New
+  `PlayerCarriedItems.cs` (mirrors `InventoryScreen.GetWornContainers()`'s
+  exact slot list/`IInventoryHolder` lookup) adds `GetTotalCount`/
+  `RemoveOne`, checking the main inventory first, then every worn
+  container. `NPCJob.TryGiveTool`/`SwapTool` and `NPCJobScreen`'s own
+  "have N" display all route through it now.
+
+Compile-verified via batch-mode Unity (0 errors). Not yet live-tested —
+Editor was closed for this pass.
 
 ## 2026-08-18 (12)
 

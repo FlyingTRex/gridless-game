@@ -1072,6 +1072,21 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **`NPCHiringScreen`/`NPCJobScreen` never paused the NPC while open —
+  only `Talk` did, found live by Ben (2026-08-18): "walked up, talked,
+  and the npc still moved" while the Assign Job menu was open. Fixed
+  same night, v0.3.138-dev.** Neither screen ever called
+  `wander.SetPaused` (or anything else), so an NPC being actively
+  managed via either screen kept wandering/gathering/patrolling the
+  whole time — unlike `Talk`, which explicitly pauses via `NPCDialogue
+  .BeginDialogue`/`EndDialogue`'s four-component pattern
+  (`NPCWander`/`NPCGathering`/`NPCCrafting`/`NPCGuarding`). Fixed by
+  adding `NPCHiring.SetMovementPaused(bool)`, mirroring that exact
+  pattern, and calling it from both screens' `SetOpen()`. Deliberately
+  not routed through `NPCFreeze` — that toggle represents a deliberate
+  player "stay frozen" choice that a temporary UI-open pause must not
+  silently clear when the screen closes. Compile-verified; not yet
+  live-confirmed.
 - [ ] **Player Map screen rendered blank, found live by Ben (2026-08-18),
   cause unconfirmed — forced an Editor restart.** Opening the Map (`M`)
   showed nothing instead of the usual fog/terrain view. Not reproduced
@@ -1268,14 +1283,23 @@ signs off on scope and order.
   asset has a "Backpack" requirement besides these 4. **Confirmed live
   2026-08-18** — a Miner shown visibly wearing a Leather Backpack
   (distinct mottled texture from the plain canvas Backpack).
-- [ ] **NPC tool-giving only checks the player's top-level inventory,
+- [x] **NPC tool-giving only checks the player's top-level inventory,
   never a worn container's nested contents, found live by Ben
-  (2026-08-17), not yet fixed.** `NPCJobScreen.HasAny`/`NPCJob
-  .TryGiveTool` both call `playerInventory.GetCount(item)` directly — a
-  tool sitting inside a worn Backpack's nested inventory doesn't count,
-  so it has to be pulled out to the main inventory first before an NPC
-  can be given it. Not fixed — would need a recursive nested-inventory
-  scan, more involved than a one-line fix.
+  (2026-08-17). Fixed 2026-08-18, v0.3.138-dev.** `NPCJobScreen`/`NPCJob
+  .TryGiveTool`/`SwapTool` all called
+  `playerInventory.GetCount(item)` directly — a tool sitting inside a
+  worn Backpack's nested inventory didn't count, so it had to be pulled
+  out to the main inventory first before an NPC could be given it.
+  Reproduced live exactly as described: every tool requirement for a
+  new hire read "(none in inventory)" despite the player visibly
+  carrying a Pickaxe, Mining Face Shield, and Backpack candidates — all
+  correctly stored inside a worn Masterwork Leather Backpack. Fixed with
+  a new `PlayerCarriedItems.cs` (mirrors `InventoryScreen
+  .GetWornContainers()`'s exact slot list/`IInventoryHolder` lookup),
+  giving `GetTotalCount`/`RemoveOne` that check the main inventory first
+  then every worn container (Back/Waist/Chest/Leg). `NPCJob
+  .TryGiveTool`/`SwapTool` and `NPCJobScreen`'s "have N" display all
+  route through it now. Compile-verified; not yet live-confirmed.
 - [ ] **Weak single-deflection obstacle avoidance still present in
   `NPCGathering`/`NPCCrafting`/`NPCTraining`/`NPCGuarding`, found live by
   Ben (2026-08-17) via a Guard permanently stuck near a Boulder, not yet

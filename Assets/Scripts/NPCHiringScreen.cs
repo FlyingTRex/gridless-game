@@ -68,8 +68,12 @@ public class NPCHiringScreen : MonoBehaviour
 
     private void SetOpen(bool value)
     {
+        if (!value) current?.SetMovementPaused(false);
+
         isOpen = value;
         if (!value) current = null;
+        else current.SetMovementPaused(true);
+
         Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = value;
     }
