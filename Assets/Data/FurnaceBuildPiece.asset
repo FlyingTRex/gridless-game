@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17f85ac9db3fc704b91d2ef0a58fed7b, type: 3}
+  m_Name: FurnaceBuildPiece
+  m_EditorClassIdentifier: Assembly-CSharp::BuildPiece
+  pieceName: Furnace
+  prefab: {fileID: 6376787725926662117, guid: 22422ff49d19b2b45a0cd9f6d1e3a7c4, type: 3}
+  ingredients:
+  - item: {fileID: 11400000, guid: 2b36e703d09015046a72e40d36725d82, type: 2}
+    count: 8
+  - item: {fileID: 11400000, guid: 3d8f7ca61e2666c468f0401b63e2a7cc, type: 2}
+    count: 6
+  - item: {fileID: 11400000, guid: e51a1943e164464b8d0533a24ee79519, type: 2}
+    count: 4
+  trainedSkill: {fileID: 11400000, guid: 026b005b8956b244d8bd104f47370603, type: 2}
+  unlockTier: 0
+  skillGain: 1
+  groundReach: 5
+  nextTier: {fileID: 0}
+  requiresCityStatus: 0
+  requiresCityFoundingConditions: 0
+  icon: {fileID: 21300000, guid: 431996f60e6ead3409da22b977646223, type: 3}
+  previewIcon: {fileID: 21300000, guid: 1bfd1b7c338488d43b555180f6d87161, type: 3}

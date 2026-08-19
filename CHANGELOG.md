@@ -5,10 +5,117 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.145-dev` — must always match `GameVersion` in
+**Current version:** `0.3.147-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-19 (4)
+
+### v0.3.147-dev — Craftable Anvil and Furnace
+
+Closes the highest-priority gap found during the new-player-experience
+playtest — neither Anvil nor Furnace had any way for a player to build
+one; both existed only as the single fixed fixture already in
+`TestScene.unity`. Real recipes, deliberately never requiring Nail or
+Ingot directly for either piece (both need to be craftable from raw
+gathered materials alone) — with one exception worked out with Ben:
+Furnace's recipe *can* safely use Nail, because `NailRecipe.asset` (only
+just checked directly, not assumed) requires an Anvil surface but its
+only ingredient is raw Iron ore, no Ingot — so as long as Anvil is built
+first, Nails become legitimately reachable before Furnace ever needs
+them.
+
+- **Furnace** — 8 Nail + 6 Small Rock + 4 Plank, trains Metalworking. A
+  clean duplicate of the existing fixed fixture (real model, real
+  `Furnace`/`FurnaceScreen`/`FurnaceSurface` behavior carried over
+  intact), now wrapped in a real `BuildPiece` + baked icon.
+- **Anvil** — 6 Small Rock + 2 Plank + 2 Iron, trains Metalworking. Hit a
+  real snag building this one: the scene's actual "Anvil" object turned
+  out to have **no visual mesh of its own at all** — just an invisible
+  `AnvilSurface` trigger volume, apparently parented under the "Scattered
+  Boulders" container for convenience. A first attempt duplicated that
+  whole container by mistake (214 objects, ~71 boulders) before this was
+  caught via a direct file check and fully cleaned back out. Resolved
+  once `Boulder.prefab` itself turned out to already carry both
+  `ResourceNode` *and* `AnvilSurface` on the same object (a shared
+  template) — built the placeable Anvil from that directly (strip
+  `ResourceNode` so it isn't also mineable, keep `AnvilSurface`, add
+  `PlacedPiece`), per Ben's explicit call to reuse an existing prop as a
+  placeholder rather than spend a Tripo3D generation on a real model
+  right now. Reads as a plain stone slab, not a recognizable anvil shape
+  — a real model is still a worthwhile future swap, logged as a known
+  placeholder, not a finished asset.
+
+Both pieces registered in `PlayerBuilding.allPieces` (a hand-maintained
+scene array, not database-driven — checked directly, not assumed) and
+`BuildPieceDatabase` (for `SaveManager`'s save/restore lookup). Every
+step verified directly in the saved files, including one case where a
+script's own log message ("AnvilSurface kept: False") turned out to be
+flat wrong — the actual saved prefab had the component correctly, a
+timing quirk in the log check itself, not a real problem. Compile-
+verified via full-project batch mode. Not yet live-tested.
+
+## 2026-08-19 (3)
+
+### v0.3.146-dev — Live-testing fixes: dead-end Log item, Small Rock mystery root-caused, Fiber Backpack, Stick supply
+
+A full new-player-experience live-testing pass (build a structure, place
+Furnace/Anvil/StorageBoxes, hire and assign NPCs, cook) surfaced several
+real bugs, fixed the well-understood ones, and root-caused one that
+looked mysterious:
+
+- **Crude Fiber Backpack rejected as an NPC tool** — a third Backpack
+  family (distinct from the original ladder and the Leather ladder),
+  never added to any of the 4 jobs' Backpack tool-acceptance lists. Same
+  registration-gap shape as the already-fixed Leather Backpack bug, just
+  a different item slipping through the same net. Fixed by adding its
+  guid to `MineOreJob`/`ChopWoodJob`/`ForageJob`/`MetalworkingJob`.
+- **The "Log" item was a genuine dead end** — a Woodworking NPC felling a
+  standing Tree yields a raw Log straight to cargo, but zero
+  `CraftingRecipe` anywhere consumed it (confirmed via direct guid
+  search) — once collected, useless to anyone, player or NPC. Fixed with
+  a new `LogToPlankRecipe.asset` (1 Log → 2 Plank, trains Woodworking,
+  no station required), mirroring the guaranteed portion of what
+  breaking a placed Log node already yields — deliberately without the
+  bonus-Stick chance, which stays a placed-Log-only mechanic since this
+  recipe is reachable by both players and NPCCrafting.
+- **Stick supply bumped** — `Log.prefab`'s `bonusChunkChance` raised
+  0.3 → 0.6. Ben's framing: Sticks are a critical early-game bottleneck
+  (Rope, Backpacks) and were too scarce.
+- **Small Rock mystery, fully root-caused, not just theorized.** A
+  brand-new Woodworking-only NPC turned up with 8 Small Rock in cargo,
+  no explanation. Found by reading `NPCGathering.FindTarget()` directly:
+  its scan of the `ResourceNode` pool has zero job-kind gating, unlike
+  the Bush pool (`searchesBushes`) and loose-pickup pool
+  (`collectLoosePickups`), which both got that exact gate after nearly
+  identical past bugs. `ConsiderHarvestable`'s tool check only applies
+  *if* a target declares `RequiredTools` — and `Boulder.prefab` (the
+  plain Rock/Small Rock node, distinct from the tool-gated ore Boulders)
+  has `requiredTools: []`, completely empty, so the check never
+  triggered and any job could harvest it purely on distance. This also
+  quietly falsifies a comment already in the codebase claiming the
+  Harvestable pool was "naturally segregated by RequiredTools" — true
+  for every ore Boulder, false for plain Rock. Fixed with a new
+  `NPCJobDefinition.harvestsToollessRock` field, same shape as
+  `searchesBushes`/`collectLoosePickups`, gating toolless targets
+  specifically (ore Boulders, which all declare real tools, are
+  unaffected) — only `MineOreJob` sets it true.
+- **Temporary `[TreeStuckDiagnostic]` logging added** to
+  `NPCGathering.cs` for a still-unsolved bug: an NPC getting stuck at a
+  standing `ChoppableTree` with no animation for 60+ seconds (reproduced
+  twice), while chopping a placed Log works cleanly for the same NPC.
+  Working theory (Ben's): a collider/harvest-range mismatch specific to
+  `ChoppableTree`. Logs pivot-distance vs. `harvestRange` vs. actual
+  collider-surface distance, throttled to once per 2s, whenever an NPC
+  is stuck approaching a Tree — will confirm or refute the theory on the
+  next live occurrence. Not yet removed; remove once root-caused.
+
+Compile-verified (multiple full-project batch-mode checks) and every
+change verified directly in the saved asset/scene files, not just
+trusted from script logs. Not yet live-tested.
+
+## 2026-08-19 (2)
 
 ## 2026-08-19 (2)
 

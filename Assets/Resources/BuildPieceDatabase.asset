@@ -13,12 +13,14 @@ MonoBehaviour:
   m_Name: BuildPieceDatabase
   m_EditorClassIdentifier: Assembly-CSharp::BuildPieceDatabase
   pieces:
+  - {fileID: 11400000, guid: 376822015e2a2504c8b7040c4129e712, type: 2}
   - {fileID: 11400000, guid: 8378dcbabf3c62b479320e6aa8084cbb, type: 2}
   - {fileID: 11400000, guid: eb0dab5ed56fcb048a284bf5858e29bd, type: 2}
   - {fileID: 11400000, guid: f442faa7a2d5cbe4894f5f83e2c04c3f, type: 2}
   - {fileID: 11400000, guid: 4ad7272817fd7c74e850c92bb14a0134, type: 2}
   - {fileID: 11400000, guid: becd5befb8ffb4b45bcf9a7fc0533971, type: 2}
   - {fileID: 11400000, guid: 78c30363e20d4484f87706c156564120, type: 2}
+  - {fileID: 11400000, guid: b62eb0cc8b76eca47a3349bb69499243, type: 2}
   - {fileID: 11400000, guid: 065b49d4d8d0436397292c3d46b212b2, type: 2}
   - {fileID: 11400000, guid: 4ab44b5c4ca385b43923d02cab4b28f8, type: 2}
   - {fileID: 11400000, guid: 8370b1439b5577a4799d89310bbd3128, type: 2}

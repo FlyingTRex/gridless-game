@@ -89,4 +89,22 @@ public class NPCJobDefinition : ScriptableObject
     // distance. False (default) means this job never looks at bushes at
     // all -- only ForageJob sets this true.
     public bool searchesBushes = false;
+
+    // Whether NPCGathering.ConsiderHarvestable accepts a toolless
+    // INPCHarvestable target (added 2026-08-19, live-testing session --
+    // Ben: a brand-new Woodworking NPC turned up with 8 Small Rock in
+    // cargo, no explanation). Root cause: this comment block's own claim
+    // above ("the Harvestable pool is naturally segregated by
+    // RequiredTools") turns out to be false for one real case --
+    // Boulder.prefab (the plain "Rock"/Small Rock node, distinct from the
+    // tool-gated ore Boulders) has requiredTools: [] entirely empty, so
+    // ConsiderHarvestable's own tool check (`hasToolReq && !HasAnyTool`)
+    // never even triggers -- any Gathering-kind job, any tool or none at
+    // all, could harvest it purely on distance, same unguarded-pool shape
+    // searchesBushes/collectLoosePickups were already built to fix
+    // elsewhere. False (default) means this job skips every toolless
+    // target; only MineOreJob sets this true, since Rock is genuinely a
+    // Mining-family resource, just one that happens not to need a
+    // Pickaxe.
+    public bool harvestsToollessRock = false;
 }

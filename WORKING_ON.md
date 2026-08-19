@@ -17,6 +17,46 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-19 — Ben+Claude — **Craftable Anvil and Furnace** (v0.3.147-dev,
+  `BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md`). Closes the playtest's
+  highest-priority finding below. Furnace: clean duplicate of the real
+  fixture. Anvil: hit a real snag (the scene's Anvil has no mesh at all,
+  a first extraction attempt grabbed the wrong 214-object container by
+  mistake — caught and cleaned up before it touched anything), resolved
+  by building from `Boulder.prefab` directly (already carries both
+  `ResourceNode`/`AnvilSurface`) as a deliberate placeholder visual, Ben's
+  call over spending a model generation on it right now. Neither recipe
+  needs Nail-before-Anvil-exists or an Ingot; confirmed via
+  `NailRecipe.asset` directly that Nail only needs raw Iron + an Anvil
+  surface, so Anvil-first is a real requirement. Compile-verified, not
+  yet committed or live-tested.
+
+- 2026-08-19 — Ben+Claude — **New-player-experience playtest + live fixes**
+  (`BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md` v0.3.146-dev). Ben played
+  continuously (build a structure, place Furnace/Anvil/StorageBoxes, hire
+  and assign NPCs, cook), reporting screenshots/findings in real time; fixed
+  once the session ended and the Editor closed. Fixed: Crude Fiber Backpack
+  NPC-tool registration (third Backpack family, same gap shape as the
+  earlier Leather Backpack fix), the dead-end "Log" item (zero recipes
+  consumed it — new `LogToPlankRecipe.asset`), Stick supply
+  (`Log.prefab.bonusChunkChance` 0.3→0.6), and the Small Rock mystery
+  (fully root-caused by reading `NPCGathering.FindTarget()` directly — the
+  `ResourceNode` pool had zero job-kind gating and `Boulder.prefab`'s plain
+  Rock variant has empty `requiredTools`, so any job could harvest it; new
+  `NPCJobDefinition.harvestsToollessRock` field, same shape as
+  `searchesBushes`/`collectLoosePickups`). Added temporary
+  `[TreeStuckDiagnostic]` logging for a still-unsolved bug (an NPC stuck at
+  a standing `ChoppableTree`, no animation, 60+ seconds, reproduced twice)
+  — not yet confirmed against a live repro. Also logged: no
+  player-craftable Anvil or Furnace (both fixed scene-only fixtures — real
+  scope, deferred, flagged high priority since Metalworking/Ingots/Iron
+  tools/Shovel/Bandages/Ink all gate on them), and 6 enhancement ideas (Bed/
+  rest, Quick Access Bar, relocate placed structures, a Cure Thirst wish for
+  Restoration, larger storage capacity, tool-tier-improves-yield). Every
+  code change compile-verified via full-project batch mode and verified
+  directly in the saved asset/scene files. Not yet committed, not yet
+  live-tested.
+
 - 2026-08-19 — Ben+Claude — **Shared NPC obstacle-avoidance + stuck-recovery**
   (`BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md` v0.3.144-dev): planned via a short
   scope discussion first (extract-the-algorithm-only vs. full MoveToward

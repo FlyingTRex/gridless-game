@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: MineOreJob
   m_EditorClassIdentifier: Assembly-CSharp::NPCJobDefinition
   jobName: Mine Ore
+  kind: 0
   family: {fileID: 11400000, guid: e72a58bed72a2b340817fd25c3af1927, type: 2}
   tier: 1
   toolRequirements:
@@ -44,8 +45,11 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 28d13770ea3c6d74ba9d52d409e4f3d0, type: 2}
     - {fileID: 11400000, guid: 614863323974c0841a88087adb1e3ed1, type: 2}
     - {fileID: 11400000, guid: 70a4d1be2fb2cca4688cf3ea178193f0, type: 2}
+    - {fileID: 11400000, guid: 4860096889ad4ab0999503b780b37b71, type: 2}
     attachBone: 8
     attachPositionOffset: {x: 0, y: 0.05, z: -0.18}
     attachEulerOffset: {x: 0, y: -90, z: 0}
   workAnimation: 1
   collectLoosePickups: 0
+  searchesBushes: 0
+  harvestsToollessRock: 1

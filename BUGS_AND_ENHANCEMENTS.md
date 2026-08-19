@@ -711,6 +711,47 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
+- [ ] **New-player-experience gaps found live during the 2026-08-19
+  playtest (Ben's own framing: "what would a new player need to get
+  going").** Six real ideas, none built:
+  - **A Bed/rest mechanic** — genuinely doesn't exist. Confirmed via
+    code: Health only has a flat, always-on `healthRegenPerSecond = 0.05`
+    passive trickle (~33 real minutes for a full heal), nothing
+    accelerates it. A new mechanic, not a fix.
+  - **A Quick Access Bar / hotbar** — numbered slots assignable to tools/
+    weapons/items, a keypress equips directly to a hand and swaps
+    whatever was equipped back to inventory. Not a new system underneath
+    — `PlayerEquipment` already has hand slots and an Equip action, this
+    would add a quick-slot UI layer that triggers the same logic.
+  - **Relocate a placed structure** — only Deconstruct exists today; a
+    badly-placed StorageBox/Furnace means losing it and rebuilding from
+    scratch rather than repositioning it.
+  - **A "Cure Thirst" wish for Restoration** — `MAGIC_PLANNING.md`
+    already sketched a Tier 2 "status-cure" slot for Restoration
+    (deliberately not Heal Other, to avoid Medicine redundancy) but never
+    said what it cures; this is a concrete, on-theme proposal for that
+    exact slot.
+  - **Larger storage capacity options** — existing `StorageBox` tiers
+    fill up too fast under real sustained NPC-driven automation (multiple
+    NPCs continuously depositing, not a player manually managing one
+    box). Related to but distinct from the item above — that one's about
+    *knowing* a box is full, this one's about the underlying capacity
+    being too small in the first place.
+  - **Tool tier should improve yield, not just gate access** — Axe/
+    Pickaxe/etc. tier currently only determines *whether* you can harvest
+    something, never *how much* you get. Would bring wood/ore gathering
+    in line with how tiered gear already works everywhere else in this
+    project (Iron Arrow damage, Backpack capacity, ...).
+  - **NPC target-type filter** (Mining: restrict to a specific ore type;
+    Woodworking: prefer Logs over standing Trees) — raised alongside the
+    Bed idea, then "be mean"-critiqued live: scope shrank once the
+    dead-end "Log" item bug (see `## Bugs` above, fixed v0.3.146-dev) was
+    found, since there was previously no real reason to ever prefer
+    felling Trees (useless raw-Log cargo) over chopping placed Logs
+    (useful Plank output) — that imbalance is now largely resolved by the
+    bug fix itself. Genuinely useful for Mining ore-type restriction
+    either way (e.g. "keep my Miner on Iron only"); the Woodworking half
+    may not need its own toggle now that Logs are the correct default.
 - [ ] **A deposit `StorageBox` filling up should notify the player, not
   just silently sit there (Ben's idea, 2026-08-18).** A full box the
   player hasn't noticed can silently strand a Gathering NPC's cargo or
@@ -1169,6 +1210,67 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **A new-player-experience playtest (2026-08-19) — build a
+  structure, place Furnace/Anvil/StorageBoxes, hire and assign NPCs, cook
+  — surfaced 5 real findings, 4 fixed same session, 1 still open.**
+  Fixed, v0.3.146-dev: **Crude Fiber Backpack rejected as an NPC tool**
+  (a third Backpack family, never registered in the 4 jobs' tool lists —
+  same shape as the earlier Leather Backpack fix); **the "Log" item was a
+  genuine dead end** (a Woodworking NPC felling a Tree yields a raw Log
+  to cargo, but zero recipe anywhere consumed it — fixed with a new
+  `LogToPlankRecipe.asset`, 1 Log → 2 Plank); **Small Rock mystery, fully
+  root-caused** (a brand-new Woodworking-only NPC turned up with 8 Small
+  Rock in cargo — `NPCGathering.FindTarget()`'s `ResourceNode` scan had
+  zero job-kind gating, and `Boulder.prefab`'s plain-Rock variant has
+  `requiredTools: []`, so the tool check never triggered for it; fixed
+  with a new `NPCJobDefinition.harvestsToollessRock` field, same shape as
+  `searchesBushes`/`collectLoosePickups`, only `MineOreJob` sets it
+  true — this also falsifies a comment already in the codebase claiming
+  the Harvestable pool was "naturally segregated by RequiredTools," true
+  for ore Boulders, false for plain Rock). **Still open**: an NPC (Iris)
+  got stuck at a standing `ChoppableTree` twice, no animation, 60+
+  seconds, not resolved by the recent obstacle-avoidance fix (this looks
+  like stuck-while-harvesting, not stuck-while-moving — the fix lives in
+  `MoveToward`, which stops being called once "in range"). Working theory
+  (Ben's): a collider/harvest-range mismatch specific to `ChoppableTree`
+  — chopping a placed Log works cleanly for the same NPC, so it's
+  tree-specific, not a general harvest-loop failure. Temporary
+  `[TreeStuckDiagnostic]` logging added to `NPCGathering.cs` (pivot
+  distance vs. `harvestRange` vs. actual collider-surface distance,
+  throttled to 2s) — not yet confirmed against a live repro, remove once
+  root-caused. Also confirmed working during the same session, not bugs:
+  Fame-on-tier-unlock grant (via a live Console log,
+  `[Fame] +1.00 -> 31.00` at the same timestamp as a Restoration
+  tier-unlock — resolves the long-open "unconfirmed" item below as a
+  genuine non-bug), wish fizzle/skill-margin success roll, Will growth
+  past 100 via successful wish mastery, the crafting quality-roll
+  (a Masterwork Trimmed Stick from a lower attempt, training Dexterity),
+  StorageBox rename + empty-to-pickup guard, NPC deposit-container
+  retargeting (both a Woodworking and a Mining NPC), and NPCs
+  deliberately skipping bonus chunks (confirmed intentional, not a gap).
+- [x] **No player-craftable/placeable Anvil or Furnace, found live
+  during the 2026-08-19 playtest — fixed same day, v0.3.147-dev.** Both
+  existed only as a single fixed pre-placed object in `TestScene.unity`.
+  **Furnace**: 8 Nail + 6 Small Rock + 4 Plank, a clean duplicate of the
+  real fixture (model/behavior intact). **Anvil**: 6 Small Rock + 2 Plank
+  + 2 Iron — hit a real snag first (the scene's actual Anvil object has
+  no visual mesh at all, just an `AnvilSurface` trigger parented under
+  the Boulders container; a first attempt duplicated that whole
+  214-object container by mistake, caught via direct file check and
+  cleaned out), resolved by building from `Boulder.prefab` directly
+  (which already carries both `ResourceNode` and `AnvilSurface` as a
+  shared template) — a deliberate placeholder visual (reads as a plain
+  stone slab, not a recognizable anvil), Ben's explicit call over
+  spending a Tripo3D generation on a real model right now. Neither recipe
+  needs an Ingot; Furnace's use of Nail is safe specifically because
+  `NailRecipe.asset` (checked directly) needs an Anvil surface but only
+  raw Iron ore, no Ingot — Anvil-first is a real requirement, not just a
+  suggested order. Both registered in `PlayerBuilding.allPieces` (hand-
+  maintained scene array, confirmed) and `BuildPieceDatabase`. Compile-
+  verified, every step confirmed directly in the saved files. **Anvil's
+  placeholder visual is a known follow-up** — worth a real model
+  eventually, logged as a placeholder, not a finished asset. Not yet
+  live-tested.
 - [x] **None of the 6 new Iron Arrow recipes (`IronArrowheadRecipe` + 5
   tier recipes) actually appear in the Crafting screen, found live by
   Ben (2026-08-18) — a real miss from the same session that built them,
@@ -1692,8 +1794,15 @@ signs off on scope and order.
   Chicken Meat (`PrefabUtility.LoadPrefabContents` + direct
   `sharedMaterial` assignment on the wrapper prefab, bypassing the
   importer remap entirely).
-- [ ] **Unconfirmed: a Combat-category skill tier-unlock (killing a Wolf,
-  Rudimentary) may not have granted Fame (2026-08-14/15).** Ben reported
+- [x] **Unconfirmed: a Combat-category skill tier-unlock (killing a Wolf,
+  Rudimentary) may not have granted Fame (2026-08-14/15) — confirmed a
+  false alarm, 2026-08-19.** A Restoration tier-unlock during live
+  testing gave the "next time" repro this entry asked for: a live Console
+  log showed `[Fame] +1.00 -> 31.00 (Neutral)` at the exact same
+  timestamp as `Restoration TIER UNLOCKED: Rudimentary`. The mechanism
+  works correctly — the original report was very likely the "message had
+  already expired" ambiguity this entry already flagged, not a real bug.
+  Ben reported
   a "Rudimentary skill notice" after a Wolf kill, then checked the Player
   tab's Fame tile and found it unchanged (still 1.0, matching only the
   earlier Hire grant). Code review found nothing wrong —

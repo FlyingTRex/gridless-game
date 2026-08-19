@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17f85ac9db3fc704b91d2ef0a58fed7b, type: 3}
+  m_Name: AnvilBuildPiece
+  m_EditorClassIdentifier: Assembly-CSharp::BuildPiece
+  pieceName: Anvil
+  prefab: {fileID: 193043408796882417, guid: 62ea2ec5df90d9c459701ba762759d74, type: 3}
+  ingredients:
+  - item: {fileID: 11400000, guid: 3d8f7ca61e2666c468f0401b63e2a7cc, type: 2}
+    count: 6
+  - item: {fileID: 11400000, guid: e51a1943e164464b8d0533a24ee79519, type: 2}
+    count: 2
+  - item: {fileID: 11400000, guid: 6266bd83114b3e9409823c7cc6286e8c, type: 2}
+    count: 2
+  trainedSkill: {fileID: 11400000, guid: 026b005b8956b244d8bd104f47370603, type: 2}
+  unlockTier: 0
+  skillGain: 1
+  groundReach: 5
+  nextTier: {fileID: 0}
+  requiresCityStatus: 0
+  requiresCityFoundingConditions: 0
+  icon: {fileID: 21300000, guid: 2ddda1f0ff9043f48bce3309f23342af, type: 3}
+  previewIcon: {fileID: 21300000, guid: bfb2e121c339e6a49bb2624748d6d21f, type: 3}

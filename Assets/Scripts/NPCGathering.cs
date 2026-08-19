@@ -94,6 +94,14 @@ public class NPCGathering : MonoBehaviour
 
     private NPCHiring hiring;
 
+    // [TreeStuckDiagnostic] (2026-08-19, live-testing session) -- temporary,
+    // remove once the ChoppableTree stuck-with-no-animation bug is
+    // root-caused. Throttled log of distance-to-target-pivot vs.
+    // harvestRange while approaching a ChoppableTree specifically, to catch
+    // the actual numbers live instead of guessing at a collider/pivot
+    // mismatch from a screenshot.
+    private float treeStuckLogTimer;
+
     // Shared with NPCCrafting/NPCTraining/NPCGuarding/NPCSeekFlag's own
     // MoveToward via NPCMovement.cs (2026-08-19) -- see that file's header.
     private readonly NPCMovement.StuckTracker stuckTracker = new();
@@ -217,6 +225,21 @@ public class NPCGathering : MonoBehaviour
 
         if (isMoving)
         {
+            // [TreeStuckDiagnostic] -- see the field's own comment.
+            if (currentTarget is ChoppableTree)
+            {
+                treeStuckLogTimer += Time.deltaTime;
+                if (treeStuckLogTimer >= 2f)
+                {
+                    treeStuckLogTimer = 0f;
+                    var col = currentTarget.GetComponent<Collider>();
+                    float colDist = col != null
+                        ? Vector3.Distance(transform.position, col.ClosestPoint(transform.position))
+                        : -1f;
+                    Debug.Log($"[TreeStuckDiagnostic] {name}: pivotDistance={distance:F2} harvestRange={harvestRange:F2} colliderSurfaceDistance={colDist:F2}");
+                }
+            }
+
             MoveToward(targetPos, currentTarget.gameObject);
             harvestTimer = 0f;
             return;
@@ -359,6 +382,14 @@ public class NPCGathering : MonoBehaviour
 
         bool hasToolReq = target.RequiredTools != null && target.RequiredTools.Length > 0;
         if (hasToolReq && !job.HasAnyTool(target.RequiredTools)) return;
+
+        // Toolless targets (the plain Rock/Small Rock node -- ore Boulders
+        // all declare a real RequiredTools, so they're unaffected) skip the
+        // check above entirely, which used to mean any Gathering-kind job
+        // could harvest one purely on distance. Gated per-job the same way
+        // as searchesBushes/collectLoosePickups -- see
+        // NPCJobDefinition.harvestsToollessRock's own comment.
+        if (!hasToolReq && (job.AssignedJob == null || !job.AssignedJob.harvestsToollessRock)) return;
 
         if (!target.PeekYield(out var item, out var count)) return;
         if (item == null || !encumbrance.CanPickUp(item.weight * count)) return;

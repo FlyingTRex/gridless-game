@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 100008}
   - component: {fileID: 100010}
   - component: {fileID: 100012}
+  - component: {fileID: 1089960193333414361}
   m_Layer: 0
   m_Name: Log
   m_TagString: Untagged
@@ -161,7 +162,7 @@ MonoBehaviour:
   respawnDelay: 0
   respawnScatter: 0.5
   bonusChunkPrefab: {fileID: 2845580259793570749, guid: bbc37a3796d8b524fbf7ebef98fed8a2, type: 3}
-  bonusChunkChance: 0.3
+  bonusChunkChance: 0.6
   requiredTools:
   - {fileID: 11400000, guid: e1f237e285e7a424bb1f2abebd01fef4, type: 2}
   - {fileID: 11400000, guid: b2aa2117d73120b41b8042800503c13a, type: 2}
@@ -174,3 +175,17 @@ MonoBehaviour:
   hiddenChunkPrefab: {fileID: 0}
   pickupItem: {fileID: 11400000, guid: 77c48355fa024ab488ee1230ca83774c, type: 2}
   pickupCount: 1
+  holeVisualPrefab: {fileID: 0}
+--- !u!114 &1089960193333414361
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: 093dc2a9bfd44edc8982f114371230a3
