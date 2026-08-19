@@ -27,6 +27,10 @@ public class NPCTraining : MonoBehaviour
     private NPCCrafting crafting;
     private PlayerFame playerFame;
 
+    // Shared with NPCGathering/NPCCrafting/NPCGuarding/NPCSeekFlag's own
+    // MoveToward via NPCMovement.cs (2026-08-19) -- see that file's header.
+    private readonly NPCMovement.StuckTracker stuckTracker = new();
+
     private bool isTraining;
     private DeskSurface targetDesk;
     private float trainTimer;
@@ -164,9 +168,9 @@ public class NPCTraining : MonoBehaviour
         return best;
     }
 
-    // Same straight-line-plus-deflection movement as NPCGathering/
-    // NPCCrafting's own MoveToward -- duplicated rather than shared, same
-    // reasoning as NPCCrafting's own copy.
+    // Same straight-line movement as NPCGathering/NPCCrafting's own
+    // MoveToward -- obstacle deflection/stuck-recovery is shared via
+    // NPCMovement.cs (2026-08-19).
     private void MoveToward(Vector3 targetPos, GameObject ignoreTarget)
     {
         Vector3 toTarget = targetPos - transform.position;
@@ -174,16 +178,8 @@ public class NPCTraining : MonoBehaviour
         if (toTarget.sqrMagnitude < 0.0001f) return;
 
         Vector3 desired = toTarget.normalized;
-        Vector3 moveDir = desired;
-
         Vector3 origin = transform.position + Vector3.up * 0.5f;
-        if (Physics.Raycast(origin, desired, out var hit, obstacleCheckDistance, ~0, QueryTriggerInteraction.Ignore)
-            && hit.collider.gameObject != ignoreTarget)
-        {
-            Vector3 deflected = Vector3.Cross(Vector3.up, hit.normal).normalized;
-            if (Vector3.Dot(deflected, desired) < 0f) deflected = -deflected;
-            moveDir = deflected;
-        }
+        Vector3 moveDir = NPCMovement.FindClearDirection(origin, desired, obstacleCheckDistance, ignoreTarget, stuckTracker, Time.deltaTime);
 
         Vector3 flatTarget = transform.position + moveDir * moveSpeed * Time.deltaTime;
         Vector3 newPos = new Vector3(flatTarget.x, transform.position.y, flatTarget.z);

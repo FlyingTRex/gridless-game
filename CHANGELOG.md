@@ -5,10 +5,46 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.143-dev` — must always match `GameVersion` in
+**Current version:** `0.3.144-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-19
+
+### v0.3.144-dev — Shared NPC obstacle-avoidance + stuck-recovery
+
+Closes out `BUGS_AND_ENHANCEMENTS.md`'s most-confirmed-live open bug: a weak
+single-normal-based obstacle deflection was duplicated, unfixed, in
+`NPCGathering`/`NPCCrafting`/`NPCTraining`/`NPCGuarding`'s own `MoveToward`
+(each could point straight into a second obstacle at a corner and stall an
+NPC permanently — confirmed live 3x+ against a Boulder). `NPCSeekFlag`
+already had the real fix (a widening left/right angle search, built
+2026-08-16) but it stayed a one-off rather than getting shared.
+
+New `Assets/Scripts/NPCMovement.cs` — a plain static helper (same
+"static class, read by whoever needs it" shape as `GroundHeight.cs`):
+
+- **`FindClearDirection`** — `NPCSeekFlag`'s widening-search algorithm,
+  generalized with the `ignoreTarget` parameter the other 4 scripts need
+  (so a mover's own destination object doesn't count as "blocked" once
+  close enough to hit it). All 5 scripts' `MoveToward` now call this one
+  implementation instead of their own copy — each script keeps its own
+  ground-sampling/facing/`moveSpeed`/`obstacleCheckDistance` untouched, only
+  the deflection block was pulled out.
+- **`StuckTracker`** — a small plain class, one instance per mover. Checks
+  every ~2s whether the NPC has covered a minimum distance since the last
+  check; after 3 consecutive slow intervals (~6s of near-zero net
+  progress), the next move gets a hard reverse shove instead of the normal
+  probe, then resets. A physical escape hatch, not a per-script "abandon
+  target and re-plan" policy — each job component already re-evaluates its
+  target on its own cadence, so freeing the NPC physically is enough.
+
+Mitigates (doesn't formally close) the separately-logged `NPCSeekFlag`
+no-timeout-while-approaching gap — it can no longer wedge forever, but
+there's still no hard timeout backstop for a genuinely escape-proof pocket.
+Compile-verified via batch mode (zero `CS####` errors); not yet
+live-tested.
 
 ## 2026-08-18 (18)
 

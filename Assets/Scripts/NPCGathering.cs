@@ -94,6 +94,10 @@ public class NPCGathering : MonoBehaviour
 
     private NPCHiring hiring;
 
+    // Shared with NPCCrafting/NPCTraining/NPCGuarding/NPCSeekFlag's own
+    // MoveToward via NPCMovement.cs (2026-08-19) -- see that file's header.
+    private readonly NPCMovement.StuckTracker stuckTracker = new();
+
     private Component currentTarget;
     private TargetKind targetKind;
     private float harvestTimer;
@@ -433,13 +437,12 @@ public class NPCGathering : MonoBehaviour
     }
 
     // Straight-line movement toward the target, same shape HostileCreature/
-    // NPCWander already use -- except a short forward raycast first: if
-    // something's in the way, slide along its surface (the tangent of the
-    // hit normal) instead of walking straight into it, rather than true
-    // pathfinding around it. ignoreTarget is whatever world object this
-    // move is actually headed toward (a gathering target or a StorageBox)
-    // -- its own collider shouldn't count as "blocked" once close enough
-    // to register a hit on it.
+    // NPCWander already use -- obstacle deflection/stuck-recovery is shared
+    // via NPCMovement.cs (2026-08-19, replacing the old single-normal-
+    // deflection block that could stall against a corner). ignoreTarget is
+    // whatever world object this move is actually headed toward (a
+    // gathering target or a StorageBox) -- its own collider shouldn't count
+    // as "blocked" once close enough to register a hit on it.
     private void MoveToward(Vector3 targetPos, GameObject ignoreTarget)
     {
         Vector3 toTarget = targetPos - transform.position;
@@ -447,16 +450,8 @@ public class NPCGathering : MonoBehaviour
         if (toTarget.sqrMagnitude < 0.0001f) return;
 
         Vector3 desired = toTarget.normalized;
-        Vector3 moveDir = desired;
-
         Vector3 origin = transform.position + Vector3.up * 0.5f;
-        if (Physics.Raycast(origin, desired, out var hit, obstacleCheckDistance, ~0, QueryTriggerInteraction.Ignore)
-            && hit.collider.gameObject != ignoreTarget)
-        {
-            Vector3 deflected = Vector3.Cross(Vector3.up, hit.normal).normalized;
-            if (Vector3.Dot(deflected, desired) < 0f) deflected = -deflected;
-            moveDir = deflected;
-        }
+        Vector3 moveDir = NPCMovement.FindClearDirection(origin, desired, obstacleCheckDistance, ignoreTarget, stuckTracker, Time.deltaTime);
 
         Vector3 flatTarget = transform.position + moveDir * moveSpeed * Time.deltaTime;
         Vector3 newPos = new Vector3(flatTarget.x, transform.position.y, flatTarget.z);

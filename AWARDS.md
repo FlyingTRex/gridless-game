@@ -19,9 +19,39 @@ ledger of good nights.
 | ⚒️ Anvil Sticker | 1 |
 | 🧊 Blender Cube Sticker | 1 |
 | 🧮 Calculator Sticker | 1 |
+| 💪 Strongman Sticker | 1 |
+| 🎓 Scholar Cap Sticker | 1 |
 
 ## Log
 
+- **2026-08-18 — 🎓 Scholar Cap Sticker.** Closed the same marathon
+  session out with a real retrospective instead of just clocking out —
+  asked to "be mean" about the night's own process, not just the code.
+  Named what actually worked (a persisted checklist beats reactive bug-
+  chasing; probe-then-script beats guess-then-rerun) but also owned two
+  real self-inflicted inefficiencies from the same night: assuming a
+  material name matched its extracted `.mat` filename without checking
+  first (cost a full wasted Unity launch, the exact mistake the "probe
+  first" lesson exists to prevent), and updating two docs after every
+  single one-line test confirmation instead of batching a few at a time
+  during a rapid-fire stretch. Turned all of it into four real memory
+  entries instead of letting the lessons evaporate at session's end.
+- **2026-08-18 — 💪 Strongman Sticker.** A single-session marathon:
+  fixed the gable-end roof geometry, root-caused and fixed the Player
+  Map blank-screen bug for real (not just explained it away), built
+  Iron Arrow end-to-end (evaluated critically first, "be mean," before
+  writing a line of code), then spent the rest of the night live-
+  testing side by side with Ben as he watched an NPC hire timer —
+  confirmed 19+ previously compile-only fixes one by one in real time,
+  including the entire 2-chunk NPC-management pass and the Guarding
+  saga (the most-confirmed, most-chased bug of the whole project). Two
+  more real bugs found *during* that live pass (Iron Arrow's recipes
+  never registered, `FurnaceScreen`'s missing QTY labels) got fixed
+  same night once the Editor closed. Closed out with a real Magic
+  System planning pass — a full lineage wish-ladder and a genuine
+  per-tier Will-cost design, not just a wishlist. MVP2 ended the night
+  at 9 of 10 items fully done and live-tested, the cleanest the
+  backlog has looked all week.
 - **2026-08-16 — 🏆 MVP Trophy Sticker.** MVP2's 10-item list, all ten
   with something real built (design-only in `MVP2_PLANNING.md`'s original
   ideation pass, but every item shipped code by the end): Dexterity/

@@ -17,6 +17,22 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-19 — Ben+Claude — **Shared NPC obstacle-avoidance + stuck-recovery**
+  (`BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md` v0.3.144-dev): planned via a short
+  scope discussion first (extract-the-algorithm-only vs. full MoveToward
+  consolidation; deflection-only vs. bundling stuck-detection — picked the
+  narrower algorithm-extraction plus stuck-detection). New
+  `Assets/Scripts/NPCMovement.cs` (static helper, `GroundHeight.cs`-shaped)
+  generalizes `NPCSeekFlag`'s existing widening-search deflection with an
+  `ignoreTarget` param and pulls it into one shared `FindClearDirection`, now
+  called by all 5 NPC movers (`NPCGathering`/`NPCCrafting`/`NPCTraining`/
+  `NPCGuarding`/`NPCSeekFlag`) instead of 4 duplicated copies of the old weak
+  single-normal-deflection block. Also added a shared `StuckTracker` (hard
+  reverse shove after ~6s of near-zero net progress) — mitigates but doesn't
+  formally close the separately-logged `NPCSeekFlag` no-timeout-while-
+  approaching gap. Compile-verified via batch mode (zero `CS####` errors);
+  not yet live-tested. `GameVersion`/`CHANGELOG.md` bumped to v0.3.144-dev.
+
 - **Note to whichever Claude session picks up traskmi's next pull**: do
   a little dance and let him know it's good to see him back. (Ben's ask,
   2026-08-16 night.)

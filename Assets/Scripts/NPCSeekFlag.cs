@@ -27,6 +27,14 @@ public class NPCSeekFlag : MonoBehaviour
     private NPCWander wander;
     private NPCHiring hiring;
 
+    // Shared with NPCGathering/NPCCrafting/NPCTraining/NPCGuarding's own
+    // MoveToward via NPCMovement.cs (2026-08-19) -- this component's own
+    // widening-search deflection (2026-08-16) is now the shared
+    // implementation those 4 were missing, and this pulls the stuck-shove
+    // recovery the other 4 gained back onto this component too, for one
+    // consistent behavior everywhere.
+    private readonly NPCMovement.StuckTracker stuckTracker = new();
+
     private Transform targetFlag;
     private float stickAroundSecondsRemaining;
     private bool hasArrived;
@@ -91,9 +99,11 @@ public class NPCSeekFlag : MonoBehaviour
         }
     }
 
-    // Same straight-line-plus-deflection movement as NPCGathering/
-    // NPCCrafting/NPCTraining's own MoveToward -- duplicated rather than
-    // shared, same reasoning as those.
+    // Same straight-line movement as NPCGathering/NPCCrafting/NPCTraining/
+    // NPCGuarding's own MoveToward -- obstacle deflection/stuck-recovery is
+    // shared via NPCMovement.cs (2026-08-19); this component was the
+    // original source of that widening-search algorithm before it got
+    // pulled out into the shared helper.
     private void MoveToward(Vector3 targetPos)
     {
         Vector3 toTarget = targetPos - transform.position;
@@ -101,40 +111,13 @@ public class NPCSeekFlag : MonoBehaviour
         if (toTarget.sqrMagnitude < 0.0001f) return;
 
         Vector3 desired = toTarget.normalized;
-        Vector3 moveDir = FindClearDirection(desired);
+        Vector3 origin = transform.position + Vector3.up * 0.5f;
+        Vector3 moveDir = NPCMovement.FindClearDirection(origin, desired, obstacleCheckDistance, null, stuckTracker, Time.deltaTime);
 
         Vector3 flatTarget = transform.position + moveDir * moveSpeed * Time.deltaTime;
         Vector3 newPos = new Vector3(flatTarget.x, transform.position.y, flatTarget.z);
         newPos.y = GroundHeight.Sample(newPos, transform.position.y);
         transform.position = newPos;
         wander.FaceToward(transform.position + moveDir);
-    }
-
-    // Steers around an obstacle by widening the search angle left/right of
-    // the desired direction until a clear ray is found -- replaces the old
-    // single normal-based deflection (2026-08-16), which could point
-    // straight into a second obstacle at a corner and stall the NPC there
-    // permanently (observed live: spawned near the timber-frame building,
-    // never closed the distance to the Flag).
-    private Vector3 FindClearDirection(Vector3 desired)
-    {
-        Vector3 origin = transform.position + Vector3.up * 0.5f;
-        if (!Physics.Raycast(origin, desired, obstacleCheckDistance, ~0, QueryTriggerInteraction.Ignore))
-            return desired;
-
-        for (float angle = 15f; angle <= 90f; angle += 15f)
-        {
-            Vector3 right = Quaternion.Euler(0f, angle, 0f) * desired;
-            if (!Physics.Raycast(origin, right, obstacleCheckDistance, ~0, QueryTriggerInteraction.Ignore))
-                return right;
-
-            Vector3 left = Quaternion.Euler(0f, -angle, 0f) * desired;
-            if (!Physics.Raycast(origin, left, obstacleCheckDistance, ~0, QueryTriggerInteraction.Ignore))
-                return left;
-        }
-
-        // Every tested direction blocked (fully surrounded) -- reverse
-        // rather than stand still forever.
-        return -desired;
     }
 }

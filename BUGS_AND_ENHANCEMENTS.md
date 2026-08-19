@@ -1341,7 +1341,14 @@ signs off on scope and order.
   (`PlayerNPCPaymentToast`) just sets a toast string and doesn't touch
   `NPCDialogue`/naming at all, so the mechanism connecting the two is
   still unexplained. Needs a live Console-open repro next session to
-  catch it in the act.
+  catch it in the act. **Non-repro logged 2026-08-18**: Ben paid off a
+  named Miner ("Mining Dude") and watched the payment clear on the
+  Roster — the name stayed intact this time, ruling out "reverts on
+  *every* payment" as the mechanism. Still open — either intermittent, or
+  tied to a specific condition (a particular payment-timer edge case?
+  something from the original v0.3.130-dev short-cycle bug specifically?)
+  not present in this cleaner repro. Worth another watch with Console
+  open the next time a name-carrying NPC's payment comes due.
 - [x] **`NPCGathering.MaxRangeFromDeposit` (the work-range leash, added
   2026-08-17) doesn't survive save/reload — found live by Ben same
   night ("the npc leash isn't saving on reset either"). Fixed
@@ -1457,10 +1464,11 @@ signs off on scope and order.
   route through it now. **Live-confirmed 2026-08-18** — Ben gave a Guard
   a Knife straight out of a worn Backpack, no manual pull-out-first step
   needed.
-- [ ] **Weak single-deflection obstacle avoidance still present in
+- [x] **Weak single-deflection obstacle avoidance still present in
   `NPCGathering`/`NPCCrafting`/`NPCTraining`/`NPCGuarding`, found live by
-  Ben (2026-08-17) via a Guard permanently stuck near a Boulder, not yet
-  fixed.** `NPCSeekFlag.MoveToward` had this exact bug (a single normal-
+  Ben (2026-08-17) via a Guard permanently stuck near a Boulder — fixed for
+  real 2026-08-19, v0.3.144-dev, see the entry's final paragraph below.**
+  `NPCSeekFlag.MoveToward` had this exact bug (a single normal-
   based deflection that can point straight into a second obstacle at an
   odd-shaped collider and stall permanently) and was fixed in v0.3.116-dev
   with a widening directional search. The identical ~15-line pattern is
@@ -1539,16 +1547,38 @@ signs off on scope and order.
   session the same day** — still holding up after the subsequent NPC-
   management pass and Iron Arrow work, not a one-off.
 
-  **Original Boulder full-freeze reports (the first 3 confirmations)
-  remain open — this fix may or may not also explain them, untested.**
-  These were a genuinely different symptom (fully frozen, not
-  oscillating) and could still be the raycast-deflection-into-a-second-
-  obstacle mechanism this entry's title describes, or could turn out to
-  be the exact same `wander.SetPaused` race manifesting differently near
-  an obstacle. Worth a live retest before assuming either way. If still
-  broken, the known-working widening-search pattern from `NPCSeekFlag`
-  (v0.3.116-dev) is still the right fix, not yet applied to these 4
-  scripts.
+  **Original Boulder full-freeze reports — resolved, confirmed live
+  2026-08-18.** Ben retested directly and the full-freeze symptom no
+  longer reproduces; the `wander.SetPaused` race fix above appears to
+  have explained this symptom too, not just the oscillation. **What's
+  still genuinely open, downgraded from "active bug" to "known code
+  smell":** the underlying weak single-deflection obstacle-avoidance
+  pattern this entry's title describes is still duplicated, unfixed, in
+  `NPCGathering`/`NPCCrafting`/`NPCTraining`/`NPCGuarding` — a single
+  normal-based deflection that *could in principle* still point straight
+  into a second obstacle at an odd-shaped collider and stall, the same
+  bug `NPCSeekFlag.MoveToward` had before its v0.3.116-dev widening-
+  search fix. With no live repro left to chase, this is now proactive
+  robustness work, not an active bug fix — worth doing (port the
+  widening-search pattern, or better, pull it into one shared helper
+  instead of a 5th near-identical copy-paste, per the note above) but no
+  longer urgent.
+
+  **Actually done, 2026-08-19, v0.3.144-dev — the "pull into one shared
+  helper" option above, not another copy-paste.** New
+  `Assets/Scripts/NPCMovement.cs` (a plain static helper, same shape as
+  `GroundHeight.cs`) pulls `NPCSeekFlag`'s widening-search deflection out
+  into one shared `FindClearDirection`, used by all 5 scripts' `MoveToward`
+  now instead of 4 separate copies of the old weak single-normal-deflection
+  block. Also added a small `StuckTracker` (per-mover, ~2s check interval,
+  3 consecutive near-zero-progress checks before triggering) shared the
+  same way — on trigger, the next move gets a hard reverse shove instead of
+  a normal probe, then resets. This substantially mitigates (but doesn't
+  formally close) the separately-logged `NPCSeekFlag`
+  no-timeout-while-approaching gap further down this file — it can no
+  longer wedge forever, but there's still no hard timeout backstop for a
+  genuinely escape-proof pocket. Compile-verified via batch mode (zero
+  `CS####` errors); not yet live-tested.
 - [x] **Mining/Woodworking-job NPCs could target bushes meant for
   Forage — found live by Ben (2026-08-18) investigating the bug above:
   a Mining NPC walked past ore to reach the nearest HerbBush, then tried
