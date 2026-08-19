@@ -42,21 +42,43 @@ Two load-bearing implications worth pulling out explicitly:
   persistence (section 4) isn't optional scope, it's load-bearing for the
   stated design.
 
-## 1. Current state (audit, 2026-08-13)
+## 1. Current state (audit, 2026-08-13; re-audited 2026-08-19)
 
 Confirmed directly against the codebase before any networking design:
 
-- **115 total scripts in `Assets/Scripts/`**, of which **32 are
-  `PlayerXXX.cs`** (PlayerInventory, PlayerVitals, PlayerCrafting,
-  PlayerBuilding, PlayerMagic, PlayerCombat, PlayerEquipment, ...) and **12
-  are NPC/AI** (NPCMining, NPCWander, NPCHiring, NPCDialogue,
-  NPCEncumbrance, ...). Every one of these currently assumes exactly one
-  local player exists.
-- **Hard single-player assumptions via scene-scanning, not a single
-  singleton pattern** — there's no `public static X Instance` anywhere in
-  the codebase (checked, zero matches), so at least there's no central
-  singleton to untangle. Instead, individual scripts reach for "the"
-  player directly:
+- **Re-audit finding (2026-08-19), the actual reason Phase 0 finally
+  started**: Mirror sat completely untouched for the 6 days between import
+  and this re-audit — zero `using Mirror` references anywhere, zero
+  commits besides the import itself. In that same window the codebase this
+  doc will eventually need to convert grew **~50%**: 115→177 total
+  scripts, 32→48 `PlayerXXX.cs`, 12→27 NPC scripts (15 of which now have
+  their own `Update()` loop, up from 5). Every day this stays unstarted,
+  the conversion gets more expensive, not less — a real cost of continuing
+  to defer it, not just an abstract risk.
+- **A genuinely new complication found in this same re-audit**:
+  persistence (`SaveManager`, shipped 2026-08-17, see
+  `BUGS_AND_ENHANCEMENTS.md`) is no longer the "greenfield work, build it
+  right the first time" this doc originally framed it as in section 2. It
+  now exists, works, and is wired into 28 files — as a single omnibus JSON
+  file with no per-player keying and no world/character split, exactly as
+  single-player-shaped as you'd expect. The persistence phase of a real
+  conversion is now "restructure a working, depended-upon system," a
+  strictly worse risk profile than building on nothing.
+- **115 total scripts in `Assets/Scripts/`** at the time of the original
+  audit (now 177 — see above), of which **32 were `PlayerXXX.cs`**
+  (PlayerInventory, PlayerVitals, PlayerCrafting, PlayerBuilding,
+  PlayerMagic, PlayerCombat, PlayerEquipment, ...) and **12 were NPC/AI**
+  (NPCMining, NPCWander, NPCHiring, NPCDialogue, NPCEncumbrance, ...).
+  Every one of these currently assumes exactly one local player exists.
+- **Hard single-player assumptions via scene-scanning, mostly not a
+  singleton pattern** — 4 `public static X Instance` singletons exist now
+  (`ItemDatabase`/`SkillDatabase`/`NPCJobDatabase`/`BuildPieceDatabase`,
+  all added after this doc's original 2026-08-13 audit, which found zero).
+  Checked and confirmed benign for multiplayer: all 4 are read-only
+  `ScriptableObject` data registries (item/skill/recipe lookups), identical
+  on server and every client — nothing to untangle, unlike a genuine
+  per-player singleton would be. Instead, individual scripts reach for
+  "the" player directly:
   - `Campfire.cs` and `HostileCreature.cs` both call
     `FindFirstObjectByType<PlayerVitals>()` to find their one target/who to
     warm.
@@ -83,15 +105,16 @@ Confirmed directly against the codebase before any networking design:
   *read from* (see section 2) — they currently read local C# fields
   directly; under Mirror they'd read from synced state instead. The
   rendering code itself is largely fine as-is.
-- **Zero save/load persistence exists anywhere.** Confirmed by searching for
-  `PlayerPrefs`, `JsonUtility.ToJson`/`FromJson`, and any custom save-file
-  I/O — nothing. The only `[System.Serializable]` usages found are on plain
-  data classes for Inspector display (Boot, CraftingRecipe, Inventory,
-  PlayerEquipment, ...), not persistence. This was already flagged as a
-  gap in `MVP2_PLANNING.md` item 6 for single-player reasons (NPC job
-  durations currently exist only as a workaround for not having
-  persistence) — multiplayer makes it strictly more urgent, not a new
-  requirement.
+- **Stale as of the 2026-08-19 re-audit — persistence now exists.** At the
+  original 2026-08-13 audit, zero save/load persistence existed anywhere.
+  It shipped 2026-08-17 (`SaveManager.cs`, single JSON file at
+  `Application.persistentDataPath`, no autosave, manual Save button) and is
+  now wired into 28 files. See this section's opening bullet above — this
+  is good news for single-player and a genuine complication for
+  multiplayer at the same time: the *concept* is proven, but the *shape*
+  (one omnibus file, no per-player keying) will need real restructuring,
+  not just a sync hookup, once a "world" vs. "N player characters"
+  distinction actually matters.
 - **World-state interactable prefabs are already the right conceptual
   shape** — StorageBox, Campfire, Lockbox, Furnace/Anvil surfaces,
   ResourceNode, ChoppableTree, BerryBush, HostileCreature all already exist
@@ -159,13 +182,19 @@ Mapped onto Gridless's actual systems:
 
 ## 3. A suggested phased approach (not committed, a starting proposal)
 
-1. **Infrastructure spike.** Bare `NetworkManager` in the scene, two Editor
-   instances (or a build + Editor) connecting, seeing each other's
-   `FirstPersonController` move around — no gameplay systems touched yet.
-   Purpose: validate the whole toolchain (build settings, transport,
-   firewall/local networking) works before investing further, and make a
-   real decision on the movement-authority open question above with a
-   working testbed instead of guessing.
+1. **Infrastructure spike — built 2026-08-19, v0.3.145-dev, not yet
+   live-tested.** `Assets/Scenes/NetworkSpike.unity` (deliberately isolated
+   — not in `EditorBuildSettings`, not touching `TestScene.unity` or any of
+   the 48 `PlayerXXX.cs` scripts) + `NetworkSpikePlayer.prefab`, a minimal
+   `NetworkIdentity`/`NetworkTransformReliable` capsule with a new
+   `NetworkSpikeMovement.cs` (not `FirstPersonController` — answering the
+   movement-authority question safely needed a throwaway mover, not the
+   real 48-script Player stack). `NetworkTransformReliable.syncDirection`
+   is set to `ClientToServer` as the first data point on the open
+   movement-authority question below. See `WORKING_ON.md` for the manual
+   two-process test steps still needed (build settings, standalone build,
+   Host/Client via Mirror's own `NetworkManagerHUD`) — that's the actual
+   toolchain validation and hasn't run yet.
 2. **One pilot world object, fully networked.** StorageBox is the obvious
    choice — it's the simplest existing world object (one `Inventory`, no
    fuel/lit-state/recipe complexity Campfire has) and already has the
@@ -217,17 +246,15 @@ Mapped onto Gridless's actual systems:
   actually synced and screens need to read from `SyncVar`s instead of
   plain fields.
 - **Player identity/naming** (raised 2026-08-17, NPC-management
-  discussion): the game has zero player-name concept today — nothing
-  identifies a character beyond "the local player." Not worth building
-  in single-player (nothing to distinguish it from), but a real
-  prerequisite once a second real player exists — other players need a
-  name to see, same reasoning driving the NPC-renaming/nametag work
-  logged in `BUGS_AND_ENHANCEMENTS.md`. Likely the same shape either
-  way: a small identity component, name entry via the Player tab
-  (right-click-rename doesn't make sense on yourself), a `SyncVar` once
-  networked. Not designed further here — flagged so it isn't
-  rediscovered from scratch when phase 2+ (player-authoritative gameplay)
-  starts needing it. **A rename should cost currency** (a real Coin sink,
+  discussion) — **closer to solved than when this was written.** The game
+  still has zero player-name concept today, but `NPCDialogue`'s
+  auto-naming + `IRenameable` rename flow (shipped 2026-08-17, for the
+  unrelated reason of telling multiple hired NPCs apart) is exactly the
+  shape this needs: a name field, a rename entry point, and — once
+  networked — a `SyncVar` instead of a plain field. Not built for the
+  player yet, but no longer a from-scratch design question when phase 2+
+  needs it, just a port of an already-proven pattern. Entry point still
+  the Player tab (right-click-rename doesn't make sense on yourself). **A rename should cost currency** (a real Coin sink,
   ties into `COMMERCE_PLANNING.md`'s "everything's a faucet, nothing's a
   sink" gap) **and, once a second player exists, should hit current Fame
   if it's negative** — not a flat tax on every rename (that would punish

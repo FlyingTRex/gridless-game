@@ -5,10 +5,50 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.144-dev` — must always match `GameVersion` in
+**Current version:** `0.3.145-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-19 (2)
+
+### v0.3.145-dev — Multiplayer Phase 0: infra spike built
+
+`MULTIPLAYER_PLANNING.md`'s long-open Phase 1 proposal ("bare
+NetworkManager, two instances seeing each other move, no gameplay
+touched") built for real, prompted by a critical re-audit: Mirror had sat
+completely untouched for 6 days since import (zero `using Mirror`
+references, zero commits besides the import) while the single-player
+codebase it'll eventually need to convert grew ~50% in that same window
+(115→177 scripts, 32→48 `PlayerXXX.cs`, 12→27 NPC scripts). Persistence
+also shipped in that window (`SaveManager`, now wired into 28 files) in a
+single-player-shaped way — one omnibus JSON file, no per-player keying —
+which is a real new complication for a future conversion, not present in
+the original audit.
+
+Deliberately isolated from the real game to keep collision risk with
+concurrent single-player work at zero: `Assets/Scenes/NetworkSpike.unity`
+(a throwaway scene, **not added to `EditorBuildSettings`'s scene list**,
+so it can't interfere with `SceneAutoOpen.cs`'s single-scene convention or
+accidentally ship) plus `Assets/Prefabs/NetworkSpikePlayer.prefab` — a
+plain capsule with `NetworkIdentity` + `NetworkTransformReliable`
+(`syncDirection: ClientToServer`, the client-authoritative baseline the
+planning doc's open movement-authority question is weighing against a
+server-authoritative alternative) + a new `NetworkSpikeMovement.cs`
+(WASD/turn, gated on `isLocalPlayer`, reads the New Input System directly
+— deliberately not `FirstPersonController`, so none of the 48
+`PlayerXXX.cs` scripts are touched by this pass). The scene's
+`NetworkManager` GameObject carries `KcpTransport` (Mirror's bundled
+default transport) and `NetworkManagerHUD` (Mirror's own manual-test UI —
+Host/Client/Server buttons at runtime, no custom UI needed for this
+spike). Compile-verified via batch mode (zero `CS####` errors); scene/
+prefab YAML verified directly (`playerPrefab` reference resolves to the
+correct fileID, `syncDirection` serialized correctly). **Not yet
+live-tested with two actual connected processes** — that's a manual step
+for Ben (temporarily add `NetworkSpike.unity` to Build Settings, build a
+standalone Player as one client, run the Editor as Host via the HUD for
+the other) since it needs two real running processes, not something a
+batch-mode script can validate.
 
 ## 2026-08-19
 

@@ -33,6 +33,58 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
   approaching gap. Compile-verified via batch mode (zero `CS####` errors);
   not yet live-tested. `GameVersion`/`CHANGELOG.md` bumped to v0.3.144-dev.
 
+- 2026-08-19 — Ben+Claude — **Multiplayer Phase 0 infra spike starting**
+  (`MULTIPLAYER_PLANNING.md`). Preceded by a critical re-audit: Mirror sat
+  completely untouched for 6 days since import (zero `using Mirror`
+  references, zero commits besides the import), while the single-player
+  codebase it'll need to convert grew ~50% in that same window (115→177
+  scripts, 32→48 `PlayerXXX.cs`, 12→27 NPC scripts, persistence now
+  wired into 28 files in a single-player-shaped way that'll need real
+  restructuring, not just hookup). Ben's call: commit to actually starting
+  Phase 0 now instead of deferring again. **Scope, to avoid colliding with
+  any of the 48 `PlayerXXX.cs` files or `TestScene.unity` while this is in
+  progress**: a separate `Assets/Scenes/NetworkSpike.unity`, deliberately
+  *not* added to `EditorBuildSettings`' scene list (so it can't interfere
+  with `SceneAutoOpen.cs`'s single-scene convention or accidentally ship),
+  with a bare `NetworkManager` + a minimal purpose-built networked capsule
+  (not `FirstPersonController`) to validate the toolchain and get a first
+  real read on the movement-authority question — no gameplay systems
+  touched. Anyone else picking up this repo: hold off on any Mirror-related
+  work until this entry clears.
+
+  **Built, v0.3.145-dev, same day.** `Assets/Scenes/NetworkSpike.unity`
+  (not in `EditorBuildSettings`) + `Assets/Prefabs/NetworkSpikePlayer.prefab`
+  (capsule, `NetworkIdentity` + `NetworkTransformReliable` set to
+  `ClientToServer` sync + new `NetworkSpikeMovement.cs`, WASD/turn gated on
+  `isLocalPlayer`). Scene's `NetworkManager` object carries `KcpTransport` +
+  Mirror's own `NetworkManagerHUD` for manual Host/Client testing, no
+  custom UI needed. Compile-verified via batch mode + direct YAML grep
+  (`playerPrefab` resolves correctly, `syncDirection` serialized right).
+
+  **Next step — a real live test, needs Ben, can't be done from a batch
+  script:**
+  1. Open the Editor, `File > Build Settings`, temporarily add
+     `NetworkSpike.unity` to the scene list (drag it in, or "Add Open
+     Scenes" with it loaded) — needed only so a standalone build can find
+     it, since it's deliberately excluded from the project's real build
+     list otherwise.
+  2. Build a Development Player (any target) — this becomes the "second
+     player" process.
+  3. Run the built executable — Mirror's `NetworkManagerHUD` shows in the
+     corner; click **Client**, connect to `localhost` (the default).
+  4. In the Editor, open `NetworkSpike.unity` and press Play — click
+     **Host (Server + Client)** on the same HUD.
+  5. Confirm: both capsules visible to both processes, each one's WASD only
+     drives its own capsule (not the other), and the built client's
+     movement shows up in the Editor's Host view (proving replication is
+     actually happening, not just two independent local scenes).
+  6. Afterward, remove `NetworkSpike.unity` from Build Settings again — it
+     was only added for this test.
+  This is the actual validation of the toolchain end to end and the first
+  real data point on client-authoritative movement (does it feel fine at
+  LAN/localhost latency, or is server-authoritative worth the extra work) —
+  not yet run.
+
 - **Note to whichever Claude session picks up traskmi's next pull**: do
   a little dance and let him know it's good to see him back. (Ben's ask,
   2026-08-16 night.)
