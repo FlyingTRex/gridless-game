@@ -40,6 +40,23 @@ the full long-term list, but `MVP2_PLANNING.md` is the actual next-up scope
 Ben picked (2026-08-12) and the live surface for fleshing it out and deciding
 build order.
 
+**MVP 3 scope lives in `MVP3_PLANNING.md`.** Decided 2026-08-19, after a
+"be mean" pass on an initial "MVP3 = Multiplayer + Teams/Guilds + Commerce"
+proposal found the three items weren't comparable in size or dependency
+shape — Teams & Guilds genuinely cannot be built before Multiplayer's
+player-authoritative phase lands (every mechanic is a relationship between
+real players, no smaller single-player version exists), and "Multiplayer"
+itself isn't one MVP-shaped item the way every prior tier has been (its own
+roadmap's biggest phase, converting all 48 `PlayerXXX.cs` scripts, is
+explicitly unestimated). Resolved into **MVP3 = Multiplayer through
+player-authoritative gameplay (a real named finish line, not open-ended) +
+Commerce, running concurrently, not sequenced** (Commerce has no real
+multiplayer dependency for 3 of its 5 `VendorStall` drivers, so gating it
+behind an open-ended conversion would cost real ready playability for no
+reason) — **MVP4 = Teams & Guilds + Team/Guild Vendor + whatever else**,
+deliberately left unscoped since it's entirely downstream of MVP3's
+multiplayer half actually landing.
+
 **Medical system evaluation lives in `MEDICAL_SYSTEM_PLANNING.md` +
 `MEDICAL_FAMILIES.md`.** Evaluation of a proposed 50-item medical
 progression against what's actually built (2026-08-12). The list's 5 tiers
@@ -169,19 +186,53 @@ Will cost every existing wish shares won't survive a real power ladder —
 needs its own per-tier table, not a reused one.
 
 **Multiplayer conversion exploration lives in `MULTIPLAYER_PLANNING.md`.**
-Audits the single-player codebase (2026-08-13) against what converting to
-dedicated-server multiplayer via Mirror Networking (imported this session)
-would actually require — 32 `PlayerXXX.cs` scripts assume exactly one
-local player, only `StorageBox` maintains a live registry (everything else
-scene-scans via `FindObjectsByType`), zero save/load persistence exists
-anywhere, and the 22 `OnGUI`-based screens turn out to need no structural
-change at all (IMGUI is already inherently per-client). Nothing here is a
-locked architecture — it's a phased proposal (infra spike → one pilot
-networked world object → player-authoritative gameplay → NPCs server-side
-→ persistence) plus a list of real open questions (movement-authority
-model, dev/test workflow, scope shape). Mirror was picked over PurrNet
-mainly because PurrNet's stated minimum Unity version is newer than this
-project's pinned one.
+Original audit 2026-08-13 (32 `PlayerXXX.cs` scripts assume exactly one
+local player, only `StorageBox` maintains a live registry, zero save/load
+persistence existed, 22 `OnGUI`-based screens need no structural change
+since IMGUI is already inherently per-client). **Re-audited 2026-08-19,
+critically** — after 6 days of zero movement on Mirror (imported but
+completely untouched), the codebase it'll need to convert had grown ~50%
+(115→177 scripts, 32→48 `PlayerXXX.cs`, 12→27 NPC scripts), and
+persistence had shipped in the meantime in a single-player-shaped way
+(one omnibus save file, no per-player keying) — a real new complication,
+not present in the original audit. Prompted committing to Phase 0 for
+real: **`Assets/Scenes/NetworkSpike.unity` built the same day**
+(deliberately isolated — not in `EditorBuildSettings`, not touching
+`TestScene.unity` or any `PlayerXXX.cs` script), a minimal
+`NetworkIdentity`/`NetworkTransformReliable` capsule + `NetworkManager`/
+`KcpTransport`/`NetworkManagerHUD`, client-authoritative as a first data
+point on the movement-authority question. Compile/YAML-verified; the
+actual two-process live test is still a manual step, not yet run. Mirror
+was picked over PurrNet mainly because PurrNet's stated minimum Unity
+version is newer than this project's pinned one.
+
+**Teams & Guilds — the social/economic layer multiplayer needs — are
+planned in `TEAMS_AND_GUILDS_PLANNING.md`.** Grew directly out of the
+2026-08-19 re-audit above. Two deliberately orthogonal systems: **Team**
+(cap 6, Owner/Officer/Member roles, shares physical access — buildings,
+crafting stations, StorageBoxes — but never currency, no Team Bank;
+territory is the federated union of the Owner's and any Officer's own
+Village Flags, live-recomputed off each member's current rank, reusing
+`CraftTierScale.VillageFlagRevealRadius` as-is) and **Guild** (cap 64,
+player-founded via a craftable Guild Sign that picks a dev-authored
+`GuildTypeDefinition` from a dropdown — multiple instances of the same
+type can coexist — Owner/Officer/Member roles, a Guild Bank funded by
+dues + a cut of Guild Vendor sales that can only ever be spent on
+guild-wide Perks, never withdrawn, and revocable-on-leaving recipe/wish
+grants reusing the Skill Book mechanism). Both territory systems (Team's
+Flag-based zones, Guild's Sign/Marker-based 15m zones) share one rule
+worked out together: a zone is a permission gate only, the builder
+explicitly picks the actual owner at placement time — which is what lets
+Team and Guild territory freely overlap with zero ambiguity, while
+same-type Guild-vs-Guild overlap is blocked (30m clearance, reusing Tree/
+Boulder scatter placement's existing minimum-clearance check). Also
+specs a general (not Team-gated) player-to-player trade window with the
+genre-standard reset-on-offer-change anti-scam behavior, and Map
+markers for Team/Guild-mates (distinct shape from NPC markers, Team
+color taking priority over Guild color on overlap, plus a corner legend).
+Planning only — depends on `MULTIPLAYER_PLANNING.md`'s own
+player-authoritative-gameplay and player-identity prerequisites landing
+first, neither of which exist yet.
 
 **NPC job generalization (Mining + Woodworking + Berry/Herb foraging) is
 built — see `NPC_JOB_GENERALIZATION_PLANNING.md`.** Ben's ask (2026-08-13):

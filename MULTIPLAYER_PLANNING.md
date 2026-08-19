@@ -261,17 +261,17 @@ Mapped onto Gridless's actual systems:
   cosmetic renames identically to reputation-laundering), but scaled to
   discourage using a fresh name to shed an Infamous reputation
   specifically. Not built, design-only.
-- **Guild-mate map markers** (raised 2026-08-17, same discussion):
-  members of a shared guild should see each other on the Map, same idea
-  as the Village Flag/NPC markers. Also blocked on a second real player
-  — `PlayerGuilds` today is single-player-only membership (join up to 3
-  dev-authored guilds via Admin Spawn; there's no roster of *other*
-  members at all, because there's no one else). The mechanism itself is
-  nearly free once relevant: `MapScreen.DrawFlagMarkers`' live-marker
-  pattern (fresh position scan every `OnGUI` frame) already proves this
-  out — filtering to "other players sharing a guild with me" instead of
-  "every Village Flag" is a small extension of existing code, not new
-  plumbing. Not built, design-only.
+- **Guild-mate map markers** (raised 2026-08-17, same discussion) — **now
+  designed in full in `TEAMS_AND_GUILDS_PLANNING.md`** (2026-08-19), not
+  just this one-paragraph sketch anymore. Also covers Team-mate markers
+  (a new, related need that didn't exist when this bullet was first
+  written), color-priority rules for someone who's both, a distinct
+  marker shape from NPC markers, and a map-corner legend. `PlayerGuilds`
+  itself also changed shape in that doc — no longer a fixed dev-authored
+  join/leave list, but player-founded guild *instances* of dev-authored
+  *types*. Still blocked on the same prerequisite this bullet originally
+  named: a second real player, and the player-identity/naming system
+  below.
 
 ## Cross-references
 
@@ -285,3 +285,7 @@ Mapped onto Gridless's actual systems:
   flags as now more urgent.
 - `WORKING_ON.md` — mandatory coordination point once real implementation
   work on this starts, given the blast radius across the codebase.
+- `TEAMS_AND_GUILDS_PLANNING.md` — the social/economic layer built on top of
+  this doc's foundation once player-authoritative gameplay and player
+  identity land. Team, Guild, general player trade, and Map presentation for
+  both — all planning only, depends on this doc's own prerequisites first.
