@@ -33,6 +33,11 @@ public static class InventorySaveUtility
     {
         if (inventory == null || data == null) return;
 
+        // Always start from empty -- see Inventory.Clear()'s own comment
+        // for the real bug this fixes (a pre-occupied PlayerEquipment body
+        // slot silently rejecting the restored item).
+        inventory.Clear();
+
         foreach (var token in data)
         {
             if (!(token is JObject slotObj)) continue;

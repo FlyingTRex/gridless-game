@@ -17,6 +17,26 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-19 — Ben+Claude — **ChoppableTree stuck bug fixed, two real
+  save/load regressions root-caused** (v0.3.148-dev, `BUGS_AND_ENHANCEMENTS
+  .md`, `CHANGELOG.md`, two new `CLAUDE.md` gotchas). Continuation of the
+  same playtest session. `[TreeStuckDiagnostic]` logging (added last pass)
+  caught a deterministic collider/pivot mismatch on every tree tested —
+  fixed by measuring against `Collider.ClosestPoint` for `ChoppableTree`
+  targets specifically, logging removed. Canteen-losing-its-fill and a
+  Hammer vanishing from worn Jeans both root-caused via a direct
+  `save.json` comparison (capture side proven correct, bug entirely on
+  restore) — `Inventory.AddEquipmentItem` silently fails on an
+  already-occupied slot, and `PlayerEquipment`'s body slots start
+  pre-occupied by scene-baked default starting gear; fixed with a new
+  `Inventory.Clear()` called by `InventorySaveUtility.Restore` before every
+  restore. Separately, a StorageBox losing its name/inventory on reload
+  root-caused as a restore-*ordering* bug (`RestoreWorldObjects<StorageBox>`
+  ran before `RestorePlacedPieces`, so a player-built box's SaveId lookup
+  failed before it existed) — reordered to match `Furnace`'s already-correct
+  sequence. Compile-verified via full-project batch mode; none of the three
+  live-tested yet, all need a real save/reload pass.
+
 - 2026-08-19 — Ben+Claude — **Craftable Anvil and Furnace** (v0.3.147-dev,
   `BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md`). Closes the playtest's
   highest-priority finding below. Furnace: clean duplicate of the real

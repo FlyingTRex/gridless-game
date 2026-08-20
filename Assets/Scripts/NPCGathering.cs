@@ -94,14 +94,6 @@ public class NPCGathering : MonoBehaviour
 
     private NPCHiring hiring;
 
-    // [TreeStuckDiagnostic] (2026-08-19, live-testing session) -- temporary,
-    // remove once the ChoppableTree stuck-with-no-animation bug is
-    // root-caused. Throttled log of distance-to-target-pivot vs.
-    // harvestRange while approaching a ChoppableTree specifically, to catch
-    // the actual numbers live instead of guessing at a collider/pivot
-    // mismatch from a screenshot.
-    private float treeStuckLogTimer;
-
     // Shared with NPCCrafting/NPCTraining/NPCGuarding/NPCSeekFlag's own
     // MoveToward via NPCMovement.cs (2026-08-19) -- see that file's header.
     private readonly NPCMovement.StuckTracker stuckTracker = new();
@@ -221,25 +213,27 @@ public class NPCGathering : MonoBehaviour
         Vector3 targetPos = currentTarget.transform.position;
         float distance = Vector3.Distance(transform.position, targetPos);
 
+        // A ChoppableTree's transform pivot sits well beyond where its
+        // collider actually blocks approach -- confirmed live, 2026-08-19,
+        // via [TreeStuckDiagnostic] (now removed): pivotDistance=3.99,
+        // harvestRange=3.00, colliderSurfaceDistance=0.00, identical across
+        // every tree instance tested, meaning an NPC could be physically
+        // touching the tree and still never satisfy the pivot-distance
+        // check below. Measuring against the collider surface instead for
+        // this one target type fixes the mismatch without loosening
+        // harvestRange for every other target (ResourceNode/StorageBox
+        // don't have this offset).
+        if (currentTarget is ChoppableTree)
+        {
+            var treeCollider = currentTarget.GetComponent<Collider>();
+            if (treeCollider != null)
+                distance = Vector3.Distance(transform.position, treeCollider.ClosestPoint(transform.position));
+        }
+
         bool isMoving = distance > harvestRange;
 
         if (isMoving)
         {
-            // [TreeStuckDiagnostic] -- see the field's own comment.
-            if (currentTarget is ChoppableTree)
-            {
-                treeStuckLogTimer += Time.deltaTime;
-                if (treeStuckLogTimer >= 2f)
-                {
-                    treeStuckLogTimer = 0f;
-                    var col = currentTarget.GetComponent<Collider>();
-                    float colDist = col != null
-                        ? Vector3.Distance(transform.position, col.ClosestPoint(transform.position))
-                        : -1f;
-                    Debug.Log($"[TreeStuckDiagnostic] {name}: pivotDistance={distance:F2} harvestRange={harvestRange:F2} colliderSurfaceDistance={colDist:F2}");
-                }
-            }
-
             MoveToward(targetPos, currentTarget.gameObject);
             harvestTimer = 0f;
             return;

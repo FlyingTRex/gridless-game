@@ -135,6 +135,26 @@ public class Inventory
 
     // Adds a single equippable instance (e.g. a backpack or canteen) as its
     // own slot. Fails if there's no free slot — equipment items don't stack.
+    // Empties every slot, destroying any equipment's backing GameObject to
+    // avoid leaking an orphaned instance. Used by InventorySaveUtility
+    // .Restore so a restore always produces exactly the saved state,
+    // regardless of whatever the inventory already held beforehand --
+    // found live, 2026-08-19: a PlayerEquipment body slot pre-occupied by
+    // scene-baked default starting gear (Jeans/Belt, capacity 1) silently
+    // rejected the real restored item via AddEquipmentItem's own capacity
+    // check, discarding a Hammer stashed in the Jeans and a filled Canteen
+    // clipped to the Belt with no error at all -- the scene's empty
+    // default gear just stayed in place.
+    public void Clear()
+    {
+        foreach (var slot in slots)
+        {
+            if (slot.equipment is Component component && component != null)
+                Object.Destroy(component.gameObject);
+        }
+        slots.Clear();
+    }
+
     public bool AddEquipmentItem(ItemDefinition item, IEquippable equipment)
     {
         if (item == null || equipment == null) return false;

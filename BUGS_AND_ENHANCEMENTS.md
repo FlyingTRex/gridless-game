@@ -1210,6 +1210,55 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **Two real save/load regressions, found live during the 2026-08-19
+  playtest continuation, both fixed same day, v0.3.148-dev.**
+  1. **A worn Canteen lost its fill, and a Hammer stashed in a worn pair
+     of Jeans vanished, both after a real save/reload.** Root-caused via
+     a direct `save.json` inspection rather than guesswork — the
+     *capture* side was already 100% correct (confirmed the Jeans'
+     `"equipment": {"nested": [{"item": "MasterworkHammer", ...}]}` and
+     the Belt's Canteen `"liquid": "Water", "amount": 100.0` were both
+     genuinely written to disk). The bug was entirely on restore:
+     `Inventory.AddEquipmentItem` silently fails when a slot's already at
+     capacity, and `PlayerEquipment`'s body slots (Leg, Waist, ...) start
+     pre-occupied by the scene's own baked-in default "Settlers" starting
+     gear — so the real restored Jeans/Belt were silently discarded,
+     leaving the scene's empty defaults in place. A genuine counter-
+     example confirmed the mechanism precisely: the Chest slot's Shirt
+     (with Rations inside) restored *correctly*, because unlike Jeans/
+     Belt/Sneakers (baked directly into the scene, no guard), the Shirt
+     uses a runtime `Start()` auto-equip with an "already equipped?"
+     check that safely loses the race if `SaveManager.Load()` runs
+     first. Fixed at the root: new `Inventory.Clear()`, called by
+     `InventorySaveUtility.Restore` before every restore, so a restore
+     always produces exactly the saved state regardless of what the
+     inventory already held — fixes every call site at once (player
+     inventory, every equipment slot, NPCCargo, StorageBox), not just
+     the two reported cases.
+  2. **A StorageBox named and stocked before saving came back after
+     reload with a generic name and empty.** A serious regression in
+     what used to be one of the most solid parts of the save system.
+     Root cause: `SaveManager.Load()` restored `StorageBox`/
+     `ResourceNode`/`GardenPlot`/`GardenPlot4x4` by SaveId lookup
+     *before* `RestorePlacedPieces` (which actually recreates a
+     player-built structure that doesn't exist yet in a fresh scene
+     load) — fine for a box already sitting in the scene, broken for one
+     built during play, since the lookup silently fails and
+     `RestorePlacedPieces` then recreates a bare, empty, default-named
+     copy with nothing to backfill it. `Furnace`'s own restore already
+     ran in the correct order (after `RestorePlacedPieces`) — exactly
+     why its own richer state-saving worked when tested earlier; every
+     other world-object restore call reordered to match.
+  3. **Standing item, not yet built**: audit save/restore for *every*
+     worn-equipment slot with a nested inventory (not just the two that
+     happened to get reported), and — a new permanent addition to
+     `CLAUDE.md`'s `IEquippable` checklist — any future gear with its own
+     inventory slots must have its nested contents explicitly verified
+     against a real save/reload before being considered done, not
+     assumed to work because the general mechanism exists.
+
+  Compile-verified via full-project batch mode; not yet live-tested —
+  both need a real save/reload pass to confirm.
 - [x] **A new-player-experience playtest (2026-08-19) — build a
   structure, place Furnace/Anvil/StorageBoxes, hire and assign NPCs, cook
   — surfaced 5 real findings, 4 fixed same session, 1 still open.**
@@ -1227,18 +1276,18 @@ signs off on scope and order.
   `searchesBushes`/`collectLoosePickups`, only `MineOreJob` sets it
   true — this also falsifies a comment already in the codebase claiming
   the Harvestable pool was "naturally segregated by RequiredTools," true
-  for ore Boulders, false for plain Rock). **Still open**: an NPC (Iris)
-  got stuck at a standing `ChoppableTree` twice, no animation, 60+
-  seconds, not resolved by the recent obstacle-avoidance fix (this looks
-  like stuck-while-harvesting, not stuck-while-moving — the fix lives in
-  `MoveToward`, which stops being called once "in range"). Working theory
-  (Ben's): a collider/harvest-range mismatch specific to `ChoppableTree`
-  — chopping a placed Log works cleanly for the same NPC, so it's
-  tree-specific, not a general harvest-loop failure. Temporary
-  `[TreeStuckDiagnostic]` logging added to `NPCGathering.cs` (pivot
-  distance vs. `harvestRange` vs. actual collider-surface distance,
-  throttled to 2s) — not yet confirmed against a live repro, remove once
-  root-caused. Also confirmed working during the same session, not bugs:
+  for ore Boulders, false for plain Rock). **The `ChoppableTree` stuck
+  bug is also fixed now, v0.3.148-dev — Ben's collider-mismatch theory
+  confirmed exactly right.** The `[TreeStuckDiagnostic]` logging caught
+  the real numbers live, identical across every tree tested:
+  `pivotDistance=3.99 harvestRange=3.00 colliderSurfaceDistance=0.00` —
+  an NPC could be physically touching the tree and the game would still
+  think it was a meter too far away, since the approach check measured
+  distance to the tree's transform pivot, not its actual collider
+  surface (chopping a placed Log worked fine for the same NPC because
+  `ResourceNode`/`StorageBox` don't have this offset). Fixed by measuring
+  against `Collider.ClosestPoint` for `ChoppableTree` targets
+  specifically; diagnostic logging removed. Also confirmed working during the same session, not bugs:
   Fame-on-tier-unlock grant (via a live Console log,
   `[Fame] +1.00 -> 31.00` at the same timestamp as a Restoration
   tier-unlock — resolves the long-open "unconfirmed" item below as a

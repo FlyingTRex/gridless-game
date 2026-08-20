@@ -109,12 +109,24 @@ public class SaveManager : MonoBehaviour
 
         if (data["player"] is JObject player) RestorePlayer(player);
 
+        // RestorePlacedPieces must run before any RestoreWorldObjects<T>
+        // call whose T can be player-built via a BuildPiece (StorageBox,
+        // GardenPlot/GardenPlot4x4) -- found live, 2026-08-19: a
+        // player-built StorageBox doesn't exist yet in a freshly-loaded
+        // scene, so restoring its saved inventory/name by SaveId lookup
+        // before RestorePlacedPieces has recreated it silently fails
+        // (nothing to find), and the later recreation has no saved state
+        // to apply, leaving a bare, empty, default-named box. Furnace
+        // already had this right (its own RestoreWorldObjects call ran
+        // after RestorePlacedPieces) -- that's the correct order, now
+        // applied consistently.
+        RestorePlacedPieces(data["placedPieces"] as JArray);
+
         RestoreWorldObjects<StorageBox>(data["storageBoxes"] as JArray, RestoreStorageBox);
         RestoreWorldObjects<ResourceNode>(data["resourceNodes"] as JArray, RestoreResourceNode);
         RestoreNpcs(data["npcs"] as JArray);
         RestoreWorldObjects<GardenPlot>(data["gardenPlots"] as JArray, RestoreGardenPlot);
         RestoreWorldObjects<GardenPlot4x4>(data["gardenPlots4x4"] as JArray, RestoreGardenPlot4x4);
-        RestorePlacedPieces(data["placedPieces"] as JArray);
         RestoreWorldObjects<Furnace>(data["furnaces"] as JArray, RestoreFurnace);
     }
 

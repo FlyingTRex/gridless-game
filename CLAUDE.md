@@ -713,6 +713,16 @@ retroactively (2026-08-03). When adding a new physical object that can be worn
   dropped — otherwise it silently falls back to the generic gray `DroppedItem`
   cube. Not always wrong (e.g. Rock Hammer currently does this on purpose), but
   should be a deliberate choice, not an oversight.
+- **If it implements `IInventoryHolder`** (it has its own nested inventory slots
+  — a Backpack, Boot, Belt, Pants/Legs, ...), explicitly verify its contents
+  survive a real save/reload before considering it done — don't assume the
+  general `InventorySaveUtility`/`EquipmentSaveUtility` mechanism covers it just
+  because it exists. Found live (2026-08-19): a Hammer stashed in a worn pair of
+  Jeans and a filled Canteen clipped to a worn Belt were both silently discarded
+  on restore (see the `Inventory.Clear()` gotcha below) — the save file itself
+  had the correct data the whole time, the bug was invisible to a code read of
+  the capture side alone. A real save → exit → reload → check is the only way to
+  actually confirm this for a new equippable.
 
 ## Gotcha: generic `Inventory.RemoveItem`+`AddItem` strip an item's `equipment`
 reference
@@ -743,6 +753,71 @@ methods directly on a slot that might hold an equippable is still on the hook to
 check `slot.equipment` first and route through the type's own carrier
 (`PlayerBackpack.Drop`, `PlayerCanteen.Equip`, etc.) — the fix lives in the two call
 sites that had it, not in `Inventory` itself.
+
+## Gotcha: `Inventory.AddEquipmentItem` silently fails on an already-occupied
+slot — a real save/restore trap for `PlayerEquipment`'s body slots
+
+`AddEquipmentItem` returns `false` (no error, no warning) the moment
+`slots.Count >= capacity` — correct behavior for an ordinary full inventory, but
+a real trap for restoring a `PlayerEquipment` body slot specifically: those
+slots (Leg, Waist, ...) can already be occupied by the scene's own baked-in
+default starting gear (a fresh, empty "Settlers" Jeans/Belt/etc.) *before*
+`SaveManager.Load()` ever runs. Restoring the real saved equipment into an
+already-full slot silently discards it — the scene's empty default just stays
+in place, with the saved item (and anything nested inside it, like a Hammer
+tucked in a pocket or a filled Canteen clipped to a Belt) gone with no trace in
+any log.
+
+**Found live (2026-08-19)** via a direct `save.json` comparison, not a code
+read — the capture side was already provably correct (`"Leg": [{"item":
+"SettlersJeans", "equipment": {"nested": [{"item": "MasterworkHammer",
+...}]}}]` was genuinely on disk), which is what proved the bug was on restore,
+not capture. A real counter-example nailed the exact mechanism: the Chest
+slot's Shirt (with Rations inside) restored *correctly*, because unlike Jeans/
+Belt/Sneakers — baked directly into the scene with no guard — the Shirt uses a
+runtime `Start()` auto-equip with an "already equipped?" check, which safely
+loses the race if `Load()` runs first.
+
+**Fixed at the root, not per-caller:** new `Inventory.Clear()` (destroys any
+equipment GameObject already in the inventory, then empties the slot list),
+called by `InventorySaveUtility.Restore` before every restore. A restore now
+always produces exactly the saved state regardless of what the inventory
+already held — this protects every call site (player inventory, every
+equipment slot, NPCCargo, StorageBox) automatically, not just the two
+originally-reported cases. Any *new* code that restores into an `Inventory`
+from saved data should go through `InventorySaveUtility.Restore` rather than
+calling `AddEquipmentItem`/`AddItem` directly on a slot that might not already
+be empty.
+
+## Gotcha: `SaveManager.Load()`'s restore-call order matters for any type that
+can be both pre-existing *and* player-built
+
+`RestoreWorldObjects<T>` (find an existing object by `SaveId`, apply its saved
+state) and `RestorePlacedPieces` (recreate a structure that doesn't exist yet
+in a fresh scene load, via its `BuildPiece` prefab) look independent, but for
+any type reachable through *both* paths — a pre-placed scene fixture and
+something a player can also build, like `StorageBox` — the order they run in
+is load-bearing. If `RestoreWorldObjects<StorageBox>` runs before
+`RestorePlacedPieces`, a player-built box that doesn't pre-exist yet fails its
+`SaveId` lookup silently (nothing to find) and its real saved inventory/name
+are never applied; `RestorePlacedPieces` then recreates a bare, empty,
+default-named copy with nothing to backfill it. **Found live (2026-08-19)**: a
+named, stocked StorageBox came back generic and empty after a real save/
+reload — a real regression in what used to be one of the most solid parts of
+the save system. `Furnace`'s own restore call already ran in the correct
+order (after `RestorePlacedPieces`) — that's why its own richer state-saving
+(fuel timer, recipe queue, lit status) worked correctly when tested earlier;
+`StorageBox`/`ResourceNode`/`GardenPlot`/`GardenPlot4x4` were the ones that
+had it backwards, now fixed to match.
+
+**How to apply:** `RestorePlacedPieces` must run before any
+`RestoreWorldObjects<T>` call whose `T` can be created via a `BuildPiece` —
+not just the ones known to need it today. When adding a new save category for
+a type that's both pre-placeable in the scene and player-buildable, place its
+`RestoreWorldObjects<T>` call after `RestorePlacedPieces` in `SaveManager
+.Load()`, and check whether it resolves any cross-references to *other*
+world objects (a linked StorageBox, etc.) — those need their own restore to
+have already run too, same ordering discipline.
 
 ## Gotcha: a changed `[SerializeField]` default doesn't apply to existing scene/prefab instances
 

@@ -5,10 +5,75 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.147-dev` — must always match `GameVersion` in
+**Current version:** `0.3.148-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-19 (5)
+
+### v0.3.148-dev — ChoppableTree stuck bug fixed, two real save/load regressions root-caused
+
+Three real fixes, all found via the same playtest session, two of them
+genuinely serious:
+
+- **`ChoppableTree` stuck-with-no-animation bug, fully fixed.** The
+  `[TreeStuckDiagnostic]` logging from the previous entry paid off
+  immediately — live numbers confirmed a consistent, deterministic offset
+  on every tree instance tested (`pivotDistance=3.99, harvestRange=3.00,
+  colliderSurfaceDistance=0.00`): an NPC could be physically touching a
+  tree's collider and the game would still think it was a meter too far
+  away, because `NPCGathering`'s approach check measured distance to the
+  tree's transform pivot, not its actual collider surface. Fixed by
+  measuring against `Collider.ClosestPoint` for `ChoppableTree` targets
+  specifically (the one type with this mismatch — `ResourceNode`/
+  `StorageBox` don't have it), reusing the exact same measurement the
+  diagnostic itself already computed. Diagnostic logging removed.
+- **A real equipment-restore bug, found via a save file comparison, not
+  guesswork.** Ben reported a Canteen losing its fill and a Hammer
+  disappearing from a worn pair of Jeans' own pocket — both after a real
+  save/reload. Direct inspection of the actual `save.json` proved the
+  *capture* side was already 100% correct (`"Leg": [{"item":
+  "SettlersJeans", "equipment": {"nested": [{"item":
+  "MasterworkHammer", ...}]}}]`, and the Belt's Canteen correctly showing
+  `"liquid": "Water", "amount": 100.0`) — so the bug was entirely on
+  restore. Root cause: `Inventory.AddEquipmentItem` silently returns
+  `false` when a slot is already at capacity, and `PlayerEquipment`'s
+  body slots (Leg, Waist, ...) start pre-occupied by the scene's own
+  baked-in default "Settlers" starting gear — so restoring the *real*
+  saved Jeans/Belt into an already-full slot was silently discarded,
+  leaving the scene's empty default gear in place. Confirmed by a real
+  counter-example: the Chest slot's Shirt (with Rations inside) restored
+  correctly, because — unlike Jeans/Belt/Sneakers, which are baked
+  directly into the scene with no guard — the Shirt uses a runtime
+  `Start()` auto-equip with an "already equipped?" check, which loses the
+  race safely if `SaveManager.Load()` runs first. Fixed at the root:
+  `InventorySaveUtility.Restore` now calls a new `Inventory.Clear()`
+  (destroying any equipment GameObject already occupying a slot) before
+  restoring — a restore now always produces exactly the saved state
+  regardless of what the inventory already held, protecting every call
+  site (player inventory, every equipment slot, NPCCargo, StorageBox) at
+  once rather than requiring each caller to remember to clear first.
+- **A restore-ordering bug affecting every player-built StorageBox (and
+  latently, GardenPlot/GardenPlot4x4).** Ben found a StorageBox he'd
+  named and stocked before saving came back after reload with a generic
+  name and empty — a serious regression in what used to be one of the
+  most solid parts of the save system. Root cause: `SaveManager.Load()`
+  called `RestoreWorldObjects<StorageBox>` (find-by-SaveId, apply saved
+  inventory/name) *before* `RestorePlacedPieces` (which actually
+  recreates a player-built structure that doesn't pre-exist in a fresh
+  scene load). For a StorageBox already sitting in the scene, that order
+  doesn't matter — it's already there to find. For one built during
+  play, it doesn't exist yet at that point, so the lookup silently fails
+  and the real saved state is never applied; `RestorePlacedPieces` then
+  recreates a bare, empty, default-named copy with nothing to backfill
+  it. `Furnace`'s own restore call already ran in the correct order
+  (after `RestorePlacedPieces`) — that's exactly why Furnace's own richer
+  state-saving worked when it was tested; every other world-object
+  restore call is now reordered to match.
+
+Compile-verified via full-project batch mode. Not yet live-tested — all
+three need a real save/reload pass to confirm.
 
 ## 2026-08-19 (4)
 
