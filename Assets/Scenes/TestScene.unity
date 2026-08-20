@@ -43156,7 +43156,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: c5e59c048a6301344b0af8ce2f547978, type: 2}
   - {fileID: 11400000, guid: 2ced2a1980328b14d990c2565c13b9f0, type: 2}
   - {fileID: 11400000, guid: faa0a97146a029248a41c6898e300525, type: 2}
-  - {fileID: 11400000, guid: 48ae08f632ee19945a93a66227f3848e, type: 2}
   storageRange: 10
 --- !u!114 &1681626240
 MonoBehaviour:

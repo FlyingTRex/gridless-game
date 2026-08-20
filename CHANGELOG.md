@@ -5,10 +5,60 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.148-dev` — must always match `GameVersion` in
+**Current version:** `0.3.150-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-19 (7)
+
+### v0.3.150-dev — A dropped Log is choppable again
+
+Found live: dropping a carried Log spawned a plain, inert `Pickup`
+(`LogPickup.prefab`) with no chop mechanic at all — you could pick it
+back up, but not chop it in place, unlike a Log a felled Tree produces.
+Not a bug (working exactly as originally built), but Ben's ask for
+consistency: a Log should behave the same regardless of how it ended up
+on the ground. Fixed with a one-line swap — `Log.asset.worldPickupPrefab`
+now points at the real choppable `Log.prefab` (`ResourceNode`) instead of
+`LogPickup.prefab`. Confirmed safe first: `PlayerDropping.SpawnPickup`
+already gracefully handles a prefab with no `Pickup` component (skips
+quantity configuration rather than erroring), so this doesn't preserve
+exact dropped quantity as multiple choppable nodes — dropping a stack of
+5 spawns one choppable Log, same as dropping 1 — but that's consistent
+with how felling a Tree already works (a fixed `logCount` per tree, not
+scaled to anything) and directly resolves the actual inconsistency Ben
+flagged.
+
+This makes `LogToPlankRecipe.asset` (built earlier the same session to fix
+Log's dead-end-item bug) redundant — Ben's call: removed it entirely
+(asset deleted, `PlayerCrafting.recipes` registration removed, verified
+0 remaining scene references) rather than leave two ways to get Planks
+from a Log sitting around. Drop-and-chop is strictly better anyway (same
+Plank output, plus a Stick chance the plain recipe never had).
+
+Compile-verified via full-project batch mode, verified directly in the
+saved asset file. Not yet live-tested.
+
+## 2026-08-19 (6)
+
+### v0.3.149-dev — Only the nearest of multiple nearby StorageBoxes was ever shown
+
+Found live: two StorageBoxes placed next to each other made the second
+one completely inaccessible. `InventoryScreen`'s "nearby StorageBox"
+section already computes `nearbyStorages` as a full, distance-sorted list
+of every box in range (`StorageBox.FindNearby`) — the display code just
+only ever indexed `nearbyStorages[0]`, discarding the rest. Fixed by
+drawing a section for every box in the list instead of just the first —
+reuses the same `DrawContainerContents` call already proven safe to
+invoke multiple times per frame (the worn-containers section already does
+this for Back/Waist/Chest/Leg simultaneously). Also live-confirmed the
+same session: the restore-order fix from the previous entry actually
+works — a renamed "ore box" correctly kept its name across a real save/
+reload (inventory contents not separately re-checked, but very likely
+fine given both were failing via the exact same mechanism).
+
+Compile-verified via full-project batch mode. Not yet live-tested.
 
 ## 2026-08-19 (5)
 

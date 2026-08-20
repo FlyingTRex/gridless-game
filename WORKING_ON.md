@@ -17,6 +17,32 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-19 — Ben+Claude — **Dropped Log made choppable again**
+  (v0.3.150-dev, `BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md`). Not a bug,
+  but a real consistency gap Ben flagged — a felled Tree spawns a real
+  choppable Log (`ResourceNode`), but dropping a carried Log spawned a
+  plain inert `Pickup` instead. One-line fix: `Log.asset
+  .worldPickupPrefab` now points at the real choppable prefab. Also
+  logged: multi-box display fix live-confirmed working (name + contents
+  both survived a real save/reload), and two new enhancement ideas (NPCs
+  gathering too fast — Ben's own follow-up: throttle via
+  `ResourceNode`/`ChoppableTree`'s own respawn delay rather than NPC
+  speed directly, so player-paced gathering slows the same way).
+  **Same version, follow-up**: this made `LogToPlankRecipe.asset` (from
+  the earlier playtest pass) redundant — Ben's call, removed entirely
+  (asset deleted, scene registration removed, verified 0 remaining
+  references) rather than leave two ways to get Planks from a Log.
+  Compile-verified, not yet live-tested.
+
+- 2026-08-19 — Ben+Claude — **Multi-box "nearby StorageBox" display fixed**
+  (v0.3.149-dev, `BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md`). Two boxes
+  placed next to each other made the second one inaccessible —
+  `nearbyStorages` was already a full sorted list, the display code just
+  only ever showed index 0. Fixed by drawing every box in range. Also
+  live-confirmed the same night: the StorageBox restore-order fix from the
+  previous entry actually works — a renamed box kept its name across a
+  real save/reload. Compile-verified, not yet live-tested.
+
 - 2026-08-19 — Ben+Claude — **ChoppableTree stuck bug fixed, two real
   save/load regressions root-caused** (v0.3.148-dev, `BUGS_AND_ENHANCEMENTS
   .md`, `CHANGELOG.md`, two new `CLAUDE.md` gotchas). Continuation of the

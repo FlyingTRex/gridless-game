@@ -319,12 +319,16 @@ public class InventoryScreen : MonoBehaviour
 
         GUILayout.EndHorizontal();
 
-        if (nearbyStorages.Count > 0)
+        // Draws every StorageBox in range, not just the nearest one --
+        // found live, 2026-08-19: two boxes placed next to each other made
+        // the second one completely inaccessible, since this only ever
+        // indexed nearbyStorages[0] despite the list already containing
+        // every box in range (sorted nearest-first by StorageBox.FindNearby).
+        foreach (var box in nearbyStorages)
         {
-            var nearest = nearbyStorages[0];
             GUILayout.Space(10);
-            GUILayout.Label($"{nearest.DisplayName} (nearby)", DebugGUI.Header);
-            DrawContainerContents(nearest.Inventory, "drag to move, click for actions", null);
+            GUILayout.Label($"{box.DisplayName} (nearby)", DebugGUI.Header);
+            DrawContainerContents(box.Inventory, "drag to move, click for actions", null);
         }
 
         GUILayout.EndScrollView();

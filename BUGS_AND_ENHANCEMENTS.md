@@ -491,6 +491,14 @@ One open question from that work is still unresolved:
   Inventory tab, untouched by the Campfire change) get the same focused-
   popup treatment for consistency? Raised as a natural follow-on, not
   committed either way.
+- [x] **Real bug in this section, found live 2026-08-19, fixed
+  v0.3.149-dev: only the nearest of multiple nearby boxes was ever
+  shown.** Two boxes placed next to each other made the second one
+  completely inaccessible — `nearbyStorages` was already a full,
+  distance-sorted list of every box in range, the display code just only
+  ever indexed `[0]`. Fixed by drawing a section for every box in the
+  list, reusing the exact same multi-call pattern the worn-containers
+  section already uses safely. Not yet live-tested.
 
 ## Multiplayer conversion (Mirror) — exploration only, 2026-08-13, nothing built
 
@@ -752,6 +760,34 @@ signs off on scope and order.
     bug fix itself. Genuinely useful for Mining ore-type restriction
     either way (e.g. "keep my Miner on Iron only"); the Woodworking half
     may not need its own toggle now that Logs are the correct default.
+  - **NPCs work too fast — may unbalance resource gathering (Ben's idea,
+    2026-08-19).** Raised live after watching Iris fell/collect at a pace
+    that felt too efficient relative to player-paced gathering. Not
+    scoped — could mean a slower base harvest duration, a real work-speed
+    stat, or something else; needs a design pass before any numbers.
+    **Ben's own follow-up idea**: rather than slowing the NPC's own
+    action speed directly, lengthen `ResourceNode`/`ChoppableTree`'s own
+    `respawnDelay`/`regrowDelay` — the node itself becomes the throttle,
+    which also slows down player-paced gathering the same way (consistent
+    scarcity for everyone) rather than only NPCs feeling artificially
+    slower than a player at the same task. Not scoped/built.
+  - [x] **A dropped Log couldn't be chopped, only picked back up (found
+    live, 2026-08-19) — fixed same night, v0.3.150-dev.** Was working
+    exactly as built, not a bug, but inconsistent with a felled Tree:
+    `Log.asset.worldPickupPrefab` pointed to `LogPickup.prefab`, a plain
+    `Pickup` with no chop mechanic, distinct from the real choppable
+    `Log.prefab` (`ResourceNode`) a felled Tree actually spawns. Fixed
+    with a one-line swap — `worldPickupPrefab` now points at the real
+    choppable `Log.prefab` instead. Confirmed safe first:
+    `PlayerDropping.SpawnPickup` already gracefully handles a prefab with
+    no `Pickup` component. Doesn't preserve exact dropped quantity as
+    multiple nodes (a stack of 5 spawns one choppable Log, same as
+    dropping 1) — consistent with how felling a Tree already works (a
+    fixed count, not quantity-scaled). Compile-verified, not yet
+    live-tested. **Made the `LogToPlankRecipe` crafting recipe (built
+    earlier the same session) redundant** — Ben's call: removed it,
+    v0.3.150-dev, since drop-and-chop is strictly better (same Plank
+    output, plus a Stick chance the plain recipe never had).
 - [ ] **A deposit `StorageBox` filling up should notify the player, not
   just silently sit there (Ben's idea, 2026-08-18).** A full box the
   player hasn't noticed can silently strand a Gathering NPC's cargo or
@@ -1248,7 +1284,10 @@ signs off on scope and order.
      copy with nothing to backfill it. `Furnace`'s own restore already
      ran in the correct order (after `RestorePlacedPieces`) — exactly
      why its own richer state-saving worked when tested earlier; every
-     other world-object restore call reordered to match.
+     other world-object restore call reordered to match. **Live-confirmed
+     2026-08-19** — a renamed "ore box" correctly kept its name across a
+     real save/reload (contents not separately re-checked, but very
+     likely fine given both were failing via the exact same mechanism).
   3. **Standing item, not yet built**: audit save/restore for *every*
      worn-equipment slot with a nested inventory (not just the two that
      happened to get reported), and — a new permanent addition to
@@ -1267,7 +1306,11 @@ signs off on scope and order.
   same shape as the earlier Leather Backpack fix); **the "Log" item was a
   genuine dead end** (a Woodworking NPC felling a Tree yields a raw Log
   to cargo, but zero recipe anywhere consumed it — fixed with a new
-  `LogToPlankRecipe.asset`, 1 Log → 2 Plank); **Small Rock mystery, fully
+  `LogToPlankRecipe.asset`, 1 Log → 2 Plank; **superseded and removed,
+  v0.3.150-dev** once dropping a Log became choppable again (see below),
+  since drop-and-chop yields the same Plank output plus a Stick chance
+  the plain recipe never had — a real fix, just not the one that stuck
+  around); **Small Rock mystery, fully
   root-caused** (a brand-new Woodworking-only NPC turned up with 8 Small
   Rock in cargo — `NPCGathering.FindTarget()`'s `ResourceNode` scan had
   zero job-kind gating, and `Boulder.prefab`'s plain-Rock variant has
