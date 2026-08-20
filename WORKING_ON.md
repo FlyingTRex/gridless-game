@@ -17,6 +17,20 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-20 — Ben+Claude — **Craftable Anvil now uses the real model**
+  (v0.3.153-dev, `BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md`). Ben asked
+  why the placeholder couldn't just be the real anvil visible in the
+  pre-placed scene — it could; last night's extraction used
+  `.transform.root` and walked right past the real `Anvil.glb` model,
+  which was a child of the same trigger object the whole time. Hit and
+  caught a second mistake fixing the first: `FindFirstObjectByType
+  <AnvilSurface>()` isn't reliable (every scattered Boulder also carries
+  one), so the first rebuild attempt grabbed a random Rock instead —
+  caught via direct mesh-guid check, not trusted from the script's log.
+  Fixed by disambiguating on the real Anvil's known position. Re-measured
+  `groundOffset` for the new model (0.378). Verified via mesh guid and by
+  reading the baked icon directly. Compile-verified, not yet live-tested.
+
 - 2026-08-20 — Ben+Claude — **Fixed Anvil/Furnace sinking into the
   terrain when player-placed** (v0.3.152-dev, `BUGS_AND_ENHANCEMENTS.md`,
   `CHANGELOG.md`). Live-testing pass on last night's craftable Anvil/

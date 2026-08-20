@@ -5,10 +5,47 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.152-dev` — must always match `GameVersion` in
+**Current version:** `0.3.153-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-20 (2)
+
+### v0.3.153-dev — Craftable Anvil now uses the real Anvil model, not a Rock placeholder
+
+Ben asked directly why the placeholder couldn't just be the real anvil
+model already visible in the pre-placed scene — it turns out it could:
+`Assets/Models/Anvil.glb` (a genuine Tripo3D-generated model, already
+imported) was sitting right there the whole time, parented as a child of
+the same `AnvilSurface` trigger object found in last night's build. Last
+night's extraction used `.transform.root`, which walked past this child
+entirely up to the "Scattered Boulders" ancestor — the actual mistake was
+never looking one level too far, just the wrong direction.
+
+**A second mistake surfaced fixing the first, caught before it shipped
+wrong**: the natural fix, `FindFirstObjectByType<AnvilSurface>()`, isn't
+reliable in this scene — `Boulder.prefab` (confirmed the night before)
+bakes an `AnvilSurface` component into *every* scattered plain-Rock
+instance across the whole map, not just the one real functional Anvil,
+so "first found" can return any of ~24 scattered Boulders. It did:
+the first rebuild attempt produced a prefab whose mesh guid resolved to
+`Rock_Quaternius.glb`, not `Anvil.glb` — caught by checking the actual
+mesh reference directly rather than trusting the script's own success
+log. Fixed by disambiguating on the real Anvil's known exact position
+(confirmed directly against the scene file) instead of "whichever one
+enumerates first."
+
+The rebuilt `AnvilPiece.prefab` now correctly references `Anvil.glb`
+(verified via mesh guid, and by actually reading the freshly-baked icon —
+a real anvil on a wood stump, not a rock). Re-measured and reapplied
+`groundOffset` for the new model (0.378, down from the Boulder
+placeholder's 1.169 — a real, purpose-built prop needs much less
+correction than a generic rock did). Recipe/ingredients unchanged.
+
+Compile-verified via full-project batch mode, every step verified
+directly (mesh guid, icon render, `groundOffset` value) rather than
+trusted from log output alone. Not yet live-tested.
 
 ## 2026-08-20
 

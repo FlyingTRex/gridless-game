@@ -25,7 +25,7 @@ MonoBehaviour:
   unlockTier: 0
   skillGain: 1
   groundReach: 5
-  groundOffset: 1.1689
+  groundOffset: 0.37836602
   nextTier: {fileID: 0}
   requiresCityStatus: 0
   requiresCityFoundingConditions: 0

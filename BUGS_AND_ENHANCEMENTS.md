@@ -1381,6 +1381,23 @@ signs off on scope and order.
   built from a reused/extracted model with the same pivot mismatch), set
   to the measured value on both pieces. Compile-verified, not yet
   live-tested against the actual fix.
+  **Anvil placeholder replaced with the real model, v0.3.153-dev** — Ben
+  asked directly why the placeholder couldn't be the real anvil visible
+  in the pre-placed scene; turns out it could. `Assets/Models/Anvil.glb`
+  (already imported) was parented as a child of the same `AnvilSurface`
+  trigger object found the night before — last night's extraction used
+  `.transform.root`, which walked past this child entirely. Hit a second
+  real mistake fixing the first: `FindFirstObjectByType<AnvilSurface>()`
+  isn't reliable in this scene, since `Boulder.prefab` bakes an
+  `AnvilSurface` onto every scattered plain-Rock instance too — the first
+  rebuild attempt grabbed a random scattered Boulder instead (caught by
+  checking the mesh guid directly, which resolved to `Rock_Quaternius
+  .glb`, not `Anvil.glb`). Fixed by disambiguating on the real Anvil's
+  known exact position instead of "whichever enumerates first."
+  Re-measured `groundOffset` for the correct model (0.378, down from the
+  Boulder placeholder's 1.169). Verified via mesh guid and by reading the
+  freshly-baked icon directly — a real anvil on a wood stump. Compile-
+  verified, not yet live-tested.
 - [x] **None of the 6 new Iron Arrow recipes (`IronArrowheadRecipe` + 5
   tier recipes) actually appear in the Crafting screen, found live by
   Ben (2026-08-18) — a real miss from the same session that built them,
