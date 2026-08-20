@@ -780,14 +780,21 @@ signs off on scope and order.
     with a one-line swap — `worldPickupPrefab` now points at the real
     choppable `Log.prefab` instead. Confirmed safe first:
     `PlayerDropping.SpawnPickup` already gracefully handles a prefab with
-    no `Pickup` component. Doesn't preserve exact dropped quantity as
-    multiple nodes (a stack of 5 spawns one choppable Log, same as
-    dropping 1) — consistent with how felling a Tree already works (a
-    fixed count, not quantity-scaled). Compile-verified, not yet
-    live-tested. **Made the `LogToPlankRecipe` crafting recipe (built
-    earlier the same session) redundant** — Ben's call: removed it,
-    v0.3.150-dev, since drop-and-chop is strictly better (same Plank
+    no `Pickup` component. **Made the `LogToPlankRecipe` crafting recipe
+    (built earlier the same session) redundant** — Ben's call: removed
+    it, v0.3.150-dev, since drop-and-chop is strictly better (same Plank
     output, plus a Stick chance the plain recipe never had).
+    **Follow-up bug, found live the same night, fixed v0.3.151-dev**: the
+    original fix didn't preserve dropped quantity — breaking 5 dropped
+    Logs only ever yielded 2 Planks total (one node's worth), since
+    `SpawnPickup` only applied `count` via `Pickup.Configure`, which
+    `Log.prefab` doesn't have. Fixed generally (not Log-specifically):
+    when the spawned prefab isn't a stack-representable `Pickup`,
+    `SpawnPickup` now spawns the remaining `count - 1` as separate
+    instances, scattered the same way `ChoppableTree.Complete()` already
+    scatters a felled tree's own logs — also fixes Admin-spawning
+    multiple Logs at once for free, since `AdminSpawnScreen` shares the
+    same method. Compile-verified, not yet live-tested.
 - [ ] **A deposit `StorageBox` filling up should notify the player, not
   just silently sit there (Ben's idea, 2026-08-18).** A full box the
   player hasn't noticed can silently strand a Gathering NPC's cargo or
@@ -1361,8 +1368,19 @@ signs off on scope and order.
   maintained scene array, confirmed) and `BuildPieceDatabase`. Compile-
   verified, every step confirmed directly in the saved files. **Anvil's
   placeholder visual is a known follow-up** — worth a real model
-  eventually, logged as a placeholder, not a finished asset. Not yet
-  live-tested.
+  eventually, logged as a placeholder, not a finished asset.
+  **Live-tested 2026-08-20 — found and fixed a real bug: both pieces were
+  sinking into the terrain when player-placed.** A built Furnace looked
+  much smaller than the original fixed one; measured directly (per
+  `CLAUDE.md`'s model-grounding protocol) — the reused model's pivot
+  sits a full world unit above its actual base, and `PlayerBuilding`'s
+  free-placement code plants the pivot directly at the ground-hit point
+  with no correction, sinking it in by that gap. The Anvil placeholder
+  had the same issue, worse (1.17 units). Fixed generally with a new
+  `BuildPiece.groundOffset` field (opt-in, reusable for any future piece
+  built from a reused/extracted model with the same pivot mismatch), set
+  to the measured value on both pieces. Compile-verified, not yet
+  live-tested against the actual fix.
 - [x] **None of the 6 new Iron Arrow recipes (`IronArrowheadRecipe` + 5
   tier recipes) actually appear in the Crafting screen, found live by
   Ben (2026-08-18) — a real miss from the same session that built them,

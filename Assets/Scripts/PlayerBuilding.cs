@@ -290,7 +290,8 @@ public class PlayerBuilding : MonoBehaviour
         else
         {
             snappedSocket = null;
-            ShowGhost(hit.point, Quaternion.identity);
+            Vector3 groundPos = hit.point + Vector3.up * armedPiece.groundOffset;
+            ShowGhost(groundPos, Quaternion.identity);
             currentValid = true;
         }
     }

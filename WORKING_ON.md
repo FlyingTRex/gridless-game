@@ -17,6 +17,31 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
+- 2026-08-20 — Ben+Claude — **Fixed Anvil/Furnace sinking into the
+  terrain when player-placed** (v0.3.152-dev, `BUGS_AND_ENHANCEMENTS.md`,
+  `CHANGELOG.md`). Live-testing pass on last night's craftable Anvil/
+  Furnace found a real bug: a built Furnace looked much smaller than the
+  original fixed one. Measured directly (per `CLAUDE.md`'s model-
+  grounding protocol) — the reused model's pivot sits a full world unit
+  above its actual base; `PlayerBuilding`'s free-placement code plants
+  the pivot at the ground-hit point with no correction, sinking it in by
+  that gap. Anvil placeholder had the same issue (1.17 units). Fixed
+  generally with a new `BuildPiece.groundOffset` field, set to the
+  measured value on both pieces. Compile-verified, not yet live-tested
+  against the fix itself.
+
+- 2026-08-19 — Ben+Claude — **Fixed dropped-stack quantity loss**
+  (v0.3.151-dev, `BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md`). Real gap in
+  the previous entry's fix, confirmed live: dropping 5 Logs and breaking
+  them only yielded 2 Planks (one node's worth) — `PlayerDropping
+  .SpawnPickup` only ever spawned one prefab instance and applied `count`
+  via `Pickup.Configure`, which the real choppable `Log.prefab` doesn't
+  have. Fixed generally: when the spawned prefab isn't a `Pickup`, spawn
+  `count - 1` more instances, scattered the same way `ChoppableTree
+  .Complete()` already scatters a felled tree's logs — also fixes
+  `AdminSpawnScreen` multi-spawning the same item for free, since it
+  shares the method. Compile-verified, not yet live-tested.
+
 - 2026-08-19 — Ben+Claude — **Dropped Log made choppable again**
   (v0.3.150-dev, `BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md`). Not a bug,
   but a real consistency gap Ben flagged — a felled Tree spawns a real

@@ -21,6 +21,21 @@ public class BuildPiece : ScriptableObject
     // so this stays 0 (unused) for anything that isn't ground-reaching.
     public float groundReach = 5f;
 
+    // Added onto the raycast ground-hit Y position for free (non-socket)
+    // placement, in world units -- 0 (unused) for anything whose prefab
+    // pivot already sits at its visual base, which is every normally-
+    // authored piece. Exists for prefabs extracted from an existing scene
+    // object rather than built with a base pivot by convention: found live,
+    // 2026-08-20, a player-built Furnace sank into the terrain because its
+    // reused model's pivot sits at the mesh's vertical center, not its
+    // base (measured directly: 1 world unit of gap, matching the original
+    // fixed scene furnace's own hand-tuned Y position, which had this same
+    // correction baked in manually). Same underlying issue as CLAUDE.md's
+    // imported-model-pivot-grounding gotcha, just needing a placement-time
+    // fix instead of a one-time scene edit, since this prefab gets
+    // instantiated fresh on every placement.
+    public float groundOffset = 0f;
+
     // The next tier up this piece's material ladder (Twig->Plank->Rock->
     // Metal) — null if already at the top, or if no upgrade path exists
     // yet. Used by PlayerPieceUpgrade's click-to-upgrade action, added

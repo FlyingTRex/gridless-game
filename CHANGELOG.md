@@ -5,10 +5,67 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.150-dev` — must always match `GameVersion` in
+**Current version:** `0.3.152-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-20
+
+### v0.3.152-dev — Player-built Anvil and Furnace were sinking into the terrain
+
+Found live: a player-built Furnace looked much smaller than the original
+fixed one. Measured directly (per `CLAUDE.md`'s own model-grounding
+protocol — `Renderer.bounds` vs. the prefab's own pivot, not guessed) —
+the reused Furnace model's pivot sits at its vertical *center*, a full
+world unit above its actual base. `PlayerBuilding`'s free-placement code
+plants a piece's pivot directly at the raycast ground-hit point with no
+correction, so the model sank a full unit into the terrain, leaving only
+the top half visible — reading as "too small" rather than "half buried."
+The original fixed scene furnace never showed this, because whoever
+placed it originally corrected for the same gap by hand (`m_LocalPosition
+.y: 1.36` baked into the scene, confirmed directly).
+
+Checked the Anvil placeholder the same way while the tooling already
+existed — same issue, worse (1.17 units of gap): `Boulder.prefab`'s own
+scatter-placement script apparently already corrects for this when
+scattering ordinary Boulders, but a `BuildPiece`-placed Anvil never goes
+through that path.
+
+Fixed generally, not per-piece: new `BuildPiece.groundOffset` field
+(opt-in, 0 default, same "most pieces don't need this" shape as
+`groundReach`), added onto the ground-hit Y position during free
+placement. Set to the measured value on both `FurnaceBuildPiece.asset`
+(1.0) and `AnvilBuildPiece.asset` (1.1689) — reusable for any future
+piece built from a reused/extracted model with the same pivot mismatch.
+
+Compile-verified via full-project batch mode, both offsets verified
+directly in the saved asset files. Not yet live-tested.
+
+## 2026-08-19 (8)
+
+### v0.3.151-dev — Dropping a stack of Logs only ever spawned one choppable node
+
+A real gap in the previous entry's own fix, confirmed live: breaking 5
+dropped Logs only ever yielded 2 Planks total (one choppable node's
+worth), not 5 nodes' worth — `PlayerDropping.SpawnPickup` spawned exactly
+one instance of the `worldPickupPrefab` and only ever applied `count` via
+`Pickup.Configure`, which `Log.prefab` (a `ResourceNode`, not a `Pickup`)
+doesn't have — so the dropped quantity was silently discarded down to a
+single node regardless of how many were actually dropped.
+
+Fixed generally, not Log-specifically: when the spawned prefab isn't a
+stack-representable `Pickup`, `SpawnPickup` now spawns the remaining
+`count - 1` as separate instances, scattered the same way
+`ChoppableTree.Complete()` already scatters a felled tree's own logs.
+Applies to any future item in the same situation, not hardcoded to Log —
+and since `SpawnPickup` is shared by both `PlayerDropping.DropFrom` and
+`AdminSpawnScreen`'s dev spawn tool, this also fixes Admin-spawning
+multiple Logs at once for free. `Log.prefab` already has a `Rigidbody`
+(confirmed), so the scattered instances settle apart from each other via
+physics without any extra grounding logic needed.
+
+Compile-verified via full-project batch mode. Not yet live-tested.
 
 ## 2026-08-19 (7)
 

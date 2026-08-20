@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd \"d:/Ben/Downloads/gridless-game.tar/gridless-game\" && \"/c/Program Files/Unity/Hub/Editor/6000.3.21f1/Editor/Unity.exe\" -batchmode -nographics -quit -projectPath . -logFile *)",
+      "Bash(\"/c/Program Files/Unity/Hub/Editor/6000.3.21f1/Editor/Unity.exe\" -batchmode -nographics -quit -projectPath \"d:/Ben/Downloads/gridless-game.tar/gridless-game\" -logFile *)"
+    ]
+  }
+}

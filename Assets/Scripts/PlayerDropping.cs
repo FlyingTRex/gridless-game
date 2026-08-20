@@ -124,6 +124,26 @@ public class PlayerDropping : MonoBehaviour
         var spawned = Instantiate(prefab, position, Quaternion.identity);
 
         if (spawned.TryGetComponent(out Pickup pickup))
+        {
             pickup.Configure(item, count);
+            return;
+        }
+
+        // The prefab isn't a stack-representable Pickup (e.g. Log's real
+        // choppable ResourceNode, since v0.3.150-dev) -- one instance can't
+        // represent "count of these" the way a Pickup's own count field
+        // can, so a dropped stack of 5 used to silently collapse to a
+        // single choppable node no matter how many were actually dropped.
+        // Found live, 2026-08-19: breaking 5 dropped Logs only ever
+        // yielded 2 Planks total (one node's worth), not 5 nodes' worth.
+        // Fixed by spawning the remaining count-1 as separate instances,
+        // scattered the same way ChoppableTree.Complete() already scatters
+        // a felled tree's own logs, instead of discarding the quantity.
+        for (int i = 1; i < count; i++)
+        {
+            Vector3 offset = Random.insideUnitSphere * 0.5f;
+            offset.y = Mathf.Abs(offset.y);
+            Instantiate(prefab, position + offset, Random.rotation);
+        }
     }
 }
