@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2447680042499283180}
   - component: {fileID: 7577670638185567068}
   - component: {fileID: 619523584331088079}
+  - component: {fileID: 75546076700106906}
   m_Layer: 0
   m_Name: RudimentaryAxePickup
   m_TagString: Untagged
@@ -96,6 +97,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tool
   itemDefinition: {fileID: 11400000, guid: b2aa2117d73120b41b8042800503c13a, type: 2}
+--- !u!114 &75546076700106906
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7704046236003203404}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &1343961288303078623
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -101,13 +101,92 @@ public static class NPCMovement
         }
     }
 
-    // Convenience wrapper: FindClearDirection, but shoved free instead of
-    // probed if the tracker says this mover has stalled.
-    public static Vector3 FindClearDirection(Vector3 origin, Vector3 desired, float checkDistance, GameObject ignoreTarget, StuckTracker tracker, float deltaTime)
+    // How far to physically teleport a stuck mover, once StuckTracker
+    // declares it wedged -- Ben's fix, 2026-08-20, found live: a Miner
+    // stuck at a wall/floor corner never actually escaped. The original
+    // "shove" below just reversed the desired *direction* for that one
+    // frame, which the caller then walked along at its own normal
+    // moveSpeed -- at ~1.5-2.2 units/sec, that's a fraction of a meter
+    // per frame, too weak to clear a real corner wedge where both the
+    // forward and reverse directions can be blocked by different
+    // colliders. A flat instant displacement is strong enough to clear
+    // that regardless of what's immediately adjacent in either direction.
+    private const float StuckBumpDistance = 4f;
+
+    // Convenience wrapper: FindClearDirection, but hard-teleported free
+    // instead of probed if the tracker says this mover has stalled.
+    // Needs the actual Transform (not just its position) because the
+    // escape is a real position mutation, not just a returned direction
+    // for the caller to walk along -- mover.position is updated in place,
+    // then re-sampled against the ground the same way every caller's own
+    // MoveToward already does, so the teleport doesn't leave the mover
+    // floating or embedded at the new spot.
+    //
+    // Validates the bump path before committing (2026-08-20, found live:
+    // an NPC walked through a wall, possibly this exact fix -- the first
+    // version teleported blind, with no raycast check that the 4m escape
+    // path was actually clear, which a true instant displacement can
+    // exploit in a way the old per-frame reverse-nudge never could since
+    // ordinary collision still stopped that). Reuses the same widening-
+    // angle search FindClearDirection already does for normal deflection,
+    // just checked against the full StuckBumpDistance instead of the
+    // caller's short obstacleCheckDistance, and clamps to whatever
+    // distance actually is clear rather than assuming the full 4m is
+    // safe.
+    public static Vector3 FindClearDirection(Vector3 origin, Vector3 desired, float checkDistance, GameObject ignoreTarget, StuckTracker tracker, float deltaTime, Transform mover)
     {
         if (tracker != null && tracker.Tick(origin, deltaTime))
-            return -desired;
+        {
+            Vector3 escapeDir = FindClearBumpDirection(origin, -desired, ignoreTarget);
+            float clearDist = ClearDistance(origin, escapeDir, StuckBumpDistance, ignoreTarget);
+
+            Vector3 bumpPos = mover.position + escapeDir * clearDist;
+            bumpPos.y = GroundHeight.Sample(bumpPos, mover.position.y);
+            mover.position = bumpPos;
+            return escapeDir;
+        }
 
         return FindClearDirection(origin, desired, checkDistance, ignoreTarget);
+    }
+
+    // Widening-angle search (same shape as the public FindClearDirection
+    // above), but checked against the full StuckBumpDistance rather than
+    // a short obstacle-probe distance -- a direction that's merely clear
+    // for 1.5m isn't good enough to trust for a 4m teleport.
+    private static Vector3 FindClearBumpDirection(Vector3 origin, Vector3 desired, GameObject ignoreTarget)
+    {
+        if (!Blocked(origin, desired, StuckBumpDistance, ignoreTarget))
+            return desired;
+
+        for (float angle = 15f; angle <= 90f; angle += 15f)
+        {
+            Vector3 right = Quaternion.Euler(0f, angle, 0f) * desired;
+            if (!Blocked(origin, right, StuckBumpDistance, ignoreTarget))
+                return right;
+
+            Vector3 left = Quaternion.Euler(0f, -angle, 0f) * desired;
+            if (!Blocked(origin, left, StuckBumpDistance, ignoreTarget))
+                return left;
+        }
+
+        // Every direction blocked within StuckBumpDistance -- fall through
+        // to ClearDistance's own clamping on the original desired
+        // direction rather than teleporting blind.
+        return desired;
+    }
+
+    // How far along dir is actually clear before hitting something, up to
+    // maxDist -- a small safety margin keeps the mover from landing flush
+    // against whatever it hit instead of visibly clipping into it.
+    private const float ClearDistanceMargin = 0.3f;
+
+    private static float ClearDistance(Vector3 origin, Vector3 dir, float maxDist, GameObject ignoreTarget)
+    {
+        if (!Physics.Raycast(origin, dir, out var hit, maxDist, ~0, QueryTriggerInteraction.Ignore))
+            return maxDist;
+        if (ignoreTarget != null && hit.collider.gameObject == ignoreTarget)
+            return maxDist;
+
+        return Mathf.Max(0f, hit.distance - ClearDistanceMargin);
     }
 }

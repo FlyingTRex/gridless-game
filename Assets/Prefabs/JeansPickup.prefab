@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2378932475305152543}
   - component: {fileID: 6071102735506607325}
   - component: {fileID: 2641992079564289518}
+  - component: {fileID: 8856571786881086923}
   m_Layer: 0
   m_Name: JeansPickup
   m_TagString: Untagged
@@ -97,6 +98,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Jeans
   itemDefinition: {fileID: 11400000, guid: 5bd60b934d50395488fe9924031b4605, type: 2}
   capacity: 4
+--- !u!114 &8856571786881086923
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9161729955179503555}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &1204190254224287362
 PrefabInstance:
   m_ObjectHideFlags: 0

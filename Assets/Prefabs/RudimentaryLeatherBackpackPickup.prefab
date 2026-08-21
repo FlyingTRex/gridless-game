@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 7520474322250112316}
   - component: {fileID: 7460376992654511725}
   - component: {fileID: 131115296379043409}
+  - component: {fileID: 2375798389065537799}
   m_Layer: 0
   m_Name: RudimentaryLeatherBackpackPickup
   m_TagString: Untagged
@@ -97,6 +98,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Backpack
   itemDefinition: {fileID: 11400000, guid: 91717703ebfa7cd43bcb71d38e18a24f, type: 2}
   capacity: 6
+--- !u!114 &2375798389065537799
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6427214831703120809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &1896828038828889501
 PrefabInstance:
   m_ObjectHideFlags: 0

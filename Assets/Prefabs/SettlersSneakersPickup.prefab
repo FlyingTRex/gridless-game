@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6544601263951577839}
   - component: {fileID: 6214847555326340971}
   - component: {fileID: 5061506886411421920}
+  - component: {fileID: 5140999273608444530}
   m_Layer: 0
   m_Name: SettlersSneakersPickup
   m_TagString: Untagged
@@ -97,6 +98,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Boot
   itemDefinition: {fileID: 11400000, guid: 0f19c0d4aa4dcc64abba5763ec2a0f5d, type: 2}
   slots: []
+--- !u!114 &5140999273608444530
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1076927276889531975}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &6731170339162294864
 PrefabInstance:
   m_ObjectHideFlags: 0

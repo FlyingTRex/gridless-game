@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 222449011904359347}
   - component: {fileID: 2373482999568039986}
   - component: {fileID: 5541719375985897972}
+  - component: {fileID: 4921547317710006790}
   m_Layer: 0
   m_Name: HikingBootsPickup
   m_TagString: Untagged
@@ -104,6 +105,20 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 9b1ad9cc97308904386310222340b53a, type: 2}
     - {fileID: 11400000, guid: b67b3678beead1e4780de292a0cdbf7a, type: 2}
     - {fileID: 11400000, guid: 895e12c4910884d418218d6e5edb27f2, type: 2}
+--- !u!114 &4921547317710006790
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5560595426316726188}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &944649779318065001
 PrefabInstance:
   m_ObjectHideFlags: 0

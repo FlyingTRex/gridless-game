@@ -5,10 +5,93 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.153-dev` — must always match `GameVersion` in
+**Current version:** `0.3.154-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-20 (3)
+
+### v0.3.154-dev — Live-playtest bug-fixing pass: physics friction, NPC stuck-recovery, building-piece grounding, and a floor-collision layer gap
+
+A long live-testing session surfaced a real cluster of physics/movement/
+building bugs, most fixed same night, all verified against the actual data
+rather than assumed. See `BUGS_AND_ENHANCEMENTS.md` for full root-cause
+detail on each.
+
+- **No friction anywhere, physics objects rolled/slid down hills.** Zero
+  `PhysicMaterial` existed anywhere in the project. New
+  `Assets/Data/HighFrictionGround.physicMaterial` (friction ~1.0,
+  `frictionCombine = Maximum` so it dominates regardless of what any
+  touching object's own collider has) applied to the Terrain's
+  `TerrainCollider`. `BerryPickup`/`BerrySeedPickup` (the only two
+  `SphereCollider` pickups — friction alone can't stop a rolling sphere)
+  got `Rigidbody.constraints = FreezeRotation`. New shared
+  `RigidbodySettler.cs` freezes any settled Rigidbody kinematic after
+  ~1.5s of near-zero velocity — a defense-in-depth safety net against
+  slope creep, batch-applied to all 132 Rigidbody-bearing prefabs.
+- **NPC stuck-in-geometry recovery was too weak, and its fix then needed a
+  fix of its own.** `NPCMovement.StuckTracker`'s old recovery just
+  reversed the desired movement direction for one frame at normal
+  `moveSpeed` — too weak to clear a real corner wedge (a Miner stuck at a
+  wall/floor corner). First fix: hard-teleport the mover 4m in the escape
+  direction once stuck. That fix then needed its own raycast validation
+  after a live report of an NPC walking through a wall — the teleport now
+  runs the same widening-angle search `FindClearDirection` already uses
+  for normal deflection, checked against the full 4m bump distance, and
+  clamps to whatever's actually clear.
+- **StorageBox/Bookshelf/Desk silently sank into whatever they were
+  placed on.** Root cause turned out unrelated to an early theory about
+  Foundation-tier upgrades changing floor height (checked directly and
+  ruled out — Foundation tiers are geometrically identical, and upgrading
+  preserves exact position). Real cause: all three had a pivot-not-at-
+  base model (same class of bug Furnace/Anvil hit earlier this session)
+  with no `groundOffset` set at all. Fixed (`StorageBoxPiece.asset`
+  0.25, `BookshelfPiece.asset` 0.9, `DeskPiece.asset` 0.4); a full audit
+  of every other free-placed `BuildPiece` came back otherwise clean.
+- **NPCs sank through built floors and could clip through walls near
+  one.** `GroundHeight.Sample` (every NPC mover's per-frame Y sampling)
+  only raycasts a dedicated "Ground" physics layer by design — but
+  `Foundation.prefab`/`PlankFoundation.prefab` were on Default, not
+  Ground, so an NPC crossing a built floor got sampled straight through
+  to bare terrain below, sinking low enough to slip under a Wall's
+  collider too. Both Foundation prefabs moved onto the Ground layer;
+  Wall/Pole/Door/Roof deliberately left off, since they're not meant to
+  be walked on top of.
+- **Foundation-to-Foundation tiling snap required aiming almost exactly
+  at the edge socket.** `snapRadius` bumped 1.5 → 2.5 (matches
+  Foundation's own half-width) — aiming at the middle of an adjacent
+  piece's face, the natural way to try tiling floors together, was
+  previously outside the snap window entirely.
+- **A placed Foundation went missing after a save/reload — investigated,
+  not currently reproducible.** Confirmed via direct `save.json`
+  inspection that the object was genuinely never captured (not
+  misplaced), and the same session's 4 freshly-placed Foundations all
+  saved correctly with real ids — likely a one-off predating some of
+  this session's own earlier `SaveId` fixes. Root-caused a related
+  live report (player clipping through the floor near that spot) as a
+  direct, fully-explained symptom of the missing floor — measured a
+  real 0.39–0.44 unit gap between bare terrain and the structures resting
+  there. Resolution is placing a new Foundation there, not a code fix.
+- **Investigated, no bug found**: the originally-reported Anvil/Furnace-
+  sinking-into-a-Foundation issue. Foundation's collider matches its
+  visual mesh exactly on both tiers, and Anvil/Furnace's stored
+  `groundOffset` values match fresh measurements to 4 decimal places —
+  the structures in the original report most likely predated the
+  `groundOffset` fix from earlier this session.
+- **Procedural tree entry closed** — `GenerateTree.cs` no longer exists
+  in the repo (already cleaned up long ago); `TreeBark.mat` is still
+  genuinely in use by the Log item, not orphaned. Nothing to delete.
+
+Also written this session (design-only, nothing built): `HUNTER_PLANNING.md`
+(a new Hunter NPC job — hunts passive prey only, scavenges any dead
+creature including Wolves, no new combat-death risk), `COOKSTOVE_PLANNING.md`
+(a Furnace-shaped automated cooking structure, gated to build on real
+Cooking skill earned by hand at a Campfire first), and an NPC "find door"
+pathing idea logged in `BUGS_AND_ENHANCEMENTS.md`.
+
+All of the above is compile-verified only — not yet live-tested this
+commit.
 
 ## 2026-08-20 (2)
 

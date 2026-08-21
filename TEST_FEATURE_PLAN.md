@@ -2773,49 +2773,59 @@ system.
 
 ## 22. Furnace real state + unattended automation (v0.3.31-dev)
 
-New — not yet walked through in Play mode at all. `Furnace.cs`/
-`FurnaceScreen.cs` are entirely new; the scene's existing `Furnace`
-GameObject (`FurnaceSurface.cs`, untouched) gained the new component.
+**Core automation loop live-confirmed 2026-08-20** (Ben, real playtest —
+first live confirmation this system has ever gotten, previously
+compile/YAML-verified only). Confirmed: popup layout, Materials (4 slots,
+20 qty each), Fuel (wood, 2 slots), Auto-Run ON with all three box links
+assigned (Fuel Source: wood box, Materials Source: ore box, Output Box:
+Furnace Box) — Furnace shown Lit with a live fuel countdown, Smelting
+Queue at 4/4 (Iron/Copper/Silver/Gold queued, Platinum available but
+queue-full), Iron Ingot actively smelting and shown live at 21%. **Real
+output confirmed landing in the linked Output Box automatically**
+(QTY: 1 → QTY: 2 across two separate smelt completions), and critically,
+**the second Ingot appeared with the Furnace popup closed** — proves
+`Update()` genuinely ticks unattended, not just while the screen's open,
+which was the entire point of this system's design. Still open below:
+the regression check, manual drag-in, un-queue, and Auto-Run-off items —
+none of those were exercised this pass.
 
-- [ ] **Look at the placed Furnace in `TestScene.unity`** — confirm the
-  prompt reads "Open Furnace" (E), same convention as Campfire's popup.
-- [ ] **Press E** — confirm a popup opens (responsive sizing, same as
-  Campfire's), cursor unlocks, showing "Unlit", an Output row (4 boxes),
-  a Smelting Queue section (0/4), a Transfer section (Backpack + Hands),
-  a Materials row (4 boxes), a Fuel row (2 boxes), and an Automation
-  section (Auto-Run toggle + Fuel Source/Materials Source/Output Box
-  pickers, each currently "(none)").
+- [x] **Look at the placed Furnace in `TestScene.unity`** — confirmed via
+  the live popup screenshots (prompt/popup behavior implicitly working).
+- [x] **Press E** — popup opens, shows Materials/Fuel/Automation sections
+  and the box-link pickers exactly as designed, confirmed via screenshot.
 - [ ] **Regression check — `IronIngotRecipe` still works as before**:
   craft an Iron Ingot from the Crafting tab near the Furnace (skill-gated,
   10 Iron → 1 Iron Ingot) exactly as it did pre-v0.3.31-dev — this new
   system shouldn't have touched that path (`FurnaceSurface`/
   `PlayerCrafting.HasNearbyFurnace` are unrelated to the new `Furnace.cs`).
+  Not exercised this pass (all Iron came from the auto-run loop).
 - [ ] **Drag fuel and materials in manually**: with Sticks/Planks and 10+
   Iron in your Backpack or hands, drag them from the Transfer section onto
   the Fuel and Materials rows — confirm they land and leave the source,
   and confirm a non-fuel item is rejected by the Fuel row, same rejection
-  behavior as Campfire's Fuel box.
-- [ ] **Queue a recipe**: click "Iron Ingot x1 (60s)" in the Smelting
-  Queue section — confirm it shows `[Queued]` and the counter reads 1/4.
-  Click it again — confirm it un-queues (counter back to 0/4).
-- [ ] **Turn Auto-Run on with fuel + a queued recipe + 10 Iron already
-  loaded** — confirm the Furnace lights itself within a frame or two (no
-  Light button anywhere in this UI, unlike Campfire) and the Smelting
-  Queue section shows live progress toward "Iron Ingot — X%". After 60s,
-  confirm 1 Iron Ingot lands in the Output row and materials drop by 10
-  Iron.
+  behavior as Campfire's Fuel box. Not exercised — fuel/materials were
+  already loaded via the StorageBox links, not by hand.
+- [x] **Queue multiple recipes**: confirmed 4/4 queue (Iron/Copper/Silver/
+  Gold) with Platinum shown available-but-unqueued once full. **Full
+  round-robin rotation confirmed, not just one recipe running** — Output
+  Box ended up holding Iron x4, Copper x2, Silver x2 side by side,
+  proving `StartNextQueuedRecipe` genuinely cycled through the different
+  queued recipes over time rather than only ever smelting the first one.
+  Un-queue-by-clicking-again itself not specifically exercised.
+- [x] **Turn Auto-Run on with fuel + a queued recipe + materials already
+  loaded** — confirmed: Lit, live fuel countdown (258s shown), live smelt
+  progress (Iron Ingot — 21%), and a full completed cycle (Ingot landed
+  in Output Box, confirmed twice).
 - [ ] **Turn Auto-Run off** — confirm the Furnace doesn't auto-light again
   once its current fuel burns out, and doesn't auto-refill from any linked
-  box, but anything already lit/mid-smelt keeps running to completion.
-- [ ] **StorageBox links**: place a StorageBox within the Furnace's link
-  range (~10m) with some Sticks in it, open the Furnace popup, confirm it
-  appears as a button under "Fuel Source" — click it, confirm the label
-  updates to that box's name and a "Clear" button appears. With Auto-Run
-  on and the Furnace's on-board Fuel row empty, confirm Sticks migrate
-  from the box into the Fuel row on their own within a few seconds, with
-  no player interaction. Repeat for Materials Source (Iron) and Output Box
-  (confirm smelted Ingots migrate out of the Output row into the assigned
-  box automatically).
+  box, but anything already lit/mid-smelt keeps running to completion. Not
+  exercised — Auto-Run was left on throughout.
+- [x] **StorageBox links**: confirmed all three — Fuel Source ("wood box",
+  draining live from 6→4 while lit), Materials Source ("ore box", full 20
+  qty x4 on hand), and Output Box ("Furnace Box", receiving completed
+  Ingots automatically with the popup closed). Auto-refill wasn't
+  specifically isolated (materials started full, so refill-from-empty
+  wasn't directly observed) but the drain/output halves are solid.
 - [ ] **Move a linked StorageBox out of range** (or its contents added
   elsewhere) — confirm auto-feed/drain simply stops for that link
   (no error, no crash) until it's back in range.

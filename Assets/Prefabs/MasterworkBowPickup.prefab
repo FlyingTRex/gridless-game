@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3635254153204433590}
   - component: {fileID: 7439167936767029607}
   - component: {fileID: 6738260013684307196}
+  - component: {fileID: 6128604816168481727}
   m_Layer: 0
   m_Name: MasterworkBowPickup
   m_TagString: Untagged
@@ -102,6 +103,20 @@ MonoBehaviour:
   canRespawn: 0
   respawnDelay: 180
   respawnScatter: 0.5
+--- !u!114 &6128604816168481727
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5506575361560073224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &568280545653722333
 PrefabInstance:
   m_ObjectHideFlags: 0

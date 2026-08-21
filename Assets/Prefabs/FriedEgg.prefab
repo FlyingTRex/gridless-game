@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4282665977765461710}
   - component: {fileID: 202066402941700296}
   - component: {fileID: 7781504331624009033}
+  - component: {fileID: 6612496845084206044}
   m_Layer: 0
   m_Name: FriedEgg
   m_TagString: Untagged
@@ -102,6 +103,20 @@ MonoBehaviour:
   canRespawn: 0
   respawnDelay: 180
   respawnScatter: 0.5
+--- !u!114 &6612496845084206044
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4750454964011077608}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &7266085585328336773
 PrefabInstance:
   m_ObjectHideFlags: 0

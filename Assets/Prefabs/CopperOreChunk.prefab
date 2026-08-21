@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 2785673692380154086}
   - component: {fileID: 7874099062347477334}
   - component: {fileID: 4967593132537235210}
+  - component: {fileID: 1231202423896701532}
+  - component: {fileID: 467876324764586334}
   m_Layer: 0
   m_Name: CopperOreChunk
   m_TagString: Untagged
@@ -97,7 +99,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
   chunkPrefab: {fileID: 3632238377673588296, guid: dd420aa18d4ab0145a89a079199572ff, type: 3}
   chunkCount: 2
-  hitsToBreak: 1
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -110,6 +111,36 @@ MonoBehaviour:
   hiddenMaterial: {fileID: 0}
   revealedMaterial: {fileID: 0}
   hiddenChunkPrefab: {fileID: 0}
+  pickupItem: {fileID: 0}
+  pickupCount: 1
+  holeVisualPrefab: {fileID: 0}
+--- !u!114 &1231202423896701532
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2015791843943886014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: 0e3749754aee4fefae384ad1978385cf
+--- !u!114 &467876324764586334
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2015791843943886014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &3565573120082007464
 PrefabInstance:
   m_ObjectHideFlags: 0

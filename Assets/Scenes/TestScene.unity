@@ -5894,7 +5894,7 @@ TerrainCollider:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 211758442}
-  m_Material: {fileID: 0}
+  m_Material: {fileID: 13400000, guid: 6aa840dddc2e4e7bab995d8ddb6582d9, type: 2}
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
@@ -43692,7 +43692,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b62eb0cc8b76eca47a3349bb69499243, type: 2}
   - {fileID: 11400000, guid: 376822015e2a2504c8b7040c4129e712, type: 2}
   interactRange: 10
-  snapRadius: 1.5
+  snapRadius: 2.5
   panelHalfSize: 2.5
   rotationStepDegrees: 90
   scrollThreshold: 20

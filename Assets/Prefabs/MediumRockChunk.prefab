@@ -14,6 +14,8 @@ GameObject:
   - component: {fileID: 4446363844388949192}
   - component: {fileID: 3225555344362371144}
   - component: {fileID: 3528302443702532952}
+  - component: {fileID: 2428749697095715612}
+  - component: {fileID: 8822931677137842408}
   m_Layer: 0
   m_Name: MediumRockChunk
   m_TagString: Untagged
@@ -156,7 +158,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
   chunkPrefab: {fileID: 1931988532258926014, guid: cbb3c62f40084df4b92bca399068f400, type: 3}
   chunkCount: 2
-  hitsToBreak: 1
   scatterForce: 1.2
   trainedSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
   skillGain: 0.5
@@ -169,6 +170,36 @@ MonoBehaviour:
   hiddenMaterial: {fileID: 0}
   revealedMaterial: {fileID: 0}
   hiddenChunkPrefab: {fileID: 0}
+  pickupItem: {fileID: 0}
+  pickupCount: 1
+  holeVisualPrefab: {fileID: 0}
+--- !u!114 &2428749697095715612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8584421546452813150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: 4860f6a32b8c4ec09589b5b554d1ead8
+--- !u!114 &8822931677137842408
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8584421546452813150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &8052352378505964242
 PrefabInstance:
   m_ObjectHideFlags: 0

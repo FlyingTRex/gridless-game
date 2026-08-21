@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 291288938546572281}
   - component: {fileID: 7819268287679722062}
   - component: {fileID: 42144830454466312}
+  - component: {fileID: 3781092687544233174}
   m_Layer: 0
   m_Name: MRERationPickup
   m_TagString: Untagged
@@ -102,6 +103,20 @@ MonoBehaviour:
   canRespawn: 0
   respawnDelay: 180
   respawnScatter: 0.5
+--- !u!114 &3781092687544233174
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5489489454721887283}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &6969218925526436193
 PrefabInstance:
   m_ObjectHideFlags: 0

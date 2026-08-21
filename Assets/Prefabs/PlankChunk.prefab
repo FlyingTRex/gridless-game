@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8042580793579542824}
   - component: {fileID: 1148422401745028898}
   - component: {fileID: 5971678588473388239}
+  - component: {fileID: 7500026232674954120}
   m_Layer: 0
   m_Name: PlankChunk
   m_TagString: Untagged
@@ -100,8 +101,22 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.37307246, y: 0.0647784, z: 0.9}
+  m_Size: {x: 0.37307245, y: 0.0647784, z: 0.9}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7500026232674954120
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1488879547467099213}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &5069269909688157851
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -116,15 +131,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7881466077556996133, guid: ec4b5ba4c9c3b9d4e8d249ef24769a4e, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.52073667
+      value: 0.5207367
       objectReference: {fileID: 0}
     - target: {fileID: 7881466077556996133, guid: ec4b5ba4c9c3b9d4e8d249ef24769a4e, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.52073667
+      value: 0.5207367
       objectReference: {fileID: 0}
     - target: {fileID: 7881466077556996133, guid: ec4b5ba4c9c3b9d4e8d249ef24769a4e, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.52073667
+      value: 0.5207367
       objectReference: {fileID: 0}
     - target: {fileID: 7881466077556996133, guid: ec4b5ba4c9c3b9d4e8d249ef24769a4e, type: 3}
       propertyPath: m_LocalPosition.x

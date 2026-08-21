@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4561427162689820787}
   - component: {fileID: 6127448126393058021}
   - component: {fileID: 7880604298301007939}
+  - component: {fileID: 5420670872052899189}
   m_Layer: 0
   m_Name: SettlersBeltPickup
   m_TagString: Untagged
@@ -99,6 +100,20 @@ MonoBehaviour:
   points: 1
   restrictedTo:
   - {fileID: 11400000, guid: d9c6f1fc6d85bc78d70c6a72969f4ab1, type: 2}
+--- !u!114 &5420670872052899189
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7114214064217805237}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &2537339454105213670
 PrefabInstance:
   m_ObjectHideFlags: 0

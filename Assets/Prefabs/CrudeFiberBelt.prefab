@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 7357619189240358495}
   - component: {fileID: 8039937275085276507}
   - component: {fileID: 4631583162548705766}
+  - component: {fileID: 5460590922087092073}
   m_Layer: 0
   m_Name: CrudeFiberBelt
   m_TagString: Untagged
@@ -98,6 +99,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Belt
   itemDefinition: {fileID: 11400000, guid: 1737996912514d979dd38609a15cce2f, type: 2}
   points: 2
+  restrictedTo: []
 --- !u!65 &4631583162548705766
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -119,6 +121,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.5, y: 0.12053292, z: 0.49818027}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &5460590922087092073
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4645049302297038022}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &663253152177167645
 PrefabInstance:
   m_ObjectHideFlags: 0

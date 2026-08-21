@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2449151139718815941}
   - component: {fileID: 2276479906542246016}
   - component: {fileID: 3457066065192948407}
+  - component: {fileID: 1797981900672446407}
   m_Layer: 0
   m_Name: PotatoPickup
   m_TagString: Untagged
@@ -102,6 +103,20 @@ MonoBehaviour:
   canRespawn: 0
   respawnDelay: 180
   respawnScatter: 0.5
+--- !u!114 &1797981900672446407
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3934806830696225653}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &7720295328145089602
 PrefabInstance:
   m_ObjectHideFlags: 0

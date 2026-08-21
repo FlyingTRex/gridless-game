@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 7247447600751796369}
   - component: {fileID: 5572893093932414180}
   - component: {fileID: 3973187841812785578}
+  - component: {fileID: 7511854673390354162}
   m_Layer: 0
   m_Name: CrudeFiberBackpack
   m_TagString: Untagged
@@ -119,6 +120,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.52948487, y: 0.53, z: 0.40255287}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &7511854673390354162
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 818966939834246973}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &2214643697238167650
 PrefabInstance:
   m_ObjectHideFlags: 0

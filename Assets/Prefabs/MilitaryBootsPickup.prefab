@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 9070704940459306930}
   - component: {fileID: 6853781047878633995}
   - component: {fileID: 2773223187024172041}
+  - component: {fileID: 5709502701364940809}
   m_Layer: 0
   m_Name: MilitaryBootsPickup
   m_TagString: Untagged
@@ -106,6 +107,20 @@ MonoBehaviour:
     - {fileID: 11400000, guid: 895e12c4910884d418218d6e5edb27f2, type: 2}
   - label: Pistol Holster
     allowedItems: []
+--- !u!114 &5709502701364940809
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5891990440131488226}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &2244244329138964459
 PrefabInstance:
   m_ObjectHideFlags: 0

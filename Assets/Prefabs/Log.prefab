@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 100010}
   - component: {fileID: 100012}
   - component: {fileID: 1089960193333414361}
+  - component: {fileID: 1501755788510440518}
   m_Layer: 0
   m_Name: Log
   m_TagString: Untagged
@@ -189,3 +190,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SaveId
   id: 093dc2a9bfd44edc8982f114371230a3
+--- !u!114 &1501755788510440518
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5

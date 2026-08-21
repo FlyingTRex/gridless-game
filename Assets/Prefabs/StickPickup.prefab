@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8170594899813730890}
   - component: {fileID: 6914309612230252571}
   - component: {fileID: 6961419208942542108}
+  - component: {fileID: 8524350929946951851}
   m_Layer: 0
   m_Name: StickPickup
   m_TagString: Untagged
@@ -102,6 +103,20 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 2
+--- !u!114 &8524350929946951851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2845580259793570749}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &7150771989955896808
 PrefabInstance:
   m_ObjectHideFlags: 0

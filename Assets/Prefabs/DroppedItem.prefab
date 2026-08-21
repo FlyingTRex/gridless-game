@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 7748104984467767682}
   - component: {fileID: 9150880969444430418}
   - component: {fileID: 4622461455537372964}
+  - component: {fileID: 6327467910703126687}
   m_Layer: 0
   m_Name: DroppedItem
   m_TagString: Untagged
@@ -157,3 +158,20 @@ MonoBehaviour:
   quantity: 1
   trainedSkill: {fileID: 0}
   skillGain: 0.05
+  canRespawn: 0
+  respawnDelay: 180
+  respawnScatter: 0.5
+--- !u!114 &6327467910703126687
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1931988532258926014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5

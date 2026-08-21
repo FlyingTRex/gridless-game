@@ -102,6 +102,7 @@ GameObject:
   - component: {fileID: 6985096027963332842}
   - component: {fileID: 726648846361944282}
   - component: {fileID: 8905858224431548686}
+  - component: {fileID: 1205773436621305365}
   m_Layer: 0
   m_Name: MiningFaceShieldPickup
   m_TagString: Untagged
@@ -186,3 +187,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MiningFaceShield
   shieldName: Mining Face Shield
+--- !u!114 &1205773436621305365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4846139638888463420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5

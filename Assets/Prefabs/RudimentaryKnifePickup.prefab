@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2259334447437972070}
   - component: {fileID: 4881350689089403941}
   - component: {fileID: 1081513193900658845}
+  - component: {fileID: 5272471397678754926}
   m_Layer: 0
   m_Name: RudimentaryKnifePickup
   m_TagString: Untagged
@@ -96,6 +97,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tool
   itemDefinition: {fileID: 11400000, guid: cab50ab63360c6a4980d65ff4194a603, type: 2}
+--- !u!114 &5272471397678754926
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7727788980141258816}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &2491652600871445769
 PrefabInstance:
   m_ObjectHideFlags: 0

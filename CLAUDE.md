@@ -611,6 +611,104 @@ the riskiest untested feature of the whole session (real combat, real
 permanent NPC death, and a brand-new circular-patrol movement shape all
 landing at once).
 
+**A Hunter NPC job is planned but not built — see `HUNTER_PLANNING.md`.**
+Designed 2026-08-20, prompted by Ben asking whether a Forage NPC equipped
+with a Knife would already skin animals (it wouldn't — `SkinnableCreature`
+implements neither `INPCHarvestable` nor `INPCSearchable`, so no NPC can
+kill or skin anything today). A real fourth `NPCJobDefinition.JobKind`
+(alongside Gathering/Crafting/Guarding), with its own `NPCHunting.cs`
+sibling component rather than an extension of `NPCGathering` or
+`NPCGuarding`, since it needs pieces of both. **Key decisions from a
+"be mean" pass**: Hunter's own kill AI only ever targets passive
+`PreyCreature` (never `HostileCreature` — no permanent-death risk for a
+resource-gathering role), but its scavenging half will skin *any* dead
+`SkinnableCreature` it finds regardless of subclass — including a
+player- or Guard-killed Wolf — since the corpse-detection scan is
+`IsDead`-based, not subtype-based, so that costs nothing extra. Confirmed
+safe: since the Guarding build, `HostileCreature` only attacks whoever
+provoked it, so a Hunter that never attacks a Wolf is never attacked by
+one either — no `NPCVitals`/combat-risk needed on the Hunter at all. Gear
+is Bow + Arrow + Knife equipped **simultaneously** (reusing
+`GuardRangedJob`'s existing two-simultaneous-`ToolRequirement` pattern,
+just a third slot) rather than building new animated holster/draw
+swap-machinery for what would be pure cosmetic polish. Trains **Archery**
+(reusing the existing skill Guard Ranged/`PlayerRangedCombat` already
+train) rather than inventing a new Hunting skill, which would have
+deepened the Combat-skill fragmentation `ENDGAME_PLANNING.md` already
+flagged. Corpse-skinning needs a new interface, proposed as
+`INPCSkinnable` — `SkinnableCreature.DropLoot` yields two distinct item
+types at once (Pelt+Meat), which doesn't fit `INPCHarvestable`'s
+single-item contract, and unlike `INPCSearchable`'s bush-search pattern
+there's no reason to scatter-then-collect since a corpse doesn't move —
+a direct-to-cargo yield is simpler. `NPCHunting` reuses `NPCJob`'s
+existing `DepositContainer`/`NPCCargo` mechanism exactly as every other
+job already does — Ben's own correction to an earlier framing: a Hunter
+isn't competing with the player for meat/leather/pelt, it deposits into
+the player's own StorageBox, so it's a straight supply boost to Cooking/
+Medical's Raw Meat pipeline, same as a Mining NPC already boosts Ore.
+The one still-open risk is narrower than that — purely local wildlife
+*density* thinning out faster than it regrows near one settlement if
+multiple Hunters (or a Hunter plus the player) draw from the same small
+radius — an ecological-pacing question to watch live, not a supply
+question. Planning only, nothing built.
+
+**The Cookstove half of that automation idea has its own real plan now —
+see `COOKSTOVE_PLANNING.md`.** Designed 2026-08-20, revised same day after
+Ben's own follow-up. Sharpest risk found: automating Campfire's real
+skill-gated recipes would gut the reason to ever cook by hand again —
+**resolved by Ben's own fix, gating the structure, not the recipes**:
+`Cookstove.trainedSkill = Cooking`, `unlockTier = CraftTier.Normal` (skill
+25) on the `BuildPiece` itself, the same fields every other `BuildPiece`
+already has — since Cooking is only trainable by hand-cooking at a
+Campfire, this genuinely mandates real Campfire use before a Cookstove
+can even be built, for free (zero new code). Ben's follow-up call: once
+unlocked, the Cookstove should eventually host Campfire's fancier
+recipes too (Grilled Meat, Fried Egg, Steak and Potatoes), not stay
+limited to the free baseline — real complication found checking the
+actual data: every one of those recipes requires a specific accessory in
+100% of existing `CookableItem` assets, so hosting them means Cookstove
+needs its own 4-slot accessory system too (mirroring Campfire's Grill/
+Soup Pot/Kettle/Frying Pan), a real scope increase over a pure Furnace
+clone. Herbal Tea/Meat Stew stay permanently excluded regardless —
+`requiresCanteenWater` needs a live player's equipped Canteen, nothing an
+unattended structure has. Real fork resolved by Ben: Cookstove is a
+**new dedicated `BuildPiece` structure** (same relationship Furnace
+already has to the Anvil), not automation bolted onto the existing
+`Campfire` — `Campfire.fuelInventory`'s capacity is hardcoded to 1 slot
+specifically *because* it wasn't meant to run unattended long. Otherwise
+built to copy `Furnace.cs` field-for-field — same `FuelItem`/`FuelTier`
+system and assets (no new fuel type, Ben's own call), same StorageBox-
+link/auto-refill/auto-drain/queue/`Update()`-ticks-with-no-player-nearby
+shape. The `BuildPiece`'s own ingredient cost is meant to require smelted
+Iron (Ben's framing) — a second, independent progression gate (a working
+Furnace + Metalworking chain) stacked on top of the Cooking-skill one, not
+a substitute for it. Save/restore follows the `PlacedPiece`/
+`RestorePlacedPieces` ordering rule (`CLAUDE.md`'s own `SaveManager.Load()`
+gotcha), unlike Furnace's own top-level always-pre-exists category.
+Planning only, nothing built.
+
+**Custom avatar/creature modeling (replacing placeholder Human Dummy +
+building animal characters) is planned — see `CUSTOM_AVATAR_PLANNING.md`.**
+Scoped 2026-08-20 out of a conversational Blender/Unity/(briefly) Second
+Life exploration. Audit confirmed current state: humans run on the
+third-party `Assets/Kevin Iglesias/Human Character Dummy` pack (mesh +
+rig + animations); animals are exactly three real creature prefabs
+(Wolf/`HostileCreature`, Rabbit+Pig/`PreyCreature`) with no live Chicken
+creature yet despite `ChickenMeatPickup`/`EggPickup` existing as items.
+Two decisions locked in: the human replacement is **mesh-only** (new
+body built to match the existing rig's exact bone names/bind pose, so
+the current Animator Controller and every existing animation clip keep
+working unmodified — no new rig, no new animations for humans), while
+animals get a **full custom pipeline per species** (new mesh, new
+quadruped rig, new weight paint, new animations each) since there's no
+existing rig to match and no "swap clothes on one base" shortcut the
+way humans have. Real open questions logged, not resolved: whether
+Chicken is in scope now or blocked on a live Chicken creature being
+built first, whether animals need any wearable equipment at all, and
+how the two tracks (lower-risk human vs. higher-risk animal-pipeline-
+from-scratch) should be sequenced against each other. Planning only,
+nothing modeled or rigged yet.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:

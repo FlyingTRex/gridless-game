@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 2590092376331612254}
   - component: {fileID: 1192546947642977976}
   - component: {fileID: 4988523252794552334}
+  - component: {fileID: 1460906772654149999}
   m_Layer: 0
   m_Name: FineBackpackPickup
   m_TagString: Untagged
@@ -97,6 +98,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Backpack
   itemDefinition: {fileID: 11400000, guid: eea31ec6d54844c19e9c541ae9472293, type: 2}
   capacity: 12
+--- !u!114 &1460906772654149999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9143306695211494957}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &4354456052784224391
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -479,6 +479,60 @@ gaps:
   one — see `MVP2_PLANNING.md` item 2). Until then, a player has to keep
   the linked boxes stocked by hand — the Furnace no longer needs to be
   *watched* while running, just periodically restocked.
+- [ ] **Three more Furnace-shaped automated structures (raised 2026-08-20,
+  Ben's framing: "part of our game strategy is automation of tasks to get
+  to the end game"), not built — see `HUNTER_PLANNING.md` for the related
+  Hunter NPC that would feed the Cookstove/Tanning Bench half of this.**
+  Furnace's own automation shape (3 optional StorageBox links, on-board
+  fuel/materials/output buffers, auto-refill/auto-drain, ticks with no
+  player nearby) is real and reusable — but it's currently hardcoded onto
+  the `Furnace` class itself, not factored into a shared base component,
+  so each of these needs either a real "AutomatedProcessor" refactor or a
+  copy-adapted clone of Furnace's shape. Checked against actual current
+  data before logging this (not just assumed) — the three ideas are in
+  very different states of readiness:
+  - **Cookstove (auto food) — full plan now written, see
+    `COOKSTOVE_PLANNING.md` (2026-08-20, revised same day).** A new
+    dedicated `BuildPiece` structure (not automation bolted onto
+    Campfire — its 1-slot fuel capacity was a deliberate "not meant to
+    run unattended long" choice), gated to build at all on **Cooking 25**
+    (`BuildPiece.trainedSkill`/`unlockTier`, the same fields every other
+    buildable piece already has) — since Cooking is only trainable by
+    hand-cooking at a Campfire, this genuinely mandates real Campfire use
+    first (Ben's ask), for free. Once unlocked it hosts a real recipe
+    list including Campfire's fancier recipes (Grilled Meat/Fried Egg/
+    Steak and Potatoes — Ben's call), which turned out to need its own
+    4-slot accessory system too (every one of those recipes needs a
+    specific accessory in 100% of the existing data, not just skill) —
+    Herbal Tea/Meat Stew stay permanently excluded regardless
+    (`requiresCanteenWater`, no live player Canteen to draw from
+    unattended). `BuildPiece` ingredient cost meant to require smelted
+    Iron — a second progression gate stacked on the skill one. Otherwise
+    a field-for-field copy of `Furnace.cs`'s queue/fuel/StorageBox-link
+    logic, reusing the existing `FuelItem`/`FuelTier` assets as-is.
+  - **Lumber Mill — actually two unrelated chains bundled under one
+    name:** Log→Plank isn't a recipe at all anymore (deliberately removed
+    in favor of the drop-and-chop mechanic, see the dropped-Log fix
+    above) — automating it means reinventing a recipe just cut. Stick→
+    Trimmed Stick (5 tiers) **already are real `CraftingRecipe`s** today
+    and don't need a Furnace-clone at all — this is exactly the
+    already-scoped "data-only follow-up" the bench-crafting/`NPCCrafting`
+    system's own header comment already flags (a Woodworking
+    `NPCJobDefinition` + a workbench marker, reusing the Metalworking
+    pilot's machinery as-is) — the cheapest of everything in this list.
+  - **Tanning Bench — premise doesn't match current state.** Leather
+    already drops directly from Deer (its own independent hunting item,
+    not Pelt-derived). Wolf Pelt, meanwhile, is a confirmed complete
+    dead end — grepped every asset in the project, zero recipes
+    reference it at all. So this isn't "automate an existing chain," it's
+    "invent a brand-new Pelt→Leather recipe from scratch" — real and
+    useful (closes a genuine dead-end item, gives the planned Hunter's
+    Wolf-pelt scavenging somewhere to go) but the biggest lift of the
+    three.
+  Ranked cheapest to most work: Lumber Mill (Stick tier) < Cookstove <
+  Lumber Mill (Log/Plank) ≈ Tanning Bench. Not scoped/ordered/committed —
+  logged as a strategic direction (automation as the on-ramp to endgame),
+  not a build plan yet.
 
 ## StorageBox nearby-section UI — same popup treatment as Campfire?
 
@@ -719,6 +773,29 @@ Hireable NPCs was — same discipline, not yet scoped/ordered/agreed to. Treat
 every item below as a discussion candidate, not a committed plan, until Ben
 signs off on scope and order.
 
+- [ ] **NPC "find door" pathing — Ben's idea, 2026-08-20, prompted by
+  live-testing NPCs walking into walls trying to reach a StorageBox
+  inside a walled building.** Not designed or built — logged as an idea.
+  Checked before logging, not assumed: this is a genuine two-part build,
+  not a quick pathing tweak.
+  1. **Doors are player-only today.** `Door.Open()` takes the player's
+     own `transform.position` directly and is wired to
+     `ISecondaryInteractable` (F-key) — there's no NPC-safe way to open
+     one at all, same class of gap as the skinning/`SkinnableCreature`
+     discussion earlier tonight (a player-only action needing a parallel
+     NPC-safe entry point, e.g. an `OpenForNPC()`-shaped generalization).
+  2. **The routing itself needs real new logic.** No NavMesh exists in
+     this project — every NPC mover is straight-line movement plus local
+     raycast deflection (`NPCMovement.cs`). "Find the door" means
+     detecting that a straight path to a target is blocked by a wall,
+     searching for the nearest `Door` component within some radius, and
+     injecting it as an intermediate waypoint before continuing toward
+     the real target — a real new behavior layered on top of
+     `NPCMovement`, not a config value.
+  Given the size, this would get the same "real design pass before
+  touching code" treatment as the Hunter/Cookstove plans from earlier
+  tonight, not a quick patch. Not scoped or ordered yet.
+
 - [ ] **New-player-experience gaps found live during the 2026-08-19
   playtest (Ben's own framing: "what would a new player need to get
   going").** Six real ideas, none built:
@@ -795,6 +872,36 @@ signs off on scope and order.
     scatters a felled tree's own logs — also fixes Admin-spawning
     multiple Logs at once for free, since `AdminSpawnScreen` shares the
     same method. Compile-verified, not yet live-tested.
+- [ ] **Cursor object-inspector debug overlay (designed 2026-08-20, not
+  built — Ben's ask, logged as a plan rather than built now).** A small
+  corner-of-screen debug panel that IDs whatever GameObject the cursor is
+  currently over, meant to speed up future diagnosis of exactly the kind
+  of "which prefab/mesh is this actually" confusion this session hit
+  twice live while rebuilding the Anvil (grabbing the wrong ancestor via
+  `.transform.root`, then grabbing a random scattered Boulder via
+  `FindFirstObjectByType<AnvilSurface>()` instead of the real one).
+  Design, not yet built:
+  - New Editor-only script (working name `CursorObjectInspector.cs`),
+    styled like the existing `DebugGUI` panel — a toggle key (off by
+    default, add to `GameMenuScreen.ControlsList` once built per this
+    file's standing new-key-binding rule).
+  - Raycasts from the camera every frame against all layers, with
+    `QueryTriggerInteraction.Collide` so trigger-only colliders (a common
+    shape in this project) still get picked up, not just the gameplay
+    interact layer/mask.
+  - Resolves identity via Unity's own
+    `PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot`, not a
+    hand-rolled hierarchy walk — chosen specifically after this session's
+    two related hierarchy-tracing mistakes.
+  - Displays the resolved prefab asset path *and* its guid together (a
+    bare guid alone isn't searchable/readable at a glance), plus,
+    separately, the hit object's own mesh asset guid when it has one —
+    the real Anvil bug was a mesh-level mismatch inside an
+    otherwise-correctly-resolving object, so the mesh guid needs its own
+    line rather than being assumed to match the prefab's.
+  - Must be wrapped in `#if UNITY_EDITOR` — `PrefabUtility`/
+    `AssetDatabase` don't exist in a compiled Player build, so this is a
+    permanent Editor-only limitation, not a "build it later" gap.
 - [ ] **A deposit `StorageBox` filling up should notify the player, not
   just silently sit there (Ben's idea, 2026-08-18).** A full box the
   player hasn't noticed can silently strand a Gathering NPC's cargo or
@@ -1253,6 +1360,290 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **Player visually clips through the floor near the building/
+  Foundation area — root-caused 2026-08-20, confirmed as a direct
+  symptom of the missing-Foundation bug, not a separate issue.**
+  Screenshot showed the player model's lower half submerged into a
+  pitch-black void near the Anvil/Furnace/StorageBox cluster.
+  **Measured directly** (via `Terrain.SampleHeight` at each structure's
+  exact X/Z): bare terrain there sits at Y≈0.21–0.26, while the
+  Anvil/Furnace/StorageBoxes themselves sit at Y≈0.65 — a real **0.39–
+  0.44 unit gap**, exactly enough for a `CharacterController` to sink
+  into and get physically stopped by the actual terrain below. This
+  fully explains "stuck/clipped but not still falling" — there
+  genuinely is no floor there anymore, since the Foundation that used to
+  provide it never made it into the save (see the entry below). Not a
+  code bug on its own — it's the same missing-Foundation problem,
+  confirmed rather than assumed. **Resolution is a real in-game action,
+  not a code fix**: placing a new Foundation under that cluster patches
+  the hole. Tonight's 4 freshly-placed Foundations elsewhere all saved
+  correctly with real `saveId`s, so this isn't expected to recur for a
+  new one built here.
+- [ ] **Foundation-to-Foundation tiling snap requires aiming almost
+  exactly at the edge socket — found live 2026-08-20, a tuning gap, not
+  a code bug.** Ben tried snapping a new Foundation next to an existing
+  one, aimed at the middle of the existing piece's face, and it didn't
+  snap (fell through to free-placement, producing a visible seam/height
+  mismatch between the two tiles). Investigated read-only (Ben was in
+  Play mode, no edits made): the actual snap logic checks out completely
+  — `BuildSocket.IsCompatibleWith` explicitly supports FoundationEdge-to-
+  FoundationEdge self-pairing ("two foundation panels tiling side by
+  side," a real intended feature), and `panelHalfSize = 2.5` exactly
+  matches Foundation's real half-width (5-unit `BoxCollider` ÷ 2) — no
+  offset math is wrong. **Root cause is just `snapRadius = 1.5`** being
+  small relative to a 5×5 Foundation panel: aiming at the middle of a
+  piece's face puts the crosshair ~2.5 units from the nearest edge
+  socket, well outside the 1.5-unit window, so the snap correctly never
+  fires — the player has to aim almost exactly at the socket point
+  itself, not just "near the piece," which isn't how anyone would
+  naturally try to tile floor panels together.
+  **Fixed 2026-08-20**: bumped `snapRadius` 1.5 → 2.5, matching
+  Foundation's own half-width exactly — aiming anywhere on the near half
+  of an adjacent piece now catches its edge socket. Went with the simple
+  global bump over the smarter edge-projection alternative (less new
+  code, and this field only gates *whether* a socket is even considered
+  a candidate — `FindNearbySocket` still always picks the *closest*
+  compatible socket within range, so a larger radius doesn't create
+  wrong-socket mis-snaps in a dense build, just widens the net for
+  finding the right one). **Also fixed the same "changed default doesn't
+  apply to an existing scene instance" gotcha this project already has
+  documented** — `TestScene.unity`'s own `PlayerBuilding` component had
+  `snapRadius: 1.5` baked in from before, which would have silently
+  overridden the new C# default with no error; updated directly in the
+  scene YAML too. Compile-verified only, not yet live-tested.
+- [ ] **NPCs can walk through walls — found live 2026-08-20, not yet
+  investigated. Possible self-inflicted regression from tonight's own
+  stuck-bump fix, not confirmed.** Ben's report; lead-up moment not
+  caught (unclear whether it followed a stuck/wedged moment or was
+  plain walking with no stall first). Two real candidate causes, not
+  yet distinguished:
+  1. **Tonight's new `NPCMovement` hard-bump fix is a real, concrete
+     risk here, and worth owning directly**: the 4m stuck-escape
+     teleport (`mover.position = mover.position + escapeDir *
+     StuckBumpDistance`) only re-samples ground *height* at the
+     destination — it never raycasts to check whether that 4m path is
+     actually clear first. If an NPC gets wedged against a wall, the
+     "escape direction" could be straight through that same wall (or a
+     different one) instead of around it — the old weak reverse-nudge
+     could never do this (it moved at normal `moveSpeed`, which
+     ordinary collision would still stop), but an instant, uncollided
+     teleport genuinely can clip through geometry. This is a plausible
+     side effect of a fix built earlier tonight, not a pre-existing bug.
+  2. **Pre-existing weak obstacle-avoidance gap, unrelated to tonight**:
+     `NPCMovement.FindClearDirection`'s normal (non-stuck) raycast probe
+     could simply be missing a wall collider for some geometry (wrong
+     layer, missing collider, raycast height not intersecting a thin
+     wall), letting an NPC walk straight through with no stall moment
+     at all — this would be a pre-existing gap, not something today's
+     changes caused.
+  **Candidate 2 confirmed as the real mechanism, found via a follow-up
+  report the same night**: Ben's next repro bundled both symptoms
+  together — "walked through the wall, and doesn't walk on the floor,
+  it sinks to the ground." That second half was the real clue.
+  `GroundHeight.Sample` (used by every NPC movement script for its
+  per-frame Y position) only raycasts against a dedicated "Ground"
+  physics layer, deliberately excluding everything else (its own header
+  comment: avoids an NPC "snapping onto the TOP of a Boulder/Tree's own
+  collider" when walking past one) — but `Foundation.prefab`/
+  `PlankFoundation.prefab` were on layer 0 (Default), not Ground.
+  So an NPC crossing a player-built floor got its height sampled
+  straight through to bare terrain below (confirmed: Terrain sits on
+  layer 3/"Ground", Foundation didn't), sinking it well below where a
+  Wall's collider actually blocks — low enough to slip underneath it.
+  One root cause fully explains both symptoms. **Fixed**: both
+  `Foundation.prefab` and `PlankFoundation.prefab` (every GameObject in
+  each, matched by count before/after the edit) moved onto the Ground
+  layer — grepped the whole `Assets/Scripts` tree first to confirm
+  nothing else keys off that layer by name, so this can't have a side
+  effect elsewhere. Wall/Pole/Door/Roof deliberately were **not** added
+  — they're not meant to be walked on top of, same reasoning
+  `GroundHeight.cs` already uses for excluding Boulder/Tree.
+  **Candidate 1 fixed earlier the same night too**, whether or not it
+  was the actual cause — worth doing either way since it was a real gap
+  regardless. The hard-bump path now validates its escape path before
+  committing: `FindClearBumpDirection` runs the same widening-angle
+  search `FindClearDirection` already does for normal deflection, just
+  checked
+  against the full `StuckBumpDistance` (4m) instead of the caller's
+  short probe distance, and `ClearDistance` clamps the actual teleport
+  to whatever's genuinely open (with a small safety margin) rather than
+  assuming the full 4m is always safe. A stuck NPC can no longer be
+  teleported through a wall it's wedged against. Both candidates are now
+  addressed — compile-verified only, not yet live-tested. Existing
+  Foundation instances already placed in a live Play session (including
+  Ben's current test building) won't retroactively pick up the layer
+  change until the scene/prefab is reloaded fresh.
+- [ ] **A placed Foundation is genuinely gone after a save/reload — not
+  underground, actually never saved at all. Root mechanism identified
+  2026-08-20, exact trigger still unconfirmed.** Ben's screenshot showed
+  the Anvil/Furnace/StorageBoxes sitting correctly on bare grass with no
+  Foundation beneath them — first suspected "moved underground," but a
+  direct `save.json` inspection (not a guess) shows the real story:
+  **no Foundation entry exists anywhere in `placedPieces`**, and neither
+  `Foundation.prefab`'s nor `PlankFoundation.prefab`'s guid appears
+  anywhere in `TestScene.unity` either — the object is completely gone,
+  not misplaced. Checked the last 2 backup saves too
+  (`save.json.bak`/`.bak2`) — **absent from all three**, so this isn't a
+  fresh regression from tonight's other fixes, it goes back further.
+  **This also fully explains Ben's separate report the same session**
+  ("tried to snap a new Foundation/Wall next to the old one, it wouldn't
+  snap") — `FindNearbySocket` only matches live `BuildSocket` components
+  actually present in the scene; if the Foundation object is truly gone,
+  every socket that used to live on it is gone too. One root cause, two
+  symptoms, not two separate bugs.
+  **Mechanism traced, trigger not yet confirmed**:
+  `SaveManager.CaptureWorldObjects<T>` (`SaveManager.cs:307`) silently
+  skips any object whose `SaveId.Id` is empty — and there's already a
+  documented instance of exactly this gotcha in `PlayerBuilding.Confirm
+  ()`'s own comments (a Village Flag hit it once, 2026-08-17, "fixed"
+  with an explicit `SaveId.GenerateIfMissing()` call right after
+  `AddComponent<PlacedPiece>()`). That fix is present in `Confirm()` and
+  looks structurally correct for every `BuildPiece` type, Foundation
+  included — nothing in the code path treats Foundation differently from
+  Wall/Anvil/Furnace/StorageBox, all of which **are** present and
+  correct in the current save. Can't fully explain why Foundation's
+  `SaveId.Id` specifically ends up empty without live debugging, which
+  isn't possible from a batch-mode investigation.
+  **Next step completed same night — not currently reproducible.** Ben
+  placed 4 fresh Foundations during the same session; checked the
+  resulting `save.json` directly and all 4 came back with real,
+  non-empty `saveId`s and correct `placedPieces` entries (clean 5-unit
+  tiling, matching their in-game snap positions exactly). So whatever
+  caused the *original* Foundation to lose its id isn't happening to new
+  placements right now — likely a one-off from earlier in this project's
+  history (possibly predating some of this session's own earlier SaveId
+  fixes) rather than a live, currently-reproducible bug. **Downstream
+  impact confirmed and explained**: the missing floor left a real
+  0.39-0.44 unit gap between the Anvil/Furnace/StorageBox cluster and
+  bare terrain — see the now-closed "Player visually clips through the
+  floor" entry above. **Practical resolution, not a code fix**: place a
+  new Foundation under that cluster to patch the hole. Leaving this
+  entry open only as a "watch for recurrence" flag, not an active
+  investigation — nothing left to chase without a fresh live repro.
+- [x] **No friction anywhere — physics objects roll/slide down hills
+  across the board, found live 2026-08-20. Fixed same day.** Ben's report: "lots of things roll down hills." Checked
+  before planning: grepped every `.physicMaterial` asset in the project —
+  zero exist anywhere in `Assets/Data`, `Assets/Prefabs`, or on the
+  Terrain itself (every `.physicMaterial` on disk belongs to third-party
+  package examples, Mirror/WeatherMaker, unreferenced by anything of
+  ours). Scope check: **132 prefabs have a live `Rigidbody`** — almost
+  all use `BoxCollider`; only `BerryPickup`/`BerrySeedPickup` use
+  `SphereCollider`. That split matters: a round collider physically can't
+  be held by friction at all (friction opposes sliding, not rolling — a
+  sphere given any spin rolls downhill forever regardless of friction
+  value), so it needs a different fix than everything else.
+  **Plan (Ben's calls, confirmed via `AskUserQuestion`):**
+  1. **One new `Assets/Data/HighFrictionGround.physicMaterial`**
+     (`dynamicFriction`/`staticFriction` ≈ 1.0, **`frictionCombine =
+     Maximum`**, `bounciness = 0`), applied to the Terrain's
+     `TerrainCollider` only — not batched across all 132 prefabs. Ben's
+     own framing, confirmed correct: `Maximum` combine means the higher
+     of the two touching colliders' friction always wins, so this one
+     ground-level material affects every item uniformly regardless of
+     what (if anything) the item's own collider has — no per-prefab
+     changes needed.
+  2. **Berry/Berry Seed need `Rigidbody.constraints` (freeze rotation)**,
+     separately and unconditionally — friction alone can never stop a
+     rolling sphere, so this isn't optional even with the new material.
+  3. **A settle-then-freeze safety net**: once a Rigidbody's velocity
+     stays near-zero for ~1-2 seconds, set it kinematic. Catches any
+     residual slope creep the friction fix alone might not fully kill
+     (a real, common Unity issue even at correct friction values,
+     especially near moving colliders like the player/NPCs), and these
+     are decorative dropped props that don't need continuous simulation
+     once settled anyway.
+  **Built 2026-08-20** — all three pieces landed exactly as planned:
+  `Assets/Data/HighFrictionGround.physicMaterial` (friction 1.0,
+  `frictionCombine = Maximum`) applied to Terrain, `BerryPickup`/
+  `BerrySeedPickup` rotation-frozen, new `RigidbodySettler.cs` batch-
+  added to all 132 Rigidbody prefabs (verified 132/132 via direct YAML
+  guid grep, not just the batch log). Compile-verified only — not yet
+  live-tested (needs a real hill + a dropped item to confirm settling).
+- [x] **NPC stuck wedged into wall/floor geometry (Miner), found live
+  2026-08-20 — fixed same day.** `NPCMovement.StuckTracker`'s recovery
+  used to just reverse the mover's desired *direction* for one frame,
+  walked at normal `moveSpeed` — too weak to clear a real corner wedge
+  where both forward and reverse can be blocked by different colliders.
+  **Fixed with Ben's own proposed fix**: the tracker-based
+  `FindClearDirection` overload now takes the mover's actual `Transform`
+  and, once stuck, hard-teleports it 4m in the escape direction
+  (`NPCMovement.StuckBumpDistance`), re-sampling ground height at the
+  new spot via `GroundHeight.Sample` so it doesn't land floating/
+  embedded. All 5 callers (`NPCGathering`/`NPCCrafting`/`NPCTraining`/
+  `NPCGuarding`/`NPCSeekFlag`) updated to pass `transform` through.
+  Compile-verified only — not yet live-tested against a real wedge.
+- [x] **StorageBoxes sink into whatever they're placed on — found live
+  2026-08-20 after a Foundation upgrade, actual root cause was
+  unrelated to upgrading at all, fixed same day.** Original theory (a
+  Foundation tier upgrade changing floor height out from under an
+  already-placed box) was checked directly and **ruled out**:
+  `PlayerPieceUpgrade.Upgrade()` instantiates the new-tier Foundation at
+  the exact same `transform.position` as the old one, and a direct bounds
+  measurement of `Foundation.prefab` vs. `PlankFoundation.prefab` showed
+  their mesh/collider bounds are byte-for-byte identical (both tiers,
+  same height) — the floor genuinely never moves on upgrade. **Real
+  cause, found by re-measuring `StorageBox.prefab` the same way**: its
+  model pivot sits at its vertical center (mesh spans Y=-0.25 to Y=0.25,
+  the exact same "pivot not at base" issue Furnace/Anvil had earlier this
+  session), but `StorageBoxPiece.asset` never had a `groundOffset` field
+  set at all (defaulted to 0) — every StorageBox ever placed has always
+  sunk 0.25 units into whatever surface it's on, on any Foundation tier
+  or bare ground, completely unrelated to upgrading. Ben just happened to
+  notice it clearly against the new Plank floor's clean lines. **Fixed**:
+  `StorageBoxPiece.asset` now has `groundOffset: 0.25`. **A quick audit
+  of every other free-placed `BuildPiece` for the same gap found two
+  more real, previously-undetected instances**: Bookshelf (needed 0.9,
+  now fixed) and Desk (needed 0.4, now fixed) — both silently sinking
+  since they were built, nobody had checked them against this specific
+  gotcha before. Campfire, City Statue, both Garden Plot sizes, and all
+  5 Village Flag tiers were also audited and came back clean (correctly
+  base-pivoted already, `groundOffset: 0` is right for them). Socket-
+  snapped pieces (Wall/Door/Roof/Pole/Foundation/Gable) were excluded
+  from the audit — their position comes from `BuildSocket.transform
+  .position` directly, never from `groundOffset`, so they can't have
+  this bug by construction. Compile-verified only — not yet live-tested
+  (needs a fresh StorageBox/Bookshelf/Desk placement to confirm each
+  sits flush).
+- [ ] **Player-built Anvil/Furnace placed on a Foundation sink into the
+  floor — found live 2026-08-20, not yet fixed.** Screenshot showed both
+  structures visibly embedded into a wood Foundation's flooring rather
+  than sitting flush on top, even though `BuildPiece.groundOffset`
+  (v0.3.152-dev) was specifically built to fix exactly this class of
+  sinking. Ben's own read, worth checking first: free-placement's
+  `groundPos = hit.point + Vector3.up * armedPiece.groundOffset`
+  (`PlayerBuilding.ResolveFollowing`) adds the same fixed pivot-to-base
+  offset regardless of what surface `hit.point` landed on — that part
+  should already be surface-agnostic in theory (the offset only corrects
+  for the model's own local pivot, not world height), so the more likely
+  real cause is that a Foundation's physical collider doesn't actually
+  sit at its visible top-surface height. There's real precedent for
+  exactly that mismatch already in this codebase:
+  `PlayerBuilding.cs`'s own `wallOntoFoundation` comment notes
+  Foundation's `FoundationEdge` socket "sits ~0.2m below its visible top
+  surface" by design (the slab is deliberately "mostly buried"). If the
+  raycast hit-test also resolves against that same buried collider rather
+  than the rendered floor-plank surface, `hit.point` would land ~0.2m
+  below where the floor visually appears, and `groundOffset` alone
+  can't compensate for a wrong `hit.point` to begin with.
+  **Investigated 2026-08-20 — the collider-mismatch theory was wrong,
+  checked directly rather than assumed.** Measured `Foundation.prefab`/
+  `PlankFoundation.prefab` via `PrefabUtility.LoadPrefabContents` +
+  `Renderer.bounds`: their `BoxCollider` matches the visual mesh
+  **exactly** (top at Y=0.4, identical for both tiers) — no buried-
+  collider mismatch exists for either Foundation. Also re-measured
+  `AnvilPiece.prefab`/`FurnacePiece.prefab`'s actual pivot-to-base
+  distance fresh and compared against their stored `groundOffset`
+  values — both match to 4 decimal places (Anvil 0.3784, Furnace
+  1.0000). So the placement math itself is provably correct in
+  isolation for a fresh placement on either Foundation tier — **no code
+  bug found**. Most likely real explanation: the structures in Ben's
+  screenshot were placed *before* the `groundOffset` fix landed earlier
+  this session and were never rebuilt afterward — an old placement
+  doesn't retroactively pick up a later data fix. **Needs a live
+  re-test**: place a brand-new Anvil/Furnace on a Foundation now and
+  confirm whether the sinking still happens — if it does, this
+  investigation's conclusion is wrong and needs revisiting; if not,
+  this closes as a stale-placement non-issue.
 - [x] **Two real save/load regressions, found live during the 2026-08-19
   playtest continuation, both fixed same day, v0.3.148-dev.**
   1. **A worn Canteen lost its fill, and a Hammer stashed in a worn pair
@@ -1558,26 +1949,24 @@ signs off on scope and order.
   correcting the base prefab's value to 3600; confirmed no other override
   exists on Male/Female or anywhere in `TestScene.unity`. Compile-verified
   (all 3 prefabs reimported cleanly); not yet live-confirmed.
-- [ ] **An NPC's custom name reverted to default at the same moment its
+- [x] **An NPC's custom name reverted to default at the same moment its
   payment timer flipped to "Waiting for payment" — found live by Ben
-  (2026-08-17), still unresolved.** Split off from the timer bug above,
-  which is now fixed and explains the *short-cycle* half of the original
+  (2026-08-17). Closed 2026-08-20 — never actually reproduced again
+  despite real effort to catch it.** Split off from the timer bug above,
+  which was fixed and explained the *short-cycle* half of the original
   report but not this half. `PlayerAutosave` was checked and ruled out
   (`Update()` only ever calls `saveManager.Save()`, never `Load()`).
-  Prime remaining suspect, not yet confirmed: `NPCHiring.OnPaymentDue`
-  fires at the exact instant `isWaitingForPayment` flips true — the same
-  instant the name reverted — but its only known subscriber
-  (`PlayerNPCPaymentToast`) just sets a toast string and doesn't touch
-  `NPCDialogue`/naming at all, so the mechanism connecting the two is
-  still unexplained. Needs a live Console-open repro next session to
-  catch it in the act. **Non-repro logged 2026-08-18**: Ben paid off a
-  named Miner ("Mining Dude") and watched the payment clear on the
-  Roster — the name stayed intact this time, ruling out "reverts on
-  *every* payment" as the mechanism. Still open — either intermittent, or
-  tied to a specific condition (a particular payment-timer edge case?
-  something from the original v0.3.130-dev short-cycle bug specifically?)
-  not present in this cleaner repro. Worth another watch with Console
-  open the next time a name-carrying NPC's payment comes due.
+  Non-repro logged 2026-08-18 (a paid-off named Miner kept its name), and
+  now a much stronger non-repro 2026-08-20: Ben confirms NPC custom names
+  have survived multiple full save/reload cycles *and* multiple rounds of
+  equipment changes since, with no recurrence at all. Whatever the
+  original mechanism was (never confirmed — `NPCHiring.OnPaymentDue` was
+  the prime suspect but its only known subscriber doesn't touch naming),
+  it isn't reproducible anymore — likely an incidental side effect of one
+  of the many save/load fixes landed since 2026-08-17 (the `Inventory
+  .Clear()` equipment-restore fix and the `RestorePlacedPieces` ordering
+  fix both touched adjacent restore paths around the same time). Closing
+  without a confirmed root cause, on the strength of the repro attempts.
 - [x] **`NPCGathering.MaxRangeFromDeposit` (the work-range leash, added
   2026-08-17) doesn't survive save/reload — found live by Ben same
   night ("the npc leash isn't saving on reset either"). Fixed
@@ -2460,7 +2849,25 @@ signs off on scope and order.
   implies a future plantable/farmable system is exactly as open as it
   was when first asked — this only added the item and its spawn chance.
   *(Reported by Ben.)*
-- [ ] **Procedural tree (v0.1.58-dev) doesn't read as a tree yet.** Confirmed
+- [x] **Procedural tree (v0.1.58-dev) — superseded, closed 2026-08-20,
+  nothing left to remove.** The real scattered tree models (`Big Tree by
+  3Donimus`, imported via the Poly Pizza/Tripo3D pipeline, see this
+  file's own "Scatter a random number of trees" entry) replaced this
+  system for real gameplay use a while ago, same way Weather Maker
+  superseded the old procedural sky texture this entry's own bark-color
+  theory blamed. **Checked before deleting anything, per this file's own
+  "confirm before deleting" discipline**: `GenerateTree.cs` no longer
+  exists in the repo at all (no file, no git history for it either — it
+  was a throwaway Editor script from early in the project, already
+  cleaned up per the standing convention, same as every other one-off
+  generation tool). The only artifact that shared its name,
+  `TreeBark.mat`, is **not dead** — it's genuinely still referenced by
+  `Log.prefab`/`LogPickup.prefab` today (the choppable/dropped Log
+  item's real bark texture), so it stays. No leftover procedural-tree
+  GameObject exists in `TestScene.unity` either. Closed with zero files
+  deleted — the cleanup was already complete, just not marked as such.
+  Original report preserved below for context on what was wrong with it,
+  now moot:
   via screenshot: `GenerateTree.cs`'s branching mesh renders and is visible
   (the untested backface-culling safety net wasn't even needed, or at least
   didn't hide anything), but the result looks wrong in three specific ways:
@@ -2933,6 +3340,24 @@ signs off on scope and order.
   above, is now fixed and live-confirmed as of 2026-08-18.) Floor/Ceiling/Window/Stairs/
   Ramps/Shelves genuinely still don't exist — checked directly, no
   matching prefabs found for any of them.
+  **A more robust piece-variety system is needed — Ben's live-testing
+  finding, 2026-08-20.** Building a real multi-Foundation building (this
+  session's playtest tiled 4 Foundations together) exposed a genuine
+  structural gap, not just a missing-piece checklist item: a roof spanning
+  2+ Foundations wide can't actually seal, because `Roof`
+  (`TwigRoofPanelPiece`/`PlankRoofPiece`) only has the one panel size/
+  shape, sized for a single-Foundation span — there's no way to close the
+  gap over a wider footprint. This is the same underlying limitation as
+  the already-tracked missing Floor/Ceiling piece (nothing spans multiple
+  Foundations at all yet, roof or floor), just surfaced concretely by an
+  actual multi-tile build instead of staying abstract. Not scoped yet —
+  would need either wider roof/floor panel variants (a real new size
+  tier, not just reusing the existing single-Foundation-span mesh scaled
+  up, since scaling would distort the panel's baked pitch/proportions)
+  or a genuinely tileable roof/floor system (multiple same-size panels
+  covering a span, closer to how Foundation itself already tiles). Worth
+  a real design pass before building — logged here as a live-confirmed
+  need, not designed further yet.
 - [ ] **Simplify item-holding to two states: equipped or inventory-stored — no
   ad-hoc "held in a hand" third state.** Today `PlayerLoot`'s pickup priority is
   Backpack → Left Hand → Right Hand → evict-into-world (`CHANGELOG.md`

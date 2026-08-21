@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 409290553578840713}
   - component: {fileID: 1152736695135593656}
   - component: {fileID: 4934484641403835535}
+  - component: {fileID: 632543003074731722}
   m_Layer: 0
   m_Name: GingerPickup
   m_TagString: Untagged
@@ -102,6 +103,20 @@ MonoBehaviour:
   canRespawn: 0
   respawnDelay: 180
   respawnScatter: 0.5
+--- !u!114 &632543003074731722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 704874955819801743}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &5718949836659675788
 PrefabInstance:
   m_ObjectHideFlags: 0

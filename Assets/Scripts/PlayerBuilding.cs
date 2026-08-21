@@ -27,7 +27,15 @@ public class PlayerBuilding : MonoBehaviour
 
     [SerializeField] private BuildPiece[] allPieces;
     [SerializeField] private float interactRange = 10f;
-    [SerializeField] private float snapRadius = 1.5f;
+    // Bumped 1.5 -> 2.5 (2026-08-20, found live: aiming at the middle of
+    // an existing 5m Foundation's face -- the natural way to try tiling
+    // one next to it -- put the crosshair ~2.5m from the actual edge
+    // socket, well outside the old radius, so the snap silently never
+    // fired and the piece fell through to free-placement instead
+    // (visible seam/height mismatch). New value matches Foundation's own
+    // half-width exactly, so aiming anywhere on the near half of an
+    // adjacent piece now catches its edge socket.
+    [SerializeField] private float snapRadius = 2.5f;
     // Foundation is a 5m x 5m square — half-width used to offset a newly
     // snapped panel directly outward from the socket it's attaching to.
     // Only correct for square, axis-aligned pieces like Foundation; Wall/

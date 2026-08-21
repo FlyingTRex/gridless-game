@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6761316554323974806}
   - component: {fileID: 3607707633710426785}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SocketWest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -55,7 +55,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1371792897750490134}
   - component: {fileID: 8456045653020386122}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Foundation
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -114,7 +114,7 @@ GameObject:
   m_Component:
   - component: {fileID: 4253509563112000062}
   - component: {fileID: 4716580177109793007}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SocketSouth
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -159,7 +159,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5717606305540055366}
   - component: {fileID: 4415580786789528895}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SocketPoleTop
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -204,7 +204,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3961619090395298760}
   - component: {fileID: 6379722517702548428}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SocketNorth
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -248,7 +248,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 644298109348134288}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: Slab
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -281,7 +281,7 @@ GameObject:
   m_Component:
   - component: {fileID: 7115179787458244265}
   - component: {fileID: 8915487115716234461}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SocketEast
   m_TagString: Untagged
   m_Icon: {fileID: 0}

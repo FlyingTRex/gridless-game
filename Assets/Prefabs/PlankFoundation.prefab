@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2884767233320549989}
   - component: {fileID: 2374033498169363192}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: PlankFoundation
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -68,7 +68,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8430870787623346006}
   - component: {fileID: 2151403982483735894}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SocketNorth
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -113,7 +113,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2487299784869770051}
   - component: {fileID: 7400983791827821886}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SocketEast
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -158,7 +158,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8476507731378059904}
   - component: {fileID: 1708208182548637980}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SocketWest
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -203,7 +203,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3751435292813738535}
   - component: {fileID: 7185801992946210396}
-  m_Layer: 0
+  m_Layer: 3
   m_Name: SocketSouth
   m_TagString: Untagged
   m_Icon: {fileID: 0}

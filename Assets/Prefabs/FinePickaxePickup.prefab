@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3776460896952634555}
   - component: {fileID: 7151765135228080925}
   - component: {fileID: 6305048205365819408}
+  - component: {fileID: 1860141831224979223}
   m_Layer: 0
   m_Name: FinePickaxePickup
   m_TagString: Untagged
@@ -96,6 +97,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tool
   itemDefinition: {fileID: 11400000, guid: cbc3a81f301f905488b74329e0b078a6, type: 2}
+--- !u!114 &1860141831224979223
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6864249591511877102}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &1713344919875280207
 PrefabInstance:
   m_ObjectHideFlags: 0

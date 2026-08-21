@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6453628604836278698}
   - component: {fileID: 8684579983916116256}
   - component: {fileID: 2506485676303018787}
+  - component: {fileID: 7549843452446109905}
   m_Layer: 0
   m_Name: TurnipPickup
   m_TagString: Untagged
@@ -102,6 +103,20 @@ MonoBehaviour:
   canRespawn: 0
   respawnDelay: 180
   respawnScatter: 0.5
+--- !u!114 &7549843452446109905
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8238843658884103840}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &2077335836775794176
 PrefabInstance:
   m_ObjectHideFlags: 0

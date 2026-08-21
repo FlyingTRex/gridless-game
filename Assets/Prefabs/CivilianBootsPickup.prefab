@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 6598634207847026251}
   - component: {fileID: 5015812530741371952}
   - component: {fileID: 4173948957401353686}
+  - component: {fileID: 5250633958552455991}
   m_Layer: 0
   m_Name: CivilianBootsPickup
   m_TagString: Untagged
@@ -97,6 +98,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Boot
   itemDefinition: {fileID: 11400000, guid: f8c5f8efdeb94fa4c9610376cc30935e, type: 2}
   slots: []
+--- !u!114 &5250633958552455991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7173357821512616972}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &3288466954647727650
 PrefabInstance:
   m_ObjectHideFlags: 0

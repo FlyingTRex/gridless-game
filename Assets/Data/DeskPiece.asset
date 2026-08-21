@@ -23,6 +23,7 @@ MonoBehaviour:
   unlockTier: 0
   skillGain: 1
   groundReach: 0
+  groundOffset: 0.4
   nextTier: {fileID: 0}
   icon: {fileID: 0}
   previewIcon: {fileID: 0}

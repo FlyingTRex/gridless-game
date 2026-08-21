@@ -17,33 +17,6 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-- 2026-08-20 — Ben+Claude — **Craftable Anvil now uses the real model**
-  (v0.3.153-dev, `BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md`). Ben asked
-  why the placeholder couldn't just be the real anvil visible in the
-  pre-placed scene — it could; last night's extraction used
-  `.transform.root` and walked right past the real `Anvil.glb` model,
-  which was a child of the same trigger object the whole time. Hit and
-  caught a second mistake fixing the first: `FindFirstObjectByType
-  <AnvilSurface>()` isn't reliable (every scattered Boulder also carries
-  one), so the first rebuild attempt grabbed a random Rock instead —
-  caught via direct mesh-guid check, not trusted from the script's log.
-  Fixed by disambiguating on the real Anvil's known position. Re-measured
-  `groundOffset` for the new model (0.378). Verified via mesh guid and by
-  reading the baked icon directly. Compile-verified, not yet live-tested.
-
-- 2026-08-20 — Ben+Claude — **Fixed Anvil/Furnace sinking into the
-  terrain when player-placed** (v0.3.152-dev, `BUGS_AND_ENHANCEMENTS.md`,
-  `CHANGELOG.md`). Live-testing pass on last night's craftable Anvil/
-  Furnace found a real bug: a built Furnace looked much smaller than the
-  original fixed one. Measured directly (per `CLAUDE.md`'s model-
-  grounding protocol) — the reused model's pivot sits a full world unit
-  above its actual base; `PlayerBuilding`'s free-placement code plants
-  the pivot at the ground-hit point with no correction, sinking it in by
-  that gap. Anvil placeholder had the same issue (1.17 units). Fixed
-  generally with a new `BuildPiece.groundOffset` field, set to the
-  measured value on both pieces. Compile-verified, not yet live-tested
-  against the fix itself.
-
 - 2026-08-19 — Ben+Claude — **Fixed dropped-stack quantity loss**
   (v0.3.151-dev, `BUGS_AND_ENHANCEMENTS.md`, `CHANGELOG.md`). Real gap in
   the previous entry's fix, confirmed live: dropping 5 Logs and breaking

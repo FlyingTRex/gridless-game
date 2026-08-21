@@ -65,6 +65,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -5152298896255052613, guid: 443946a1606c54b4cafdc95e6ebbae4f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6552395708782126442}
+    - targetCorrespondingSourceObject: {fileID: -5152298896255052613, guid: 443946a1606c54b4cafdc95e6ebbae4f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6922404824875312267}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 443946a1606c54b4cafdc95e6ebbae4f, type: 3}
 --- !u!1 &7501950541854852200 stripped
 GameObject:
@@ -138,3 +141,17 @@ MonoBehaviour:
   canRespawn: 0
   respawnDelay: 180
   respawnScatter: 0.5
+--- !u!114 &6922404824875312267
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7501950541854852200}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5

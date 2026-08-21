@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 8946774378770904011}
   - component: {fileID: 9961918174709573}
   - component: {fileID: 7211688631866907963}
+  - component: {fileID: 5717624548375362210}
   m_Layer: 0
   m_Name: LeatherBackpack
   m_TagString: Untagged
@@ -97,6 +98,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Backpack
   itemDefinition: {fileID: 11400000, guid: 28d13770ea3c6d74ba9d52d409e4f3d0, type: 2}
   capacity: 8
+--- !u!114 &5717624548375362210
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7908991641506638473}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &925537320037224315
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 9150880969444430418}
   - component: {fileID: 97912711724813092}
   - component: {fileID: 4622461455537372964}
+  - component: {fileID: 3870979079450108397}
   m_Layer: 0
   m_Name: Backpack
   m_TagString: Untagged
@@ -97,6 +98,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Backpack
   itemDefinition: {fileID: 11400000, guid: bb446a069823c1a6f07f9aec5f34fcc4, type: 2}
   capacity: 8
+--- !u!114 &3870979079450108397
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1931988532258926014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &3954662482132888116
 PrefabInstance:
   m_ObjectHideFlags: 0

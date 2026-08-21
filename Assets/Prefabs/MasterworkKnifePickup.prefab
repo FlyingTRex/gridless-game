@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4629798735702986631}
   - component: {fileID: 6513904625032538058}
   - component: {fileID: 6531500414618459748}
+  - component: {fileID: 6685826454800526332}
   m_Layer: 0
   m_Name: MasterworkKnifePickup
   m_TagString: Untagged
@@ -96,6 +97,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tool
   itemDefinition: {fileID: 11400000, guid: 895e12c4910884d418218d6e5edb27f2, type: 2}
+--- !u!114 &6685826454800526332
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5276291766771695620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &8038431372893716081
 PrefabInstance:
   m_ObjectHideFlags: 0

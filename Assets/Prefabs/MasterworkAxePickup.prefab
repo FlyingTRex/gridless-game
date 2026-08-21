@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3539764818670772016}
   - component: {fileID: 4105448001169539903}
   - component: {fileID: 8257574532133752131}
+  - component: {fileID: 8156276168379490406}
   m_Layer: 0
   m_Name: MasterworkAxePickup
   m_TagString: Untagged
@@ -96,6 +97,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tool
   itemDefinition: {fileID: 11400000, guid: ad37f941de4827448a05b96776878bde, type: 2}
+--- !u!114 &8156276168379490406
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6679548372532663342}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &865645459350394588
 PrefabInstance:
   m_ObjectHideFlags: 0

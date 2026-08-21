@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 808281841876668731}
   - component: {fileID: 2490312286779381589}
   - component: {fileID: 1623130402106221474}
+  - component: {fileID: 8451690660221848321}
   m_Layer: 0
   m_Name: SeedPacketOnion
   m_TagString: Untagged
@@ -102,6 +103,20 @@ MonoBehaviour:
   canRespawn: 0
   respawnDelay: 180
   respawnScatter: 0.5
+--- !u!114 &8451690660221848321
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6125883571292200574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &8364854399119351252
 PrefabInstance:
   m_ObjectHideFlags: 0

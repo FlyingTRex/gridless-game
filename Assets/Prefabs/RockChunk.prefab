@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 9150880969444430418}
   - component: {fileID: 4622461455537372964}
   - component: {fileID: 799440091370992688}
+  - component: {fileID: 2083183637305903563}
   m_Layer: 0
   m_Name: RockChunk
   m_TagString: Untagged
@@ -102,6 +103,20 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 0.125
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!114 &2083183637305903563
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1931988532258926014}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &2664001661676172365
 PrefabInstance:
   m_ObjectHideFlags: 0

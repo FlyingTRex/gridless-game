@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5882552149690941689}
   - component: {fileID: 1041742651774039703}
   - component: {fileID: 7748442890129192832}
+  - component: {fileID: 4917505047233500564}
   m_Layer: 0
   m_Name: SilverOrePiece
   m_TagString: Untagged
@@ -102,6 +103,20 @@ MonoBehaviour:
   canRespawn: 0
   respawnDelay: 180
   respawnScatter: 0.5
+--- !u!114 &4917505047233500564
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7409899034568346477}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &8195456010690647164
 PrefabInstance:
   m_ObjectHideFlags: 0

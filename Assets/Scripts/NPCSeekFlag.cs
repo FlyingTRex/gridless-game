@@ -112,7 +112,7 @@ public class NPCSeekFlag : MonoBehaviour
 
         Vector3 desired = toTarget.normalized;
         Vector3 origin = transform.position + Vector3.up * 0.5f;
-        Vector3 moveDir = NPCMovement.FindClearDirection(origin, desired, obstacleCheckDistance, null, stuckTracker, Time.deltaTime);
+        Vector3 moveDir = NPCMovement.FindClearDirection(origin, desired, obstacleCheckDistance, null, stuckTracker, Time.deltaTime, transform);
 
         Vector3 flatTarget = transform.position + moveDir * moveSpeed * Time.deltaTime;
         Vector3 newPos = new Vector3(flatTarget.x, transform.position.y, flatTarget.z);

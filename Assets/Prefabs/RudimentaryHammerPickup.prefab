@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3680329559649716902}
   - component: {fileID: 2284014814222148107}
   - component: {fileID: 756475540535781318}
+  - component: {fileID: 520057413534843133}
   m_Layer: 0
   m_Name: RudimentaryHammerPickup
   m_TagString: Untagged
@@ -96,6 +97,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tool
   itemDefinition: {fileID: 11400000, guid: 8cdad264a739768478c14af1ebb648a4, type: 2}
+--- !u!114 &520057413534843133
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1803774004154961309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6355314ed74e18a40bec0e09c85516a9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
+  settleVelocityThreshold: 0.05
+  settleDuration: 1.5
 --- !u!1001 &7928062444101746381
 PrefabInstance:
   m_ObjectHideFlags: 0
