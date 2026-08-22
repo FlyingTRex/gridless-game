@@ -276,11 +276,21 @@ real (confirming the tool-value curve end-to-end — a Masterwork Pickaxe at
 2100c against a Crude Axe at 6c), and ran a genuine save→exit→reload cycle
 that surfaced and led to fixing a real latent persistence bug (see
 `CHANGELOG.md`'s v0.3.156-dev entry). A second save→reload after the fix
-confirmed identical stock/till, not a fresh reroll. Bank Box itself still
-hasn't been placed/opened live even once — its placeholder cube visual is
-known to look poor as a baked icon — and the Pay-from-Bank fallback has no
-UI of its own yet (purely automatic/silent); both worth a look before
-considering this tier fully closed.
+confirmed identical stock/till, not a fresh reroll. **Bank Box also
+live-tested, 2026-08-22**: built (Flag+NPC gate, real ingredient cost),
+placed correctly, "Open Bank" prompt works, `BankScreen` fully functional
+(wallet/bank balances, Deposit/Withdraw, the 10:1 Exchange ladder, Lockbox
+purchases) — confirms the pre-existing Bank UI survived the gating change
+intact. Ben's call: **tier closed** as of this confirmation.
+
+Two known, deliberately-accepted loose ends, not blockers: Bank Box's
+placeholder cube visual is still just a plain dark box (known poor icon,
+no real model yet), and the Pay-from-Bank fallback has no UI of its own
+(purely automatic/silent when the wallet alone can't cover a purchase) —
+neither was live-tested to its full depth (Bank Box's own save/reload
+round trip, Pay-from-Bank actually triggering in a real transaction), but
+neither blocks calling this tier done. Revisit either if they come up
+again in practice.
 
 ## Explicitly not this tier
 

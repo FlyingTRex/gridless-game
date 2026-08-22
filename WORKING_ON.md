@@ -17,6 +17,6 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — cleared 2026-08-22 when the v0.3.156-dev commit
-merged the full Vendor Stall/Bank Box/multi-denomination currency system. See
-`CHANGELOG.md`'s v0.3.156-dev entry for the merged summary.
+Nothing in progress right now — cleared 2026-08-22 when the v0.3.157-dev commit
+merged the Vendor Stall till/timer UI and the full player naming system. See
+`CHANGELOG.md`'s v0.3.157-dev entry for the merged summary.

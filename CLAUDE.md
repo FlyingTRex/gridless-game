@@ -1529,6 +1529,44 @@ reference back through the real Unity API, same rigor as re-running a
 functional test in a fresh process rather than trusting the process that
 just made the change.
 
+## Gotcha: a wildcard-globbed Unity Editor path can silently match two
+installed versions and crash every batch-mode command with no useful error
+
+Hit live (2026-08-22): a batch-mode command shape used successfully many
+times earlier in the same session (`"/c/Program Files/Unity/Hub/Editor"/*
+/Editor/Unity.exe -batchmode ...`) started failing with no
+`Debug.Log`/`Debug.LogError` output at all — just a bare "Exiting without
+the bug reporter... return code 1" right after "Successfully changed
+project path to...". A second Unity version (`6000.5.6f1`) had been
+installed to `Editor/` alongside the project-pinned `6000.3.21f1` sometime
+during the session (likely an background auto-update), so the `*` glob
+now expanded to **two** paths instead of one — the shell ran the first as
+the executable and passed the second as a literal command-line argument,
+which Unity couldn't parse, so it exited before any project code (or even
+its own normal startup logging) ever ran. The failure looked exactly like
+a script exception at first glance (same "Aborting batchmode due to
+failure" framing), but there was no exception — checking `COMMAND LINE
+ARGUMENTS` in the log's own echoed dump was what revealed the second path
+sitting there as a stray argument.
+
+**The fix:** don't glob the Editor path — pin the exact version from
+`ProjectSettings/ProjectVersion.txt`'s `m_EditorVersion` line
+(`"/c/Program Files/Unity/Hub/Editor/6000.3.21f1/Editor/Unity.exe"`) for
+every batch-mode invocation. This is also just correct regardless of the
+glob-collision risk — the project is pinned to a specific version for a
+reason (see this file's own "Unity version is pinned" convention), so a
+batch command should never silently run against whichever version a glob
+happens to match first.
+
+**How to apply:** if a previously-working batch-mode command starts
+failing with a bare "Aborting batchmode due to failure" and zero project-
+code log output (not even the normal startup lines), check
+`ls "/c/Program Files/Unity/Hub/Editor/"` for more than one installed
+version before assuming the failure is in the script being run — and
+prefer a pinned exact path over a glob in batch-mode tooling from the
+start, precisely because a second Editor install can appear mid-session
+without any explicit action on this project's part.
+
 ## Benign noise: "1 script has been deleted from the project" warning
 after deleting a throwaway `Assets/Editor/*.cs` script
 

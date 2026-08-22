@@ -77,6 +77,37 @@ public class PlayerFame : MonoBehaviour
         _ => 1.0f,
     };
 
+    // Player rename cost/penalty tiers (2026-08-22, player naming) --
+    // symmetric on the Gold cost (both Infamous and Renowned are "well
+    // known," cost more to establish a new identity either way), but
+    // the Fame penalty only fires on the negative side, one-directional
+    // -- matches MULTIPLAYER_PLANNING.md's original intent (discourage
+    // using a rename to escape a bad reputation) rather than letting a
+    // rename fully launder it. The two tables are independent on purpose
+    // -- a Renowned player pays the higher fee but takes no Fame hit;
+    // an Infamous player pays the same fee AND the extra penalty.
+    public int RenameCostGold => Band switch
+    {
+        FameBand.Notorious => 3,
+        FameBand.Known => 3,
+        FameBand.Infamous => 10,
+        FameBand.Renowned => 10,
+        _ => 1,
+    };
+
+    public float RenamePenalty => Band switch
+    {
+        FameBand.Notorious => -25f,
+        FameBand.Infamous => -75f,
+        _ => 0f,
+    };
+
+    public void ApplyRenamePenalty()
+    {
+        float penalty = RenamePenalty;
+        if (penalty != 0f) Grant(penalty);
+    }
+
     private void Awake()
     {
         skills = GetComponent<PlayerSkills>();

@@ -21,6 +21,7 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerEquipment))]
 [RequireComponent(typeof(PlayerFame))]
 [RequireComponent(typeof(PlayerMagic))]
+[RequireComponent(typeof(PlayerIdentity))]
 public class SaveManager : MonoBehaviour
 {
     private const string FileName = "save.json";
@@ -40,6 +41,7 @@ public class SaveManager : MonoBehaviour
     private PlayerMapExploration mapExploration;
     private VillageFlagSpawner villageFlagSpawner;
     private PlayerMagic magic;
+    private PlayerIdentity identity;
 
     // Set by Load() so a fresh scene's starting-gear auto-equip (Shirt/
     // Jeans/Belt/Canteen, each guarded on "nothing equipped yet") doesn't
@@ -64,6 +66,7 @@ public class SaveManager : MonoBehaviour
         mapExploration = GetComponent<PlayerMapExploration>();
         villageFlagSpawner = GetComponent<VillageFlagSpawner>();
         magic = GetComponent<PlayerMagic>();
+        identity = GetComponent<PlayerIdentity>();
     }
 
     private void Start()
@@ -188,6 +191,11 @@ public class SaveManager : MonoBehaviour
             ["mapExploration"] = mapExploration != null ? mapExploration.CaptureRevealedBase64() : null,
             ["magicLineages"] = CaptureMagicLineages(),
             ["selectedWish"] = magic != null ? magic.IdForWish(magic.SelectedWish) : null,
+            // Player naming (2026-08-22) -- hasBeenNamed tracks whether
+            // the free first rename has already been used, so a reload
+            // doesn't hand out a second free one.
+            ["playerName"] = identity != null ? identity.DisplayName : null,
+            ["hasBeenNamed"] = identity != null && identity.HasBeenNamed,
         };
     }
 
@@ -215,6 +223,9 @@ public class SaveManager : MonoBehaviour
 
         if (data["fame"] != null)
             fame.RestoreFame((float)data["fame"]);
+
+        if (identity != null && data["playerName"] != null)
+            identity.RestoreIdentity((string)data["playerName"], (bool)(data["hasBeenNamed"] ?? false));
 
         if (data["currency"] is JObject currencyObj)
             foreach (CoinType type in Enum.GetValues(typeof(CoinType)))
@@ -382,6 +393,7 @@ public class SaveManager : MonoBehaviour
     {
         var stockSaveId = stall.Stock != null ? stall.Stock.GetComponent<SaveId>() : null;
         var tillSaveId = stall.Till != null ? stall.Till.GetComponent<SaveId>() : null;
+        var villageVendor = stall.GetComponent<VillageVendor>();
 
         var tillArray = new JArray();
         foreach (CoinType type in System.Enum.GetValues(typeof(CoinType)))
@@ -424,6 +436,12 @@ public class SaveManager : MonoBehaviour
                 ["tillTier"] = stall.Till != null ? (int)stall.Till.Tier : (int)CraftTier.Crude,
                 ["till"] = tillArray,
                 ["priceList"] = priceListArray,
+                // Full-refresh countdown (2026-08-22, Ben's ask -- "obviously
+                // the timer should be persistent over saves", same call
+                // already made for the Village Flag spawn timer) -- only
+                // VillageVendor (not every future VendorStall driver) has
+                // this concept, so it's null-safe rather than assumed.
+                ["nextFullRefreshSeconds"] = villageVendor != null ? villageVendor.NextFullRefreshSeconds : (float?)null,
             },
         };
     }
@@ -521,6 +539,9 @@ public class SaveManager : MonoBehaviour
                 }
                 stall.SetPriceList(entries.ToArray());
             }
+
+            if (state["nextFullRefreshSeconds"] != null)
+                stall.GetComponent<VillageVendor>()?.RestoreFullRefreshTimer((float)state["nextFullRefreshSeconds"]);
         }
     }
 

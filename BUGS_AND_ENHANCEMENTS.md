@@ -5,6 +5,75 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## Player naming needs a real profanity filter before multiplayer (found 2026-08-22, not started)
+
+`PlayerIdentity.cs` (built 2026-08-22, player naming) only does basic
+sanitization on a chosen name — trim, 30-char length cap, strip non-
+printable/control characters. No profanity/inappropriate-content
+filtering exists anywhere in this codebase, for ANY rename flow
+(`StorageBox`, `Village Flag`, NPCs, and now the player all accept any
+non-empty string). That's an acceptable gap in single-player today —
+nobody else ever sees these names — but the player's own display name
+is explicitly being built as groundwork for multiplayer identity
+(`MULTIPLAYER_PLANNING.md`), where it becomes visible to, and could be
+used to harass, real other people. A real filter needs a maintained
+word-list, leetspeak/spacing-trick normalization, and care around false
+positives on legitimate substrings (the classic "Scunthorpe problem") —
+genuine scope on its own, not something to bolt on as a side effect of
+the naming feature. Must exist before player names are shown to other
+real players; not required before then.
+
+## Iron Arrow reported flying backwards, same symptom as the original Stone
+Arrow bug (reported 2026-08-22, not yet reproduced/confirmed)
+
+Ben: "iron arrows seem to be backwards like the first stone arrows" —
+directly observed while watching one fly (fletching led, arrowhead
+trailed), matching the exact symptom `CLAUDE.md`'s own
+`Quaternion.LookRotation`-fights-a-nested-model's-baked-rotation gotcha
+already documents and fixed for arrows in general (2026-08-16,
+`FlyingArrow.Launch()`'s `Quaternion.Euler(0, 180, 0)` correction).
+
+**A real code check found this genuinely surprising, not yet explained**:
+`PlayerRangedCombat.SpawnFlightVisual` instantiates a single fixed
+`arrowFlightVisualPrefab` for every shot regardless of which arrow item
+was actually fired — no per-material mesh/rotation swap anywhere in
+`FlyingArrow.cs`. That means Stone and Iron arrows fly using the
+literal same generic visual object and the identical orientation
+correction; by the code alone, they should look identical in flight,
+not one fixed and one still backwards.
+
+**Real open question, not yet resolved**: was the backwards orientation
+seen mid-flight (the already-"fixed" code path — if so, something's
+regressed or my reading of the code is missing something) or while the
+Iron Arrow was just held/equipped in the off-hand before firing (a
+genuinely different, never-touched code path — the original 2026-08-16
+fix explicitly only corrected the in-flight visual, and its own comment
+notes the model's baked rotation is tuned for its *equipped* context,
+not flight, implying the held orientation was never separately
+verified). Ben's plan: log for now, re-test live with a real screenshot
+to pin down which case this actually is before investigating further.
+
+## UI reference: Valheim's Crafting/Inventory screen design (found 2026-08-22, not started)
+
+Ben shared a screenshot of Valheim's crafting/inventory UI as a reference
+worth aiming toward eventually. Real, specific differences from this
+project's current plain-IMGUI text-tile screens worth naming: an
+icon-grid inventory (items shown as art in a grid, not a text row/tile
+each needing its own label), a detailed hover tooltip on a specific item
+(crafted-by name, weight, quality/durability, armor value — richer than
+this project's current inline stat lines), and a crafting panel with a
+clean recipe list down one side, a big preview + full stat breakdown
+(damage, block armor, parry bonus, knockback, movement-speed penalty,
+etc.) for the selected recipe, and live material-cost icons with a
+single Craft button. This is a genuinely different visual/UX paradigm
+than the current tile-grid `OnGUI` approach (Build/Crafting/Vendor Stall
+screens all just got moved *to* tile grids this session, still text-and-
+icon tiles, not full art-forward panels like this). Not scoped or
+started — a real future UI redesign pass, not a quick reskin, given how
+much of the game's screens would need touching to match this level of
+visual polish. Worth keeping as a north-star reference for whenever a
+real UI/UX pass happens.
+
 ## Multiplayer: gated structures need real ownership/visibility rules (found 2026-08-22, not started)
 
 Ben's idea, flagged while building the Vendor Stall/Bank Box's Flag-gated

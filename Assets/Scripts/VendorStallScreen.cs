@@ -29,6 +29,20 @@ public class VendorStallScreen : MonoBehaviour
 
     [SerializeField] private float storageRange = 10f;
 
+    // Same coin-order convention BankScreen already establishes -- the
+    // till's own full breakdown (2026-08-22, Ben's ask) needs to be
+    // visible now that it's a real multi-denomination Lockbox, not just
+    // a single Copper number that hid what the other 4 balances were
+    // quietly doing (regen adds 1 of every type per tick).
+    private static readonly (string Label, CoinType Type)[] CoinOrder =
+    {
+        ("Copper", CoinType.Copper),
+        ("Iron", CoinType.Iron),
+        ("Silver", CoinType.Silver),
+        ("Gold", CoinType.Gold),
+        ("Platinum", CoinType.Platinum),
+    };
+
     private PlayerCurrency wallet;
     private PlayerInventory playerInventory;
     private PlayerBackpack backpackCarrier;
@@ -107,8 +121,21 @@ public class VendorStallScreen : MonoBehaviour
         GUILayout.BeginArea(rect);
 
         GUILayout.Label(current.DisplayName, DebugGUI.Header);
-        GUILayout.Label($"Your Copper: {wallet.GetBalance(CoinType.Copper)}   "
-            + $"Stall's till: {current.GetTillBalance(CoinType.Copper)}", DebugGUI.Label);
+        GUILayout.Label($"Your Copper: {wallet.GetBalance(CoinType.Copper)}", DebugGUI.Label);
+
+        GUILayout.BeginHorizontal();
+        GUILayout.Label("Stall's till:", DebugGUI.Label, GUILayout.Width(80));
+        foreach (var (label, type) in CoinOrder)
+            GUILayout.Label($"{label} {current.GetTillBalance(type)}", DebugGUI.Label, GUILayout.Width(80));
+        GUILayout.EndHorizontal();
+
+        // Same "payment due in Ns" display convention NPCHiringScreen
+        // already uses (2026-08-22, Ben's ask) -- only VillageVendor (not
+        // every future VendorStall driver) has a refresh timer, so this
+        // is null-safe rather than assumed.
+        var villageVendor = current.GetComponent<VillageVendor>();
+        if (villageVendor != null)
+            GUILayout.Label($"Next restock in {villageVendor.NextFullRefreshSeconds:F0}s", DebugGUI.Label);
 
         if (message != null && Time.time < messageExpireTime)
             GUILayout.Label(message, DebugGUI.Label);

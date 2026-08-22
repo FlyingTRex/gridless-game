@@ -52,7 +52,9 @@ public class VillageVendor : MonoBehaviour
 
         stall.MaxOffListBuyTier = CurrentMaxTier();
 
-        if (stall.Stock != null)
+        bool restored = stall.Stock != null;
+
+        if (restored)
         {
             // SaveManager.RestoreVendorStalls already ran and populated
             // this stall (stock box + price list) -- don't stomp it with
@@ -68,7 +70,16 @@ public class VillageVendor : MonoBehaviour
         if (stall.Till == null)
             EnsureTillLockbox();
 
-        nextFullRefreshTime = Time.time + FullRefreshIntervalSeconds;
+        // Only start a fresh 30-minute countdown on a genuinely new
+        // stall -- RestoreFullRefreshTimer already set nextFullRefreshTime
+        // from saved data during SaveManager.Load(), which ran before this
+        // method (Initialize is deliberately deferred to the first
+        // Update() tick, see this class's own header comment on why).
+        // Unconditionally overwriting it here would silently reset the
+        // timer to a full 30 minutes on every reload.
+        if (!restored)
+            nextFullRefreshTime = Time.time + FullRefreshIntervalSeconds;
+
         nextTillRegenTime = Time.time + TillRegenIntervalSeconds;
         nextReactiveCheckTime = Time.time + ReactiveCheckIntervalSeconds;
     }
@@ -180,6 +191,21 @@ public class VillageVendor : MonoBehaviour
         lockbox.GetComponent<SaveId>()?.GenerateIfMissing();
         stall.AssignTill(lockbox);
     }
+
+    // Seconds until the next full stock reroll (2026-08-22, Ben's ask --
+    // same "payment due in Ns" display convention NPCHiringScreen already
+    // uses for NPCHiring.WorkTimeRemaining). Persisted explicitly (see
+    // SaveManager.CaptureVendorStall/RestoreVendorStalls) rather than
+    // left to silently reset to a full 30 minutes on every reload, same
+    // "obviously the timer should be persistent over saves" call Ben made
+    // for the Village Flag spawn timer back on 2026-08-21.
+    public float NextFullRefreshSeconds => Mathf.Max(0f, nextFullRefreshTime - Time.time);
+
+    // Called by SaveManager.RestoreVendorStalls -- sets the timer so it
+    // resumes from where it was saved rather than restarting a fresh
+    // 30-minute countdown.
+    public void RestoreFullRefreshTimer(float secondsRemaining) =>
+        nextFullRefreshTime = Time.time + Mathf.Max(0f, secondsRemaining);
 
     // Current Flag tier gates what's eligible -- same pattern the
     // Traveling Trader already uses for Fame band, applied to Flag tier

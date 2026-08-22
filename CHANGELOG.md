@@ -5,10 +5,73 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.156-dev` — must always match `GameVersion` in
+**Current version:** `0.3.157-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (2)
+
+### v0.3.157-dev — Vendor Stall till visibility + restock timer, full player
+naming system, all live-tested
+
+Direct follow-ups from live-playtesting v0.3.156-dev, all confirmed working
+in a real session, not just batch-verified.
+
+**Vendor Stall UI gaps closed.** `VendorStallScreen` now shows the till's
+full 5-coin breakdown (Copper/Iron/Silver/Gold/Platinum) instead of just
+Copper — the old display was hiding that the new all-5-coin-per-tick regen
+was quietly growing 4 balances nobody could see. Confirmed live growing
+evenly across a real session. New `VillageVendor.NextFullRefreshSeconds`,
+same "payment due in Ns" convention the NPC screens already use, shown in
+the Vendor Stall screen and persisted across save/reload — the restore path
+is guarded so `Initialize()` can't clobber a restored timer back to a fresh
+30-minute countdown (functionally tested for that guard specifically, and
+confirmed live counting down correctly across two separate saves).
+
+**A full player naming system**, closing the design conversation from
+earlier the same session. New `PlayerIdentity.cs`, ported from
+`NPCDialogue`'s proven naming shape but with its own dedicated Player-tab
+entry point rather than `IRenameable`'s raycast trigger (right-click-rename
+doesn't make sense on yourself). First rename is free; every one after that
+costs Gold on a `PlayerFame`-band-tiered scale (`RenameCostGold`, symmetric
+across both Infamous and Renowned — a well-known identity costs more to
+replace either direction) plus a one-directional Fame penalty that only
+fires when currently negative (`RenamePenalty` — discourages using a rename
+to escape a bad reputation, matching `MULTIPLAYER_PLANNING.md`'s original
+intent; kept as an independent mechanic from the symmetric Gold-cost table,
+not the same rule doing double duty). Basic sanitization only (trim, 30-char
+cap, strip control characters) — real profanity filtering is logged as a
+genuine pre-multiplayer requirement in `BUGS_AND_ENHANCEMENTS.md`, not built
+blind, since single-player has no one else who could be harmed by an
+inappropriate name today. A "warning box telling the player to set a name"
+idea was deliberately rejected after a "be mean" pass — no other feature in
+this game nags the player to use it, and the real trigger point (a future
+multiplayer character-creation flow) doesn't exist yet; building a stopgap
+now would just be thrown away later. Functionally tested 21/21 (free first
+rename, cost/sanitization gating, the full Fame-tier cost/penalty table, and
+that the penalty actually applies during a real rename) — real mistake
+caught and fixed along the way: the rename control was first built into the
+wrong menu (`PlayerMenuScreen`, the Tab-key menu) instead of the
+`` ` ``-key `GameMenuScreen` Ben had actually asked for; found live from a
+screenshot, and left on the Tab menu at Ben's call once he'd already found
+and used it there.
+
+**Logged, not built**: Iron Arrow reported flying backwards like the
+original Stone Arrow bug — a real code check found every arrow shot uses
+the identical generic flight visual and the same already-fixed orientation
+correction regardless of material, so Stone and Iron should look identical
+in flight; genuinely unexplained yet. Logged with the code-check findings
+for a future live re-test with a screenshot, rather than guessed at further.
+
+Two new memories saved from this session: batch-mode tests are a necessary
+floor, not a sufficient ceiling, for any feature touching real-time
+component lifecycle, save/reload, or UI interaction (this stretch of work
+found real bugs in exactly those categories that no batch test could have
+caught); and a wildcard-globbed Unity Editor path can silently match a
+second installed version and crash every batch-mode command with no useful
+error (hit live this session — pin the exact version from
+`ProjectVersion.txt` instead, now documented as its own `CLAUDE.md` gotcha).
 
 ## 2026-08-22
 

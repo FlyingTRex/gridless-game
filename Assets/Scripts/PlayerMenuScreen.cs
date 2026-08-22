@@ -21,6 +21,8 @@ using UnityEngine.InputSystem;
 [RequireComponent(typeof(PlayerConstitution))]
 [RequireComponent(typeof(PlayerVitals))]
 [RequireComponent(typeof(PlayerFame))]
+[RequireComponent(typeof(PlayerIdentity))]
+[RequireComponent(typeof(PlayerInteraction))]
 public class PlayerMenuScreen : MonoBehaviour
 {
     private enum Tab { Player, Inventory, Skills, Crafting, Magic, Build, Writing }
@@ -86,10 +88,19 @@ public class PlayerMenuScreen : MonoBehaviour
     private PlayerVitals vitals;
     private PlayerFame fame;
     private PlayerInventory playerInventory;
+    private PlayerIdentity identity;
+    private PlayerInteraction interaction;
 
     private bool isOpen;
     private Tab currentTab = Tab.Player;
     private Vector2 tabScrollPos;
+
+    // Rename popup state (2026-08-22, player naming) -- same small
+    // text-entry-window shape PlayerRenaming already establishes for
+    // world objects, just triggered from this tab instead of a raycast.
+    private bool renamePopupOpen;
+    private string renameEditingName;
+    private string renameMessage;
 
     public bool IsOpen => isOpen;
 
@@ -109,6 +120,8 @@ public class PlayerMenuScreen : MonoBehaviour
         vitals = GetComponent<PlayerVitals>();
         fame = GetComponent<PlayerFame>();
         playerInventory = GetComponent<PlayerInventory>();
+        identity = GetComponent<PlayerIdentity>();
+        interaction = GetComponent<PlayerInteraction>();
     }
 
     private void Update()
@@ -130,7 +143,14 @@ public class PlayerMenuScreen : MonoBehaviour
     {
         isOpen = value;
         if (!value)
+        {
             inventoryScreen.ResetPopups();
+            // Same "don't leave SuppressInteraction stuck true" concern
+            // as any other popup that sets it -- closing the whole menu
+            // (Tab/Escape) while the rename popup happens to be open
+            // must not leave world interaction permanently suppressed.
+            if (renamePopupOpen) CloseRenamePopup();
+        }
         Cursor.lockState = value ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = value;
     }
@@ -176,6 +196,8 @@ public class PlayerMenuScreen : MonoBehaviour
         // its GUILayout flow.
         if (currentTab == Tab.Inventory)
             inventoryScreen.DrawPopups();
+
+        DrawRenamePopup();
     }
 
     // Shared scroll wrapper for tabs whose content can outgrow the screen
@@ -223,6 +245,9 @@ public class PlayerMenuScreen : MonoBehaviour
     private void DrawPlayerTab()
     {
         GUILayout.Label("Player", DebugGUI.Header);
+        GUILayout.Space(10);
+
+        DrawNameRow();
         GUILayout.Space(10);
 
         DrawTileRows(new Action[]
@@ -274,6 +299,82 @@ public class PlayerMenuScreen : MonoBehaviour
             if (guild == null) continue;
             DrawTile(guild.guildName, "Joined", RowWidth);
             GUILayout.Space(TileGap);
+        }
+    }
+
+    // Name + Rename control (2026-08-22, player naming) -- sits above the
+    // stat grid, not as a tile itself (a single row reads better than a
+    // squarish tile for "one line of text + one button"). Free the first
+    // time (identity.HasBeenNamed false); after that, Ben's call on cost
+    // shows live via identity.NextRenameCostGold, gated at PlayerIdentity
+    // .TryRename itself, not just here.
+    private void DrawNameRow()
+    {
+        GUILayout.BeginHorizontal();
+        GUILayout.Label($"Name: {identity.DisplayName}", DebugGUI.Label);
+        string buttonLabel = identity.HasBeenNamed ? $"Rename ({identity.NextRenameCostGold} Gold)" : "Set Name (free)";
+        if (GUILayout.Button(buttonLabel, GUILayout.Width(180)))
+            OpenRenamePopup();
+        GUILayout.EndHorizontal();
+    }
+
+    private void OpenRenamePopup()
+    {
+        renamePopupOpen = true;
+        renameEditingName = identity.HasBeenNamed ? identity.DisplayName : "";
+        renameMessage = null;
+        // Same reasoning as PlayerRenaming's own SuppressInteraction use
+        // (2026-08-21 gotcha) -- ResolveTarget's world raycast keeps
+        // running even while this menu is open, so typing "e" while aimed
+        // at a live IInteractable could otherwise fire it through the New
+        // Input System's own unconsumed keystroke view.
+        if (interaction != null) interaction.SuppressInteraction = true;
+    }
+
+    private void CloseRenamePopup()
+    {
+        renamePopupOpen = false;
+        if (interaction != null) interaction.SuppressInteraction = false;
+    }
+
+    private void DrawRenamePopup()
+    {
+        if (!renamePopupOpen) return;
+
+        const float width = 280f;
+        const float height = 130f;
+        var rect = new Rect((Screen.width - width) / 2f, (Screen.height - height) / 2f, width, height);
+
+        bool enterPressed = Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.Return;
+
+        DebugGUI.DrawPanel(rect);
+        GUILayout.BeginArea(rect);
+        GUILayout.Label("Set Your Name", DebugGUI.Header);
+
+        GUI.SetNextControlName("PlayerNameField");
+        renameEditingName = GUILayout.TextField(renameEditingName, 40);
+        GUI.FocusControl("PlayerNameField");
+
+        if (renameMessage != null)
+            GUILayout.Label(renameMessage, DebugGUI.Label);
+
+        GUILayout.BeginHorizontal();
+        bool save = GUILayout.Button("Save") || enterPressed;
+        bool cancel = GUILayout.Button("Cancel");
+        GUILayout.EndHorizontal();
+
+        GUILayout.EndArea();
+
+        if (save)
+        {
+            if (identity.TryRename(renameEditingName))
+                CloseRenamePopup();
+            else
+                renameMessage = "Can't rename right now (invalid name or can't afford it).";
+        }
+        else if (cancel)
+        {
+            CloseRenamePopup();
         }
     }
 
