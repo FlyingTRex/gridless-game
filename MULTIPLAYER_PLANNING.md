@@ -218,10 +218,34 @@ Mapped onto Gridless's actual systems:
    interaction" pattern once, cheaply, before repeating it for real across
    StorageBox, Campfire, Lockbox, and every other interactable in Phase 3.
 3. **Player-authoritative gameplay.** The big one — systematically convert
-   the 32 `PlayerXXX.cs` scripts' local-mutation call sites to the
+   the 32 (now 48) `PlayerXXX.cs` scripts' local-mutation call sites to the
    Command/validate/replicate shape. Likely the single largest phase by
-   raw effort. Candidate for splitting further (inventory/equipment first,
-   then crafting/building, then magic/combat) rather than one giant pass.
+   raw effort. **Scope-shape open question resolved 2026-08-22, no longer
+   open**: no feature flag, no permanently-maintained dual single-player/
+   networked code path. A solo session becomes "you host alone" —
+   Mirror's Command/SyncVar plumbing works identically whether 0 or N
+   remote clients are connected, and this is also the only way the design
+   brief's "NPCs/jobs keep running while offline" goal holds for a solo
+   host too. Split into 5 ordered sub-phases, each its own live-test
+   checkpoint before the next starts (same discipline as every other
+   major system build in this project):
+   1. **Bootstrap** — `TestScene.unity` gains a real `NetworkManager`; the
+      player prefab spawns via Mirror's connection flow instead of being
+      scene-baked. True first slice — nothing else can convert until a
+      player *object* exists in Mirror's model at all. Highest single-
+      player blast radius of the whole phase (touches the one scene both
+      collaborators' every session depends on) — needs its own dedicated
+      session and live-test checkpoint immediately after, not bundled
+      with anything else.
+   2. **Inventory + Equipment** — most foundational, most-referenced state;
+      everything else reads/writes through it.
+   3. **Crafting + Building** — depends on Inventory already being synced.
+   4. **Magic + Combat**.
+   5. **Everything else** — vitals, skills, NPC hiring/job-assignment
+      player-side inputs, admin tools.
+   Not yet started — deliberately not rushed into the same session as the
+   Phase 0/1 pilots above, given the risk of breaking the single-player
+   game the pilots didn't carry.
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —
@@ -246,12 +270,10 @@ Mapped onto Gridless's actual systems:
   position with this model), so the robustness-vs-effort tradeoff is
   still open. What's no longer open is whether Mirror's basic transport/
   sync loop functions in this project at all — it does.
-- **Scope shape**: given this touches an estimated near-totality of the
-  115-script codebase eventually, should this be one long-running
-  effort/branch, or done system-by-system with single-player mode kept
-  working throughout (e.g. via a feature flag or a "host-only" Mirror mode
-  that behaves like today's single-player build)? Not decided — affects
-  how disruptive this is to ongoing single-player feature work.
+- **Scope shape — resolved 2026-08-22, see section 3 item 3.** No feature
+  flag, no dual code path — single-player becomes "host alone" under real
+  Mirror plumbing, converted system-by-system (5 ordered sub-phases) with
+  a live-test checkpoint after each, not one long uninterruptible branch.
 - **Coordination**: this is exactly the kind of change `WORKING_ON.md`
   exists to prevent collisions on — both collaborators' sessions need to
   know this is active before touching any of the 32 `PlayerXXX.cs` files
