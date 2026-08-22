@@ -182,19 +182,26 @@ Mapped onto Gridless's actual systems:
 
 ## 3. A suggested phased approach (not committed, a starting proposal)
 
-1. **Infrastructure spike — built 2026-08-19, v0.3.145-dev, not yet
-   live-tested.** `Assets/Scenes/NetworkSpike.unity` (deliberately isolated
-   — not in `EditorBuildSettings`, not touching `TestScene.unity` or any of
-   the 48 `PlayerXXX.cs` scripts) + `NetworkSpikePlayer.prefab`, a minimal
-   `NetworkIdentity`/`NetworkTransformReliable` capsule with a new
-   `NetworkSpikeMovement.cs` (not `FirstPersonController` — answering the
-   movement-authority question safely needed a throwaway mover, not the
-   real 48-script Player stack). `NetworkTransformReliable.syncDirection`
-   is set to `ClientToServer` as the first data point on the open
-   movement-authority question below. See `WORKING_ON.md` for the manual
-   two-process test steps still needed (build settings, standalone build,
-   Host/Client via Mirror's own `NetworkManagerHUD`) — that's the actual
-   toolchain validation and hasn't run yet.
+1. **Infrastructure spike — built 2026-08-19, v0.3.145-dev, live-tested
+   and confirmed working 2026-08-22.** `Assets/Scenes/NetworkSpike.unity`
+   (deliberately isolated — not in `EditorBuildSettings` day-to-day, not
+   touching `TestScene.unity` or any of the 48 `PlayerXXX.cs` scripts) +
+   `NetworkSpikePlayer.prefab`, a minimal `NetworkIdentity`/
+   `NetworkTransformReliable` capsule with a new `NetworkSpikeMovement.cs`
+   (not `FirstPersonController` — answering the movement-authority
+   question safely needed a throwaway mover, not the real 48-script Player
+   stack). **Real two-process test run by Ben (2026-08-22)**: temporarily
+   added `NetworkSpike` to the Scene List via Build Profiles (Unity 6's
+   renamed Build Settings), built a standalone Windows player, ran it
+   alongside an Editor Play-mode Host (Mirror KCP transport, port 7777) —
+   confirmed via `NetworkManagerHUD`'s Host/Client buttons on each side.
+   Both capsules were visible and moved live in both windows regardless of
+   which process's input drove the movement — `NetworkTransformReliable`
+   with `syncDirection = ClientToServer` genuinely replicates in both
+   directions, not just the direction its name implies. Build Profiles'
+   Scene List was restored to `TestScene`-only immediately after. This is
+   the first real confirmation Mirror's transport/sync actually works in
+   this project outside of a clean compile.
 2. **One pilot world object, fully networked.** StorageBox is the obvious
    choice — it's the simplest existing world object (one `Inventory`, no
    fuel/lit-state/recipe complexity Campfire has) and already has the
@@ -222,8 +229,15 @@ Mapped onto Gridless's actual systems:
 
 - **Movement authority**: client-authoritative `NetworkTransform` (simple,
   trusts the client) vs. server-authoritative with reconciliation (robust,
-  meaningfully more work). Needs a real answer before phase 1's spike, or
-  at least needs the spike to inform it rather than guessing blind.
+  meaningfully more work). **Still not decided, but now has a real data
+  point**: the 2026-08-22 spike test confirmed `NetworkTransformReliable`
+  with `syncDirection = ClientToServer` genuinely round-trips movement
+  between Host and Client. This proves the simple client-authoritative
+  path works mechanically — it doesn't yet prove it's the *right* choice
+  for a public dedicated server (a client can still lie about its
+  position with this model), so the robustness-vs-effort tradeoff is
+  still open. What's no longer open is whether Mirror's basic transport/
+  sync loop functions in this project at all — it does.
 - **Scope shape**: given this touches an estimated near-totality of the
   115-script codebase eventually, should this be one long-running
   effort/branch, or done system-by-system with single-player mode kept

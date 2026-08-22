@@ -10,6 +10,27 @@ skimmable version.
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
+## 2026-08-22 (3)
+
+### Multiplayer Phase 0 spike — live-tested for real (doc-only, no version bump)
+
+The `NetworkSpike.unity` infrastructure spike (built 2026-08-19, v0.3.145-dev)
+sat compiled-but-never-run for three days — Ben ran the actual two-process
+test tonight. Temporarily added `NetworkSpike` to the Scene List via Unity
+6's Build Profiles (the renamed Build Settings), built a standalone Windows
+player, ran it alongside an Editor Play-mode Host over Mirror's KCP
+transport. Both capsules were visible and moved live in both windows
+regardless of which process's input drove the movement — confirms
+`NetworkTransformReliable` with `syncDirection = ClientToServer` actually
+replicates bidirectionally in this project, not just in theory. This is the
+first real confirmation Mirror's transport/sync loop works here at all,
+outside a clean compile. Doesn't settle the deeper movement-authority
+question (client-authoritative vs. server-authoritative-with-reconciliation
+— a client can still lie about its position under this model), but the
+"does the toolchain even work" uncertainty is closed. Build Profiles' Scene
+List was restored to `TestScene`-only immediately after. See
+`MULTIPLAYER_PLANNING.md` sections 3 and 4 for the updated detail.
+
 ## 2026-08-22 (2)
 
 ### v0.3.157-dev — Vendor Stall till visibility + restock timer, full player
