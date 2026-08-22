@@ -123,6 +123,10 @@ public class CampfireScreen : MonoBehaviour
         if (newAutoRun != autoRun)
             current.SetAutoRun(newAutoRun);
 
+        // Debug logging toggle (2026-08-21, Ben's ask) -- same mechanism
+        // as Furnace/NPCHiringScreen's own Debug checkbox.
+        current.DebugEnabled = GUILayout.Toggle(current.DebugEnabled, "Debug logging (writes to debug_log.txt)");
+
         scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(ScrollHeight));
 
         GUILayout.Label("Cooking Utensils", DebugGUI.Header);

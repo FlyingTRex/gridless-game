@@ -104,6 +104,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2770883557898908252}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8056865351150261772}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
 --- !u!1 &384420937806375696 stripped
 GameObject:
@@ -163,6 +166,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCDialogue
   npcName: Factory Worker
+  isFemale: 0
   dialogueLine: Been a long shift out here. Never seen anything like this place before.
   dialogueDuration: 4
 --- !u!114 &6138024901249061618
@@ -257,6 +261,7 @@ MonoBehaviour:
   harvestRange: 3
   harvestDuration: 3
   moveSpeed: 1.5
+  maxRangeFromDeposit: 50
   obstacleCheckDistance: 1.5
 --- !u!114 &3983197878184327458
 MonoBehaviour:
@@ -361,3 +366,26 @@ MonoBehaviour:
   rangedAttackRange: 20
   moveSpeed: 2.2
   obstacleCheckDistance: 1.5
+  patrolRadius: 15
+--- !u!195 &8056865351150261772
+NavMeshAgent:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_AgentTypeID: 0
+  m_Radius: 0.3
+  m_Speed: 1.5
+  m_Acceleration: 20
+  avoidancePriority: 50
+  m_AngularSpeed: 0
+  m_StoppingDistance: 0
+  m_AutoTraverseOffMeshLink: 1
+  m_AutoBraking: 0
+  m_AutoRepath: 1
+  m_Height: 1.4
+  m_BaseOffset: 1.1866419
+  m_WalkableMask: 4294967295
+  m_ObstacleAvoidanceType: 4

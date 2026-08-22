@@ -68,6 +68,14 @@ public class PlayerBuilding : MonoBehaviour
 
     private BuildPiece armedPiece;
     private SocketType[] armedSocketTypes = System.Array.Empty<SocketType>();
+    // Set only by ArmExistingPiece (2026-08-21, StorageBox pick-up-and-
+    // move) -- when non-null, Confirm reuses this exact GameObject instead
+    // of instantiating a fresh one from armedPiece.prefab, and skips the
+    // ingredient cost/skill-XP grant that only make sense for actually
+    // building something new. armedPiece is still set in this mode too,
+    // purely for ghost sizing/groundOffset/socket-type data -- the same
+    // BuildPiece asset the instance was originally built from.
+    private GameObject existingInstanceToPlace;
     private GameObject ghost;
     private Phase phase = Phase.Following;
     private BuildSocket snappedSocket;
@@ -172,11 +180,58 @@ public class PlayerBuilding : MonoBehaviour
     // Called by BuildScreen's Select button.
     public void ArmPiece(BuildPiece piece)
     {
-        if (piece == armedPiece) return;
+        if (piece == armedPiece && existingInstanceToPlace == null) return;
+
+        // Cancelling out of (or overwriting) an in-progress re-placement —
+        // the box was already pulled out of inventory to arm this mode
+        // (ArmExistingPiece's own doc comment), so abandoning it here
+        // without putting it back would silently orphan it: hidden/
+        // carried, in no inventory slot and not placed in the world
+        // either. Restore it the same way a cancelled Backpack pickup
+        // would land — straight into the main inventory.
+        if (existingInstanceToPlace != null)
+            RestoreExistingInstanceToInventory();
 
         ClearGhost();
         armedPiece = piece;
+        existingInstanceToPlace = null;
         armedSocketTypes = piece != null && piece.prefab != null
+            ? System.Array.ConvertAll(piece.prefab.GetComponentsInChildren<BuildSocket>(), s => s.SocketType)
+            : System.Array.Empty<SocketType>();
+        phase = Phase.Following;
+    }
+
+    private void RestoreExistingInstanceToInventory()
+    {
+        var box = existingInstanceToPlace.GetComponent<StorageBox>();
+        if (box == null || inventory == null) return;
+
+        if (inventory.Inventory.AddEquipmentItem(box.PickupItem, box))
+            box.Stash();
+        // If even the main inventory has no room (shouldn't normally
+        // happen — it just came from there a moment ago), leave the box
+        // in whatever carried/hidden state it was rather than losing
+        // track of it entirely.
+    }
+
+    // Re-place an already-owned instance instead of building a fresh one
+    // (2026-08-21, StorageBox pick-up-and-move — see StorageBox.cs's own
+    // header comment for why this exists as a real aimed placement rather
+    // than a physical "drop"). piece supplies the ghost sizing/groundOffset/
+    // socket-type data (the same BuildPiece the instance was originally
+    // built from); existingInstance is the real GameObject Confirm will
+    // reactivate and reposition instead of instantiating a new one. The
+    // caller (InventoryScreen's "Place" action) is responsible for having
+    // already removed the item from wherever it was carried/stashed —
+    // this method only arms the placement UI.
+    public void ArmExistingPiece(BuildPiece piece, GameObject existingInstance)
+    {
+        if (piece == null || existingInstance == null) return;
+
+        ClearGhost();
+        armedPiece = piece;
+        existingInstanceToPlace = existingInstance;
+        armedSocketTypes = piece.prefab != null
             ? System.Array.ConvertAll(piece.prefab.GetComponentsInChildren<BuildSocket>(), s => s.SocketType)
             : System.Array.Empty<SocketType>();
         phase = Phase.Following;
@@ -388,25 +443,57 @@ public class PlayerBuilding : MonoBehaviour
 
     private void Confirm(Vector3 position, Quaternion rotation, BuildSocket socket)
     {
-        if (!HasIngredients(armedPiece))
-        {
-            ShowMessage("Not enough materials.");
-            phase = Phase.Following;
-            return;
-        }
+        GameObject real;
 
-        RemoveIngredients(armedPiece);
-        var real = Instantiate(armedPiece.prefab, position, rotation);
-        real.AddComponent<PlacedPiece>().Piece = armedPiece;
-        // RequireComponent's auto-added SaveId doesn't reliably fire Reset()
-        // when triggered by a runtime AddComponent call (same gotcha
-        // SaveId.cs's own migration-script comment already flags) -- left
-        // implicit, every placed structure's id silently stays empty and
-        // SaveManager quietly never saves it. Confirmed live 2026-08-17: a
-        // placed Village Flag vanished on reload with save.json showing
-        // "placedPieces": [].
-        real.GetComponent<SaveId>()?.GenerateIfMissing();
-        skills?.GainExperience(armedPiece.trainedSkill, armedPiece.skillGain);
+        if (existingInstanceToPlace != null)
+        {
+            // Re-placing an already-owned instance (StorageBox pick-up-
+            // and-move) — no ingredient cost, no fresh Instantiate, no
+            // skill-XP grant (this isn't crafting a new one). Reuses the
+            // exact same GameObject the box has carried since it was
+            // first built, so its PlacedPiece/SaveId/custom name all
+            // survive automatically -- *if* it already had a PlacedPiece
+            // to begin with. Found live 2026-08-21: a box spawned via
+            // AdminSpawnScreen's Items tab (PlayerDropping.SpawnPickup,
+            // no PlacedPiece attached — only its own separate Pieces-tab
+            // path does that) never had one, and this branch originally
+            // just assumed it did, silently repositioning a box that was
+            // still invisible to SaveManager's placedPieces capture the
+            // whole time. Self-heals now, same fields the fresh-build
+            // branch below sets, so Place is robust regardless of how
+            // the instance came to exist.
+            real = existingInstanceToPlace;
+            existingInstanceToPlace = null;
+            if (real.GetComponent<PlacedPiece>() == null)
+            {
+                real.AddComponent<PlacedPiece>().Piece = armedPiece;
+                real.GetComponent<SaveId>()?.GenerateIfMissing();
+            }
+            (real.GetComponent<IEquippable>())?.SetCarried(false, null);
+            real.transform.SetPositionAndRotation(position, rotation);
+        }
+        else
+        {
+            if (!HasIngredients(armedPiece))
+            {
+                ShowMessage("Not enough materials.");
+                phase = Phase.Following;
+                return;
+            }
+
+            RemoveIngredients(armedPiece);
+            real = Instantiate(armedPiece.prefab, position, rotation);
+            real.AddComponent<PlacedPiece>().Piece = armedPiece;
+            // RequireComponent's auto-added SaveId doesn't reliably fire Reset()
+            // when triggered by a runtime AddComponent call (same gotcha
+            // SaveId.cs's own migration-script comment already flags) -- left
+            // implicit, every placed structure's id silently stays empty and
+            // SaveManager quietly never saves it. Confirmed live 2026-08-17: a
+            // placed Village Flag vanished on reload with save.json showing
+            // "placedPieces": [].
+            real.GetComponent<SaveId>()?.GenerateIfMissing();
+            skills?.GainExperience(armedPiece.trainedSkill, armedPiece.skillGain);
+        }
 
         // City Statue Fame grant (VILLAGE_FLAG_PLANNING.md section 6) --
         // requiresCityFoundingConditions is only ever true on the Statue's
@@ -437,6 +524,11 @@ public class PlayerBuilding : MonoBehaviour
             }
             if (nearest != null) nearest.Occupied = true;
         }
+
+        // NavMesh Phase 1 (2026-08-21) -- covers both branches above (a
+        // fresh build and a re-placed existing instance), since either
+        // one changes world geometry the navmesh needs to account for.
+        NavMeshRebaker.RequestRebake();
 
         phase = Phase.Following;
     }

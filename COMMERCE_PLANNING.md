@@ -107,6 +107,116 @@ of them get their own price list, till, or screen.
   treatment `StorageBox`/`Lockbox` already get. Scope of the shared piece,
   not something each driver re-solves.
 
+**Real prerequisite, found during a "be mean" pass before building
+(2026-08-21), build this first**: `StorageBox` has no ownership/access
+concept at all today — any visitor can already walk up and open one
+directly. Reusing a plain `StorageBox` as a `VendorStall`'s stock
+container as-designed above would mean the entire buy/sell mechanic is
+pointless — a visitor just opens the box and takes everything for free,
+no transaction needed. **Decided (Ben): a real ownership gate on
+`StorageBox`**, not a vendor-specific hack — a simple owner marker,
+defaulting every existing/newly-placed box to player-owned (zero
+regression for current gameplay), structured so the check can extend to
+Team membership later without a rewrite (same seam-built-in-from-the-
+start convention this doc's own `VendorStallScreen` visitor/owner split
+already uses). A `VendorStall`'s stock box is the first box explicitly
+created as *not* player-owned — direct interaction gets rejected, while
+`VendorStall`'s own buy/sell code still reads/writes it freely (a
+programmatic path, not the player-interaction click flow). Build and
+test this standalone (place a non-player-owned box, confirm direct
+interaction is blocked) before building `VendorStall` on top of it.
+
+**Two more real decisions locked in the same "be mean" pass, before any
+code:**
+
+- **`SellToVisitor`/`BuyFromVisitor` are atomic — no partial state,
+  either direction.** `BuyFromVisitor` (the vendor buying an item off a
+  visitor) checks *both* preconditions — till can cover the payout, *and*
+  the stock box has room for the incoming item — before touching
+  anything. If either fails, the whole transaction aborts: the visitor's
+  wallet is untouched, their inventory is untouched, nothing moves. Same
+  "out of stock" symmetry `SellToVisitor` already has, just applied to
+  the stock box's own capacity instead of the till.
+- **`buyPrice`/`sellPrice` get an `OnValidate` warning, not a hard
+  runtime clamp**, if `buyPrice >= sellPrice` on a hand-authored entry —
+  loud at author-time (a mistake here is a real arbitrage exploit: sell→
+  buy→sell in a loop drains the till for free), but not force-clamped,
+  since a deliberate promo/buyback event might legitimately want an
+  unusual spread later. Moot for anything the `ItemValueCalculator` below
+  generates, since that's spread-safe by construction.
+
+### `ItemValueCalculator` — shared, reusable base-value system (2026-08-21)
+
+**Decided (Ben): build this as shared infrastructure from the start**,
+not scoped narrowly to Village Vendor — the Traveling Trader driver
+needs the exact same thing later (`FAME_PLANNING.md`'s pricing formula
+already assumes every item has a base value, per section 8 above), and
+retrofitting a narrow version later means re-touching every item again.
+One system, both drivers.
+
+- **Computed recursively, not hand-authored per item — tier scaling
+  applied once at the top, not at every recursive step (fixed 2026-08-21,
+  found in a "be mean" pass before building).** The first version of
+  this formula applied `CraftTierScale.Modifier(tier)` at *every*
+  recursive step, which compounds exponentially through a multi-step
+  supply chain — raw Ore → Masterwork Ingot → Masterwork Sword would
+  apply the 5x Masterwork multiplier once computing the Ingot's value,
+  then *again* on top of that already-inflated number computing the
+  Sword's, turning 5x into 25x (a 4-step chain would hit 125x) — pricing
+  a deep chain absurdly high for no reason other than chain depth, not
+  actual value. **Fixed**: ingredient costs sum with no tier scaling
+  baked into intermediate steps —
+  `rawCost(item) = sum(ingredient.baseValue × count)` where each
+  ingredient's own `baseValue` is *its* final (already-tier-scaled)
+  value, not a re-scaled raw cost — and the tier multiplier is applied
+  exactly once, to the item actually being priced:
+  `baseValue(item) = rawCost(item) × CraftTierScale.Modifier(item.tier)`.
+  Items with no recipe (raw/gathered materials — Ore, raw Log, Stick,
+  Fiber, and similar) get a small hand-seeded `baseValue` instead — a
+  short root list, not the whole item database. Reuses the *existing*
+  capacity/price tier-scale table (Crude 0.2x → Masterwork 5x), not the
+  separate weight-specific table `CLAUDE.md`'s own gotcha warns against
+  reusing for the wrong quantity.
+- **Computed on-demand and cached** (a static `ItemValueCalculator`,
+  same "compute live off real data, don't hand-maintain a parallel list"
+  discipline already used for skill-book allowlists and database IDs) —
+  not a field every `ItemDefinition` needs manually filled in.
+- **Buy/sell spread is derived, not independently authored**:
+  `sellPrice = baseValue × (1 + margin)`, `buyPrice = baseValue × (1 -
+  margin)`, proposed starting margin ~20% each side (retune once
+  playable). Structurally guarantees `buyPrice < sellPrice` for anything
+  generated this way — the `OnValidate` warning above is the backstop
+  for hand-authored overrides only.
+
+### Village Vendor's stocking mechanics (2026-08-21, supersedes the
+"hand-authored per instance" framing in the driver table below for the
+*contents* half — pricing there is now `ItemValueCalculator`-driven too,
+converging Village Vendor onto the same mechanism as the Traveling
+Trader rather than two separate pricing approaches)
+
+- **Village Flag tier gates what's stocked, not just price** — same
+  pattern the Traveling Trader already uses for Fame band (Renowned-only
+  unlocks better `CraftTier`s), applied to the linked Flag's tier
+  instead: a Crude Flag's Village Vendor only offers Crude-tier goods,
+  higher Flag tiers unlock progressively better stock up through
+  Masterwork.
+- **Reactive per-item restock**: whenever a specific item's stock in the
+  stall hits zero, it immediately re-checks the linked Flag's *current*
+  tier and rolls a **fresh item** into that slot (not necessarily the
+  same one that just sold out) — keeps a popular slot from sitting empty
+  for up to 30 minutes waiting on the full-refresh timer, and keeps the
+  offering feeling dynamic on every individual sellout, not just at the
+  30-minute mark.
+- **30-minute full refresh timer**: independent of individual stock
+  levels, the entire offering re-rolls fresh against the Flag's current
+  tier every 30 real minutes — this is what lets the vendor pick up a
+  Flag upgrade even if nothing happened to sell out in the meantime, and
+  what keeps the shop feeling alive over a longer session. Both restock
+  paths draw from the same procedural-roll concept the Traveling Trader
+  already specs (item pool gated by tier, `ItemValueCalculator`-derived
+  pricing) — just triggered differently (event vs. timer) instead of the
+  Trader's one-shot-at-spawn roll.
+
 ## 5. The drivers
 
 Grew from three to five, 2026-08-19 — `TEAMS_AND_GUILDS_PLANNING.md`

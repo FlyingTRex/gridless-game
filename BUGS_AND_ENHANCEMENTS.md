@@ -463,6 +463,35 @@ gaps:
 - [x] **Furnace on/off toggle.** Shipped as the `FurnaceScreen` "Auto-Run"
   toggle — with it off, the Furnace won't auto-light or auto-refill, so it
   doesn't burn through fuel unattended unless the player wants it to.
+- [x] **Furnace throughput vs. gathering rate — confirmed intentional, not
+  a bug (2026-08-21).** Live-tested: 2 Mining NPCs gather ore roughly 20x
+  faster than a single Furnace can smelt it (harvest tick ~3s vs. one
+  60s serial smelt, one recipe active at a time — see
+  `NPCGathering.harvestDuration`/`SmeltableItem.smeltDurationSeconds`).
+  Raised as a possible bug/need for a second Furnace; Ben's call after a
+  "be mean" pass laid out the actual ratio (a 2nd furnace would barely
+  dent a ~20x mismatch) — **keep the bottleneck as-is on purpose**. It
+  forces active worker management and creates a real, ongoing reason to
+  keep expanding infrastructure/NPC headcount rather than "build once and
+  forget it," which fits the game's overall progression better than
+  smoothing the mismatch away. Also surfaced along the way (checked
+  against real data, not assumed): Furnace's own tier (Crude→Masterwork,
+  it's had a real `FurnaceBuildPiece` since some point — the "no
+  BuildPiece/prefab for a Furnace" comment in `Furnace.cs` is stale)
+  currently has **zero effect on throughput** — `MaxQueueSize`/
+  `MaterialsCapacity`/`OutputCapacity`/`FuelCapacity` are flat constants
+  and `smeltDurationSeconds` lives only on the recipe, unlike almost
+  every other tiered system in this project (`CraftTierScale`). Not
+  acted on given the decision above, but logged as the "if we ever do
+  want Furnace tier to matter" hook, distinct from the settled
+  throughput question. **Separate real bug, not closed by this
+  decision**: an NPC whose deposit box is full gets stuck oscillating
+  between "returning"/"idle" every ~1-2s indefinitely (`DepositCargo`
+  silently drops unfit leftover, `UpdateReturning` immediately
+  re-triggers next tick) rather than pausing/waiting visibly — confirmed
+  live on Mining Dude the same session. Worth its own fix regardless of
+  the throughput decision, since a frozen-looking NPC reads as broken,
+  not as "the economy is working as intended."
 - [ ] **Woodshed auto-feed (future, not scoped).** Ben floated an
   alternative/additional fuel-loading path: a Woodshed building (not
   designed or built yet) that auto-feeds fuel into any Furnace within
@@ -810,7 +839,21 @@ signs off on scope and order.
     would add a quick-slot UI layer that triggers the same logic.
   - **Relocate a placed structure** — only Deconstruct exists today; a
     badly-placed StorageBox/Furnace means losing it and rebuilding from
-    scratch rather than repositioning it.
+    scratch rather than repositioning it. **Ben's follow-up, 2026-08-21:
+    specifically wants a drag-and-drop-style reposition** — grab an
+    already-placed piece and move it to better placement directly,
+    rather than a menu-driven "pick up, walk, place again" flow. Ties
+    directly into tonight's real live-testing pain points (StorageBox/
+    Bookshelf/Desk needing precise `groundOffset` tuning to sit right,
+    Foundation-tiling needing precise aim) — a drag-reposition tool
+    would make correcting a slightly-off placement much less punishing
+    than the current pick-up/re-place-from-scratch loop. Not designed —
+    real open questions: does it reuse `PlayerBuilding`'s existing ghost-
+    preview/snap machinery (probably yes, closest existing analog), does
+    it require a tool in hand (Hammer, matching `PlayerPieceUpgrade`'s
+    existing gate), and does relocating a Foundation need to also carry
+    whatever's resting on top of it (Anvil/Furnace/StorageBoxes) or
+    leave them behind.
   - **A "Cure Thirst" wish for Restoration** — `MAGIC_PLANNING.md`
     already sketched a Tier 2 "status-cure" slot for Restoration
     (deliberately not Heal Other, to avoid Medicine redundancy) but never
@@ -902,6 +945,23 @@ signs off on scope and order.
   - Must be wrapped in `#if UNITY_EDITOR` — `PrefabUtility`/
     `AssetDatabase` don't exist in a compiled Player build, so this is a
     permanent Editor-only limitation, not a "build it later" gap.
+- [x] **"Next NPC visit" countdown — built and live-confirmed 2026-08-21;
+  "Next Trader visit" half still blocked.**
+  - **NPC visit countdown: done.** `VillageFlagSpawner.SecondsUntilNextSpawn()`
+    exposes the real countdown, shown on `NPCRosterScreen` as "Next NPC
+    visit: Xm Ys" right under the header. Also gained real save/restore
+    (`spawnTimerSeconds` was never persisted before — every reload
+    silently reset the up-to-30-minute wait to zero). Live-confirmed
+    across a real multi-spawn session, including the countdown matching
+    the hand-computed formula exactly at each new spawn.
+  - **Trader visit countdown has nothing to surface yet.** There is no
+    Traveling Trader spawn system at all — `VILLAGE_FLAG_PLANNING.md`
+    explicitly built only the reusable spawn-and-seek mechanism the
+    Trader would eventually reuse, and `COMMERCE_PLANNING.md` still lists
+    Traveling Trader as blocked behind the Village Vendor driver shipping
+    first. A "next Trader" countdown can't be built before the Trader's
+    own spawn timer exists — this half is blocked on Commerce, not a UI
+    gap.
 - [ ] **A deposit `StorageBox` filling up should notify the player, not
   just silently sit there (Ben's idea, 2026-08-18).** A full box the
   player hasn't noticed can silently strand a Gathering NPC's cargo or
@@ -913,6 +973,14 @@ signs off on scope and order.
   fails to fit anything. Not scoped/built — needs a decision on the
   exact trigger condition (box capacity threshold vs. an actual failed-
   deposit event) before implementation.
+  **Partially addressed 2026-08-21**: the actual broken *behavior* this
+  caused (an NPC oscillating between "returning"/"idle" every 1-2s
+  forever once its box filled, confirmed live) is fixed —
+  `NPCGathering.UpdateReturning` now parks cleanly and reports "waiting
+  — deposit box 'X' is full, holding cargo" instead of thrashing. That's
+  still only visible via the debug-log status text, not a proactive
+  player-facing toast — this entry's original ask (notify the player
+  without them having to go look) is still open.
 - [ ] **Only 1 of the Leather Backpack ladder's 5 tiers has a recipe at
   all (Ben's ask, 2026-08-18).** Checked directly: `Assets/Data/` only
   has `LeatherBackpackRecipe.asset` (the plain/Normal tier, just fixed to
@@ -1360,6 +1428,89 @@ signs off on scope and order.
 
 ## Bugs
 
+- [x] **A spawned-then-placed StorageBox never actually saved — found
+  live 2026-08-21 in a clean isolated repro (spawn, pick up, Place,
+  rename, save, reload — box gone). Fixed same day, real bug in the
+  new Place feature itself, not just a pre-existing gap.**
+  `AdminSpawnScreen`'s Items tab spawns via `PlayerDropping.SpawnPickup`,
+  which never attaches a `PlacedPiece` (only the separate Pieces-tab path
+  does that) — a pre-existing gap in the dev-only Admin Spawn tool. But
+  the real bug was in tonight's own `PlayerBuilding.Confirm()` re-place
+  branch: it **assumed** an existing instance already had a `PlacedPiece`
+  and just repositioned it, never checking. Since `SaveManager`'s
+  `CaptureWorldObjects<PlacedPiece>()` only ever finds objects with a
+  live `PlacedPiece` + non-empty `SaveId`, a box that never had one
+  stayed invisible to saving through the entire pickup→Place round trip.
+  **Fixed**: the existing-instance branch now self-heals — adds
+  `PlacedPiece`/`SaveId` if missing, same fields the fresh-build branch
+  already sets, before repositioning. **Deliberately did NOT** add this
+  self-heal to `StorageBox.Awake()` (a broader, tempting-looking fix) —
+  caught in time that `StorageBox` is also used for pre-existing
+  scene-baked fixtures (see the documented `RestorePlacedPieces` vs.
+  `RestoreWorldObjects<StorageBox>` ordering gotcha), and tagging every
+  scene-baked box with a `PlacedPiece` too would make it get recreated
+  from scratch on load, likely duplicating it. Known remaining edge
+  case, left as-is: a box spawned via Admin Spawn's Items tab and never
+  placed (just left sitting where it landed) still won't save — Admin
+  Spawn is an Editor-only dev/QA tool, not real gameplay, so this wasn't
+  worth the broader risk to close. Compile-verified only, not yet
+  live-tested against this exact repro.
+- [x] **Typing a rename with the letter "e" in it also picked up the box
+  being renamed — found live 2026-08-21, fixed same night.** Root cause:
+  `PlayerRenaming`'s text field uses IMGUI's legacy `Event` system, but
+  `PlayerInteraction`'s E-to-interact reads `Keyboard.current.eKey`
+  directly (the New Input System) — two completely independent views of
+  the same physical keypress, so typing "e" into the rename field never
+  stopped `PlayerInteraction` from also seeing it and firing whatever
+  `IInteractable` the crosshair was still resting on (the box itself,
+  since the camera hadn't moved). Fixed by wiring `PlayerRenaming` into
+  the existing `PlayerInteraction.SuppressInteraction` flag — already
+  built for exactly this class of problem (`PlayerNPCDeposit` already
+  uses it) but never applied here. Also found and fixed the same gap in
+  `HandleWish` (R-key wish casting), which wasn't gated by
+  `SuppressInteraction` at all — typing "r" into any open text field
+  could plausibly have misfired a wish cast the same way. Compile-
+  verified only, not yet live-tested.
+- [x] **StorageBox lost its custom name when picked up, and floated when
+  dropped — found live 2026-08-21, fixed same night.** Both bugs traced
+  to the same root shape: pickup converted the box into a bare
+  `pickupItem` stack (`loot.Receive`), destroying the actual GameObject
+  and its `boxName`/`SaveId`/`PlacedPiece`, then `PlayerDropping`
+  (no `groundOffset` awareness at all) spawned a fresh, disconnected
+  copy that floated by the same 0.25-unit pivot gap fixed for building-
+  placement earlier tonight. **Investigating the fix surfaced a real
+  design fork** (confirmed with Ben before building): should a picked-up
+  box go back down as a genuine permanent structure (real aimed
+  placement) or as temporary carried gear (instant drop, despawn timer,
+  needs a Rigidbody to physically settle)? Ben's call: real placement —
+  a StorageBox is meant to be permanent, not a dropped item. **Built**:
+  - `StorageBox` now implements `IEquippable` (`Stash`/`SetCarried`/
+    `CanEquipToSlot => false`) — the same mechanism Backpack/Canteen
+    already use. The original GameObject persists the whole time (just
+    hidden while carried), so its name/`SaveId`/`PlacedPiece` survive
+    the round trip automatically — no new state-carrying plumbing
+    needed. `Complete()` now routes through `PlayerLoot.ReceiveEquipment`
+    (mirroring `PlayerBackpack.PickUp`'s exact fallback shape) instead
+    of the old generic `Receive`.
+  - New `PlayerBuilding.ArmExistingPiece(BuildPiece, GameObject)` — a
+    second placement mode alongside the existing fresh-build one, reusing
+    the same ghost-preview/aim/confirm pipeline but skipping the
+    ingredient cost and skill-XP grant, and reusing the existing instance
+    in `Confirm()` instead of instantiating a new one. Handles the
+    cancel case too — backing out mid-placement (or re-arming a fresh
+    piece while a re-placement was in progress) restores the box to the
+    main inventory via `RestoreExistingInstanceToInventory` rather than
+    orphaning it.
+  - `InventoryScreen`'s action popup gets a new "Place" button for a
+    carried StorageBox (same `is SkillBook`-style dedicated branch,
+    skipping the generic Equip/Unequip block since a box is never worn),
+    which removes it from its current slot, arms `ArmExistingPiece`, and
+    closes the Tab menu so the player can aim. `storageBoxPiece` wired
+    to `StorageBoxPiece.asset` on the scene's `InventoryScreen` instance
+    via a batch script, verified by guid match in the saved scene YAML.
+  **Live-confirmed 2026-08-21**: Ben picked up a named box, used Place,
+  confirmed it — name survived the full round trip exactly as designed.
+  Cancel-mid-placement path still untested.
 - [x] **Player visually clips through the floor near the building/
   Foundation area — root-caused 2026-08-20, confirmed as a direct
   symptom of the missing-Foundation bug, not a separate issue.**
@@ -1379,9 +1530,10 @@ signs off on scope and order.
   the hole. Tonight's 4 freshly-placed Foundations elsewhere all saved
   correctly with real `saveId`s, so this isn't expected to recur for a
   new one built here.
-- [ ] **Foundation-to-Foundation tiling snap requires aiming almost
-  exactly at the edge socket — found live 2026-08-20, a tuning gap, not
-  a code bug.** Ben tried snapping a new Foundation next to an existing
+- [x] **Foundation-to-Foundation tiling snap requires aiming almost
+  exactly at the edge socket — found live 2026-08-20, live-confirmed
+  fixed 2026-08-21.** A tuning gap, not a code bug. Ben tried snapping
+  a new Foundation next to an existing
   one, aimed at the middle of the existing piece's face, and it didn't
   snap (fell through to free-placement, producing a visible seam/height
   mismatch between the two tiles). Investigated read-only (Ben was in
@@ -1411,9 +1563,8 @@ signs off on scope and order.
   `snapRadius: 1.5` baked in from before, which would have silently
   overridden the new C# default with no error; updated directly in the
   scene YAML too. Compile-verified only, not yet live-tested.
-- [ ] **NPCs can walk through walls — found live 2026-08-20, not yet
-  investigated. Possible self-inflicted regression from tonight's own
-  stuck-bump fix, not confirmed.** Ben's report; lead-up moment not
+- [x] **NPCs can walk through walls — found live 2026-08-20, both
+  candidate causes fixed same night.** Ben's report; lead-up moment not
   caught (unclear whether it followed a stuck/wedged moment or was
   plain walking with no stall first). Two real candidate causes, not
   yet distinguished:
@@ -1473,7 +1624,26 @@ signs off on scope and order.
   Foundation instances already placed in a live Play session (including
   Ben's current test building) won't retroactively pick up the layer
   change until the scene/prefab is reloaded fresh.
-- [ ] **A placed Foundation is genuinely gone after a save/reload — not
+- [ ] **Roaming wildlife (`PreyCreature`, confirmed on a Rabbit) can also
+  walk through player-built walls — found live 2026-08-21, flagged for
+  later, not fixed.** Same underlying gap as hired NPCs' own idle-wander
+  state (`NPCWander`), just on the wildlife side: `NPC_NAVIGATION_
+  PLANNING.md` deliberately scoped `HostileCreature`/`PreyWander`/
+  `NPCWander` out of every NavMesh phase ("roaming wildlife has no fixed
+  distant target, so it doesn't hit this ceiling and doesn't need
+  converting") — correct reasoning for the *pathfinding-ceiling* problem
+  (no long-distance target to route toward a wall in the way of), but it
+  didn't anticipate wildlife wandering close enough to a player-built
+  wall to clip straight through it locally. None of tonight's NavMesh
+  work (Phases 0-2, the wall `NavMeshObstacle`s, or `NPCGathering`'s new
+  physics safety-net sweep) touches this movement system at all — it's a
+  distinct, still-fully-unconverted code path. Would need either a
+  cheap version of the same physics-sweep safety net applied to
+  `NPCWander`/`PreyWander`/`HostileCreature`'s own movement, or a real
+  NavMesh conversion for wildlife roaming (bigger scope, since it means
+  picking a *local* target-aware approach rather than the long-distance
+  routing the existing phases were built for).
+- [x] **Closed 2026-08-21, Ben's call.** A placed Foundation is genuinely gone after a save/reload — not
   underground, actually never saved at all. Root mechanism identified
   2026-08-20, exact trigger still unconfirmed.** Ben's screenshot showed
   the Anvil/Furnace/StorageBoxes sitting correctly on bare grass with no
@@ -1557,8 +1727,10 @@ signs off on scope and order.
   `frictionCombine = Maximum`) applied to Terrain, `BerryPickup`/
   `BerrySeedPickup` rotation-frozen, new `RigidbodySettler.cs` batch-
   added to all 132 Rigidbody prefabs (verified 132/132 via direct YAML
-  guid grep, not just the batch log). Compile-verified only — not yet
-  live-tested (needs a real hill + a dropped item to confirm settling).
+  guid grep, not just the batch log). **Live-confirmed 2026-08-21**:
+  Ben spawned Berries on sloped terrain — they no longer roll away. The
+  original bug that kicked off this whole friction/physics/NavMesh
+  investigation is now genuinely closed, not just compile-verified.
 - [x] **NPC stuck wedged into wall/floor geometry (Miner), found live
   2026-08-20 — fixed same day.** `NPCMovement.StuckTracker`'s recovery
   used to just reverse the mover's desired *direction* for one frame,
@@ -1604,7 +1776,7 @@ signs off on scope and order.
   this bug by construction. Compile-verified only — not yet live-tested
   (needs a fresh StorageBox/Bookshelf/Desk placement to confirm each
   sits flush).
-- [ ] **Player-built Anvil/Furnace placed on a Foundation sink into the
+- [x] **Closed 2026-08-21, Ben confirmed working correctly.** Player-built Anvil/Furnace placed on a Foundation sink into the
   floor — found live 2026-08-20, not yet fixed.** Screenshot showed both
   structures visibly embedded into a wood Foundation's flooring rather
   than sitting flush on top, even though `BuildPiece.groundOffset`
@@ -2521,6 +2693,15 @@ signs off on scope and order.
     that every ore node still trains for the player; real pathfinding
     (today's bump-and-turn can still get an NPC boxed in stuck); hiring
     more than one NPC at a time (only one exists in the world today).
+  - [ ] **Multi-day NPC work-shift timer — moved here from MVP2_PLANNING.md
+    as an enhancement, 2026-08-21 (Ben's call).** Still the 5-real-minute
+    stand-in described above. Persistence now exists and is trustworthy
+    across sessions (unlike when the stand-in was first shipped), so the
+    real prerequisite this was blocked on is gone — but replacing the
+    stand-in with an actual multi-day real-world timer is a real design
+    decision (how many real days per shift, whether it should scale with
+    anything) worth making deliberately, not a currently-blocking bug.
+    Logged as backlog rather than an MVP2 blocker.
   - [ ] **Worker management interface (2026-08-11) — a single screen to see
     and manage every hired NPC at once, not just the one currently in
     front of the player.** Real pain point now that 5 NPCs are scattered
@@ -3044,7 +3225,8 @@ signs off on scope and order.
   (both under Bugs, above) — those are about different actions (moving an
   already-equipped item elsewhere, and equipping straight from a
   container's contents) and are both still open. *(Reported by Ben.)*
-- [ ] **Fiber → Cloth textile chain, and a way to source Leather — needed
+- [x] **Closed 2026-08-21, Ben's call — Leather sourcing (Deer hunting,
+  since v0.3.95-dev) is a real, working path going forward.** Fiber → Cloth textile chain, and a way to source Leather — needed
   before Backpack/Belt (or any future Sewing-discipline item) can get real
   recipes.** Ben's call, 2026-08-06, made mid-build on the Backpack/Belt
   retier: rather than faking their recipes with placeholder ingredients

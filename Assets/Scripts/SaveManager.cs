@@ -84,6 +84,13 @@ public class SaveManager : MonoBehaviour
             ["placedPieces"] = CaptureWorldObjects<PlacedPiece>(CapturePlacedPiece),
             ["furnaces"] = CaptureWorldObjects<Furnace>((furnace, saveId) =>
                 new JObject { ["saveId"] = saveId.Id, ["state"] = CaptureFurnace(furnace) }),
+            ["vendorStalls"] = CaptureWorldObjects<VendorStall>(CaptureVendorStall),
+            // Village Flag spawn countdown (2026-08-21, Ben's ask) -- never
+            // saved before, so every reload silently restarted the up-to
+            // 30-minute wait from zero. A plain top-level float, same
+            // "nothing to validate, just resume from it" shape as
+            // PlayerFame's own single-value capture.
+            ["villageFlagSpawnTimer"] = villageFlagSpawner != null ? villageFlagSpawner.SpawnTimerSeconds : (float?)null,
         };
 
         File.WriteAllText(FilePath, data.ToString());
@@ -109,6 +116,9 @@ public class SaveManager : MonoBehaviour
 
         if (data["player"] is JObject player) RestorePlayer(player);
 
+        if (villageFlagSpawner != null && data["villageFlagSpawnTimer"] != null)
+            villageFlagSpawner.SpawnTimerSeconds = (float)data["villageFlagSpawnTimer"];
+
         // RestorePlacedPieces must run before any RestoreWorldObjects<T>
         // call whose T can be player-built via a BuildPiece (StorageBox,
         // GardenPlot/GardenPlot4x4) -- found live, 2026-08-19: a
@@ -122,12 +132,34 @@ public class SaveManager : MonoBehaviour
         // applied consistently.
         RestorePlacedPieces(data["placedPieces"] as JArray);
 
+        // Must run before RestoreWorldObjects<StorageBox> below, for the
+        // same reason RestorePlacedPieces must run before it (2026-08-21,
+        // MVP2B_PLANNING.md item 6) -- a VendorStall's stock box is
+        // created dynamically at runtime (VillageVendor.Start(), not
+        // baked into the scene), so RestoreWorldObjects<StorageBox>
+        // (which only ever restores an *existing* object, never creates
+        // one) would silently find nothing to restore into unless this
+        // runs first and creates the box under its saved SaveId.
+        RestoreVendorStalls(data["vendorStalls"] as JArray);
+
         RestoreWorldObjects<StorageBox>(data["storageBoxes"] as JArray, RestoreStorageBox);
         RestoreWorldObjects<ResourceNode>(data["resourceNodes"] as JArray, RestoreResourceNode);
         RestoreNpcs(data["npcs"] as JArray);
         RestoreWorldObjects<GardenPlot>(data["gardenPlots"] as JArray, RestoreGardenPlot);
         RestoreWorldObjects<GardenPlot4x4>(data["gardenPlots4x4"] as JArray, RestoreGardenPlot4x4);
         RestoreWorldObjects<Furnace>(data["furnaces"] as JArray, RestoreFurnace);
+
+        // NavMesh Phase 1 (2026-08-21) only rebakes on live PlayerBuilding/
+        // PlayerPieceUpgrade actions -- a wall/door restored here via
+        // RestorePlacedPieces above was never baked into the navmesh at all
+        // if it predates the current session (the navmesh only reflects
+        // whatever existed at Phase 0 bake time, plus anything built live
+        // since). Found live: NPCs walked straight through walls that were
+        // built in an earlier session and reloaded from a save, with no
+        // path-planning anomaly at all -- the agent correctly had no idea
+        // the wall existed. One full rebake after every restore is done
+        // fixes this the same way a fresh build already does.
+        NavMeshRebaker.RequestRebake();
     }
 
     // ---- Player ----
@@ -344,6 +376,114 @@ public class SaveManager : MonoBehaviour
         if (state["inventory"] is JArray inv) InventorySaveUtility.Restore(box.Inventory, inv);
     }
 
+    // ---- VendorStall (MVP2B_PLANNING.md item 6, 2026-08-21) ----
+
+    private static JObject CaptureVendorStall(VendorStall stall, SaveId saveId)
+    {
+        var stockSaveId = stall.Stock != null ? stall.Stock.GetComponent<SaveId>() : null;
+
+        var tillArray = new JArray();
+        foreach (CoinType type in System.Enum.GetValues(typeof(CoinType)))
+            tillArray.Add(stall.GetTillBalance(type));
+
+        var priceListArray = new JArray();
+        foreach (var entry in stall.PriceList)
+        {
+            if (entry?.item == null) continue;
+            priceListArray.Add(new JObject
+            {
+                ["item"] = ItemDatabase.Instance != null ? ItemDatabase.Instance.IdFor(entry.item) : null,
+                ["buyPrice"] = entry.buyPrice,
+                ["sellPrice"] = entry.sellPrice,
+                ["canBuy"] = entry.canBuy,
+                ["canSell"] = entry.canSell,
+            });
+        }
+
+        return new JObject
+        {
+            ["saveId"] = saveId.Id,
+            ["state"] = new JObject
+            {
+                // The stock box itself is captured separately, through
+                // StorageBox's own normal save path (its contents are
+                // just an Inventory, same as any other box) -- this only
+                // needs to remember *which* SaveId that box has, so the
+                // restore side can recreate it under the same ID before
+                // RestoreWorldObjects<StorageBox> looks for it.
+                ["stockSaveId"] = stockSaveId != null ? stockSaveId.Id : null,
+                ["till"] = tillArray,
+                ["priceList"] = priceListArray,
+            },
+        };
+    }
+
+    // Bespoke, not the generic RestoreWorldObjects<T> -- needs to create
+    // the stock box (dynamically spawned at runtime, never baked into the
+    // scene) under its saved SaveId before StorageBox's own restore runs,
+    // same "find or recreate" shape RestoreNpcs already uses, just for a
+    // child object rather than the VendorStall itself (which is always a
+    // pre-placed scene object today, so it never needs recreating).
+    private void RestoreVendorStalls(JArray data)
+    {
+        if (data == null) return;
+
+        foreach (var token in data)
+        {
+            if (!(token is JObject obj) || !(obj["state"] is JObject state)) continue;
+
+            var stall = SaveIdRegistry.Find((string)obj["saveId"])?.GetComponent<VendorStall>();
+            if (stall == null) continue;
+
+            string stockSaveId = (string)state["stockSaveId"];
+            StorageBox stockBox = !string.IsNullOrEmpty(stockSaveId)
+                ? SaveIdRegistry.Find(stockSaveId)?.GetComponent<StorageBox>()
+                : null;
+
+            if (stockBox == null && !string.IsNullOrEmpty(stockSaveId))
+            {
+                var go = new GameObject($"{stall.name} Stock");
+                go.transform.SetParent(stall.transform, false);
+                go.AddComponent<BoxCollider>();
+                stockBox = go.AddComponent<StorageBox>();
+
+                var boxSaveId = stockBox.GetComponent<SaveId>();
+                boxSaveId?.GenerateIfMissing();
+                boxSaveId?.AssignId(stockSaveId);
+            }
+
+            if (stockBox != null) stall.AssignStock(stockBox);
+
+            if (state["till"] is JArray tillArray)
+            {
+                var types = (CoinType[])System.Enum.GetValues(typeof(CoinType));
+                for (int i = 0; i < tillArray.Count && i < types.Length; i++)
+                    stall.AddTillBalance(types[i], (int)tillArray[i]);
+            }
+
+            if (state["priceList"] is JArray priceListArray)
+            {
+                var entries = new List<VendorPriceEntry>();
+                foreach (var priceToken in priceListArray)
+                {
+                    if (!(priceToken is JObject priceObj)) continue;
+                    var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find((string)priceObj["item"]) : null;
+                    if (item == null) continue;
+
+                    entries.Add(new VendorPriceEntry
+                    {
+                        item = item,
+                        buyPrice = (int)(priceObj["buyPrice"] ?? 0),
+                        sellPrice = (int)(priceObj["sellPrice"] ?? 0),
+                        canBuy = (bool)(priceObj["canBuy"] ?? true),
+                        canSell = (bool)(priceObj["canSell"] ?? true),
+                    });
+                }
+                stall.SetPriceList(entries.ToArray());
+            }
+        }
+    }
+
     private static JObject CaptureResourceNode(ResourceNode node, SaveId saveId) => new JObject
     {
         ["saveId"] = saveId.Id,
@@ -362,6 +502,22 @@ public class SaveManager : MonoBehaviour
         var dialogue = npc.GetComponent<NPCDialogue>();
         var gathering = npc.GetComponent<NPCGathering>();
         var guarding = npc.GetComponent<NPCGuarding>();
+        var seekFlag = npc.GetComponent<NPCSeekFlag>();
+
+        JObject seekObj = null;
+        if (seekFlag != null && seekFlag.IsActivelySeeking)
+        {
+            var flagSaveId = seekFlag.TargetFlag.GetComponent<SaveId>();
+            if (flagSaveId != null)
+            {
+                seekObj = new JObject
+                {
+                    ["flagSaveId"] = flagSaveId.Id,
+                    ["hasArrived"] = seekFlag.HasArrived,
+                    ["stickAroundSecondsRemaining"] = seekFlag.StickAroundSecondsRemaining,
+                };
+            }
+        }
 
         var toolsObj = new JObject();
         foreach (var kv in job.EquippedTools)
@@ -402,6 +558,14 @@ public class SaveManager : MonoBehaviour
                 // reset to their component defaults on every reload.
                 ["maxRangeFromDeposit"] = gathering != null ? gathering.MaxRangeFromDeposit : (float?)null,
                 ["patrolRadius"] = guarding != null ? guarding.PatrolRadius : (float?)null,
+                // NPCSeekFlag state (2026-08-21) -- see that component's
+                // own comment for the full reasoning. Null (not just
+                // omitted) whenever this NPC isn't actively seeking a
+                // Flag right now (already hired, or a pre-placed hire
+                // that never had this component active) -- restoring
+                // seek state onto an NPC that shouldn't have any would be
+                // its own new bug.
+                ["seekFlag"] = seekObj,
             },
         };
     }
@@ -506,6 +670,21 @@ public class SaveManager : MonoBehaviour
         {
             var guarding = npc.GetComponent<NPCGuarding>();
             if (guarding != null) guarding.PatrolRadius = (float)state["patrolRadius"];
+        }
+
+        if (state["seekFlag"] is JObject seekState)
+        {
+            var seekFlag = npc.GetComponent<NPCSeekFlag>();
+            var flag = seekState["flagSaveId"] != null
+                ? SaveIdRegistry.Find((string)seekState["flagSaveId"])?.transform
+                : null;
+            if (seekFlag != null && flag != null)
+            {
+                seekFlag.RestoreSeekState(
+                    flag,
+                    (bool)(seekState["hasArrived"] ?? false),
+                    (float)(seekState["stickAroundSecondsRemaining"] ?? 0f));
+            }
         }
     }
 

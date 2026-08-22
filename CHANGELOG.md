@@ -5,10 +5,101 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.154-dev` — must always match `GameVersion` in
+**Current version:** `0.3.155-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-21
+
+### v0.3.155-dev — MVP2 closed out in full; MVP2B Commerce (`VendorStall` + Village
+Vendor) designed and built end-to-end; NPC NavMesh pathfinding (Phases 0-2); a
+cluster of live-playtest fixes
+
+The single largest commit of the session, spanning three real threads. See
+`MVP2_PLANNING.md`, `MVP2B_PLANNING.md`, `COMMERCE_PLANNING.md`, and
+`NPC_NAVIGATION_PLANNING.md` for full design detail on each.
+
+**MVP2 closed out.** Confirmed live: NPC freeze/unfreeze, Iron Arrow, Bow
+Release animation. Removed the "NPC name reverts" tracking item — never
+reproduced across multiple live-testing passes. Moved the multi-day
+work-shift timer from MVP2 scope to `BUGS_AND_ENHANCEMENTS.md` as an
+enhancement rather than a blocker. Confirmed the SaveId mass-regeneration
+concern is a non-issue via real testing (spawn → save → exit → reload,
+watched the Editor log for the right timing).
+
+**MVP2B Commerce — `VendorStall` core + Village Vendor driver, all 6 items
+built and functionally tested (not just compiled) against real running
+code.** Full "propose → be mean → fix" design pass with Ben before any
+code: found and fixed a real exponential tier-compounding bug in the
+pricing formula during design (tier scaling was being applied at every
+recursive ingredient step instead of once at the top). Built:
+- `StorageBox` ownership gate (`isPlayerOwned`, defaults `true`) — gated at
+  the real access choke point (`FindNearby`, shared by `InventoryScreen`
+  and `PlayerCrafting`), not just the UI layer.
+- `ItemValueCalculator` + new `RecipeDatabase` (reverse item→recipe
+  lookup, following the existing `ItemDatabase`/`SkillDatabase`
+  convention) + `ItemDefinition.baseValue`/`sellableByVendor`. Smoke-
+  tested against a real 2-step recipe chain (Iron Ore → Ingot → Arrowhead)
+  to confirm the compounding fix holds.
+- `VendorStall` core — atomic `SellToVisitor`/`BuyFromVisitor` (every
+  precondition checked before any state moves; a failed transaction never
+  charges the buyer or touches their inventory). Functionally tested 5/5
+  against real transaction scenarios.
+- `VendorStallScreen` (mirrors `FurnaceScreen`'s shape).
+- `VillageVendor` driver — no owner, priced entirely off
+  `ItemValueCalculator`, stock gated by the linked Village Flag's current
+  tier, reactive per-slot restock plus a 30-minute full refresh, till
+  regenerates over real time. Functionally tested 9/9; caught and fixed a
+  real rounding bug (low-`baseValue` items could round buy/sell to the
+  same integer, breaking the price-spread guarantee).
+- Persistence — a real ordering hazard was found and fixed *before* it
+  could bite live: `VillageVendor`'s setup used to run in `Start()`, which
+  has no ordering guarantee against `SaveManager.Load()`'s own `Start()`,
+  risking a fresh random reroll clobbering real saved state. Fixed by
+  deferring setup to the first `Update()` tick instead, which Unity *does*
+  guarantee runs after every object's `Start()`. Verified with a real
+  capture → destroy → restore round trip.
+- 9 real starter items seeded with `baseValue`/`sellableByVendor` (Stick,
+  Fiber, Plank, MRE Ration, all 5 Ore tiers).
+
+**NPC NavMesh pathfinding — Phases 0, 1, and 2 built**, replacing the
+straight-line-plus-local-deflection movement that hit a real structural
+ceiling live (an NPC stuck ping-ponging off a wall it can't route around,
+a door several meters away being outside what local deflection can ever
+discover). `com.unity.ai.navigation` added; `NavMeshAgent` as a
+pathfinding oracle on `NPCGathering` (falls back to the old system
+automatically, additive not a hard cutover); `NavMeshRebaker` hooked into
+`PlayerBuilding.Confirm()` and `PlayerPieceUpgrade`'s upgrade/destroy
+paths to keep the mesh current as players build; `NavMeshObstacle`
+carving on both Door prefabs plus `Door.OpenForNPC()` so an NPC can open a
+door in its way. Compile-verified only, not yet live-tested — this is the
+actual repro that started the whole evaluation, so it's the one that
+matters most to confirm next.
+
+**Live-playtest fixes, same session:**
+- Shared file-based debug logger (`DebugLog.cs`) — opt-in per-object
+  logging (NPC jobs, Furnace, Campfire) to a plain text file, so a Claude
+  session can read exactly what happened after a live test instead of
+  Ben copy-pasting Console output.
+- Fixed a spawned-then-placed `StorageBox` never actually saving —
+  `PlayerBuilding.Confirm()`'s re-place branch assumed an existing
+  instance already had a `PlacedPiece`/`SaveId`.
+- `Furnace.QueueStatusText` — surfaces exactly why a queued smelting
+  recipe isn't starting (missing ingredient, output full, waiting its
+  turn) instead of a flat `[Queued]` label with no signal.
+- `StorageBox` pick-up/re-place as a real permanent-placement round trip
+  (implements `IEquippable`, new `PlayerBuilding.ArmExistingPiece` mode) —
+  picking one up used to lose its custom name entirely.
+- Fixed renaming a box also triggering pickup when the new name contained
+  the letter "e" — the rename text field and the raw `eKey` interact read
+  were two independent views of the same keypress; wired into the
+  existing `SuppressInteraction` flag.
+
+Compile-verified via full-project batch mode throughout. Most of tonight's
+work is not yet live-tested — see `MVP2B_PLANNING.md`'s own status line and
+`WORKING_ON.md`'s history for exactly which pieces still need a real
+Play-mode pass.
 
 ## 2026-08-20 (3)
 

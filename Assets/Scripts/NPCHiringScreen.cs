@@ -171,6 +171,15 @@ public class NPCHiringScreen : MonoBehaviour
             if (freeze != null)
                 freeze.SetFrozen(GUILayout.Toggle(freeze.IsFrozen, "Frozen (stay in place)"));
 
+            // Debug logging toggle (2026-08-21, Ben's ask) -- writes this
+            // NPC's target/movement state to DebugLog.FilePath once per
+            // second while checked, same shape as the Frozen toggle above.
+            // Any number of NPCs can have this on at once ("turn on
+            // debugging for all"), all writing to the same shared file.
+            var debugJob = current.GetComponent<NPCJob>();
+            if (debugJob != null)
+                debugJob.DebugEnabled = GUILayout.Toggle(debugJob.DebugEnabled, "Debug logging (writes to debug_log.txt)");
+
             // Work-range leash (2026-08-17, "NPC management") -- only
             // meaningful for a Gathering NPC (Crafting walks to a fixed
             // bench). Anchored to the NPC's own DepositContainer, not the

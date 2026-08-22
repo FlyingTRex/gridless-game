@@ -189,4 +189,26 @@ public static class NPCMovement
 
         return Mathf.Max(0f, hit.distance - ClearDistanceMargin);
     }
+
+    // Physical escape hatch usable directly by a caller's own give-up
+    // logic (2026-08-21), not gated through StuckTracker's own timing --
+    // for a NavMesh-agent-driven caller (NPCGathering's progress
+    // watchdog) that already decides *when* to give up on its own terms
+    // (distance-to-target progress, not this class's per-step blocked
+    // counter) and just needs the *how*. Found live: a give-up/retarget-
+    // only response isn't enough when the problem is the mover's own
+    // *position* being trapped, not a specific bad target -- retargeting
+    // repeatedly picked a different destination every few seconds while
+    // the NPC never moved an inch, since every target requires leaving
+    // the same stuck spot. Same widening-angle search + validated-clear-
+    // distance teleport as the StuckTracker-driven path above.
+    public static void EscapeBump(Vector3 origin, Vector3 awayFromDir, GameObject ignoreTarget, Transform mover)
+    {
+        Vector3 escapeDir = FindClearBumpDirection(origin, awayFromDir, ignoreTarget);
+        float clearDist = ClearDistance(origin, escapeDir, StuckBumpDistance, ignoreTarget);
+
+        Vector3 bumpPos = mover.position + escapeDir * clearDist;
+        bumpPos.y = GroundHeight.Sample(bumpPos, mover.position.y);
+        mover.position = bumpPos;
+    }
 }

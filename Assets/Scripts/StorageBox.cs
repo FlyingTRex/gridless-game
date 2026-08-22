@@ -7,9 +7,31 @@ using UnityEngine;
 // tab of PlayerMenuScreen is open and draws its contents alongside the
 // player's own inventory, so storing/retrieving items just means walking up
 // and pressing Tab.
+//
+// IEquippable added 2026-08-21 (found live: picking a box up and dropping it
+// again lost its custom name and floated on landing). The old pickup path
+// converted the box into a bare pickupItem stack via PlayerLoot.Receive,
+// destroying this exact GameObject/component -- boxName, SaveId, everything
+// was gone the moment it was picked up. Reusing the same Stash/SetCarried
+// mechanism Backpack/Canteen already use means the original GameObject
+// persists (just hidden) while carried, so its name and identity survive
+// automatically -- no new state-carrying plumbing needed. Re-placing it is
+// a real aimed placement through PlayerBuilding (see ArmExistingPiece),
+// not a physical "drop" -- a StorageBox is a permanent structure, not
+// temporary carried gear, so it shouldn't get PlayerDropping's despawn
+// timer or need a Rigidbody just to physically settle on landing.
 [RequireComponent(typeof(SaveId))]
-public class StorageBox : MonoBehaviour, IRenameable, IInteractable
+[RequireComponent(typeof(Collider))]
+public class StorageBox : MonoBehaviour, IRenameable, IInteractable, IEquippable
 {
+    // Matches Backpack/other equippables' WornEquipment-layer convention —
+    // excluded from the player's own camera while carried so it doesn't
+    // fill the screen if the player looks down at their own hands.
+    private const int DefaultLayer = 0;
+    private const int WornEquipmentLayer = 8;
+
+    private Collider col;
+
     // Every enabled box registers here so InventoryScreen can find nearby
     // ones with a simple distance check instead of a physics query.
     public static readonly List<StorageBox> Active = new List<StorageBox>();
@@ -34,40 +56,124 @@ public class StorageBox : MonoBehaviour, IRenameable, IInteractable
     // is automatically allowed with no per-instance authoring needed.
     [SerializeField] private bool restrictToSkillBooks;
 
+    // Ownership gate (2026-08-21, MVP2B_PLANNING.md item 1) -- found in a
+    // "be mean" pass before building VendorStall: this box has no access
+    // concept at all today, any visitor can already walk up and open one
+    // directly (via InventoryScreen's proximity auto-detection, not even
+    // gated by IInteractable) or pick it up outright once empty. Reusing
+    // a plain StorageBox as a vendor's stock container as designed would
+    // make the entire buy/sell mechanic pointless -- just open the box
+    // and take everything for free. Defaults true so every existing and
+    // future player-placed box keeps working exactly as before (zero
+    // regression) -- a VendorStall's own stock box is the first instance
+    // ever explicitly created with this false. A plain bool is enough for
+    // single-player today; the check is isolated to FindNearby/Complete
+    // below specifically so it can become a real owner-identity/Team-
+    // membership check later without touching every call site again.
+    [SerializeField] private bool isPlayerOwned = true;
+
     private Inventory inventory;
 
     public string DisplayName => boxName;
     public Inventory Inventory => inventory;
+    public bool IsPlayerOwned => isPlayerOwned;
+    public void SetPlayerOwned(bool value) => isPlayerOwned = value;
+    // Read by PlayerBuilding.ArmExistingPiece's cancel path (2026-08-21) to
+    // restore this box back into the player's inventory via
+    // Inventory.AddEquipmentItem, same convention as Backpack.ItemDefinition.
+    public ItemDefinition PickupItem => pickupItem;
 
     // Ben's call (2026-08-09): must be empty to pick up — simple and safe,
     // no risk of silently losing stored items. No tool required, unlike
     // PlayerPieceUpgrade's Hammer-gated upgrade/destroy on build pieces —
-    // this is a plain "pick up my furniture" interaction, distinct from
-    // that system entirely (StorageBox isn't placed through PlayerBuilding
-    // at all here, so PlacedPiece/PlayerPieceUpgrade don't apply).
-    public string Prompt => inventory != null && inventory.Slots.Count > 0
-        ? $"{boxName} (must be empty to pick up)"
-        : $"Pick up {boxName}";
+    // this is a plain "pick up my furniture" interaction. StorageBox *is*
+    // also placed through PlayerBuilding today (StorageBoxPiece.asset,
+    // added since this comment was first written) so a placed instance
+    // does carry a real PlacedPiece — Complete() below doesn't touch that
+    // component at all, it's preserved across the whole pickup/re-place
+    // round trip via ArmExistingPiece.
+    public string Prompt => !isPlayerOwned
+        ? $"{boxName} (not yours)"
+        : inventory != null && inventory.Slots.Count > 0
+            ? $"{boxName} (must be empty to pick up)"
+            : $"Pick up {boxName}";
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
 
+    // Never offered as an explicit body-slot equip target (Chest/Back/
+    // Waist/etc.) via drag-and-drop — a StorageBox only ever rides in a
+    // hand slot or a Backpack's own cargo as a side effect of ReceiveEquipment's
+    // normal priority order, same as Belt/Boot already do.
+    public bool CanEquipToSlot(string slotName) => false;
+
+    // Mirrors PlayerBackpack.PickUp's exact fallback shape: try
+    // PlayerLoot's normal equipment-pickup priority (equipped Backpack,
+    // then a free hand) first, then fall back to stashing directly into
+    // the main inventory as a last resort before giving up.
     public void Complete(GameObject player)
     {
-        if (pickupItem == null || inventory.Slots.Count > 0) return;
+        if (!isPlayerOwned || pickupItem == null || inventory.Slots.Count > 0) return;
 
         var loot = player.GetComponent<PlayerLoot>();
-        int leftover = loot != null
-            ? loot.Receive(pickupItem, 1)
-            : (player.GetComponent<PlayerInventory>()?.AddItem(pickupItem, 1) ?? 1);
+        if (loot != null && loot.ReceiveEquipment(pickupItem, this))
+            return;
 
-        if (leftover > 0) return; // no room anywhere — stays placed
+        var playerInventory = player.GetComponent<PlayerInventory>();
+        if (playerInventory != null && playerInventory.Inventory.AddEquipmentItem(pickupItem, this))
+        {
+            Stash();
+            return;
+        }
 
-        Destroy(gameObject);
+        // No room anywhere — stays placed, no-op.
+    }
+
+    // Fully hides the object while it's stashed in a regular inventory
+    // slot rather than sitting placed in the world or carried in hand —
+    // same shape as Backpack.Stash.
+    public void Stash()
+    {
+        gameObject.SetActive(false);
+        transform.SetParent(null, false);
+    }
+
+    // Carried (visible, non-collidable, follows anchor — usually the
+    // player root, since a box has no dedicated hand-bone attach point)
+    // when anchor is set. anchor == null is the re-placement half of this
+    // round trip: PlayerBuilding.Confirm sets the real world position/
+    // rotation immediately after this call, same as it already does for
+    // a freshly-built piece — this method only handles visibility/
+    // parenting/collision, never position, matching every other
+    // IEquippable's own convention.
+    public void SetCarried(bool value, Transform anchor)
+    {
+        gameObject.SetActive(true);
+        col.enabled = !value;
+        SetLayerRecursively(transform, value ? WornEquipmentLayer : DefaultLayer);
+
+        if (value)
+        {
+            transform.SetParent(anchor, false);
+            transform.localPosition = Vector3.zero;
+            transform.localRotation = Quaternion.identity;
+        }
+        else
+        {
+            transform.SetParent(null, true);
+        }
+    }
+
+    private static void SetLayerRecursively(Transform root, int layer)
+    {
+        root.gameObject.layer = layer;
+        foreach (Transform child in root)
+            SetLayerRecursively(child, layer);
     }
 
     private void Awake()
     {
         inventory = new Inventory(capacity, restrictToSkillBooks ? ComputeSkillBookItems() : null);
+        col = GetComponent<Collider>();
     }
 
     // Every ItemDefinition whose worldPickupPrefab carries a SkillBook
@@ -105,7 +211,7 @@ public class StorageBox : MonoBehaviour, IRenameable, IInteractable
 
         foreach (var box in Active)
         {
-            if (box == null) continue;
+            if (box == null || !box.isPlayerOwned) continue;
             float distSq = (box.transform.position - position).sqrMagnitude;
             if (distSq <= rangeSq)
                 result.Add(box);

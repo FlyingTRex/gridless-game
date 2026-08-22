@@ -56,6 +56,7 @@ GameObject:
   - component: {fileID: 5200499041852565695}
   - component: {fileID: 2999237262681764634}
   - component: {fileID: 4642290767576548921}
+  - component: {fileID: 5980166183699085237}
   m_Layer: 0
   m_Name: TwigDoorPiece
   m_TagString: Untagged
@@ -116,6 +117,22 @@ MonoBehaviour:
   openAngle: 100
   swingSpeedDegreesPerSecond: 180
   autoCloseDelay: 60
+--- !u!208 &5980166183699085237
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8645876640259017700}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.715, y: 1.1665108, z: 0.094773196}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: -0.675, y: 1.1665108, z: 0.00025625527}
+  m_TimeToStationary: 0.5
 --- !u!1001 &1341759704086527730
 PrefabInstance:
   m_ObjectHideFlags: 0

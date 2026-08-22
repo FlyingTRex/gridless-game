@@ -55,6 +55,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8695730990208603392}
   - component: {fileID: 4901392274528227542}
+  - component: {fileID: 238170195349101224}
   m_Layer: 0
   m_Name: PlankWallPiece
   m_TagString: Untagged
@@ -101,6 +102,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 5, y: 2.6866865, z: 0.14}
   m_Center: {x: 0, y: 1.3433433, z: 0}
+--- !u!208 &238170195349101224
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6137708772733856418}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 2.5, y: 1.3433433, z: 0.07}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 1.3433433, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1 &8485760121411026038
 GameObject:
   m_ObjectHideFlags: 0

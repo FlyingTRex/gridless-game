@@ -82,6 +82,15 @@ public class InventoryScreen : MonoBehaviour
     private PlayerCurrency currency;
     private PlayerCoinDrop coinDropper;
     private PlayerVitals vitals;
+    // "Place" action for a carried StorageBox (2026-08-21) — hands off to
+    // PlayerBuilding's real aimed re-placement instead of a physical drop
+    // (see StorageBox.cs's own header comment for why). storageBoxPiece is
+    // the BuildPiece asset the box was originally built from, wired in the
+    // Inspector — needed purely for ghost sizing/groundOffset/socket data,
+    // same as ArmExistingPiece's own doc comment explains.
+    private PlayerBuilding building;
+    private PlayerMenuScreen menuScreen;
+    [SerializeField] private BuildPiece storageBoxPiece;
     private Vector2 scrollPos;
 
     // Screen-space rect of the scroll view opened in DrawContent(), used by
@@ -211,6 +220,8 @@ public class InventoryScreen : MonoBehaviour
         currency = GetComponent<PlayerCurrency>();
         coinDropper = GetComponent<PlayerCoinDrop>();
         vitals = GetComponent<PlayerVitals>();
+        building = GetComponent<PlayerBuilding>();
+        menuScreen = GetComponent<PlayerMenuScreen>();
     }
 
     // Called by PlayerMenuScreen while its Inventory tab is active.
@@ -496,6 +507,20 @@ public class InventoryScreen : MonoBehaviour
             if (reading != null && GUILayout.Button("Read"))
             {
                 reading.TryRead(pendingActionSource, book);
+                return true;
+            }
+        }
+        // A StorageBox is never worn either (CanEquipToSlot always false),
+        // same reasoning as SkillBook above — skips the generic Equip/
+        // Unequip block for its own dedicated "Place" action instead,
+        // which hands off to PlayerBuilding's real aimed re-placement.
+        else if (pendingActionEquipment is StorageBox box)
+        {
+            if (building != null && storageBoxPiece != null && GUILayout.Button("Place"))
+            {
+                pendingActionSource.RemoveEquipmentItem(pendingActionItem);
+                building.ArmExistingPiece(storageBoxPiece, box.gameObject);
+                menuScreen?.Close();
                 return true;
             }
         }

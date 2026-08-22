@@ -50,6 +50,19 @@ public class NPCVisualGroundFix : MonoBehaviour
     {
         if (visual == null || renderers == null || renderers.Length == 0) { enabled = false; return; }
 
+        // Found live (2026-08-21): the array-level check above doesn't
+        // catch an *individual* renderer inside it being destroyed (e.g. a
+        // body-model swap that replaced some but not all of a previously-
+        // captured array) -- renderers[0].bounds below would throw a
+        // MissingReferenceException every single frame forever, since
+        // nothing here ever re-validates past the initial array reference.
+        // Self-disables the same way the array-level check already does,
+        // rather than trying to salvage a partially-stale array.
+        foreach (var r in renderers)
+        {
+            if (r == null) { enabled = false; return; }
+        }
+
         if (!initialized)
         {
             baseLocalX = visual.localPosition.x;

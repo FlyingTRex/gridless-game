@@ -21,6 +21,26 @@ public class ItemDefinition : ScriptableObject
     // tier by its ingredients', not just by skill.
     public CraftTier tier = CraftTier.Normal;
 
+    // Root value for ItemValueCalculator (COMMERCE_PLANNING.md,
+    // MVP2B_PLANNING.md item 2), read only for items with no
+    // CraftingRecipe/SmeltableItem -- a craftable item's value is instead
+    // computed live from its own ingredients' values, so this field is
+    // meaningless for those (never read for them). Defaults to 0, which
+    // reads as "worthless" everywhere vendor pricing touches it -- a real,
+    // silent gap for a new raw/gathered item until someone seeds a real
+    // number (see CLAUDE.md's project-conventions checklist).
+    public float baseValue;
+
+    // Explicit opt-in curation for a vendor's random-roll pool
+    // (COMMERCE_PLANNING.md, MVP2B_PLANNING.md item 5) -- defaults false
+    // deliberately. A vendor rolling from the full item database with no
+    // filter would happily offer up a specific named SkillBook instance,
+    // a placed-structure BuildPiece, or anything else without a real
+    // "does this make sense to buy from a shop" meaning. Flag individual
+    // items in as the vendor content list actually grows, rather than
+    // trying to flag everything unsellable out.
+    public bool sellableByVendor;
+
     // Optional — the visual used when this item is dropped/placed in the
     // world. Falls back to PlayerDropping's generic dropped-item prefab if
     // unset, so most items don't need one.

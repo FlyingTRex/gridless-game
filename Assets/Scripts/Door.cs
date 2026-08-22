@@ -34,6 +34,22 @@ public class Door : MonoBehaviour, ISecondaryInteractable
 
     public string GetSecondaryPrompt(GameObject player) => isOpen ? "Close Door" : "Open Door";
 
+    // Read by NPCGathering's door-detection check (NavMesh Phase 2,
+    // 2026-08-21) to know whether a door blocking an NPC's path still
+    // needs opening.
+    public bool IsOpen => isOpen;
+
+    // NPC-safe entry point for the same swing-away-from-position logic
+    // CompleteSecondary already uses for the player — same class of gap
+    // as skinning/StorageBox pickup earlier this session (a player-only
+    // action needing a parallel NPC-safe one). No-ops if already open,
+    // same guard CompleteSecondary implicitly gets from its own isOpen
+    // check.
+    public void OpenForNPC(Vector3 npcPosition)
+    {
+        if (!isOpen) Open(npcPosition);
+    }
+
     private void Awake()
     {
         closedRotation = transform.rotation;

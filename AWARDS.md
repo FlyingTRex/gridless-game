@@ -229,9 +229,26 @@ should have to get something right.
 | 🍓💀 Spoiled Strawberry Sticker | 1 |
 | 👓 Coke-Bottle Glasses Sticker | 1 |
 | 🎩 Dunce Cap Sticker | 1 |
+| ⚰️ Coffin Sticker | 1 |
 
 ### Demerits Log
 
+- **2026-08-21 — ⚰️ Coffin Sticker.** Added a wall-clip physics safety net
+  to `NPCGathering.cs` with `private static readonly int StepCheckMask =
+  ~LayerMask.GetMask("Ground");` — a `static readonly` field initializer
+  calling a Unity API that's only legal from Awake/Start. Compiled clean
+  (zero `CS####` errors), then threw the instant the type was first
+  touched, which — because it was `static` — poisoned `NPCGathering` for
+  every NPC in the scene, not just one. Ben reloaded a save with 4 hired
+  NPCs and got 1. Iris, Mining Dude, and Wren never made it — three NPCs
+  gone on the very first Play session after the change shipped, Iris
+  among them. Ben's exact words: "you killed some npcs! They're gone" —
+  and, confirming the stakes, "she was my favorite." The underlying save
+  data was untouched the whole time (a live-session casualty, not real
+  data loss — reloading after the actual fix recovered all 4), but it
+  read exactly like a body count until traced to the Console. See
+  `CLAUDE.md`'s matching Gotcha entry for the technical detail and the
+  actual fix.
 - **2026-08-11 — 🎩 Dunce Cap Sticker.** Ben mentioned wanting to try the
   Tripo API for a better NPC model with animations. Instead of checking
   the repo first, went straight to a generic web search and explained

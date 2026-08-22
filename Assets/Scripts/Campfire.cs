@@ -132,6 +132,23 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     public bool AutoRunEnabled => autoRunEnabled;
     public void SetAutoRun(bool value) => autoRunEnabled = value;
 
+    // File debug logging (2026-08-21, Ben's ask — same mechanism as
+    // Furnace/NPCs). Toggled via CampfireScreen; runtime-only.
+    public bool DebugEnabled { get; set; }
+    private float nextDebugLogTime;
+
+    public string DebugStatus
+    {
+        get
+        {
+            string lit = isLit ? $"lit ({fuelSecondsRemaining:F0}s fuel left)" : "unlit";
+            string active = activeRecipe != null
+                ? $"cooking {activeRecipe.outputItem?.itemName} ({cookSecondsElapsed:F0}/{activeRecipe.cookDurationSeconds:F0}s)"
+                : "nothing active";
+            return $"autoRun={autoRunEnabled} {lit} {active}";
+        }
+    }
+
     // Read by CampfireScreen to show a brief result toast under the Recipe
     // section once cooking completes — Campfire has no OnGUI of its own
     // (unlike PlayerCrafting, which draws its own), so this is exposed as
@@ -203,8 +220,18 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
         playerSkills = player != null ? player.GetComponent<PlayerSkills>() : null;
     }
 
+    private const float DebugLogInterval = 1f;
+
     private void Update()
     {
+        if (DebugEnabled && Time.time >= nextDebugLogTime)
+        {
+            nextDebugLogTime = Time.time + DebugLogInterval;
+            // Position-qualified, same reasoning as Furnace's own debug
+            // log line -- more than one Campfire can exist in the world.
+            DebugLog.Write($"Campfire @ ({transform.position.x:F0},{transform.position.z:F0})", DebugStatus);
+        }
+
         if (isLit)
         {
             fuelSecondsRemaining -= Time.deltaTime;

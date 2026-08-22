@@ -16,7 +16,13 @@ MonoBehaviour:
   maxStack: 20
   weight: 0.5
   tier: 2
+  baseValue: 1
+  sellableByVendor: 1
   worldPickupPrefab: {fileID: 2845580259793570749, guid: bbc37a3796d8b524fbf7ebef98fed8a2, type: 3}
   icon: {fileID: 21300000, guid: ae3b246193bb3e845aaf8fa90e5b5f6b, type: 3}
   previewIcon: {fileID: 21300000, guid: cd9f840d839dfb346a16e8a574659dcf, type: 3}
   baseItem: {fileID: 0}
+  isMeleeWeapon: 0
+  isRangedWeapon: 0
+  isArrow: 0
+  arrowDamageBonus: -1

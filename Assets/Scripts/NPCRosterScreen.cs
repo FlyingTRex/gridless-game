@@ -23,6 +23,7 @@ public class NPCRosterScreen : MonoBehaviour
     private Transform playerTransform;
     private Camera playerCamera;
     private NPCHiring tracked;
+    private VillageFlagSpawner villageFlagSpawner;
 
     public bool IsOpen => isOpen;
 
@@ -32,6 +33,7 @@ public class NPCRosterScreen : MonoBehaviour
         wallet = GetComponent<PlayerCurrency>();
         playerTransform = transform;
         playerCamera = GetComponent<PlayerInteraction>().PlayerCamera;
+        villageFlagSpawner = GetComponent<VillageFlagSpawner>();
     }
 
     private void Update()
@@ -74,6 +76,7 @@ public class NPCRosterScreen : MonoBehaviour
 
         GUILayout.Space(20);
         GUILayout.Label("NPC Roster", DebugGUI.Header);
+        GUILayout.Label(NextVisitLabel(), DebugGUI.Label);
         GUILayout.Space(6);
 
         var npcs = FindObjectsByType<NPCHiring>(FindObjectsSortMode.None)
@@ -116,6 +119,19 @@ public class NPCRosterScreen : MonoBehaviour
             SetOpen(false);
 
         GUILayout.EndArea();
+    }
+
+    // Next Village Flag visit countdown (2026-08-21, Ben's ask). No Flag
+    // placed yet reads as its own message rather than "0:00" -- the timer
+    // genuinely isn't running in that case (VillageFlagSpawner.Update's
+    // own early-out), not just imminent.
+    private string NextVisitLabel()
+    {
+        var seconds = villageFlagSpawner?.SecondsUntilNextSpawn();
+        if (seconds == null) return "Next NPC visit: no Village Flag placed";
+
+        int total = Mathf.CeilToInt(seconds.Value);
+        return $"Next NPC visit: {total / 60}m {total % 60}s";
     }
 
     private void DrawRow(NPCHiring npc)

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI;
 
 // The Desk/Bookshelf training ritual (2026-08-16, NPC_TRAINING_PLANNING.md
 // -- Chunk 2 of the Settlement Growth Loop). Unlike NPCGathering/
@@ -31,6 +32,19 @@ public class NPCTraining : MonoBehaviour
     // MoveToward via NPCMovement.cs (2026-08-19) -- see that file's header.
     private readonly NPCMovement.StuckTracker stuckTracker = new();
 
+    // NavMesh + physics safety net (2026-08-21) -- see NPCCrafting's own
+    // comment for the full reasoning.
+    private NavMeshAgent agent;
+
+    // Progress watchdog + escape bump (2026-08-21) -- see NPCGathering's
+    // own comment for the full reasoning. No retarget bookkeeping needed
+    // here -- physically escaping and letting the walk-to-Desk logic's
+    // own per-tick re-evaluation resume is the whole fix.
+    private const float ProgressEpsilon = 0.05f;
+    private const float BlockedGiveUpSeconds = 5f;
+    private float lastProgressDistance = float.MaxValue;
+    private float noProgressSeconds;
+
     private bool isTraining;
     private DeskSurface targetDesk;
     private float trainTimer;
@@ -50,6 +64,14 @@ public class NPCTraining : MonoBehaviour
         gathering = GetComponent<NPCGathering>();
         crafting = GetComponent<NPCCrafting>();
         playerFame = FindFirstObjectByType<PlayerFame>();
+
+        agent = GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            agent.updatePosition = false;
+            agent.updateRotation = false;
+            agent.speed = moveSpeed;
+        }
     }
 
     // True if this specific book would actually grant something new --
@@ -177,14 +199,76 @@ public class NPCTraining : MonoBehaviour
         toTarget.y = 0f;
         if (toTarget.sqrMagnitude < 0.0001f) return;
 
-        Vector3 desired = toTarget.normalized;
-        Vector3 origin = transform.position + Vector3.up * 0.5f;
-        Vector3 moveDir = NPCMovement.FindClearDirection(origin, desired, obstacleCheckDistance, ignoreTarget, stuckTracker, Time.deltaTime, transform);
+        Vector3 moveDir;
+
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.SetDestination(targetPos);
+            Vector3 desiredVel = agent.desiredVelocity;
+            desiredVel.y = 0f;
+            moveDir = desiredVel.sqrMagnitude > 0.0001f ? desiredVel.normalized : toTarget.normalized;
+        }
+        else
+        {
+            Vector3 desired = toTarget.normalized;
+            Vector3 origin = transform.position + Vector3.up * 0.5f;
+            moveDir = NPCMovement.FindClearDirection(origin, desired, obstacleCheckDistance, ignoreTarget, stuckTracker, Time.deltaTime, transform);
+        }
 
         Vector3 flatTarget = transform.position + moveDir * moveSpeed * Time.deltaTime;
         Vector3 newPos = new Vector3(flatTarget.x, transform.position.y, flatTarget.z);
         newPos.y = GroundHeight.Sample(newPos, transform.position.y);
-        transform.position = newPos;
+
+        if (!StepIsBlocked(transform.position, newPos, ignoreTarget))
+            transform.position = newPos;
+
+        float distToTarget = toTarget.magnitude;
+        if (distToTarget < lastProgressDistance - ProgressEpsilon)
+        {
+            lastProgressDistance = distToTarget;
+            noProgressSeconds = 0f;
+        }
+        else
+        {
+            noProgressSeconds += Time.deltaTime;
+            if (noProgressSeconds >= BlockedGiveUpSeconds)
+            {
+                Vector3 escapeOrigin = transform.position + Vector3.up * 0.5f;
+                NPCMovement.EscapeBump(escapeOrigin, -toTarget.normalized, ignoreTarget, transform);
+                lastProgressDistance = float.MaxValue;
+                noProgressSeconds = 0f;
+                return;
+            }
+        }
+
+        if (agent != null && agent.isOnNavMesh) agent.nextPosition = transform.position;
         wander.FaceToward(transform.position + moveDir);
+    }
+
+    // Same shape as NPCGathering.StepIsBlocked -- see that method's own
+    // comment for the full reasoning.
+    private const float StepCheckRadius = 0.3f;
+    private static int stepCheckMask = -1;
+    private static readonly RaycastHit[] stepCheckBuffer = new RaycastHit[16];
+
+    private bool StepIsBlocked(Vector3 from, Vector3 to, GameObject ignoreTarget)
+    {
+        if (stepCheckMask == -1) stepCheckMask = ~LayerMask.GetMask("Ground");
+
+        Vector3 delta = to - from;
+        delta.y = 0f;
+        float dist = delta.magnitude;
+        if (dist < 0.0001f) return false;
+
+        Vector3 origin = from + Vector3.up * 0.9f;
+        int hitCount = Physics.SphereCastNonAlloc(origin, StepCheckRadius, delta.normalized, stepCheckBuffer, dist, stepCheckMask, QueryTriggerInteraction.Ignore);
+        for (int i = 0; i < hitCount; i++)
+        {
+            var hit = stepCheckBuffer[i];
+            if (hit.collider.transform.IsChildOf(transform)) continue;
+            if (ignoreTarget != null && hit.collider.transform.IsChildOf(ignoreTarget.transform)) continue;
+            return true;
+        }
+        return false;
     }
 }

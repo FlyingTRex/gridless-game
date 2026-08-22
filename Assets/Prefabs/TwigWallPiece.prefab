@@ -100,6 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8856277840842313708}
   - component: {fileID: 8676491111926538132}
+  - component: {fileID: 9112396244319723764}
   m_Layer: 0
   m_Name: TwigWallPiece
   m_TagString: Untagged
@@ -146,6 +147,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 5.1, y: 2.6866865, z: 0.25877708}
   m_Center: {x: 0, y: 1.3433433, z: 0}
+--- !u!208 &9112396244319723764
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8354335618093858612}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 2.55, y: 1.3433433, z: 0.12938854}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: 0, y: 1.3433433, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1001 &5300760136985511982
 PrefabInstance:
   m_ObjectHideFlags: 0

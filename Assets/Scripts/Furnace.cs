@@ -29,19 +29,27 @@ using UnityEngine;
 // inventories still exist underneath (Ben's call: on-board slots + auto-
 // top-up/drain, not a raw passthrough) so a temporarily unlinked or
 // out-of-range box doesn't stall production outright.
-// SaveId added 2026-08-17 (SAVE_LOAD_PLANNING.md section 11) -- unlike
-// Campfire, there's no BuildPiece/prefab for a Furnace at all (it's a
-// single fixed world fixture, not player-buildable), so it can't join the
-// PlacedPiece system the same way. Captured/restored as its own simple
-// top-level SaveManager category instead, same "always pre-exists in the
-// scene, just find-and-restore" shape StorageBox already uses.
+// SaveId added 2026-08-17 (SAVE_LOAD_PLANNING.md section 11). Captured/
+// restored as its own simple top-level SaveManager category, same
+// "always pre-exists or gets recreated by RestorePlacedPieces first, then
+// find-and-restore rich state by SaveId" shape StorageBox uses -- covers
+// both a scene-baked fixture and a player-built one (FurnaceBuildPiece
+// exists; the "not player-buildable" framing this comment used to have
+// is stale, corrected 2026-08-21).
 [RequireComponent(typeof(SaveId))]
 public class Furnace : MonoBehaviour, IInteractable
 {
-    public const int MaxQueueSize = 4;
+    // Matches the current 5-ore roster (Copper/Iron/Silver/Gold/Platinum) so
+    // every smeltable recipe can be queued and run at once, not just 4 of 5
+    // (2026-08-21, Ben's ask -- the 5th recipe was previously unselectable
+    // in FurnaceScreen). Materials/output capacity moved with it: both are
+    // one-slot-per-distinct-item, so a queue cap alone would leave the 5th
+    // recipe selectable but permanently unsatisfiable (no slot to hold its
+    // ore or its ingot alongside the other 4).
+    public const int MaxQueueSize = 5;
     private const int FuelCapacity = 2;
-    private const int MaterialsCapacity = 4;
-    private const int OutputCapacity = 4;
+    private const int MaterialsCapacity = 5;
+    private const int OutputCapacity = 5;
 
     [SerializeField] private FuelItem[] fuelItems;
     [SerializeField] private SmeltableItem[] smeltableItems;
@@ -86,6 +94,28 @@ public class Furnace : MonoBehaviour, IInteractable
     public StorageBox MaterialsSourceBox => materialsSourceBox;
     public StorageBox OutputBox => outputBox;
 
+    // File debug logging (2026-08-21, Ben's ask — extends the same
+    // checkbox+DebugLog mechanism built for NPCs to every crafting
+    // device). Toggled via FurnaceScreen; runtime-only, not serialized.
+    public bool DebugEnabled { get; set; }
+    private float nextDebugLogTime;
+
+    public string DebugStatus
+    {
+        get
+        {
+            string lit = isLit ? $"lit ({fuelSecondsRemaining:F0}s fuel left)" : "unlit";
+            string queue = $"queue {recipeQueue.Count}/{MaxQueueSize}";
+            string active = activeRecipe != null
+                ? $"smelting {activeRecipe.outputItem?.itemName} ({smeltSecondsElapsed:F0}/{activeRecipe.smeltDurationSeconds:F0}s)"
+                : "nothing active";
+            string boxes = $"fuel={(fuelSourceBox != null ? fuelSourceBox.DisplayName : "none")} " +
+                           $"materials={(materialsSourceBox != null ? materialsSourceBox.DisplayName : "none")} " +
+                           $"output={(outputBox != null ? outputBox.DisplayName : "none")}";
+            return $"autoRun={autoRunEnabled} {lit} {queue} {active} | {boxes}";
+        }
+    }
+
     public void Complete(GameObject player) => player.GetComponent<FurnaceScreen>()?.Open(this);
 
     private void Awake()
@@ -112,8 +142,19 @@ public class Furnace : MonoBehaviour, IInteractable
         outputInventory = new Inventory(OutputCapacity, allowedOutputs.ToArray());
     }
 
+    private const float DebugLogInterval = 1f;
+
     private void Update()
     {
+        if (DebugEnabled && Time.time >= nextDebugLogTime)
+        {
+            nextDebugLogTime = Time.time + DebugLogInterval;
+            // Position-qualified, not just DisplayName -- more than one
+            // Furnace can exist in the world (2 as of tonight's testing),
+            // and "Furnace" alone wouldn't tell them apart in the log.
+            DebugLog.Write($"Furnace @ ({transform.position.x:F0},{transform.position.z:F0})", DebugStatus);
+        }
+
         if (autoRunEnabled)
         {
             AutoRefill(fuelSourceBox, fuelInventory);
@@ -317,6 +358,33 @@ public class Furnace : MonoBehaviour, IInteractable
             if (materialsInventory.GetCount(ingredient.item) < ingredient.count) return false;
         }
         return true;
+    }
+
+    // Debug/UX readout (2026-08-21, Ben's ask: "add a debugger to the
+    // furnace so we don't spend time guessing") — surfaces exactly why a
+    // queued-but-not-active recipe isn't currently starting, instead of a
+    // flat "[Queued]" label that gives no signal when something's stuck.
+    // Read by FurnaceScreen, not used by the actual smelting logic itself.
+    public string QueueStatusText(SmeltableItem recipe)
+    {
+        if (recipe == null) return "";
+        if (recipe == activeRecipe) return "active";
+
+        if (recipe.ingredients != null)
+        {
+            foreach (var ingredient in recipe.ingredients)
+            {
+                if (ingredient == null || ingredient.item == null) continue;
+                int have = materialsInventory.GetCount(ingredient.item);
+                if (have < ingredient.count)
+                    return $"needs {ingredient.count} {ingredient.item.itemName} (have {have})";
+            }
+        }
+
+        if (!outputInventory.HasSpaceFor(recipe.outputItem, recipe.outputCount))
+            return "output full";
+
+        return !isLit ? "waiting — unlit" : "waiting for its turn";
     }
 
     // Pulls whatever target's restrictedTo list allows out of source's box,

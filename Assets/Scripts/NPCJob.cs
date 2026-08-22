@@ -27,6 +27,16 @@ public class NPCJob : MonoBehaviour
     private readonly HashSet<CraftingRecipe> grantedRecipes = new HashSet<CraftingRecipe>();
     private readonly HashSet<SkillDefinition> knownLineages = new HashSet<SkillDefinition>();
 
+    // Per-NPC opt-in file logging (2026-08-21, Ben's ask, prompted by an
+    // unexplained live "Iris is oscillating" report where nobody could
+    // tell what she was targeting) -- toggled via a checkbox on
+    // NPCHiringScreen's Manage tab, same runtime-only convention as
+    // isHired/isWaitingForPayment. Lives here (not on NPCGathering
+    // directly) since NPCHiringScreen manages any NPC regardless of which
+    // job-kind component is actually active, and a future NPCCrafting/
+    // NPCGuarding debug readout would want to read the same flag.
+    public bool DebugEnabled { get; set; }
+
     public NPCJobDefinition AssignedJob => assignedJob;
 
     // Read by NPCGathering (its own readiness gate) and NPCHiring (Chunk 6 --

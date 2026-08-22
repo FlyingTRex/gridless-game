@@ -219,7 +219,13 @@ public class PlayerInteraction : MonoBehaviour
     // message either way — the hold was never actually completing.
     private void HandleWish(Keyboard keyboard)
     {
-        if (keyboard == null)
+        // Same SuppressInteraction guard the E/F handlers above already
+        // use -- found missing here live (2026-08-21), alongside the
+        // rename-triggers-pickup bug this flag exists to prevent. Typing
+        // "r" into an open text field (PlayerRenaming, etc.) would
+        // otherwise also start filling wishHoldProgress toward whatever
+        // wish the crosshair happens to be resting on.
+        if (keyboard == null || SuppressInteraction)
         {
             wishHoldProgress = 0f;
             return;

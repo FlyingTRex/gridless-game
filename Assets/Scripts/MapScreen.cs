@@ -30,6 +30,17 @@ public class MapScreen : MonoBehaviour
     private const float FlagMarkerSize = 8f;
     private const float NpcMarkerSize = 7f;
 
+    // Player-centered viewport (2026-08-21, Ben's ask) -- the map used to
+    // always show the entire fixed world at a constant scale, with the
+    // player marker landing wherever it happened to fall rather than the
+    // view following them. Half-width of the square window shown, in
+    // world units -- the underlying fog texture still covers the whole
+    // world at full resolution (EnsureTexture unchanged); only the
+    // *displayed* region and the marker math change here, via a UV
+    // sub-rect into that same texture (GUI.DrawTextureWithTexCoords), so
+    // panning costs nothing extra per frame.
+    [SerializeField] private float viewRadiusWorldUnits = 100f;
+
     private PlayerMapExploration exploration;
     private bool isOpen;
 
@@ -81,7 +92,21 @@ public class MapScreen : MonoBehaviour
 
         float mapSize = Mathf.Min(Screen.width, Screen.height) * MapFraction;
         var mapRect = new Rect((Screen.width - mapSize) / 2f, 70f, mapSize, mapSize);
-        GUI.DrawTexture(mapRect, mapTexture);
+
+        // UV sub-rect centered on the player, in the full texture's own
+        // 0-1 space (row 0 = world -Z, matching EnsureTexture's own
+        // convention) -- Texture2D.wrapMode is Clamp (set in
+        // EnsureTexture), so a window that runs past a world edge just
+        // stretches the boundary pixel instead of wrapping/garbage.
+        var bounds = exploration.WorldBounds;
+        Vector3 playerPos = transform.position;
+        float uMin = (playerPos.x - viewRadiusWorldUnits - bounds.min.x) / bounds.size.x;
+        float uSize = (viewRadiusWorldUnits * 2f) / bounds.size.x;
+        float vMin = (playerPos.z - viewRadiusWorldUnits - bounds.min.z) / bounds.size.z;
+        float vSize = (viewRadiusWorldUnits * 2f) / bounds.size.z;
+        var sourceRect = new Rect(uMin, vMin, uSize, vSize);
+
+        GUI.DrawTextureWithTexCoords(mapRect, mapTexture, sourceRect);
         DrawFlagMarkers(mapRect);
         DrawNpcMarkers(mapRect);
         DrawPlayerMarker(mapRect);
@@ -134,7 +159,11 @@ public class MapScreen : MonoBehaviour
 
     private void DrawPlayerMarker(Rect mapRect)
     {
-        Vector2 center = MapPointFor(transform.position, mapRect);
+        // Always at the exact center of the window by construction (the
+        // window is centered on the player), but MapPointFor is still the
+        // single source of truth for the math rather than hand-computing
+        // "just draw it at mapRect.center" separately.
+        Vector2 center = MapPointFor(transform.position, mapRect) ?? new Vector2(mapRect.center.x, mapRect.center.y);
         var markerRect = new Rect(center.x - MarkerSize / 2f, center.y - MarkerSize / 2f, MarkerSize, MarkerSize);
 
         var prevColor = GUI.color;
@@ -152,7 +181,9 @@ public class MapScreen : MonoBehaviour
     {
         foreach (var flag in FindObjectsByType<VillageFlag>(FindObjectsSortMode.None))
         {
-            Vector2 center = MapPointFor(flag.transform.position, mapRect);
+            var point = MapPointFor(flag.transform.position, mapRect);
+            if (point == null) continue;
+            Vector2 center = point.Value;
             var markerRect = new Rect(center.x - FlagMarkerSize / 2f, center.y - FlagMarkerSize / 2f, FlagMarkerSize, FlagMarkerSize);
 
             var prevColor = GUI.color;
@@ -192,7 +223,9 @@ public class MapScreen : MonoBehaviour
     {
         foreach (var npc in FindObjectsByType<NPCHiring>(FindObjectsSortMode.None))
         {
-            Vector2 center = MapPointFor(npc.transform.position, mapRect);
+            var point = MapPointFor(npc.transform.position, mapRect);
+            if (point == null) continue;
+            Vector2 center = point.Value;
             var markerRect = new Rect(center.x - NpcMarkerSize / 2f, center.y - NpcMarkerSize / 2f, NpcMarkerSize, NpcMarkerSize);
 
             var prevColor = GUI.color;
@@ -223,15 +256,25 @@ public class MapScreen : MonoBehaviour
         normal = { textColor = NpcMarkerColor },
     };
 
-    // Shared world-to-map-pixel conversion -- v is measured bottom-up
-    // (matches the texture's own row-0-is-bottom convention in
-    // EnsureTexture above); GUI Rects are measured top-down, so Y needs
-    // flipping relative to the map rect.
-    private Vector2 MapPointFor(Vector3 worldPos, Rect mapRect)
+    // Shared world-to-map-pixel conversion, relative to the same player-
+    // centered window OnGUI just computed for the texture crop above --
+    // markers and the fog they sit on always need to agree on what
+    // window is currently showing. v is measured bottom-up (matches the
+    // texture's own row-0-is-bottom convention in EnsureTexture above);
+    // GUI Rects are measured top-down, so Y needs flipping relative to
+    // the map rect. Returns null if worldPos falls outside the current
+    // window -- callers skip drawing that marker entirely rather than
+    // clamping it to the edge, so something off-screen doesn't misread
+    // as being right at the map's border.
+    private Vector2? MapPointFor(Vector3 worldPos, Rect mapRect)
     {
-        exploration.WorldToCell(worldPos, out int cellX, out int cellZ);
-        float u = (float)cellX / exploration.GridWidth;
-        float v = (float)cellZ / exploration.GridHeight;
+        Vector3 playerPos = transform.position;
+        float dx = worldPos.x - playerPos.x;
+        float dz = worldPos.z - playerPos.z;
+        if (Mathf.Abs(dx) > viewRadiusWorldUnits || Mathf.Abs(dz) > viewRadiusWorldUnits) return null;
+
+        float u = 0.5f + dx / (viewRadiusWorldUnits * 2f);
+        float v = 0.5f + dz / (viewRadiusWorldUnits * 2f);
         return new Vector2(mapRect.x + u * mapRect.width, mapRect.y + (1f - v) * mapRect.height);
     }
 }

@@ -49,6 +49,15 @@ public class PlayerRenaming : MonoBehaviour
         editingName = renameable.DisplayName;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+        // Claim E for this text field, same as PlayerNPCDeposit already
+        // does for its own "point and confirm" flow (2026-08-21, found
+        // live: typing a name containing "e" also fired whatever
+        // IInteractable the crosshair happened to be resting on -- the
+        // IMGUI TextField consumes the legacy Event system's keystroke,
+        // but PlayerInteraction reads the New Input System's raw
+        // Keyboard.current state directly, which is a completely
+        // separate, unconsumed view of the same physical keypress.
+        interaction.SuppressInteraction = true;
     }
 
     // Called by FirstPersonController when Escape re-locks the cursor, so
@@ -60,6 +69,7 @@ public class PlayerRenaming : MonoBehaviour
         editingName = null;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+        interaction.SuppressInteraction = false;
     }
 
     private void OnGUI()

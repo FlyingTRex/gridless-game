@@ -57,6 +57,38 @@ reason) — **MVP4 = Teams & Guilds + Team/Guild Vendor + whatever else**,
 deliberately left unscoped since it's entirely downstream of MVP3's
 multiplayer half actually landing.
 
+**MVP 2B scope lives in `MVP2B_PLANNING.md`.** Decided 2026-08-21, the
+same night MVP2 closed out — pulled the `VendorStall`/Village Vendor
+slice out of MVP3's Commerce track into its own curated tier, since this
+specific slice has no real Multiplayer dependency and is fully
+single-player-testable today, while the Multiplayer live-test needs a
+standalone two-process build this session hasn't set up. Full design in
+`COMMERCE_PLANNING.md`; a "be mean" pass before any code found a real
+prerequisite (`StorageBox` has no ownership concept, so a vendor's stock
+box would just be a free-loot box as originally designed) and a real
+formula bug (tier scaling compounding exponentially through a
+multi-step crafting chain) — both fixed in the design before building
+started.
+
+**All 6 MVP2B items are built and functionally tested, same session
+(2026-08-21).** Not just compile-verified — every item was actually
+exercised against real running code before being marked done: the
+`StorageBox` ownership gate, a new `RecipeDatabase` + `ItemValueCalculator`
+(smoke-tested against a real 2-step Iron Ore → Ingot → Arrowhead chain,
+confirming the compounding-formula fix holds), `VendorStall`'s atomic
+`SellToVisitor`/`BuyFromVisitor` (5/5 scenarios including stock-full and
+till-can't-cover-payout), `VendorStallScreen`, the `VillageVendor` driver
+(9/9 checks against real seeded content — a real rounding bug found and
+fixed along the way: low-value items could round `buyPrice`/`sellPrice`
+to the same integer, silently breaking the spread-safe-by-construction
+guarantee), and persistence (5/5 on a real capture → destroy → restore
+round trip — found and fixed a real ordering hazard first: the vendor's
+own setup used to run in `Start()`, racing `SaveManager.Load()`'s own
+`Start()`-time restore with no guaranteed order between them; fixed by
+deferring to the first `Update()` tick instead, which Unity does
+guarantee runs after every object's `Start()`). Still needs one real live
+Play-mode pass — nothing a batch-mode test harness can stand in for.
+
 **Medical system evaluation lives in `MEDICAL_SYSTEM_PLANNING.md` +
 `MEDICAL_FAMILIES.md`.** Evaluation of a proposed 50-item medical
 progression against what's actually built (2026-08-12). The list's 5 tiers
@@ -415,6 +447,15 @@ batch-mode round-trip after fixing a false-PASS in the first attempt
 (`AddComponent` doesn't fire `Awake()` in edit-mode batch scripting —
 fixed the test via reflection, not the real code). See `WorldBounds.cs`
 below for the one real prerequisite this needed, which is done.
+**Player-centered viewport, 2026-08-21 (Ben's ask)**: the map used to
+always show the entire fixed world at a constant scale, with the player
+marker landing wherever it fell rather than the view following them.
+`MapScreen` now displays a `viewRadiusWorldUnits` (50m half-width)
+window centered on the player, panned via a UV sub-rect into the same
+full-world fog texture (`GUI.DrawTextureWithTexCoords`, not a texture
+rebuild) so panning costs nothing extra per frame; markers (Flag/NPC/
+player) share the identical windowed math and are skipped entirely when
+they'd fall outside the current view rather than clamped to the edge.
 
 **`WorldBounds.cs` (2026-08-16) — the "how big is the world" gap the
 Player Map needed, built and verified same day.** A small shared
@@ -709,6 +750,67 @@ how the two tracks (lower-risk human vs. higher-risk animal-pipeline-
 from-scratch) should be sequenced against each other. Planning only,
 nothing modeled or rigged yet.
 
+**A real NPC navigation system (NavMesh) is planned in
+`NPC_NAVIGATION_PLANNING.md`** — Ben's explicit call, 2026-08-21, after
+live-testing an NPC stuck-in-a-loop bug (bumped clear of a wall by
+tonight's own `StuckTracker` fix, then walked straight back into it,
+repeating forever) and refusing a third patch: "we're patching the
+patches... let's think of a new solution." The straight-line-plus-local-
+deflection movement every job-driven NPC mover uses today
+(`NPCMovement.FindClearDirection`) was built for open-terrain obstacles
+(a Boulder/Tree an NPC can route around within a short search cone) — a
+wall with a door several meters away is structurally outside what that
+search can ever discover, no amount of tuning fixes it. Recommended
+approach: `com.unity.ai.navigation` (not currently installed — checked
+directly), `NavMeshAgent` replacing `FindClearDirection` on the 5
+job-driven movers (`NPCGathering`/`NPCCrafting`/`NPCGuarding`/
+`NPCSeekFlag`/`NPCTraining` — roaming wildlife has no fixed distant
+target, so it doesn't hit this ceiling and doesn't need converting),
+dynamic local re-baking hooked into `PlayerBuilding.Confirm()`/
+`PlayerPieceUpgrade`'s upgrade/destroy paths since players build/destroy
+walls live, and `NavMeshObstacle` carving on `Door` for open/closed
+blocking (still needs a new `Door.OpenForNPC()`-shaped generalization on
+top, since NavMesh alone won't make an NPC *want* to open a door in its
+way). Real upside found, not just a cost: `NavMeshAgent` is also the
+standard pattern for server-authoritative NPC movement in Mirror
+multiplayer, so this is a good fit for `MULTIPLAYER_PLANNING.md`'s
+eventual direction, not competing scope. **Build-vs-buy checked, Ben's
+ask**: the industry-standard third-party alternative, A* Pathfinding
+Project Pro ($140), has a real edge for this project specifically —
+navmesh cutting purpose-built for frequent incremental updates (players
+constantly building/destroying walls) rather than full rebakes — but
+the recommendation is to start with Unity's free built-in system first
+(the proposed Phase 0 spike costs nothing to try either way) and only
+pay for the upgrade if live testing at real settlement scale actually
+shows the free path can't keep up. Proposed as a 4-phase build
+(static-NavMesh spike on one mover first, then dynamic re-baking, then
+doors, then converting the remaining 4 movers), each phase with its own
+live-test checkpoint — deliberately not attempted blind in one sitting.
+**Phases 0, 1, and 2 are all built, 2026-08-21** (0 and 2 first, then 1
+once Ben decided the ordering caveat wasn't worth leaving open before an
+incoming playtest) — see `NPC_NAVIGATION_PLANNING.md` for full detail.
+New `NavMeshRebaker` (`RequestRebake()`/`RequestRebakeDelayed
+(MonoBehaviour)`) hooks `PlayerBuilding.Confirm()` and `PlayerPieceUpgrade
+`'s upgrade/destroy paths to keep the navmesh current as players build —
+deliberately a simple full-surface rebake, not bounded-region, per Ben's
+own "simple version first" call; the delayed variant exists because
+Unity's `Destroy()` only marks removal, the object is still fully present
+until end of frame, so `Upgrade()`/`DestroyPiece()` (both call `Destroy()`
+first) need a one-frame-deferred rebake or it'd still see the about-to-
+be-removed object's geometry. Compile-verified only, not yet live-tested.
+
+**A shared file-based debug logger exists — `DebugLog.cs`.** Writes
+timestamped lines to `Application.persistentDataPath/debug_log.txt`,
+built 2026-08-21 after an unexplained live "Iris is oscillating" report
+where nobody could tell what she was targeting — same "add visibility
+instead of guessing" approach that already worked for the Furnace's
+stalled-queue mystery. Opt-in per object via a "Debug logging" checkbox
+on `NPCHiringScreen`/`FurnaceScreen`/`CampfireScreen` (`NPCJob
+.DebugEnabled`/`Furnace.DebugEnabled`/`Campfire.DebugEnabled`), logging
+each object's own status text once per second while checked. **Read this
+file directly (`DebugLog.FilePath`) after a live test instead of asking
+Ben to copy-paste Console output** — that's the whole point of it.
+
 ## Design docs (`docs/`)
 
 Read these directly rather than trusting a summary — they're actively evolving:
@@ -756,6 +858,18 @@ Read these directly rather than trusting a summary — they're actively evolving
   release. Doc-only commits (design docs, changelog, this file) don't need a bump.
   Both collaborators' Claude sessions should follow this — the in-game number and the
   changelog are meant to be cross-checkable at a glance, without digging into git.
+- **Give every new raw/gathered `ItemDefinition` a seed `baseValue` (2026-08-21,
+  once `ItemValueCalculator` exists — see `COMMERCE_PLANNING.md`).**
+  Craftable items compute their own value automatically off their
+  recipe's ingredients, but a raw/gathered item (Ore, raw Log, Fiber, and
+  similar — anything with no `CraftingRecipe`/`SmeltableItem`) has
+  nothing to derive from and needs its `baseValue` hand-seeded at
+  creation time. Skipping this doesn't error — it silently leaves the
+  new item worth 0 (or whatever the calculator's fallback is) everywhere
+  vendor pricing touches it, easy to not notice until a vendor is
+  already live. Same "don't let a new addition silently fall through a
+  system that assumes every item participates" spirit as the
+  `IEquippable` checklist below.
 - **Update `GameMenuScreen.ControlsList` whenever a new key mapping is added**
   anywhere in the game (`` ` `` to open — Player/Audio/Graphics/Controls/Credits
   tabs, added 2026-08-04). The Controls tab is meant to always reflect every real
@@ -1621,6 +1735,55 @@ still required. It does mean that habit is now git-safe by default; you
 no longer need to worry about your regen producing a spurious diff
 against the other person's last regen.
 
+## Gotcha: a `static readonly` field initializer that calls certain Unity
+APIs (`LayerMask.GetMask`/`NameToLayer`, and likely others) throws, and
+silently breaks *every* instance of that MonoBehaviour type for the rest
+of the session — not just the one that happened to trigger it first
+
+Hit live (2026-08-21, `NPCGathering.cs`'s wall-clip physics safety net):
+`private static readonly int StepCheckMask = ~LayerMask.GetMask("Ground");`
+compiled cleanly (no `CS####` error — this is a purely runtime failure)
+but threw the moment the type was first touched: `UnityException:
+NameToLayer is not allowed to be called from a MonoBehaviour constructor
+(or instance field initializer), call it in Awake or Start instead.`
+Because the field was `static`, that one throw poisoned the whole
+`NPCGathering` **type** for the rest of the domain's lifetime — every
+subsequent attempt to construct or touch *any* `NPCGathering` instance
+(on every other NPC, not just the first one) then failed too, via .NET's
+standard `TypeInitializationException`-cascade behavior for a static
+initializer that throws once. The visible symptom was severe and
+initially looked like out-of-band data loss: reloading a save with 4
+hired NPCs spawned only 1, with the Console showing repeating
+`MissingReferenceException: MeshRenderer has been destroyed` alongside
+the real `NameToLayer` exception — `SaveManager.RestoreNpcs`'s
+`Instantiate()` calls for the other 3 NPCs never completed cleanly
+because their `NPCGathering` component construction failed underneath
+them. The underlying save data was never actually touched (confirmed via
+direct read of `save.json`, unchanged) — reloading after the actual fix
+landed recovered all 4 NPCs correctly, so this was a pure live-session
+symptom, not data loss, but it read exactly like data loss until traced
+to the Console.
+
+**The fix — never call a Unity API that requires Awake/Start context from
+a field initializer, static or otherwise; compute it lazily on first real
+use instead:**
+```csharp
+private static int stepCheckMask = -1; // sentinel a real mask can't equal
+...
+if (stepCheckMask == -1) stepCheckMask = ~LayerMask.GetMask("Ground");
+```
+
+**How to apply:** treat any `static` (or instance) field initializer that
+calls into `UnityEngine` (not just `LayerMask` — likely `Physics`,
+`RenderSettings`, and other similarly Awake/Start-gated APIs) as suspect.
+This class of bug produces **zero compile error** and can manifest as a
+scary, misleading cluster of *other* objects' unrelated-looking
+exceptions rather than pointing at the actual broken line — the real
+error is often further up the same Console entry, easy to miss among the
+cascade it causes. When several different objects of the same
+MonoBehaviour type start throwing in a burst right after a scene
+load/reload, check whether one of them has a `static` field initializer
+calling a Unity API before assuming the failures are independent.
 **Backlog, not yet built**: the actual item/recipe *data* still lives
 in individual `Assets/Data/*.asset` files (good — that's the right
 merge unit for two people editing in parallel, keep it that way). A

@@ -2785,9 +2785,22 @@ output confirmed landing in the linked Output Box automatically**
 (QTY: 1 → QTY: 2 across two separate smelt completions), and critically,
 **the second Ingot appeared with the Furnace popup closed** — proves
 `Update()` genuinely ticks unattended, not just while the screen's open,
-which was the entire point of this system's design. Still open below:
-the regression check, manual drag-in, un-queue, and Auto-Run-off items —
-none of those were exercised this pass.
+which was the entire point of this system's design.
+
+**Follow-up 2026-08-21**: after resetting boxes mid-session, the queue
+appeared fully stalled (Lit, fueled, 4/4 queued, but nothing actively
+smelting) — added a new `Furnace.QueueStatusText` debug readout (shows
+per-recipe why it isn't starting: missing ingredient + shortfall, output
+full, or waiting for its turn) instead of guessing. It immediately
+revealed the real cause: the on-board Materials buffer was near-empty
+(0/0/0/8) despite the linked box showing stock earlier — a resource/
+setup issue, not a code bug. **Ben confirmed the Furnace is now working
+properly** once materials were restocked. The debug readout itself
+proved its worth — same "add visibility instead of guessing" approach
+worth reusing for future mystery-stall reports.
+
+Still open below: the regression check, manual drag-in, un-queue, and
+Auto-Run-off items — none of those were exercised this pass.
 
 - [x] **Look at the placed Furnace in `TestScene.unity`** — confirmed via
   the live popup screenshots (prompt/popup behavior implicitly working).

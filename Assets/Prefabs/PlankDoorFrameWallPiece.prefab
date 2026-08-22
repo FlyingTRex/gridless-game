@@ -108,6 +108,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2997220330430346920}
   - component: {fileID: 7656590765377575710}
+  - component: {fileID: 5896325770573406968}
   m_Layer: 0
   m_Name: ColliderLeftFlank
   m_TagString: Untagged
@@ -151,6 +152,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.75, y: 2.6866865, z: 0.14}
   m_Center: {x: -1.625, y: 1.3433433, z: 0}
+--- !u!208 &5896325770573406968
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3993886352361743486}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.875, y: 1.3433433, z: 0.07}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: -1.625, y: 1.3433433, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1 &4495414938538881930
 GameObject:
   m_ObjectHideFlags: 0

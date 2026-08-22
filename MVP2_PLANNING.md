@@ -388,31 +388,36 @@ tested in `TEST_FEATURE_PLAN.md` once confirmed, and delete it from this
 list — don't let it go stale here the way `MVP2_PLANNING.md`'s own status
 lines did before the 2026-08-18 refresh above.
 
-### Editor OK Playtesting
-Quick in-session checks, no standalone build needed:
+**Editor OK Playtesting — closed out 2026-08-21.** Iron Arrow crafted and
+fired live (Ben), Bow Release animation confirmed working and releasing
+correctly. Both were the last items in this section.
 
-- **Iron Arrow** (v0.3.142-dev) — recipe-registration gap fixed 2026-08-18
-  (the 6 recipes are now in `PlayerCrafting.recipes`, verified via YAML
-  grep). Ready to test now: craft an Iron Arrowhead (Anvil), assemble a
-  batch of arrows from a tier-matched Trimmed Stick, fire one, and hand a
-  set to a Guard to confirm the tool-list update took.
-- The **`NPCFreeze`** "stay frozen" toggle — last unconfirmed piece of
-  the 2026-08-17 NPC-management pass (Tool Swap, cargo Take/Take All, and
-  the deposit-anchored work-range leash all confirmed 2026-08-18).
-- Bow Release animation stance-snap and per-tier hunting damage numbers —
-  quick spot checks, not previously vetted in detail.
+**Compiled Game testing — closed out 2026-08-21.** Both remaining items
+fully resolved and live-confirmed:
 
-### Compiled Game testing
-Needs sustained real time or an unattended run — a standalone build is
-the natural way to run these without holding the Editor's project lock:
-
-- **`NPCSeekFlag` stuck-detection / soft-lock risk** — no timeout exists
-  while an NPC is still approaching a Flag (only after arrival). Needs a
-  long unattended watch to see if one ever gets permanently wedged.
-- **NPC name reverts to default the instant payment comes due** — still
-  fully unexplained; needs a live Console-open watch to catch in the act.
-- **`SaveId` mass regeneration** — observed once across two saves in the
-  same session; cause unconfirmed, worth watching for a repeat.
-- **Multi-day NPC work-shift timer** — still the 5-real-minute stand-in;
-  a real revisit needs persistence to already be trustworthy across a
-  multi-day span, which it now should be.
+- **`NPCSeekFlag` stuck-detection + save/restore, fully fixed and
+  live-confirmed end to end.** All 5 job movers gained NavMesh routing +
+  a physics safety net + a give-up/escape-bump watchdog; the despawn
+  timer no longer requires arrival to start ticking. The real gap found
+  along the way — `NPCSeekFlag`'s state (`targetFlag`/`hasArrived`/
+  `stickAroundSecondsRemaining`) was pure runtime state, never captured
+  by `SaveManager`, so a save/reload silently orphaned any unhired,
+  still-seeking NPC (root cause of "Gideon still around," retroactively
+  explaining Cora/Odette too) — is fixed: that state now saves/restores
+  properly, same pattern as `NPCGathering`/`NPCGuarding`'s leash values.
+  **Live-confirmed in one continuous real run**: a fresh spawn
+  ("Marisol") survived a genuine save → exit → reload mid-seek, resumed
+  active seeking immediately after (confirmed via debug log), hit a
+  minor stall near the arrival threshold that the escape-bump watchdog
+  cleanly recovered from, arrived at the Flag, waited out her window
+  unhired, despawned on schedule, and the next NPC spawned right on the
+  expected interval (18.0min) immediately after. Full lifecycle proven
+  working, not just individually-tested pieces.
+- **`SaveId` mass regeneration — confirmed resolved/non-issue.**
+  Live-tested: captured a baseline of all 6 NPC `saveId`s, compared after
+  a real save/exit/reload cycle (no mid-Play-mode compile involved) — all
+  6 identical, zero regeneration. Confirms the original leading theory
+  (an abnormal mid-Play-mode compile forcing an unsaved restart) was the
+  actual and only trigger, not ordinary save/reload — and that scenario
+  is already avoided by the standing "never edit while the Editor is
+  open" discipline. No fix needed.

@@ -20,7 +20,9 @@ public static class DatabaseRepopulator
         int skills = RepopulateSkillDatabase();
         int jobs = RepopulateNpcJobDatabase();
         int pieces = RepopulateBuildPieceDatabase();
-        Debug.Log($"[DatabaseRepopulator] Items={items} Skills={skills} Jobs={jobs} BuildPieces={pieces}");
+        (int crafting, int smeltable) = RepopulateRecipeDatabase();
+        Debug.Log($"[DatabaseRepopulator] Items={items} Skills={skills} Jobs={jobs} BuildPieces={pieces} "
+            + $"CraftingRecipes={crafting} SmeltableItems={smeltable}");
     }
 
     private static int RepopulateItemDatabase()
@@ -81,6 +83,22 @@ public static class DatabaseRepopulator
         database.EditorSetPieces(pieces);
         EditorUtility.SetDirty(database);
         return pieces.Length;
+    }
+
+    private static (int, int) RepopulateRecipeDatabase()
+    {
+        var database = AssetDatabase.LoadAssetAtPath<RecipeDatabase>("Assets/Resources/RecipeDatabase.asset");
+        if (database == null)
+        {
+            Debug.LogError("[DatabaseRepopulator] Could not load RecipeDatabase.asset");
+            return (0, 0);
+        }
+
+        var crafting = LoadAll<CraftingRecipe>();
+        var smeltable = LoadAll<SmeltableItem>();
+        database.EditorSetRecipes(crafting, smeltable);
+        EditorUtility.SetDirty(database);
+        return (crafting.Length, smeltable.Length);
     }
 
     private static T[] LoadAll<T>() where T : Object

@@ -2,14 +2,27 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Click-to-upgrade / hold-5s-to-destroy on an already-placed building
+// Click-to-upgrade (E) / hold-to-destroy (X) on an already-placed building
 // piece — see design-brief.md's Building System section (2026-08-08).
-// Deliberately NOT built on IInteractable's hold-and-release model: every
-// other hold in the game treats releasing early as "cancelled, nothing
-// happened," but here releasing early *is* the action (upgrade), and only
-// holding past the threshold does something else (destroy) — a genuinely
-// different shape, so this runs its own raycast/E-handling rather than
-// reusing PlayerInteraction's.
+// Deliberately NOT built on IInteractable's hold-and-release model for
+// Upgrade: every other hold in the game treats releasing early as
+// "cancelled, nothing happened," but here releasing E *is* the action —
+// a genuinely different shape, so this runs its own raycast/key-handling
+// rather than reusing PlayerInteraction's.
+//
+// Destroy moved off E onto its own key (2026-08-21, Ben's ask, found
+// live): several PlacedPiece types (Furnace, StorageBox, Anvil) have
+// their own competing E-driven action (open the Furnace, pick up the
+// box, ...) on PlayerInteraction — a completely separate component also
+// reading raw E — which fires in the same frame a hold begins and
+// unlocks the cursor, killing the hold before it could ever reach
+// destroyDuration. Walls/Foundation/Doors have no competing interactable
+// so this never showed up there, which is why destroy only ever seemed
+// to work on walls. X has no competing use anywhere in the game, so
+// destroy now works uncontested regardless of what's being aimed at.
+// Deliberately no on-screen hint for it either (Ben's own framing:
+// destroying furniture should be deliberate, not something stumbled
+// into via a prompt) — Upgrade keeps its label, Destroy doesn't.
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerSkills))]
@@ -173,6 +186,12 @@ public class PlayerPieceUpgrade : MonoBehaviour
         skills?.GainExperience(next.trainedSkill, next.skillGain);
         currentTarget = null;
         lastTarget = null;
+
+        // NavMesh Phase 1 (2026-08-21) -- delayed variant since the old
+        // instance was just Destroy()'d above (deferred to end of frame,
+        // still physically present right now) and would otherwise still
+        // be baked into the navmesh alongside the new one.
+        NavMeshRebaker.RequestRebakeDelayed(this);
     }
 
     private void DestroyPiece(PlacedPiece target)
@@ -182,6 +201,10 @@ public class PlayerPieceUpgrade : MonoBehaviour
         Destroy(target.gameObject);
         currentTarget = null;
         lastTarget = null;
+
+        // NavMesh Phase 1 (2026-08-21) -- same deferred-Destroy() reasoning
+        // as Upgrade() above.
+        NavMeshRebaker.RequestRebakeDelayed(this);
     }
 
     private bool HasIngredients(BuildPiece piece)

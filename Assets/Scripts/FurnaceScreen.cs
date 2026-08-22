@@ -151,7 +151,8 @@ public class FurnaceScreen : MonoBehaviour
             bool full = !queued && current.RecipeQueue.Count >= Furnace.MaxQueueSize;
 
             GUI.enabled = !full;
-            string label = $"{(queued ? "[Queued] " : "")}{recipe.outputItem.itemName} x{recipe.outputCount} ({Mathf.RoundToInt(recipe.smeltDurationSeconds)}s)";
+            string status = queued ? $" — {current.QueueStatusText(recipe)}" : "";
+            string label = $"{(queued ? "[Queued] " : "")}{recipe.outputItem.itemName} x{recipe.outputCount} ({Mathf.RoundToInt(recipe.smeltDurationSeconds)}s){status}";
             if (GUILayout.Button(label))
                 current.ToggleQueue(recipe);
             GUI.enabled = true;
@@ -189,6 +190,12 @@ public class FurnaceScreen : MonoBehaviour
         bool newAutoRun = GUILayout.Toggle(autoRun, autoRun ? "Auto-Run: ON" : "Auto-Run: OFF");
         if (newAutoRun != autoRun)
             current.SetAutoRun(newAutoRun);
+
+        // Debug logging toggle (2026-08-21, Ben's ask) -- writes this
+        // Furnace's lit/queue/box-link state to DebugLog.FilePath once
+        // per second while checked, same mechanism as NPCHiringScreen's
+        // own Debug checkbox.
+        current.DebugEnabled = GUILayout.Toggle(current.DebugEnabled, "Debug logging (writes to debug_log.txt)");
 
         GUILayout.Space(6);
         current.FindNearbyStorageBoxes(nearbyBoxes);

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6401893332321975325}
   - component: {fileID: 8178703347700240118}
   - component: {fileID: 3060213714838740910}
+  - component: {fileID: 4239967399118849843}
   m_Layer: 0
   m_Name: PlankDoorPiece
   m_TagString: Untagged
@@ -71,6 +72,22 @@ MonoBehaviour:
   openAngle: 100
   swingSpeedDegreesPerSecond: 180
   autoCloseDelay: 60
+--- !u!208 &4239967399118849843
+NavMeshObstacle:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3944488162245348518}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Shape: 1
+  m_Extents: {x: 0.675, y: 1.15, z: 0.04}
+  m_MoveThreshold: 0.1
+  m_Carve: 1
+  m_CarveOnlyStationary: 0
+  m_Center: {x: -0.675, y: 1.15, z: 0}
+  m_TimeToStationary: 0.5
 --- !u!1 &5253550406156893185
 GameObject:
   m_ObjectHideFlags: 0

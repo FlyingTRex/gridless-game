@@ -49,6 +49,31 @@ public class VillageFlagSpawner : MonoBehaviour
     private PlayerFame playerFame;
     private float spawnTimerSeconds;
 
+    // Save/load (2026-08-21, Ben's ask) -- this timer wasn't persisted at
+    // all before, so every reload silently restarted the up-to-30-minute
+    // countdown from zero regardless of how long it had already been
+    // running. Plain get/set rather than a Capture/Restore pair since
+    // there's nothing to validate -- any float SaveManager hands back is
+    // fine to resume from directly.
+    public float SpawnTimerSeconds
+    {
+        get => spawnTimerSeconds;
+        set => spawnTimerSeconds = value;
+    }
+
+    // NPCRosterScreen's "next visit" countdown (2026-08-21, Ben's ask).
+    // Null means the timer isn't actually running (no Flag placed yet,
+    // same early-out Update() uses) rather than 0 seconds, so the UI can
+    // tell "about to spawn" apart from "nothing to count down to."
+    public float? SecondsUntilNextSpawn()
+    {
+        var flags = FindObjectsByType<VillageFlag>(FindObjectsSortMode.None);
+        if (flags.Length == 0) return null;
+
+        float intervalSeconds = CurrentIntervalMinutes(flags) * 60f;
+        return Mathf.Max(0f, intervalSeconds - spawnTimerSeconds);
+    }
+
     private void Awake()
     {
         playerFame = GetComponent<PlayerFame>();
