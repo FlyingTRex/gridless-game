@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 // Opened by interacting (E) with a VendorStall -- same "world object owns
@@ -16,8 +17,26 @@ public class VendorStallScreen : MonoBehaviour
     private static float PanelHeight => Mathf.Min(MaxPanelHeight, Screen.height * 0.9f);
     private static float ScrollHeight => Mathf.Max(120f, PanelHeight - ChromeReserve);
 
+    // Tile grid (2026-08-22, Ben's ask) -- same pattern Crafting/Build
+    // already moved to (see BuildScreen's own header comment), just sized
+    // for this screen's narrower panel: 3 columns of 140px instead of
+    // Build's 4 of 200px.
+    private const float TileWidth = 140f;
+    private const int TilesPerRow = 3;
+    private const float TileSpacing = 10f;
+    private const float IconSize = 56f;
+    private const float IconPadding = 5f;
+
+    [SerializeField] private float storageRange = 10f;
+
     private PlayerCurrency wallet;
     private PlayerInventory playerInventory;
+    private PlayerBackpack backpackCarrier;
+    private PlayerBank bank;
+    private readonly List<StorageBox> nearbyStorages = new();
+    private readonly List<Inventory> reachable = new();
+    private readonly List<ItemDefinition> offListCandidates = new();
+
     private VendorStall current;
     private bool isOpen;
     private Vector2 scrollPos;
@@ -35,6 +54,8 @@ public class VendorStallScreen : MonoBehaviour
     {
         wallet = GetComponent<PlayerCurrency>();
         playerInventory = GetComponent<PlayerInventory>();
+        backpackCarrier = GetComponent<PlayerBackpack>();
+        bank = GetComponent<PlayerBank>();
     }
 
     public void Open(VendorStall stall)
@@ -55,6 +76,28 @@ public class VendorStallScreen : MonoBehaviour
         Cursor.visible = value;
     }
 
+    // Same reach PlayerCrafting.ReachableInventories already established
+    // (main inventory, worn Backpack, nearby StorageBox) -- real bug found
+    // live 2026-08-22: this screen used to only ever check the player's
+    // bare main inventory, so items in a Backpack or a nearby box were
+    // invisible to both buying and selling. Rebuilt fresh each call rather
+    // than cached, since what's "nearby" changes as the player moves.
+    private List<Inventory> ReachableInventories()
+    {
+        reachable.Clear();
+        reachable.Add(playerInventory.Inventory);
+
+        var backpack = backpackCarrier != null ? backpackCarrier.Equipped : null;
+        if (backpack != null)
+            reachable.Add(backpack.Inventory);
+
+        StorageBox.FindNearby(transform.position, storageRange, nearbyStorages);
+        foreach (var box in nearbyStorages)
+            reachable.Add(box.Inventory);
+
+        return reachable;
+    }
+
     private void OnGUI()
     {
         if (!isOpen || current == null) return;
@@ -70,6 +113,8 @@ public class VendorStallScreen : MonoBehaviour
         if (message != null && Time.time < messageExpireTime)
             GUILayout.Label(message, DebugGUI.Label);
 
+        var inventories = ReachableInventories();
+
         scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(ScrollHeight));
 
         if (current.PriceList.Count == 0)
@@ -78,8 +123,30 @@ public class VendorStallScreen : MonoBehaviour
         }
         else
         {
-            foreach (var entry in current.PriceList)
-                DrawEntry(entry);
+            DrawTileGrid(current.PriceList.Count, i =>
+            {
+                var entry = current.PriceList[i];
+                return entry?.item == null ? null : (System.Action)(() => DrawStockedTile(entry, inventories));
+            });
+        }
+
+        // Off-list selling (2026-08-22, real gap found live) -- an item
+        // that isn't currently one of the 8 displayed/stocked slots can
+        // still be sold here via VendorStall.BuyFromVisitor's own
+        // off-list fallback, but nothing exposed a way to actually DO
+        // that until now. Scans the player's reachable inventories for
+        // any distinct item that's sellableByVendor, within this stall's
+        // tier ceiling, and not already shown above.
+        BuildOffListCandidates(inventories);
+        if (offListCandidates.Count > 0)
+        {
+            GUILayout.Space(10);
+            GUILayout.Label("Sell Other Items", DebugGUI.Header);
+            DrawTileGrid(offListCandidates.Count, i =>
+            {
+                var item = offListCandidates[i];
+                return (System.Action)(() => DrawOffListTile(item, inventories));
+            });
         }
 
         GUILayout.EndScrollView();
@@ -91,24 +158,85 @@ public class VendorStallScreen : MonoBehaviour
         GUILayout.EndArea();
     }
 
-    private void DrawEntry(VendorPriceEntry entry)
+    private void BuildOffListCandidates(List<Inventory> inventories)
     {
-        if (entry == null || entry.item == null) return;
+        offListCandidates.Clear();
+        foreach (var inv in inventories)
+        {
+            if (inv == null) continue;
+            foreach (var slot in inv.Slots)
+            {
+                var item = slot?.item;
+                if (item == null || slot.count <= 0) continue;
+                if (offListCandidates.Contains(item)) continue;
+                if (IsAlreadyStocked(item)) continue;
+                if (current.EstimateOffListBuyPrice(item) <= 0) continue;
+                offListCandidates.Add(item);
+            }
+        }
+    }
 
+    private bool IsAlreadyStocked(ItemDefinition item)
+    {
+        foreach (var entry in current.PriceList)
+            if (entry?.item == item) return true;
+        return false;
+    }
+
+    // Shared row-wrapping loop -- same shape BuildScreen.DrawContent
+    // already establishes, generalized here since this screen draws two
+    // separate tile sections (stocked items, off-list candidates) that
+    // both need identical wrapping.
+    private void DrawTileGrid(int count, System.Func<int, System.Action> drawTile)
+    {
+        int column = 0;
+        for (int i = 0; i < count; i++)
+        {
+            var draw = drawTile(i);
+            if (draw == null) continue;
+
+            if (column == 0) GUILayout.BeginHorizontal();
+            draw();
+
+            column++;
+            if (column >= TilesPerRow)
+            {
+                GUILayout.EndHorizontal();
+                GUILayout.Space(TileSpacing);
+                column = 0;
+            }
+            else
+            {
+                GUILayout.Space(TileSpacing);
+            }
+        }
+
+        if (column > 0)
+            GUILayout.EndHorizontal();
+    }
+
+    // Tile layout (2026-08-22) -- same shape as BuildScreen.DrawTile: icon,
+    // name, key stats, action button(s). A Vendor Stall tile can carry
+    // BOTH a Buy and a Sell button at once (unlike Build's single Arm),
+    // stacked vertically to stay within TileWidth.
+    private void DrawStockedTile(VendorPriceEntry entry, List<Inventory> inventories)
+    {
         int stockCount = current.Stock != null ? current.Stock.Inventory.GetCount(entry.item) : 0;
 
-        GUILayout.BeginHorizontal();
-        GUILayout.Label(entry.item.itemName, DebugGUI.Label, GUILayout.Width(140));
-        GUILayout.Label($"stock {stockCount}", DebugGUI.Label, GUILayout.Width(70));
+        GUILayout.BeginVertical(DebugGUI.Panel, GUILayout.Width(TileWidth));
+
+        DrawIcon(entry.item);
+
+        GUILayout.Label(entry.item.itemName, DebugGUI.Header);
+        GUILayout.Label($"stock {stockCount}", DebugGUI.Label);
 
         // entry.canSell means the STALL can sell TO the visitor -- from
         // the player's side, that's a Buy button.
         if (entry.canSell)
         {
-            GUILayout.Label($"Buy {entry.sellPrice}c", DebugGUI.Label, GUILayout.Width(70));
-            if (GUILayout.Button("Buy", GUILayout.Width(60)))
+            if (GUILayout.Button($"Buy {entry.sellPrice}c", GUILayout.Width(TileWidth - 20f)))
             {
-                if (current.SellToVisitor(entry.item, 1, wallet, playerInventory.Inventory))
+                if (current.SellToVisitor(entry.item, 1, wallet, inventories, bank))
                     ShowMessage($"Bought 1 {entry.item.itemName}.");
                 else
                     ShowMessage("Can't buy that right now.");
@@ -119,17 +247,58 @@ public class VendorStallScreen : MonoBehaviour
         // the player's side, that's a Sell button.
         if (entry.canBuy)
         {
-            GUILayout.Label($"Sell {entry.buyPrice}c", DebugGUI.Label, GUILayout.Width(70));
-            if (GUILayout.Button("Sell", GUILayout.Width(60)))
+            if (GUILayout.Button($"Sell {entry.buyPrice}c", GUILayout.Width(TileWidth - 20f)))
             {
-                if (current.BuyFromVisitor(entry.item, 1, wallet, playerInventory.Inventory))
+                if (current.BuyFromVisitor(entry.item, 1, wallet, inventories, bank))
                     ShowMessage($"Sold 1 {entry.item.itemName}.");
                 else
                     ShowMessage("Can't sell that right now.");
             }
         }
 
-        GUILayout.EndHorizontal();
+        GUILayout.EndVertical();
+    }
+
+    // Off-list tile -- Sell only (this item isn't one of the stall's
+    // displayed offerings, so there's nothing to Buy). Price shown is an
+    // estimate (VendorStall.EstimateOffListBuyPrice); the real payout at
+    // sale time also factors in the stock-based supply/demand adjustment,
+    // so it can differ slightly -- same "estimate, not a locked quote"
+    // convention every other price display in this project already uses.
+    private void DrawOffListTile(ItemDefinition item, List<Inventory> inventories)
+    {
+        GUILayout.BeginVertical(DebugGUI.Panel, GUILayout.Width(TileWidth));
+
+        DrawIcon(item);
+
+        GUILayout.Label(item.itemName, DebugGUI.Header);
+
+        int estimate = current.EstimateOffListBuyPrice(item);
+        if (GUILayout.Button($"Sell ~{estimate}c", GUILayout.Width(TileWidth - 20f)))
+        {
+            if (current.BuyFromVisitor(item, 1, wallet, inventories, bank))
+                ShowMessage($"Sold 1 {item.itemName}.");
+            else
+                ShowMessage("Can't sell that right now.");
+        }
+
+        GUILayout.EndVertical();
+    }
+
+    // Same convention as BuildScreen.DrawIcon -- previewIcon preferred
+    // over icon, blank spacer (not a placeholder glyph) if neither is set.
+    private void DrawIcon(ItemDefinition item)
+    {
+        var sprite = item.previewIcon != null ? item.previewIcon : item.icon;
+
+        GUILayout.Box(GUIContent.none, GUILayout.Width(IconSize), GUILayout.Height(IconSize));
+        if (sprite == null) return;
+
+        var rect = GUILayoutUtility.GetLastRect();
+        var iconRect = new Rect(
+            rect.x + IconPadding, rect.y + IconPadding,
+            rect.width - IconPadding * 2f, rect.height - IconPadding * 2f);
+        GUI.DrawTexture(iconRect, sprite.texture, ScaleMode.ScaleToFit);
     }
 
     private void ShowMessage(string text)

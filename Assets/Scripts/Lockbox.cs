@@ -4,7 +4,15 @@ using UnityEngine;
 // five CraftTier qualities. Unlike PlayerBank (a single global account),
 // each Lockbox is its own world object with its own balances — buy two
 // and they don't share capacity.
+// SaveId requirement added 2026-08-22 (Vendor Stall till design) -- a
+// VendorStall's till is now a real Lockbox, and it needs to persist
+// through save/reload the same as any other placed structure. Standalone
+// player-purchased Lockbox persistence remains a separate, pre-existing,
+// deliberately-deferred gap (see SAVE_LOAD_PLANNING.md's own "Lockbox...
+// deferred" note) -- this only guarantees a Lockbox CAN be found/restored
+// by SaveId going forward, not that every Lockbox use case is wired up.
 [RequireComponent(typeof(Collider))]
+[RequireComponent(typeof(SaveId))]
 public class Lockbox : MonoBehaviour, IInteractable, IRenameable
 {
     [SerializeField] private CraftTier tier;

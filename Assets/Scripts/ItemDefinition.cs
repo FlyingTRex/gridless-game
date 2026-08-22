@@ -41,6 +41,30 @@ public class ItemDefinition : ScriptableObject
     // trying to flag everything unsellable out.
     public bool sellableByVendor;
 
+    // Opt-in switch to CraftTierScale.ToolMarketValueModifier instead of
+    // the general Modifier for ItemValueCalculator's tier-scaling step
+    // (2026-08-22, Vendor Stall tool pricing design). Weapons/tools reuse
+    // the same flat raw ingredients across all 5 tiers (e.g. every Axe
+    // tier costs 1 Rock + 2 Stick) -- the general Modifier's 25x top-to-
+    // bottom spread can't express "a Masterwork tool took dramatically
+    // more skill to make" on its own. Deliberately NOT applied to
+    // ItemValueCalculator globally -- a Masterwork Herbal Tea shouldn't
+    // cost as much as a Masterwork Axe just because both are tier 4, same
+    // "a ratio tuned for one quantity doesn't transfer to another" trap
+    // CLAUDE.md already documents. Flag individual items in, same opt-in
+    // discipline as sellableByVendor above.
+    public bool usesToolMarketCurve;
+
+    // Opt-in marker for VillageVendor's dedicated seed-slot pool
+    // (2026-08-22, Vendor Stall design) -- separate from sellableByVendor
+    // since a vendor needs to know which sellable items are seeds
+    // specifically to reserve 2 of its 8 stock slots for them. No global
+    // seed registry exists to derive this from automatically (a
+    // GardenPlot4x4's registeredCrops array is a per-scene-instance list,
+    // not a database), so this is hand-flagged the same way as the other
+    // opt-in fields above.
+    public bool isSeed;
+
     // Optional — the visual used when this item is dropped/placed in the
     // world. Falls back to PlayerDropping's generic dropped-item prefab if
     // unset, so most items don't need one.

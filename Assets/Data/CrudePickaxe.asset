@@ -20,3 +20,5 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: f0da395951390ea40a074ef349d0dac3, type: 3}
   previewIcon: {fileID: 21300000, guid: 3adfc84ecc32bb64e8d064dfe0d9a05a, type: 3}
   baseItem: {fileID: 0}
+  sellableByVendor: 1
+  usesToolMarketCurve: 1

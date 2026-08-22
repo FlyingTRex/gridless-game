@@ -67,18 +67,22 @@ public static class ItemValueCalculator
     private static float ComputeValue(ItemDefinition item)
     {
         var database = RecipeDatabase.Instance;
+        float tierModifier = item.usesToolMarketCurve
+            ? CraftTierScale.ToolMarketValueModifier(item.tier)
+            : CraftTierScale.Modifier(item.tier);
+
         var craftingRecipe = database != null ? database.FindCraftingRecipe(item) : null;
         if (craftingRecipe != null)
         {
             float rawCost = SumCraftingIngredients(craftingRecipe.ingredients);
-            return rawCost * CraftTierScale.Modifier(item.tier);
+            return rawCost * tierModifier;
         }
 
         var smeltable = database != null ? database.FindSmeltableItem(item) : null;
         if (smeltable != null)
         {
             float rawCost = SumSmeltableIngredients(smeltable.ingredients);
-            return rawCost * CraftTierScale.Modifier(item.tier);
+            return rawCost * tierModifier;
         }
 
         // Raw/gathered material with no recipe at all -- hand-seeded root

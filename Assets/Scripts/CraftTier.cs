@@ -106,6 +106,29 @@ public static class CraftTierScale
         _ => 0,
     };
 
+    // Weapon/tool market value scaling (2026-08-22, Vendor Stall design) --
+    // deliberately a different shape than Modifier() above, not a reuse.
+    // Every tool tier (Crude..Masterwork) crafts from identical flat raw
+    // ingredients (e.g. Axe is always 1 Rock + 2 Stick regardless of
+    // tier), so Modifier's 25x spread is the ONLY lever ItemValueCalculator
+    // has to price them -- nowhere near enough to make a Masterwork tool
+    // (skill 100, the real cap) feel meaningfully harder-earned than a
+    // Crude one. Derived from SkillRequirement (the actual grind curve)
+    // rather than hand-picked numbers, so it automatically re-scales if
+    // the tier-difficulty ladder ever gets harder -- no second edit needed
+    // here. Cubed on the normalized skill fraction so the curve is
+    // deliberately back-loaded: Crude/Rudimentary stay nearly flat (a new
+    // character's early tools stay plausible/cheap), each step gets
+    // steeper, and the last jump (Fine -> Masterwork) is the biggest of
+    // all, reflecting the real grind to skill 100 -- not a smooth/
+    // geometric ramp, which was tried first and rejected in a "be mean"
+    // pass for not actually matching "plausible early, hard endgame."
+    public static float ToolMarketValueModifier(CraftTier tier)
+    {
+        float fraction = SkillRequirement(tier) / 100f;
+        return 1f + Mathf.Pow(fraction, 3f) * 249f;
+    }
+
     // Highest tier a given skill level currently qualifies for — the
     // inverse of SkillRequirement, used to turn a live skill level into a
     // tier for hold-duration lookups (see HoldDuration below).

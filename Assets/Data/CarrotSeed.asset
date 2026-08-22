@@ -20,4 +20,7 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: d0ab94e292416da43931a1a9dbf6dc2b, type: 3}
   previewIcon: {fileID: 21300000, guid: 92e448eb9391ebc438eb42fce40a5572, type: 3}
   baseItem: {fileID: 0}
+  baseValue: 2
+  sellableByVendor: 1
+  isSeed: 1
   isMeleeWeapon: 0

@@ -58,6 +58,17 @@ public class BuildPiece : ScriptableObject
     public bool requiresCityStatus;
     public bool requiresCityFoundingConditions;
 
+    // Vendor Stall / Bank Box gate (2026-08-22, Vendor Stall design) --
+    // both set this, a much lower bar than City Statue's: at least 1
+    // VillageFlag placed anywhere AND at least 1 NPC currently hired (a
+    // live precondition, same "not cumulative" framing as City Statue's
+    // own gate). PlayerBuilding.Confirm separately enforces one-per-Flag
+    // at the actual placement position (which VendorStall/BankBox
+    // component the piece's prefab carries decides which existing-
+    // structure scan runs), since that check needs a real world position
+    // this reusable bool alone can't express.
+    public bool requiresVillageFlagAndHiredNpc;
+
     // Optional — same "bake from the prefab, blank spacer if unset"
     // convention as ItemDefinition.icon/previewIcon (2026-08-09, Build
     // tab's tile-grid redesign). Null (the default) means BuildScreen

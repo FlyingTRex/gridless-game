@@ -1478,6 +1478,71 @@ silent-failure gotcha in this file, just a new failure shape: total silent
 no-op on the save step itself, with every earlier step logging real,
 accurate success.
 
+## Gotcha: this project's scenes/assets use Force Binary serialization —
+grepping a `.unity` (or `.asset`) file for a guid to verify an object
+reference doesn't reliably work
+
+Hit live (2026-08-22, fixing `PlayerBuilding.allPieces` after a new
+`VendorStallPiece`/`BankBoxPiece` silently didn't show up in the Build
+screen — see the entry below on that bug). After using
+`SerializedObject`/`InsertArrayElementAtIndex` to append the two missing
+`BuildPiece` references and saving the scene, the standard "verify by
+grepping the saved file for the expected guid" step (this file's own
+established discipline, used successfully many times this session on
+plain-text `.asset` files) came back **zero matches** — genuinely
+alarming, since the same-session log had just reported the array growing
+from 30 to 32 entries. Root cause: `ProjectSettings/EditorSettings.asset`
+has `m_SerializationMode: 2` (Force Binary) — confirmed directly by
+reading the scene file's raw bytes, which start with null bytes and
+non-printable characters, not `%YAML 1.1`. A `.unity` scene under Force
+Binary serialization does NOT store object references (`PPtr`s) as
+contiguous readable guid text the way a text-serialized `.asset` file's
+`{fileID: ..., guid: ..., type: ...}` block does — so a guid grep that
+works perfectly on `Assets/Data/*.asset` can come back empty on
+`Assets/Scenes/TestScene.unity` even when the reference is genuinely
+present and correct. Plain string field *values* (an object's `m_Name`,
+a piece's `pieceName`) still seem to survive as readable text even in
+binary mode (this session's earlier "grep the scene for 'Village
+Vendor'/'Bank Box' to confirm removal" checks were real, valid
+confirmations) — it's specifically **object reference resolution** that
+doesn't grep-verify reliably here.
+
+**The fix — verify object references via a second, independent batch-mode
+process that actually re-opens the saved scene and reads the value back
+through Unity's own API**, not a text search:
+```csharp
+// In a SEPARATE Unity.exe invocation from the one that made the edit --
+// same "don't trust a same-session log" reasoning as every other
+// verification gotcha in this file, but here the file-content grep
+// itself is also untrustworthy, not just the log.
+var scene = EditorSceneManager.OpenScene(path, OpenSceneMode.Single);
+// ... find the component, read the field/property, log what's actually there ...
+```
+
+**How to apply:** for any batch-mode edit to a `.unity` scene file (or any
+other asset under Force Binary serialization — check
+`ProjectSettings/EditorSettings.asset`'s `m_SerializationMode` if unsure)
+that adds/changes an **object reference** (not a plain string/number
+field), don't trust a guid grep as the verification step — write a
+second, independent script that reopens the scene and reads the
+reference back through the real Unity API, same rigor as re-running a
+functional test in a fresh process rather than trusting the process that
+just made the change.
+
+## Benign noise: "1 script has been deleted from the project" warning
+after deleting a throwaway `Assets/Editor/*.cs` script
+
+Seen live (2026-08-22) right after deleting a throwaway batch-mode test
+script, per this project's own established convention. Comes from
+`Assets/WeatherMaker/Prefab/Editor/WeatherMakerAssetPostProcessorManager
+.cs`'s `OnPostprocessAllAssets` — it logs this generic warning any time
+**any** `.cs` script is deleted anywhere in the project, completely
+unrelated to whether Weather Maker itself is involved. Since this
+project's whole batch-mode verification workflow is "write a throwaway
+test script, run it, delete it," this warning will recur constantly and
+is not a signal of anything actually wrong — no action needed, don't
+chase it down as a real compile/reference issue.
+
 ## Gotcha: an imported `.glb`'s embedded material can be invisible under
 URP even when every other imported model in the project renders fine
 

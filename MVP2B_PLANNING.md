@@ -148,15 +148,139 @@ item below references.
    object), ran the restore, and confirmed the box was recreated under
    the identical `SaveId`, with till and price list both correct.
 
-## Status: all 6 items built and functionally tested. Ready for a real
-live Play-mode pass — nothing left in this tier is still just "compiled,
-not tested" the way most of tonight's other work was; every item here
-was actually exercised against running code or real seeded content
-before being marked done. The one thing no batch-mode test can cover:
-an actual live session — walking up to the placed `Village Vendor`,
-opening `VendorStallScreen`, buying/selling for real, and watching a
-save/reload keep it all intact in practice, not just in a synthetic
-harness.
+## Extension: Vendor Stall + Bank Box made real, earned structures (2026-08-22)
+
+Grew out of a long conversational "walk through real usage" pass with
+Ben after the original 6 items above — not a critique of what was
+built, but a real design gap it surfaced: the Village Vendor was still a
+manually-placed, always-free scene fixture, and the Bank (with its
+already-existing `PlayerBank.Exchange` 10:1 currency ladder) was
+*also* a free, always-present fixture from the very first moment of a
+fresh game, with no earned-progression story at all. Ben's own framing
+of the payoff: this now gives players in eventual multiplayer a real
+reason to travel between settlements ("that other village might have
+something mine doesn't"), and ties two already-built systems (Commerce,
+skill-tier progression) together instead of leaving Commerce feeling
+bolted-on. Full "propose → be mean → fix" pass before any code (see the
+session transcript for the full back-and-forth) — real findings along
+the way:
+- An open-ended "buy anything sellable off-list" idea (below) was a real
+  exploit path until gated by the same Flag-tier ceiling already
+  governing what a vendor stocks for sale.
+- A naive tool-value formula (just reusing `CraftTierScale.Modifier`,
+  the same 25x spread used for capacity/price) couldn't hit "Crude ~5,
+  Masterwork 1000+" at all — checked the actual recipe data and found
+  every tool tier shares identical flat ingredients (1 Rock + 2 Stick
+  regardless of tier), so tier scaling was the *only* lever available.
+- The first version of that new curve was geometric (constant ratio per
+  tier), not actually "plausible early, hard endgame" as intended — Ben
+  caught this directly and asked for a genuinely back-loaded reshape.
+- Skill book trading (an idea raised along the way) turned out to need
+  real per-instance vendor stock tracking that doesn't exist — logged
+  separately in `BUGS_AND_ENHANCEMENTS.md` rather than built half-right.
+- A "vendor funded by a Bank account" and "gated structures need
+  multiplayer ownership rules" were both explicitly multiplayer-era
+  ideas, logged as follow-ups rather than built now.
+
+**Built and functionally tested, 2026-08-22:**
+
+1. **`ToolMarketValueModifier`** (`CraftTier.cs`) — a dedicated,
+   deliberately back-loaded value curve for weapons/tools, cubed on the
+   normalized `SkillRequirement` fraction so it automatically re-scales
+   if the tier-difficulty ladder ever gets harder (no second edit
+   needed). Opt-in via new `ItemDefinition.usesToolMarketCurve`, kept
+   separate from the general `Modifier` used everywhere else in
+   `ItemValueCalculator` (a Masterwork Herbal Tea shouldn't cost as much
+   as a Masterwork Axe just because both are tier 4). Verified against
+   real Axe recipe data: Crude 5.00 → Rudimentary 6.25 → Normal 24.45 →
+   Fine 160.63 → Masterwork 1,250.00 — genuinely back-loaded (step
+   ratios 1.25x → 3.9x → 6.5x → 7.8x), not the geometric curve tried and
+   rejected first.
+2. **Sellability curation** — all 8 existing seed items and all 26
+   weapon/tool assets (5 tiers each of Axe/Bow/Hammer/Knife/Pickaxe, plus
+   Rudimentary Shovel) flagged `sellableByVendor`; seeds also flagged
+   `isSeed` (a new opt-in marker, no global seed registry existed to
+   derive this from automatically) with hand-seeded `baseValue`; Rock
+   (the flat ingredient every tool recipe shares) seeded at `baseValue =
+   3`. 43 total sellable items now (9 original + 8 seeds + 26 tools).
+3. **`VendorStall` core rewrite** — supply/demand pricing (Ben's own
+   idea): a bounded ±30% stock-based adjustment (`StockAdjustmentFactor`)
+   applied to both `SellToVisitor` and `BuyFromVisitor`, computed once
+   per transaction off pre-transaction stock level, not per-unit across
+   a multi-item purchase. **Off-list selling**: `BuyFromVisitor` now
+   accepts any `sellableByVendor` item not currently in the price list,
+   priced live via `ItemValueCalculator`, gated by a new
+   `VendorStall.MaxOffListBuyTier` so a low-tier vendor still can't buy
+   something well outside what it could plausibly afford.
+4. **`VillageVendor` stocking rewrite** — 8 total slots split into 6
+   general + 2 dedicated seed slots, each category **distinct** (no
+   duplicate items within a category, replacing the old duplicate-with-
+   replacement logic), each item stocked at a **random quantity from 1
+   up to its own `maxStack`**. Wires `MaxOffListBuyTier` from its own
+   `CurrentMaxTier()` (the Flag-tier gate), kept current every `Update()`
+   tick.
+5. **Fame grants** — `PlayerFame.GrantVendorStall()` /
+   `GrantBankBox()`, +10 each (between Hire's repeatable +1 and City
+   Statue's founding-a-City +50).
+6. **Real earned placement, not free fixtures** — new
+   `BuildPiece.requiresVillageFlagAndHiredNpc` gate (≥1 Village Flag +
+   ≥1 currently-hired NPC, a much lower bar than City Statue's
+   Masterwork+10), enforced in `PlayerBuilding.LockReason`. A **one-per-
+   Flag cap** (`FindNearestFlag` + generic `NearestFlagAlreadyHasStructure
+   <T>`, checked at the real placement position in `Confirm` since the
+   pre-aim `LockReason` check can't know that yet) applies to both new
+   structures. `VendorStallPiece` (6 Plank/2 Cloth/2 Rope) and
+   `BankBoxPiece` (4 Plank/4 Iron Ingot/2 Rope) are real `BuildPiece`
+   assets + prefabs now, registered in `BuildPieceDatabase`. `BankBox`
+   gained `[RequireComponent(typeof(SaveId))]` (it never needed one
+   before — no per-instance state worth saving, `PlayerBank`'s balances
+   are the real global ledger — but a player-*built* structure needs to
+   persist as a placed piece like everything else). The previously
+   always-free, pre-placed `Village Vendor` and `Bank Box` scene
+   fixtures were **removed from `TestScene.unity`** — a fresh game now
+   starts with neither, Copper-only, until the gate is met.
+7. **Vendor Stall visual** — the Tripo3D-generated model (colorful
+   red/cream striped awning, wood-grain counter, rope-lashed frame,
+   small goods on the counter) imported and wired onto
+   `VendorStallPiece.prefab`'s new `Visual` child. Measured/scaled per
+   `CLAUDE.md`'s mandatory model-placement checklist (2.2m target height
+   next to the 1.8m player reference, ground-offset applied after
+   scaling) and the interaction `BoxCollider` resized to match the real
+   footprint. **Verified by actually rendering the wired prefab and
+   looking at the pixels** (not just a clean batch log) — hit the
+   documented `-nographics` pitfall on the first attempt (a flat gray
+   image, no real graphics device to render with), re-ran without it,
+   confirmed the model reads clearly and sits correctly grounded.
+   `BankBoxPiece` got a simple placeholder cube visual (reusing the
+   existing `BankBox.mat`) rather than a new model generation — not
+   asked for, same "simple placeholder first" precedent as the original
+   Anvil/Boulder reuse.
+
+Every code change compile-verified via full-project batch mode; items
+1-6 also functionally tested against real running code (not just
+compiled) via throwaway batch-mode test scripts, same discipline as the
+original 6 MVP2B items — 8/8 checks passing on the value-curve
+verification, 8/8 on the stocking/off-list-selling rewrite, 9/9 on the
+placement-gate logic. **Deliberately not live-tested or placed in the
+scene by this session** — Ben's own plan: build a Vendor Stall live
+in-game (the real gate/ingredient/one-per-Flag path), save, exit,
+reload, and confirm it all holds — a real end-to-end validation no
+batch script can substitute for.
+
+## Status: all 6 original items, plus the full extension (real earned
+placement, multi-denomination currency, Bank Box), built and **live-tested
+for real** as of 2026-08-22 — not just functionally tested against batch
+scripts. Ben placed a real Vendor Stall in-game (real Flag+NPC gate, real
+ingredient cost), opened a real stocked `VendorStallScreen`, bought/sold for
+real (confirming the tool-value curve end-to-end — a Masterwork Pickaxe at
+2100c against a Crude Axe at 6c), and ran a genuine save→exit→reload cycle
+that surfaced and led to fixing a real latent persistence bug (see
+`CHANGELOG.md`'s v0.3.156-dev entry). A second save→reload after the fix
+confirmed identical stock/till, not a fresh reroll. Bank Box itself still
+hasn't been placed/opened live even once — its placeholder cube visual is
+known to look poor as a baked icon — and the Pay-from-Bank fallback has no
+UI of its own yet (purely automatic/silent); both worth a look before
+considering this tier fully closed.
 
 ## Explicitly not this tier
 

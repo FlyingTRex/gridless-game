@@ -14,6 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BuildPieceDatabase
   pieces:
   - {fileID: 11400000, guid: 376822015e2a2504c8b7040c4129e712, type: 2}
+  - {fileID: 11400000, guid: 19316bc619f44c54eae460c925aca115, type: 2}
   - {fileID: 11400000, guid: 8378dcbabf3c62b479320e6aa8084cbb, type: 2}
   - {fileID: 11400000, guid: eb0dab5ed56fcb048a284bf5858e29bd, type: 2}
   - {fileID: 11400000, guid: f442faa7a2d5cbe4894f5f83e2c04c3f, type: 2}
@@ -43,3 +44,4 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b667ea1b0d6614e4b98d6395da33e84b, type: 2}
   - {fileID: 11400000, guid: 6b089f3eca4360d44a5daec3e77aadc6, type: 2}
   - {fileID: 11400000, guid: dee94de95b98537458b02a97b51891df, type: 2}
+  - {fileID: 11400000, guid: 6453a3087dcdc824facb4555f34c8c4c, type: 2}

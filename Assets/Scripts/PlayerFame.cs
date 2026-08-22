@@ -32,6 +32,14 @@ public class PlayerFame : MonoBehaviour
     // 10 hires *and* a Masterwork Flag *and* the Statue's own real cost.
     private const float CityStatueAmount = 50f;
 
+    // Vendor Stall / Bank Box (2026-08-22, Vendor Stall design) -- a real
+    // milestone (first taste of Commerce), sits between repeatable actions
+    // (Hire +1) and City Statue's founding-a-City-sized +50. Same amount
+    // for both since they share the identical gate (Village Flag + hired
+    // NPC) and represent the same rough tier of settlement progress.
+    private const float VendorStallAmount = 10f;
+    private const float BankBoxAmount = 10f;
+
     [SerializeField] private float fame = 0f;
 
     private PlayerSkills skills;
@@ -93,6 +101,8 @@ public class PlayerFame : MonoBehaviour
     public void GrantGuildLeave() => Grant(GuildLeaveAmount);
     public void GrantNpcTraining() => Grant(NpcTrainingAmount);
     public void GrantCityStatue() => Grant(CityStatueAmount);
+    public void GrantVendorStall() => Grant(VendorStallAmount);
+    public void GrantBankBox() => Grant(BankBoxAmount);
 
     // Called by SaveManager on load — sets the absolute value directly,
     // unlike Grant's relative add, same "restore vs. earn" distinction

@@ -26,6 +26,40 @@ public class PlayerBank : MonoBehaviour
 
     public int GetBalance(CoinType type) => balances[(int)type];
 
+    // Direct deduction with no wallet involvement, for VendorStall's
+    // Pay-from-Bank fallback (2026-08-22) -- unlike Withdraw, this money
+    // never touches the wallet at all, it goes straight from Bank to the
+    // vendor. Same bare bool-return shape as Lockbox.Remove/PlayerCurrency
+    // .Spend so CoinSpender's delegate-based algorithm works against all
+    // three without needing a shared interface.
+    public bool SpendDirect(CoinType type, int amount)
+    {
+        if (amount <= 0) return false;
+
+        int index = (int)type;
+        if (balances[index] < amount) return false;
+
+        balances[index] -= amount;
+        return true;
+    }
+
+    // Direct credit with no wallet involvement (2026-08-22) -- for
+    // VendorStall's wallet-overflow safety net: a payout that would push
+    // a wallet balance past its cap routes the excess straight into Bank
+    // instead of vanishing. Unlike Deposit (which assumes the money is
+    // ALREADY sitting in the wallet and draws an extra fee from there),
+    // this money never touched the wallet at all -- the fee is skimmed
+    // off the incoming amount itself before crediting, the only way to
+    // charge one when there's no wallet balance to draw the extra from.
+    public void DepositDirect(CoinType type, int amount)
+    {
+        if (amount <= 0) return;
+
+        int fee = FeeFor(amount);
+        int credited = Mathf.Max(0, amount - fee);
+        balances[(int)type] += credited;
+    }
+
     public static int FeeFor(int amount) => Mathf.Max(MinFee, Mathf.CeilToInt(amount * FeeRate));
 
     // Largest X such that X + FeeFor(X) <= available — the actual max

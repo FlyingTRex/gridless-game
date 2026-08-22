@@ -152,7 +152,68 @@ public class PlayerBuilding : MonoBehaviour
         if (piece.requiresCityFoundingConditions && !MeetsCityFoundingConditions())
             return $"requires a Masterwork Village Flag and {CityFoundingRequiredHiredNpcs} currently-hired NPCs";
 
+        if (piece.requiresVillageFlagAndHiredNpc && !MeetsVillageFlagAndHiredNpcConditions())
+            return "requires a Village Flag and at least 1 currently-hired NPC";
+
         return null;
+    }
+
+    // Live precondition, same "not cumulative" framing as
+    // MeetsCityFoundingConditions -- a much lower bar (any Flag, 1 hire)
+    // since this represents "you have a basic settlement going," not
+    // "you founded a City."
+    private bool MeetsVillageFlagAndHiredNpcConditions()
+    {
+        if (FindObjectsByType<VillageFlag>(FindObjectsSortMode.None).Length == 0) return false;
+
+        foreach (var hiring in FindObjectsByType<NPCHiring>(FindObjectsSortMode.None))
+            if (hiring.IsHired) return true;
+
+        return false;
+    }
+
+    // Nearest VillageFlag to an arbitrary world position -- shared by the
+    // one-per-Flag cap check below and (indirectly) by VillageVendor's own
+    // CurrentMaxTier lookup pattern, just generalized to any position
+    // rather than "nearest to this component."
+    private VillageFlag FindNearestFlag(Vector3 position)
+    {
+        VillageFlag nearest = null;
+        float nearestDist = float.MaxValue;
+        foreach (var flag in FindObjectsByType<VillageFlag>(FindObjectsSortMode.None))
+        {
+            float dist = Vector3.Distance(flag.transform.position, position);
+            if (dist < nearestDist) { nearestDist = dist; nearest = flag; }
+        }
+        return nearest;
+    }
+
+    // One-per-Flag cap (2026-08-22, Ben's ask, both Vendor Stall and Bank
+    // Box) -- true if any existing instance of T's own nearest Flag is the
+    // same Flag the new one would be nearest to. Generic over T rather
+    // than a bespoke check per structure type, since both share the exact
+    // same "distinct economy per settlement" reasoning; Village Flags'
+    // own existing minimum-spacing rule naturally caps how dense this can
+    // get, same as Guild-vs-Guild territory clearance already does.
+    private bool NearestFlagAlreadyHasStructure<T>(VillageFlag targetFlag) where T : Component
+    {
+        if (targetFlag == null) return false;
+        foreach (var structure in FindObjectsByType<T>(FindObjectsSortMode.None))
+        {
+            // Exclude ghost previews -- ShowGhost does a full Instantiate of
+            // armedPiece.prefab (only strips Colliders/BuildSockets, not
+            // gameplay components), so a live VendorStall/BankBox sits on
+            // the ghost the entire time the player is just aiming. Without
+            // this, the ghost (always positioned right at the candidate
+            // Flag) reads as "already exists" and blocks every placement
+            // attempt, including the very first one -- found live 2026-08-22.
+            // PlacedPiece is only ever added by Confirm() on a real
+            // placement, never present on a ghost, so its absence is a
+            // reliable "this isn't a real structure yet" signal.
+            if (structure.GetComponent<PlacedPiece>() == null) continue;
+            if (FindNearestFlag(structure.transform.position) == targetFlag) return true;
+        }
+        return false;
     }
 
     // Live precondition, not a lifetime/cumulative hire counter -- if
@@ -443,6 +504,27 @@ public class PlayerBuilding : MonoBehaviour
 
     private void Confirm(Vector3 position, Quaternion rotation, BuildSocket socket)
     {
+        // One-per-Flag cap (2026-08-22) -- needs the real placement
+        // position, so it can only be enforced here, not in LockReason's
+        // generic pre-aim check. Which existing-structure scan runs is
+        // decided by which component the piece's own prefab carries,
+        // rather than a second bespoke flag per structure type.
+        if (armedPiece != null && armedPiece.requiresVillageFlagAndHiredNpc && armedPiece.prefab != null)
+        {
+            var targetFlag = FindNearestFlag(position);
+            bool blocked = (armedPiece.prefab.GetComponent<VendorStall>() != null
+                    && NearestFlagAlreadyHasStructure<VendorStall>(targetFlag))
+                || (armedPiece.prefab.GetComponent<BankBox>() != null
+                    && NearestFlagAlreadyHasStructure<BankBox>(targetFlag));
+
+            if (blocked)
+            {
+                ShowMessage("The nearest Village Flag already has one of these.");
+                phase = Phase.Following;
+                return;
+            }
+        }
+
         GameObject real;
 
         if (existingInstanceToPlace != null)
@@ -501,6 +583,15 @@ public class PlayerBuilding : MonoBehaviour
         // bespoke flag.
         if (armedPiece.requiresCityFoundingConditions)
             fame?.GrantCityStatue();
+
+        // Vendor Stall / Bank Box Fame grant (2026-08-22) -- same trigger
+        // shape as City Statue's own grant above, keyed off which
+        // component the placed prefab actually carries rather than a
+        // third bespoke bool.
+        if (real.GetComponent<VendorStall>() != null)
+            fame?.GrantVendorStall();
+        else if (real.GetComponent<BankBox>() != null)
+            fame?.GrantBankBox();
 
         // Player Map reveal hook (PLAYER_MAP_PLANNING.md section 1) --
         // the one piece this doc's own Player Map section flagged as

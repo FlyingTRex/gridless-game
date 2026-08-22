@@ -21,9 +21,21 @@ ledger of good nights.
 | 🧮 Calculator Sticker | 1 |
 | 💪 Strongman Sticker | 1 |
 | 🎓 Scholar Cap Sticker | 1 |
+| 🏪 Vendor Stall Sticker | 1 |
 
 ## Log
 
+- **2026-08-22 — 🏪 Vendor Stall Sticker.** Built the whole Vendor Stall
+  / Bank Box economy in one sitting off a long conversational design
+  pass — a back-loaded tool-value curve derived from real skill-
+  investment data, supply/demand pricing, tier-gated off-list selling,
+  distinct-item stocking, real earned placement gates replacing two
+  free starting fixtures, and the Tripo3D-generated stall model wired
+  in and verified by an actual render (caught its own `-nographics`
+  gotcha on the first attempt, same class of pitfall `IconBaker.cs`
+  already warned about). Every chunk functionally tested against real
+  running code as it went, not left for a "trust the compile" pass at
+  the end.
 - **2026-08-18 — 🎓 Scholar Cap Sticker.** Closed the same marathon
   session out with a real retrospective instead of just clocking out —
   asked to "be mean" about the night's own process, not just the code.

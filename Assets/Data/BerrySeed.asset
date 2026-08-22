@@ -20,3 +20,6 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 8a23250d96a31fd4eb73f36a944f179e, type: 3}
   previewIcon: {fileID: 21300000, guid: fca6beb796e50cf4c93cd53107333ead, type: 3}
   baseItem: {fileID: 0}
+  baseValue: 2
+  sellableByVendor: 1
+  isSeed: 1

@@ -381,6 +381,7 @@ public class SaveManager : MonoBehaviour
     private static JObject CaptureVendorStall(VendorStall stall, SaveId saveId)
     {
         var stockSaveId = stall.Stock != null ? stall.Stock.GetComponent<SaveId>() : null;
+        var tillSaveId = stall.Till != null ? stall.Till.GetComponent<SaveId>() : null;
 
         var tillArray = new JArray();
         foreach (CoinType type in System.Enum.GetValues(typeof(CoinType)))
@@ -412,6 +413,15 @@ public class SaveManager : MonoBehaviour
                 // restore side can recreate it under the same ID before
                 // RestoreWorldObjects<StorageBox> looks for it.
                 ["stockSaveId"] = stockSaveId != null ? stockSaveId.Id : null,
+                // Till is now a real Lockbox (2026-08-22, was a bare
+                // int[5]) -- same "remember which SaveId, recreate under
+                // it before restoring balances" shape as the stock box
+                // above. tillTier is captured directly rather than
+                // re-derived from the linked Flag at restore time, since
+                // a Flag could in principle be destroyed/changed between
+                // save and load.
+                ["tillSaveId"] = tillSaveId != null ? tillSaveId.Id : null,
+                ["tillTier"] = stall.Till != null ? (int)stall.Till.Tier : (int)CraftTier.Crude,
                 ["till"] = tillArray,
                 ["priceList"] = priceListArray,
             },
@@ -444,7 +454,13 @@ public class SaveManager : MonoBehaviour
             {
                 var go = new GameObject($"{stall.name} Stock");
                 go.transform.SetParent(stall.transform, false);
-                go.AddComponent<BoxCollider>();
+                // Disabled -- same fix as VillageVendor.EnsureStockBox
+                // (2026-08-22): a raycast-hittable internal stock box can
+                // shadow the Vendor Stall's own interaction. Kept in sync
+                // with that method since this is the save/reload path's
+                // own copy of the same box-creation shape.
+                var stockCollider = go.AddComponent<BoxCollider>();
+                stockCollider.enabled = false;
                 stockBox = go.AddComponent<StorageBox>();
 
                 var boxSaveId = stockBox.GetComponent<SaveId>();
@@ -453,6 +469,30 @@ public class SaveManager : MonoBehaviour
             }
 
             if (stockBox != null) stall.AssignStock(stockBox);
+
+            // Till Lockbox -- same find-or-recreate shape as the stock
+            // box above (2026-08-22, till changed from a bare int[5] to a
+            // real Lockbox).
+            string tillSaveId = (string)state["tillSaveId"];
+            Lockbox tillLockbox = !string.IsNullOrEmpty(tillSaveId)
+                ? SaveIdRegistry.Find(tillSaveId)?.GetComponent<Lockbox>()
+                : null;
+
+            if (tillLockbox == null && !string.IsNullOrEmpty(tillSaveId))
+            {
+                var go = new GameObject($"{stall.name} Till");
+                go.transform.SetParent(stall.transform, false);
+                var tillCollider = go.AddComponent<BoxCollider>();
+                tillCollider.enabled = false;
+                tillLockbox = go.AddComponent<Lockbox>();
+                tillLockbox.Configure(state["tillTier"] != null ? (CraftTier)(int)state["tillTier"] : CraftTier.Crude);
+
+                var tillId = tillLockbox.GetComponent<SaveId>();
+                tillId?.GenerateIfMissing();
+                tillId?.AssignId(tillSaveId);
+            }
+
+            if (tillLockbox != null) stall.AssignTill(tillLockbox);
 
             if (state["till"] is JArray tillArray)
             {

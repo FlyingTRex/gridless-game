@@ -5,6 +5,80 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## Multiplayer: gated structures need real ownership/visibility rules (found 2026-08-22, not started)
+
+Ben's idea, flagged while building the Vendor Stall/Bank Box's Flag-gated
+placement: once real multiplayer exists, a settlement-gated structure
+(Vendor Stall, Bank Box, City Statue) shouldn't just be visible/usable by
+anyone who happens to walk up — a player who doesn't own (or isn't on
+the team/guild that owns) the linked Village Flag arguably shouldn't see
+or interact with a structure gated behind that Flag's own founding
+conditions. Today everything is single-player, so there's no ownership
+concept to check at all yet — this is explicitly a multiplayer-era
+follow-up, same "blocked on player-identity/ownership infrastructure
+that doesn't exist yet" shape as `MULTIPLAYER_PLANNING.md`'s other open
+items, not something to design in detail now.
+
+## Skill book trading needs per-instance vendor stock (found 2026-08-22, not started)
+
+Flagged while designing the Vendor Stall's stocking system (see the
+Vendor Stall design work above/`MVP2B_PLANNING.md`/`COMMERCE_PLANNING.md`)
+— Ben's idea was letting the Vendor Stall buy/sell Skill Books, tying
+`SKILL_BOOKS_PLANNING.md`'s system into Commerce. Real architectural
+mismatch found before building it: a physical `SkillBook` instance
+carries its own per-instance `TargetRecipe`/`TargetWish` — two books of
+the same `ItemDefinition` ("Book") can teach completely different things
+and should be priced completely differently. Every part of the
+`VendorStall`/`VillageVendor` stocking design so far (price list, stock
+box, `Inventory.AddItem(item, qty)` count-based stacking) assumes one
+price per `ItemDefinition`, with no concept of per-instance value or
+identity — the same class of problem `CLAUDE.md`'s own "generic
+`Inventory.RemoveItem`/`AddItem` strip an item's `equipment` reference"
+gotcha describes for worn equippables, just for a different instance-
+carrying item type. Selling a written skill book through the vendor
+system as currently designed would either silently lose its
+`TargetRecipe`/`TargetWish` on transfer, or needs genuinely new
+per-instance stock tracking (a price list entry keyed to a specific
+book instance, not an `ItemDefinition`) that nothing in the current
+design has. Real feature, not a quick add — logged separately rather
+than folded into the current Vendor Stall build.
+
+## Multiplayer: Vendor Stall funded by a bank account (found 2026-08-22, not started)
+
+Ben's idea, explicitly framed as a multiplayer-era follow-up, not now:
+once real multiplayer exists, a Vendor Stall's till could draw on a real
+bank account to help fund larger purchases, rather than being limited to
+its own slowly-regenerating till. Same shape as the player-built Bank
+idea `COMMERCE_PLANNING.md` already deferred (a per-instance-ownable
+account concept that only pays off once a second real player exists to
+actually transact against) — this is a variant of that same blocked
+prerequisite, not a new one. Note: the till's existing "can never drop
+below 0" constraint (`BuyFromVisitor`'s till-coverage check, already
+built and tested) already gives a real, working self-balancing effect
+today — a vendor that only gets sold high-value goods with no buyers
+will naturally stop buying until either its slow regen catches up or
+players buy stock down to refill it. A bank-funded till would loosen
+that constraint deliberately once multiplayer creates a real reason to.
+
+## More food recipes using existing crops (found 2026-08-22, not started)
+
+Flagged while designing the Vendor Stall's 2 dedicated seed slots (see the
+Vendor Stall design work above/`MVP2B_PLANNING.md`/`COMMERCE_PLANNING.md`)
+— seeds becoming reliably purchasable instead of wild-plant RNG-only
+means a real, larger supply of Carrot/Corn/Ginger/Onion/Potato/Sweet
+Potato/Turnip is coming, and checking the actual recipe data found a real
+gap: of those 7 crops, only **Potato** is used as an ingredient anywhere
+(Steak and Potatoes). Carrot, Corn, Ginger, Onion, Sweet Potato, and
+Turnip each have their own raw `Edible` asset (eat-raw only) but are
+never consumed by any `CraftingRecipe` or `CookableItem` — confirmed via
+a direct grep of `Assets/Data/*.asset` for recipe/cookable references,
+not assumed. A bigger reliable supply of items nothing actually cooks
+with is a real design gap once the Vendor Stall makes them common rather
+than rare wild-forage finds. Worth a real design pass (new Campfire/
+Cookstove recipes, soups/stews per-crop or a combined dish, Cooking-skill
+gates matching the existing `COOKING_SKILL_PLANNING.md` precedent) —
+not scoped or started, just flagged so it doesn't get lost.
+
 ## Next Session: Scene, Save/Load, Digging & Water (ideation only, 2026-08-10 — nothing built yet)
 
 Grew across one ideation conversation from "let's think about digging" into three

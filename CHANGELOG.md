@@ -5,10 +5,127 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.155-dev` — must always match `GameVersion` in
+**Current version:** `0.3.156-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22
+
+### v0.3.156-dev — Vendor Stall + Bank Box made real, earned structures; full
+multi-denomination currency system; a real, previously-latent save/reload bug
+found and fixed via actual live playtesting
+
+The single largest feature of the session, built on top of MVP2B's original 6
+items (`MVP2B_PLANNING.md` has the full extended design writeup). Grew out of
+a long conversational "walk through real usage" pass with Ben — multiplayer
+village-hopping, currency exchange, skill book trading, food-recipe supply —
+that surfaced real gaps and caught real mistakes before any of them shipped
+broken, including an off-list-sell exploit path, a tool-value curve that
+couldn't hit the requested price spread, a redundant "Village Lockbox" idea
+rejected before being built, and (the big one) a genuine persistence bug only
+a real save→exit→reload cycle could have caught.
+
+**Vendor Stall and Bank Box are now real, earned structures, not free
+starting fixtures.** New `BuildPiece.requiresVillageFlagAndHiredNpc` gate
+(≥1 Village Flag + ≥1 currently-hired NPC — a much lower bar than City
+Statue's Masterwork+10) plus a one-per-Flag cap (`PlayerBuilding
+.NearestFlagAlreadyHasStructure<T>`, checked at the real placement position).
+`VendorStallPiece` (6 Plank/2 Cloth/2 Rope) and `BankBoxPiece` (4 Plank/4
+Iron Ingot/2 Rope) are real assets + prefabs now, registered in
+`BuildPieceDatabase`. Both grant +10 Fame on placement. The previously
+always-free, pre-placed `Village Vendor` and `Bank Box` scene fixtures were
+removed from `TestScene.unity` — a fresh game now starts with neither,
+Copper-only, until the gate is met. The Vendor Stall's Tripo3D-generated
+model (colorful striped awning, wood-grain counter, rope-lashed frame) is
+wired onto the prefab, scaled/grounded per the project's own model-placement
+checklist, and verified by actually rendering it (hit and fixed the
+documented `-nographics` pitfall along the way).
+
+**A dedicated, back-loaded value curve for weapons/tools.** Every tool tier
+shares identical flat ingredients (an Axe is always 1 Rock + 2 Stick
+regardless of tier), so the general 25x tier-scaling spread couldn't express
+"a Masterwork tool took dramatically more skill to make." New
+`CraftTierScale.ToolMarketValueModifier`, derived from `SkillRequirement`
+(the real skill-investment curve, so it auto-rescales if tier difficulty
+ever changes) rather than hand-picked numbers — verified against real recipe
+data: Crude 5.00 → Rudimentary 6.25 → Normal 24.45 → Fine 160.63 →
+Masterwork 1,250.00, genuinely back-loaded (a geometric first attempt was
+tried and rejected for not actually matching "plausible early, hard
+endgame"). 43 items now flagged `sellableByVendor` (9 original + 8 seeds +
+26 tools).
+
+**`VendorStall` core rewrite**: supply/demand pricing (a bounded ±30% stock-
+based adjustment on both buying and selling), tier-gated off-list selling
+(any `sellableByVendor` item not currently displayed can still be sold, at a
+live-computed price, gated by the same Flag-tier ceiling that already gates
+what's stocked — closes a real exploit where a low-tier vendor could
+otherwise be forced to deal in high-tier goods). `VillageVendor`'s stocking
+rewritten for 8 distinct items (6 general + 2 dedicated seed slots, no
+duplicates) at a random 1-to-maxStack quantity each, replacing the old
+duplicate-with-replacement logic.
+
+**Real, live-playtest bugs found and fixed in the same session** (not just
+compile-checked): `PlayerInteraction`'s raycast could hit the vendor's
+internal stock box instead of the stall itself (showed "Storage Box" as the
+prompt) — fixed by disabling that box's collider, since it only ever needs
+to be accessed programmatically. `ShowGhost`'s aiming preview turned out to
+fully instantiate the prefab, live gameplay components included — the ghost
+was tripping the new one-per-Flag check against itself (blocking every
+placement attempt) and running `VillageVendor`'s real init logic just from
+being aimed, before any placement was confirmed — both fixed by gating on
+`PlacedPiece`, which only a genuine confirmed placement ever has.
+`VendorStallScreen` only ever checked the player's bare main inventory for
+both buying and selling (confirmed live: Fiber spawned directly into a worn
+Backpack still couldn't be sold) — fixed with a real `ReachableInventories`
+reach (main + Backpack + nearby StorageBox), which required changing
+`VendorStall.SellToVisitor`/`BuyFromVisitor`'s signature to a proper
+multi-inventory list. Added a "Sell Other Items" UI section once it became
+clear the off-list-selling backend had no way to actually be triggered from
+the screen. Redesigned `VendorStallScreen` from a row list to a tile grid
+(matching Crafting/Build's existing convention).
+
+**A full multi-denomination currency system**, prompted by a 2,100-Copper
+Masterwork Pickaxe already exceeding both the 250-per-type wallet cap and
+the old 500-Copper-only till. New `CoinValue`/`CoinSpender` (the 10:1
+Copper→Iron→Silver→Gold→Platinum ladder made explicit and reusable, plus a
+deliberately scoped-down greedy spend/denominate algorithm — real coin-
+breaking change-making was evaluated and ruled out as too much complexity/
+risk for this pass, documented directly in `CoinSpender.cs`'s own header).
+The vendor's till changed from a bare Copper-only `int[5]` to a real
+`Lockbox` (an already-built component, reused rather than reinventing
+per-type capacity — gained `[RequireComponent(typeof(SaveId))]` so it
+persists), tier-scaled to the linked Village Flag (a "be mean" pass rejected
+a separate Fame-gated "Village Lockbox" idea as pure redundancy with this —
+Flag-tier scaling already delivers "grow the village to trade in better
+goods" on its own). Regen now adds 1 of every coin type per tick, not just
+Copper. A Pay-from-Bank fallback, gated on an unlocked Bank Box, lets a
+purchase draw straight from the Bank (existing fee) when the wallet alone
+can't cover it; a sale payout that would overflow a wallet balance now
+routes the excess into Bank instead of the old silent-loss bug (`PlayerCurrency
+.Add`'s leftover return value was never checked) — and refuses the sale
+outright if no Bank Box is unlocked yet, rather than losing currency.
+
+**A real, previously-latent persistence bug, only caught by an actual live
+save→exit→reload cycle** — present since the original MVP2B build, not
+introduced by any of tonight's work. `VillageVendor.EnsureStockBox`/
+`EnsureTillLockbox` both create their container via a script-driven
+`AddComponent`, which auto-adds a `SaveId` through `RequireComponent` but
+doesn't reliably fire that `SaveId`'s own `Reset()` (documented directly in
+`SaveId.cs`) — so its id silently stayed empty. Every other creation site in
+the codebase (`RestorePlacedPieces`, `RestoreNpcs`) already calls
+`GenerateIfMissing()` explicitly for exactly this reason; these two never
+had it. Confirmed directly from the save file (`stockSaveId`/`tillSaveId`
+both `null`) and confirmed fixed the same way: build a Vendor Stall, save,
+exit, reload — identical stock and till, not a fresh reroll.
+
+Nearly everything in this entry was functionally tested against real
+running code via throwaway batch-mode scripts as it was built (60+ individual
+checks across value-curve, stocking, gate-logic, reachable-inventory, and
+currency-system passes) — but the save/reload bug above is the clearest
+reminder yet that batch tests are a real safety net, not a substitute for an
+actual live Play-mode pass. See `WORKING_ON.md`'s history (cleared this
+commit) for the full blow-by-blow if needed.
 
 ## 2026-08-21
 

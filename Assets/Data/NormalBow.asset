@@ -20,6 +20,8 @@ MonoBehaviour:
   icon: {fileID: 21300000, guid: 139af9d8583673044ad08df19f43cd1d, type: 3}
   previewIcon: {fileID: 21300000, guid: 2f822b1653b5e61429a2112be19ecafb, type: 3}
   baseItem: {fileID: 0}
+  sellableByVendor: 1
+  usesToolMarketCurve: 1
   isMeleeWeapon: 0
   isRangedWeapon: 1
   isArrow: 0
