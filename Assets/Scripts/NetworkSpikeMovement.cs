@@ -18,6 +18,15 @@ public class NetworkSpikeMovement : NetworkBehaviour
     [SerializeField] private float moveSpeed = 4f;
     [SerializeField] private float turnSpeed = 90f;
 
+    // Phase 1 pilot (2026-08-22) -- proves "client requests a world-object
+    // mutation, server validates range and applies it" once, on the
+    // NetworkStorageBoxSpike pilot, before the real 32+ PlayerXXX.cs
+    // scripts get converted to this shape in Phase 3. Deliberately a flat
+    // distance check, not the real game's raycast-based PlayerInteraction --
+    // that system doesn't exist on this throwaway mover.
+    private const float InteractRange = 3f;
+    private const string TestItemName = "TestOre";
+
     private void Update()
     {
         if (!isLocalPlayer) return;
@@ -34,5 +43,49 @@ public class NetworkSpikeMovement : NetworkBehaviour
         if (keyboard.wKey.isPressed) move += 1f;
         if (keyboard.sKey.isPressed) move -= 1f;
         transform.position += transform.forward * (move * moveSpeed * Time.deltaTime);
+
+        if (keyboard.eKey.wasPressedThisFrame) TryInteract(add: true);
+        if (keyboard.rKey.wasPressedThisFrame) TryInteract(add: false);
+    }
+
+    private void TryInteract(bool add)
+    {
+        var box = FindNearestBoxInRange();
+        if (box == null) return;
+
+        if (add) CmdAddItem(box, TestItemName);
+        else CmdRemoveTopItem(box);
+    }
+
+    private NetworkStorageBoxSpike FindNearestBoxInRange()
+    {
+        NetworkStorageBoxSpike nearest = null;
+        float nearestDistance = InteractRange;
+
+        foreach (var box in FindObjectsByType<NetworkStorageBoxSpike>(FindObjectsSortMode.None))
+        {
+            float distance = Vector3.Distance(transform.position, box.transform.position);
+            if (distance > nearestDistance) continue;
+            nearest = box;
+            nearestDistance = distance;
+        }
+
+        return nearest;
+    }
+
+    [Command]
+    private void CmdAddItem(NetworkStorageBoxSpike box, string itemName)
+    {
+        if (box == null) return;
+        if (Vector3.Distance(transform.position, box.transform.position) > InteractRange) return;
+        box.items.Add(itemName);
+    }
+
+    [Command]
+    private void CmdRemoveTopItem(NetworkStorageBoxSpike box)
+    {
+        if (box == null || box.items.Count == 0) return;
+        if (Vector3.Distance(transform.position, box.transform.position) > InteractRange) return;
+        box.items.RemoveAt(box.items.Count - 1);
     }
 }

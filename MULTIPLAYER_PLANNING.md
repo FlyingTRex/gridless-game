@@ -202,13 +202,21 @@ Mapped onto Gridless's actual systems:
    Scene List was restored to `TestScene`-only immediately after. This is
    the first real confirmation Mirror's transport/sync actually works in
    this project outside of a clean compile.
-2. **One pilot world object, fully networked.** StorageBox is the obvious
-   choice — it's the simplest existing world object (one `Inventory`, no
-   fuel/lit-state/recipe complexity Campfire has) and already has the
-   `Active`/`FindNearby` registry pattern this doc's audit found. Get two
-   players opening the same StorageBox and seeing each other's changes
-   live. This validates the "world object with synced Inventory" pattern
-   once, cheaply, before repeating it across every other interactable.
+2. **One pilot world object, fully networked — built and live-tested
+   2026-08-22.** Not the real `StorageBox.cs`/`Inventory` (same "throwaway
+   pilot, not the real stack" call Phase 0's `NetworkSpikeMovement.cs`
+   already made for movement) — a new `NetworkStorageBoxSpike.cs`
+   (`NetworkBehaviour`, a `SyncList<string> items` standing in for a real
+   Inventory's slot list) placed in `NetworkSpike.unity`, interacted with
+   via two new keybinds on `NetworkSpikeMovement.cs` (E = add, R = remove
+   top), each routed through a `[Command]` that validates a 3m range
+   server-side before mutating the box. **Confirmed live by Ben**: added
+   and removed items from both the Host and Client windows, saw the same
+   updated list reflected on both sides every time — genuinely shared
+   server-owned state, not two independent local lists. This validates the
+   "world object with synced Inventory, server-validated Command
+   interaction" pattern once, cheaply, before repeating it for real across
+   StorageBox, Campfire, Lockbox, and every other interactable in Phase 3.
 3. **Player-authoritative gameplay.** The big one — systematically convert
    the 32 `PlayerXXX.cs` scripts' local-mutation call sites to the
    Command/validate/replicate shape. Likely the single largest phase by

@@ -5,10 +5,32 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.157-dev` — must always match `GameVersion` in
+**Current version:** `0.3.158-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (4)
+
+### v0.3.158-dev — Multiplayer Phase 1 pilot — synced world object, live-tested
+
+`NetworkStorageBoxSpike.cs` (new): a `NetworkBehaviour` with a
+`SyncList<string> items` standing in for a real Inventory, placed in
+`NetworkSpike.unity`. `NetworkSpikeMovement.cs` gained E (add "TestOre")/R
+(remove top) keybinds, each a `[Command]` that validates a 3m range
+server-side before mutating the box — the same client-requests/
+server-validates/server-applies shape Phase 3's real `PlayerXXX.cs`
+conversion will need at scale, proven once here on a single throwaway
+world object instead of jumping straight into the real 32+-script
+conversion. Ben live-tested with the same Host/standalone-Client two-process
+setup as the Phase 0 test: added and removed items from both windows,
+confirmed both sides always showed the identical, live-updating list —
+genuinely shared server-owned state, not two independent local ones.
+Verified via a second independent batch-mode process reading the saved
+scene back through Unity's own API (this project's scenes use Force Binary
+serialization, so a guid grep can't confirm an object reference landed —
+see `CLAUDE.md`'s own gotcha on this) before considering the placement
+correct. See `MULTIPLAYER_PLANNING.md` section 3 item 2 for full detail.
 
 ## 2026-08-22 (3)
 
