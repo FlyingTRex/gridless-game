@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.159-dev` — must always match `GameVersion` in
+**Current version:** `0.3.160-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (7)
+
+### v0.3.160-dev — Multiplayer Phase 3 Bootstrap: auto-host-on-load built and live-confirmed
+
+`NetworkAutoHost.cs` (new, attached to `NetworkManager`): calls `StartHost()`
+from `Start()` the instant `TestScene` loads, if not already networking.
+This is what makes the "solo session = host alone" scope-shape decision
+real — pressing Play now genuinely runs through Mirror's server/client loop
+underneath with zero visible change. Live-confirmed via `Editor.log`:
+`NetworkServer.active=True, NetworkClient.active=True`, no warnings (also
+explicitly wired `NetworkManager.transport` to clear a harmless "no
+Transport assigned" warning). Full gameplay spot-check afterward (Vendor
+Stall screen, a Restoration wish tier-up) confirmed nothing regressed.
+`NetworkIdentity`/`NetworkTransformReliable` on the real Player itself is
+still the next piece — now that a server always exists at Play start, the
+original deactivation bug shouldn't recur, but that's untested until
+actually tried in a future session. See `MULTIPLAYER_PLANNING.md` section 3
+item 3 sub-phase 1.
 
 ## 2026-08-22 (6)
 

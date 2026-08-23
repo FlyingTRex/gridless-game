@@ -306,12 +306,26 @@ Mapped onto Gridless's actual systems:
       into the new prefab file on disk, not lost). **Bootstrap's prefab-
       conversion step is now genuinely done and confirmed live**:
       `Assets/Prefabs/Player.prefab` exists, connected, 75/75 components,
-      combat and interaction both confirmed working. **Still not done**:
-      `NetworkIdentity`/`NetworkTransformReliable` were deliberately not
-      re-added this session (stopping at one clean checkpoint rather than
-      pushing through to a second risky step same-session) — that, plus
-      the auto-host-on-load mechanism it depends on, is the next piece
-      for a future session.
+      combat and interaction both confirmed working.
+
+      **Auto-host-on-load built and live-confirmed, same session.**
+      `NetworkAutoHost.cs` — attached to the `NetworkManager` GameObject,
+      calls `StartHost()` from `Start()` the instant the scene loads if
+      neither `NetworkServer.active` nor `NetworkClient.active` is already
+      true. This is what makes the "solo session = host alone" scope-shape
+      decision actually real rather than aspirational — pressing Play now
+      genuinely runs through Mirror's server/client loop underneath, with
+      zero change to what the player sees or does. Live-confirmed clean via
+      `Editor.log`: `NetworkServer.active=True, NetworkClient.active=True`
+      with no warnings (also wired `NetworkManager.transport` explicitly to
+      clear a harmless "no Transport assigned" warning), then a full
+      gameplay spot-check (Vendor Stall screen, a Restoration wish tier-up)
+      confirmed nothing regressed. **Still not done**:
+      `NetworkIdentity`/`NetworkTransformReliable` on the Player itself —
+      now that a server always exists the instant Play begins, re-adding
+      them should no longer hit the original deactivation bug, but that's
+      still an untested claim until it's actually tried. Next piece for a
+      future session.
    2. **Inventory + Equipment** — most foundational, most-referenced state;
       everything else reads/writes through it.
    3. **Crafting + Building** — depends on Inventory already being synced.
