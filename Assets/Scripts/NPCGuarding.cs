@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -14,7 +15,11 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NPCJob))]
 [RequireComponent(typeof(NPCSkills))]
 [RequireComponent(typeof(NPCVitals))]
-public class NPCGuarding : MonoBehaviour
+// Multiplayer Phase 3 item 4 ("NPCs move server-side"), 2026-08-23:
+// converted to NetworkBehaviour, plus an isServer guard on Update() --
+// see NPCGathering.cs's own header comment for the full reasoning,
+// identical here.
+public class NPCGuarding : NetworkBehaviour
 {
     private enum State { Patrolling, Chasing, Attacking }
 
@@ -120,6 +125,7 @@ public class NPCGuarding : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
         if (isPaused) return;
 
         bool ready = job.IsReady

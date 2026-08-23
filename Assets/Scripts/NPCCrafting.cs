@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -22,7 +23,11 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NPCWander))]
 [RequireComponent(typeof(NPCJob))]
 [RequireComponent(typeof(NPCSkills))]
-public class NPCCrafting : MonoBehaviour
+// Multiplayer Phase 3 item 4 ("NPCs move server-side"), 2026-08-23:
+// converted to NetworkBehaviour, plus an isServer guard on Update() --
+// see NPCGathering.cs's own header comment for the full reasoning,
+// identical here.
+public class NPCCrafting : NetworkBehaviour
 {
     // Mirrors Furnace.MaxQueueSize -- no number was specified for this
     // queue specifically, but the design explicitly models it on Furnace's
@@ -189,6 +194,7 @@ public class NPCCrafting : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
         if (isPaused) return;
 
         bool ready = job.IsReady

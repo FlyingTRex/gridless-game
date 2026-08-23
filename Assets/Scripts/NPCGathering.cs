@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -45,7 +46,17 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NPCSkills))]
 [RequireComponent(typeof(NPCEncumbrance))]
 [RequireComponent(typeof(NPCCargo))]
-public class NPCGathering : MonoBehaviour
+// Multiplayer Phase 3 item 4 ("NPCs move server-side"), 2026-08-23:
+// converted to NetworkBehaviour, plus an isServer guard on Update() --
+// same pattern PlayerCrafting/PlayerVitals already established. This
+// (and its 4 siblings -- NPCCrafting, NPCGuarding, NPCSeekFlag,
+// NPCTraining) is the first slice of the phase: stop the autonomous
+// logic from simulating redundantly on every client, matching Mirror's
+// standard server-authoritative NPC shape. Position/rotation
+// replication itself is a separate prefab-level change (adding
+// NetworkTransformReliable, ServerToClient direction -- the default --
+// to the 3 NPCFactoryWorker* prefabs), not this script.
+public class NPCGathering : NetworkBehaviour
 {
     private enum TargetKind { None, Harvest, Search, Pickup }
 
@@ -294,6 +305,7 @@ public class NPCGathering : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
         if (isPaused) return;
 
         if (job.DebugEnabled && Time.time >= nextDebugLogTime)

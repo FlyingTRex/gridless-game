@@ -17,32 +17,37 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.189-dev is merged
+Nothing in progress right now — everything through v0.3.190-dev is merged
 to origin/main. **Multiplayer Phase 3 is fully complete** — all 5
 sub-phases (Bootstrap; Inventory + Equipment; Crafting + Building; Magic
 + Combat; everything else) shipped and live-confirmed. See
 MULTIPLAYER_PLANNING.md for the full list of what shipped across the
-whole phase. Sub-phase 5's last pieces: PlayerVitals converted to
-NetworkBehaviour with an isServer guard on its passive-drain Update()
-loop (no Command needed - every mutating method already runs server-side
-via an existing Command or at load); "admin tools" dropped from scope
-(AdminSpawnScreen is #if UNITY_EDITOR-only, never ships in a real build,
-so no multiplayer-correctness concern exists there), same correction as
-"skill/attribute point spending" earlier. Live-confirmed: played
-normally, hunger/thirst ticked down correctly, zero errors.
+whole phase.
 
-Next up, per MULTIPLAYER_PLANNING.md's own roadmap: NPCs move
-server-side (the 5 Update()-driven NPC scripts stop running client-side
-entirely), then the persistence restructure for a real dedicated server,
-then the design-brief's remaining Phase 2/3 items. None of these are
-started yet.
+**NPCs move server-side (the next phase) has started, first slice
+done.** NPCGathering/NPCCrafting/NPCGuarding/NPCSeekFlag/NPCTraining
+(the 5 job-driven NPC scripts) are all NetworkBehaviours with isServer
+guards on their own Update() loops. The 3 NPCFactoryWorker* prefabs got
+a real NetworkTransformReliable for position replication - caught and
+fixed a real wrong-default along the way (this Mirror version's own
+default syncDirection for a fresh NetworkTransformReliable is
+ClientToServer, which would silently sync nothing for a server-driven
+NPC; set explicitly to ServerToClient). Live-confirmed: hired NPCs
+moving around normally, zero errors. Roaming wildlife (Wolf/Rabbit/Pig/
+Deer/Chicken, NPCWander/NPCFlee) deliberately excluded from this slice -
+not part of the named "5," open question for later whether it needs the
+same treatment. Also not yet audited: whether any NPC-initiated
+gameplay interaction breaks under the new server-only-simulation model.
+
+Still to do after that: the persistence restructure for a real
+dedicated server, then the design-brief's remaining Phase 2/3 items -
+neither started yet.
 
 One real UI bug found live and logged to BUGS_AND_ENHANCEMENTS.md rather
 than chased same-session: a stuck empty hold-progress bar after casting
-Heal Self, cause not yet confirmed. See `CHANGELOG.md`'s v0.3.189-dev
-entry and `MULTIPLAYER_PLANNING.md` section 3's Phase-3-complete note
-for full detail — pick up NPCs-server-side next time rather than
-re-deriving the state.
+Heal Self, cause not yet confirmed. See `CHANGELOG.md`'s v0.3.190-dev
+entry and `MULTIPLAYER_PLANNING.md` section 3 item 4 for full detail —
+pick up there next time rather than re-deriving the state.
 
 Reminder for whoever picks this back up: the overall Multiplayer
 conversion was always scoped as multi-week (48 PlayerXXX.cs scripts

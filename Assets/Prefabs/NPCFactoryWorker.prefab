@@ -110,6 +110,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3446120200624504512}
+    - targetCorrespondingSourceObject: {fileID: -6508955183461495297, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3122876168996997444}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
 --- !u!1 &384420937806375696 stripped
 GameObject:
@@ -260,6 +263,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 10f34e8dfc5717645ae0b7c3c80800cb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCGathering
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   searchRadius: 50
   harvestRange: 3
   harvestDuration: 3
@@ -304,6 +310,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 895d14063c41f0b43b93ba382ac40598, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCCrafting
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   craftDuration: 3
   searchRadius: 50
   moveSpeed: 1.5
@@ -320,6 +329,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8dd8d92cdb1dd684a8995e36c9d5b3ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCTraining
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   searchRadius: 50
   moveSpeed: 1.5
   obstacleCheckDistance: 1.5
@@ -335,6 +347,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 499990286f5e3d34bb076d4e8fb22c71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCSeekFlag
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   moveSpeed: 1.5
   obstacleCheckDistance: 1.5
 --- !u!114 &2530475003157893886
@@ -363,6 +378,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 856aea142ff6c854fbd083a8f95ddb01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::NPCGuarding
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   detectionRadius: 15
   giveUpRadius: 25
   meleeAttackRange: 2.5
@@ -409,3 +427,42 @@ MonoBehaviour:
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
+--- !u!114 &3122876168996997444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 384420937806375696}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ff3ba0becae47b8b9381191598957c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror.Components::Mirror.NetworkTransformReliable
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  target: {fileID: 7860393447680618419}
+  syncPosition: 1
+  syncRotation: 1
+  syncScale: 0
+  onlySyncOnChange: 1
+  compressRotation: 1
+  interpolatePosition: 1
+  interpolateRotation: 1
+  interpolateScale: 1
+  coordinateSpace: 0
+  timelineOffset: 1
+  showGizmos: 0
+  showOverlay: 0
+  overlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+  onlySyncOnChangeCorrectionMultiplier: 2
+  useFixedUpdate: 0
+  rotationSensitivity: 0.01
+  positionPrecision: 0.01
+  scalePrecision: 0.01
+--- !u!4 &7860393447680618419 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5614736669538470236, guid: 3a6479db5e8067b4db1d1342c2c96f1a, type: 3}
+  m_PrefabInstance: {fileID: 2377398613865981679}
+  m_PrefabAsset: {fileID: 0}

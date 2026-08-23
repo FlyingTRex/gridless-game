@@ -995,8 +995,41 @@ everything else) shipped and live-confirmed.** Real Commands now cover
 every player-input mutation this project's design surface actually
 needs authority over. What remains is the next phase down:
 
-4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
-   running client-side entirely; results replicate to observers.
+4. **NPCs move server-side — started 2026-08-23.** The 5 `Update()`-
+   driven NPC scripts stop running client-side entirely; results
+   replicate to observers.
+
+   **First slice done, same day.** `NPCGathering`/`NPCCrafting`/
+   `NPCGuarding`/`NPCSeekFlag`/`NPCTraining` all converted to
+   `NetworkBehaviour`, each gaining an `isServer` guard at the top of
+   its own `Update()` — same pattern `PlayerCrafting`/`PlayerVitals`
+   already established in Phase 3. Roaming wildlife (`NPCWander`/
+   `NPCFlee`, Wolf/Rabbit/Pig/Deer/Chicken) deliberately excluded — not
+   part of the named "5," and has no fixed distant target the way the
+   job-driven movers do.
+
+   Position/rotation replication needed a separate fix: the 3
+   `NPCFactoryWorker*` prefabs had `NetworkIdentity` (sub-phase 4
+   sweep) but no `NetworkTransform` component at all, so nothing was
+   syncing an NPC's position to observers. Added
+   `NetworkTransformReliable` to all 3. **Caught a real wrong-default
+   before it shipped silently broken**: this Mirror version's own
+   default `syncDirection` for a freshly-added `NetworkTransformReliable`
+   is `ClientToServer` (confirmed live, not assumed) — wrong for an
+   NPC, since no client ever "owns" one to sync updates from; left at
+   the default, this would have synced nothing with zero error.
+   Explicitly set to `ServerToClient` on the base prefab (both variants
+   inherit it automatically). Live-confirmed: hired NPCs moving around
+   normally, zero errors.
+
+   **Not yet decided/addressed**: whether `HostileCreature`/
+   `PreyCreature` (wildlife) should also move server-side eventually —
+   an open question, not part of this slice's named "5." NPC-initiated
+   Commands (any NPC action a player didn't directly trigger via one of
+   Phase 3's own Commands) haven't been audited for correctness under
+   this new server-only-simulation model — worth a closer look before
+   calling this phase fully done, not just the movement-authority
+   piece.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —
    a dedicated server with no save/load can't actually stay up
    indefinitely the way the design calls for.

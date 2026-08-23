@@ -5,10 +5,43 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.189-dev` — must always match `GameVersion` in
+**Current version:** `0.3.190-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (24)
+
+### v0.3.190-dev — Multiplayer: NPCs move server-side started, first slice done
+
+First slice of the phase after Phase 3's completion. All 5
+`Update()`-driven job NPC scripts (`NPCGathering`, `NPCCrafting`,
+`NPCGuarding`, `NPCSeekFlag`, `NPCTraining`) converted to
+`NetworkBehaviour`, each gaining an `isServer` guard at the top of its
+own `Update()` — same pattern `PlayerCrafting`/`PlayerVitals` already
+established this session, stopping the autonomous logic from simulating
+redundantly on every client. Roaming wildlife (`NPCWander`/`NPCFlee`,
+Wolf/Rabbit/Pig/Deer/Chicken) deliberately excluded — not part of the
+named "5" and has no fixed distant target that would hit the same
+concern.
+
+Position/rotation replication itself needed a separate, real fix: the 3
+`NPCFactoryWorker*` prefabs had `NetworkIdentity` (from the sub-phase 4
+creature sweep) but no `NetworkTransform` component at all, so nothing
+was actually syncing an NPC's position to observers. Added
+`NetworkTransformReliable` to all 3. **Caught a real wrong-default
+issue before it shipped silently broken**: this Mirror version's own
+default `syncDirection` for a freshly-added `NetworkTransformReliable`
+is `ClientToServer`, confirmed live via a direct read, not assumed —
+wrong for an NPC, since no client ever "owns" one to sync updates from;
+left at the default, this would have synced nothing at all with zero
+error. Explicitly set to `ServerToClient` on all 3 (the base prefab
+directly, the two variants inherit it automatically). Live-confirmed:
+hired NPCs moving around normally, zero errors.
+
+Not yet addressed: `HostileCreature`/`PreyCreature` (wildlife) staying
+client-simulated is an open question for a later slice, not decided
+here — see `MULTIPLAYER_PLANNING.md`.
 
 ## 2026-08-23 (23)
 

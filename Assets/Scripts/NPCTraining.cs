@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -10,7 +11,11 @@ using UnityEngine.AI;
 // already doing.
 [RequireComponent(typeof(NPCWander))]
 [RequireComponent(typeof(NPCJob))]
-public class NPCTraining : MonoBehaviour
+// Multiplayer Phase 3 item 4 ("NPCs move server-side"), 2026-08-23:
+// converted to NetworkBehaviour, plus an isServer guard on Update() --
+// see NPCGathering.cs's own header comment for the full reasoning,
+// identical here.
+public class NPCTraining : NetworkBehaviour
 {
     private const float TrainingDurationSeconds = 120f;
 
@@ -130,6 +135,7 @@ public class NPCTraining : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
         if (!isTraining) return;
 
         if (targetDesk == null)

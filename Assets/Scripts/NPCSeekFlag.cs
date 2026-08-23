@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -14,7 +15,11 @@ using UnityEngine.AI;
 // called by VillageFlagSpawner right after a fresh Instantiate.
 [RequireComponent(typeof(NPCWander))]
 [RequireComponent(typeof(NPCHiring))]
-public class NPCSeekFlag : MonoBehaviour
+// Multiplayer Phase 3 item 4 ("NPCs move server-side"), 2026-08-23:
+// converted to NetworkBehaviour, plus an isServer guard on Update() --
+// see NPCGathering.cs's own header comment for the full reasoning,
+// identical here.
+public class NPCSeekFlag : NetworkBehaviour
 {
     // Wider than the usual 2m "close enough to interact" range
     // (AnvilSurface/FurnaceSurface/DeskSurface) -- Ben's call, 2026-08-16:
@@ -129,6 +134,7 @@ public class NPCSeekFlag : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
         if (targetFlag == null) return;
 
         if (hiring.IsHired)
