@@ -476,11 +476,40 @@ Mapped onto Gridless's actual systems:
       converting `AddItem`/`RemoveItem`'s actual callers (`Pickup.cs`'s
       world pickup flow, `PlayerCrafting`'s material consumption, and the
       many other direct-mutation call sites) to route through Command-
-      validated methods instead of local calls, plus a real Command for
-      equip/unequip itself (not just observing the resulting state, which
-      is all `syncedSlots` does today). Both core scripts now have
-      working sync; neither yet has a remote client able to actually
-      request a change to either.
+      validated methods instead of local calls.
+
+      **Real equip/unequip Command built and live-confirmed, 2026-08-23.**
+      `PlayerInventory.RequestMove`/`CmdMoveItem` — moves an item between
+      the main inventory and a named `PlayerEquipment` body slot (either
+      direction) by reusing `InventoryTransfer.Move` server-side rather
+      than reimplementing its already-correct equipment-aware logic
+      (carrying an equipped instance's own reference across, not just its
+      item+count). Containers are addressed by a simple string key
+      (`"main"` or a `PlayerEquipment` slot name) since a Command can't
+      carry a raw `Inventory` reference over the wire. Live-confirmed via
+      a temporary debug keybind (removed after confirming): moved a Stick
+      main→Left Hand, watched it actually appear in the Equipment panel;
+      moved it back, watched it correctly re-stack in the main inventory.
+      **Deliberately not wired into the real `InventoryScreen.cs` UI** —
+      that screen's live drag-and-drop also moves between many other
+      container types this narrower string-key scheme doesn't cover
+      (Backpack, Furnace zones, NPC cargo), and rewiring its actively-used
+      code is a separate, larger, riskier task than this proof-of-concept
+      justified touching today. Scope boundary: only covers
+      `PlayerEquipment`'s own named body slots — a worn Backpack/Belt's
+      own nested `Inventory` is a separate object, out of scope here.
+
+      **Where sub-phase 2 actually stands**: both core scripts have real,
+      live-confirmed `SyncList` sync, and two real Commands prove the
+      full client-request → server-validate → apply shape works
+      end-to-end on genuine Player data (add an item, move/equip an
+      item). What's NOT done: neither Command is wired into the real UI
+      players actually touch, and the broader mutation surface (world
+      pickup, crafting, the many other direct `Inventory` callers) is
+      still local-only. A reasonable point to consider the *core sync
+      infrastructure* finished, with UI-wiring and world-pickup
+      networking as explicitly deferred, larger follow-on work — not
+      pretending the whole sub-phase is done.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment

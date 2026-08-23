@@ -5,10 +5,30 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.167-dev` — must always match `GameVersion` in
+**Current version:** `0.3.168-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (2)
+
+### v0.3.168-dev — Multiplayer sub-phase 2: real equip/unequip Command working end to end
+
+`PlayerInventory.RequestMove`/`CmdMoveItem` — moves an item between the
+main inventory and a named `PlayerEquipment` body slot (either direction)
+by reusing `InventoryTransfer.Move` server-side, not reimplementing its
+already-correct equipment-aware logic. Containers addressed by a simple
+string key since a Command can't carry a raw `Inventory` reference over
+the wire. Live-confirmed via a temporary debug keybind (removed): moved a
+Stick main→Left Hand (actually appeared in the Equipment panel), moved it
+back (correctly re-stacked). Deliberately not wired into the real
+`InventoryScreen.cs` drag-and-drop UI — that's a separate, larger, riskier
+task (it moves between many other container types this scheme doesn't
+cover). Sub-phase 2's core sync infrastructure — real `SyncList` sync on
+both `PlayerInventory`/`PlayerEquipment`, two working Commands proving the
+full request/validate/apply shape — is now a reasonable stopping point,
+with UI-wiring and world-pickup networking logged as explicitly deferred
+follow-on work. See `MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-23
 
