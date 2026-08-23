@@ -912,13 +912,28 @@ Mapped onto Gridless's actual systems:
       sick, health ticked down, refilled — full vitals interaction
       confirmed through the Command, zero errors.
 
-      **Not yet started, remaining in this sub-phase**: skill/attribute
-      point spending, NPC hiring/firing/job-assignment inputs, admin
-      tools (`AdminSpawnScreen`), and the broader question of whether
-      passive vital drain (`PlayerVitals.Update()`'s hunger/thirst/
-      stamina/health ticking) needs to move server-side too — not
-      addressed by any slice so far, which have only touched player-input
-      consumption paths.
+      **NPC Hire/Fire/Pay — done, same session. "Skill/attribute point
+      spending" dropped from this list — it doesn't exist as a real
+      system** (skills only grow through use; every `GainExperience`
+      call site already runs inside an existing server-side Command from
+      sub-phase 3/4 — nothing to build). `NPCHiringScreen` converted to
+      `NetworkBehaviour`; `RequestHire`/`RequestFire`/`RequestPay` give
+      real server authority over the currency spend + hire-state change
+      *without* needing `NPCHiring` itself converted — a Command's body
+      always runs server-side regardless of which object it touches, so
+      it calls `TryHire`/`Fire`/`TryPay` directly on the still-plain-
+      `MonoBehaviour` NPC. Target travels as a `NetworkIdentity`
+      (`NPCFactoryWorker` already had one from the sub-phase 4 sweep).
+      Live-confirmed: paid off 4 hired NPCs (40 coins), currency
+      deducted, payment-due state cleared, zero real errors.
+
+      **Not yet started, remaining in this sub-phase**: NPC job
+      *assignment* itself (`NPCJobScreen` — a separate, larger surface
+      than Hire/Fire/Pay), admin tools (`AdminSpawnScreen`), and the
+      broader question of whether passive vital drain (`PlayerVitals
+      .Update()`'s hunger/thirst/stamina/health ticking) needs to move
+      server-side too — not addressed by any slice so far, which have
+      only touched player-input consumption/action paths.
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —

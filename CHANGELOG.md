@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.185-dev` — must always match `GameVersion` in
+**Current version:** `0.3.186-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (20)
+
+### v0.3.186-dev — Multiplayer sub-phase 5: real NPC Hire/Fire/Pay Commands
+
+`NPCHiringScreen` converted to `NetworkBehaviour`; `RequestHire`/
+`RequestFire`/`RequestPay` Commands give real server authority over the
+currency spend + hire-state change without needing `NPCHiring` itself
+converted — a Command's body always runs server-side regardless of which
+object it touches, so it can call `TryHire`/`Fire`/`TryPay` on the
+(still plain `MonoBehaviour`) NPC directly. The target NPC travels as a
+`NetworkIdentity` (`NPCFactoryWorker` already had one from the sub-phase
+4 creature sweep), not a live component reference. Confirms the mid-
+session correction: skill/attribute point spending doesn't actually
+exist as a system in this game (skills only grow through use, and every
+`GainExperience` call site already runs inside an existing server-side
+Command), so that item is dropped from the sub-phase 5 list rather than
+built. Live-confirmed: paid off 4 hired NPCs (40 coins total), currency
+deducted correctly, payment-due state cleared, zero real errors.
 
 ## 2026-08-23 (19)
 

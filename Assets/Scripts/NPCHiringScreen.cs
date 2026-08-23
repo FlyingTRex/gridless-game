@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 // Opened by interacting (E) with a hireable NPC -- same shape as
@@ -7,9 +8,22 @@ using UnityEngine;
 // "Assign Job" (Chunk 2) hands off to NPCJobScreen -- this screen closes
 // itself first, same as Talk does, rather than trying to show two modal
 // panels at once.
+//
+// Multiplayer Phase 3 sub-phase 5, 2026-08-23: converted to
+// NetworkBehaviour, plus RequestHire/RequestFire/RequestPay Commands.
+// NPCHiring itself stays a plain MonoBehaviour -- NPCs moving
+// server-side is a whole later phase (MULTIPLAYER_PLANNING.md), out of
+// scope here -- but a Command declared on this Player-side
+// NetworkBehaviour can still call TryHire/Fire/TryPay on it directly:
+// the Command body always executes server-side regardless of which
+// object it touches, so this gets real server authority over the
+// currency spend + hire state change today, without needing NPCHiring
+// converted. The target NPC travels as a NetworkIdentity (NPCFactoryWorker
+// already has one from the sub-phase 4 creature/NPC sweep) rather than a
+// live component reference.
 [RequireComponent(typeof(PlayerCurrency))]
 [RequireComponent(typeof(PlayerInventory))]
-public class NPCHiringScreen : MonoBehaviour
+public class NPCHiringScreen : NetworkBehaviour
 {
     private const float PanelWidth = 340f;
     private const float PanelHeight = 460f;
@@ -103,7 +117,10 @@ public class NPCHiringScreen : MonoBehaviour
             GUI.enabled = wallet.GetBalance(current.HireCoinType) >= current.HireCoinAmount;
             if (GUILayout.Button("Hire"))
             {
-                if (current.TryHire(wallet)) fame?.GrantHire();
+                if (isClient && current.TryGetComponent(out NetworkIdentity hireIdentity))
+                    RequestHire(hireIdentity);
+                else if (current.TryHire(wallet))
+                    fame?.GrantHire();
             }
             GUI.enabled = true;
         }
@@ -141,7 +158,12 @@ public class NPCHiringScreen : MonoBehaviour
 
                 GUI.enabled = wallet.GetBalance(current.HireCoinType) >= current.HireCoinAmount;
                 if (GUILayout.Button("Pay"))
-                    current.TryPay(wallet);
+                {
+                    if (isClient && current.TryGetComponent(out NetworkIdentity payIdentity))
+                        RequestPay(payIdentity);
+                    else
+                        current.TryPay(wallet);
+                }
                 GUI.enabled = true;
             }
             else if (assignedJob != null && current.Job.IsReady)
@@ -153,8 +175,15 @@ public class NPCHiringScreen : MonoBehaviour
 
             if (GUILayout.Button("Fire"))
             {
-                current.Fire();
-                fame?.GrantFire();
+                if (isClient && current.TryGetComponent(out NetworkIdentity fireIdentity))
+                {
+                    RequestFire(fireIdentity);
+                }
+                else
+                {
+                    current.Fire();
+                    fame?.GrantFire();
+                }
                 SetOpen(false);
                 GUILayout.EndArea();
                 return;
@@ -307,5 +336,36 @@ public class NPCHiringScreen : MonoBehaviour
                 if (slot.item != null)
                     InventoryTransfer.MoveAsManyAsFit(current.Cargo.Inventory, playerInventory.Inventory, slot.item);
         }
+    }
+
+    public void RequestHire(NetworkIdentity npcIdentity) => CmdHire(npcIdentity);
+
+    [Command]
+    private void CmdHire(NetworkIdentity npcIdentity)
+    {
+        var npc = npcIdentity != null ? npcIdentity.GetComponent<NPCHiring>() : null;
+        if (npc != null && npc.TryHire(wallet))
+            fame?.GrantHire();
+    }
+
+    public void RequestFire(NetworkIdentity npcIdentity) => CmdFire(npcIdentity);
+
+    [Command]
+    private void CmdFire(NetworkIdentity npcIdentity)
+    {
+        var npc = npcIdentity != null ? npcIdentity.GetComponent<NPCHiring>() : null;
+        if (npc == null) return;
+
+        npc.Fire();
+        fame?.GrantFire();
+    }
+
+    public void RequestPay(NetworkIdentity npcIdentity) => CmdPay(npcIdentity);
+
+    [Command]
+    private void CmdPay(NetworkIdentity npcIdentity)
+    {
+        var npc = npcIdentity != null ? npcIdentity.GetComponent<NPCHiring>() : null;
+        npc?.TryPay(wallet);
     }
 }
