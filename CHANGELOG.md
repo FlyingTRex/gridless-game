@@ -5,10 +5,28 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.160-dev` — must always match `GameVersion` in
+**Current version:** `0.3.161-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (8)
+
+### v0.3.161-dev — Multiplayer Bootstrap complete: real Player, real server/client loop, solo play unchanged
+
+Re-added `NetworkIdentity`/`NetworkTransformReliable` to the real Player —
+this time it worked. With `NetworkAutoHost` guaranteeing a server exists
+before Mirror ever needs to spawn scene objects, the original deactivation
+bug (blank camera, `PlayerTool` NRE) did not recur. Live-confirmed with a
+full gameplay pass: camera rendered, HUD worked, opened a Furnace, killed a
+Wolf bare-handed, `Editor.log` showed clean `NetworkServer.active=True,
+NetworkClient.active=True`. This closes out Multiplayer Phase 3 sub-phase 1
+(Bootstrap) in full — `Player` is now a genuine networked object running
+through Mirror's real server/client loop, with solo play behaviorally
+identical to before. One unrelated minor note logged to
+`BUGS_AND_ENHANCEMENTS.md`: the Wolf didn't fight back when attacked during
+this test. Sub-phase 2 (Inventory + Equipment) is next. See
+`MULTIPLAYER_PLANNING.md` section 3 item 3 for full detail.
 
 ## 2026-08-22 (7)
 

@@ -17,6 +17,8 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — cleared 2026-08-22 when the v0.3.157-dev commit
-merged the Vendor Stall till/timer UI and the full player naming system. See
-`CHANGELOG.md`'s v0.3.157-dev entry for the merged summary.
+Nothing in progress right now — cleared 2026-08-22 when the v0.3.161-dev commit
+merged Multiplayer Phase 3 sub-phase 1 (Bootstrap): real Player prefab,
+auto-host-on-load, NetworkIdentity/NetworkTransformReliable, all live-
+confirmed. See `CHANGELOG.md`'s v0.3.161-dev entry and
+`MULTIPLAYER_PLANNING.md` section 3 item 3 for the merged summary.

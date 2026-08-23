@@ -320,12 +320,24 @@ Mapped onto Gridless's actual systems:
       with no warnings (also wired `NetworkManager.transport` explicitly to
       clear a harmless "no Transport assigned" warning), then a full
       gameplay spot-check (Vendor Stall screen, a Restoration wish tier-up)
-      confirmed nothing regressed. **Still not done**:
-      `NetworkIdentity`/`NetworkTransformReliable` on the Player itself —
-      now that a server always exists the instant Play begins, re-adding
-      them should no longer hit the original deactivation bug, but that's
-      still an untested claim until it's actually tried. Next piece for a
-      future session.
+      confirmed nothing regressed.
+
+      **`NetworkIdentity`/`NetworkTransformReliable` re-added to the real
+      Player and live-confirmed — sub-phase 1 (Bootstrap) is done.** The
+      hypothesis held: with `NetworkAutoHost` guaranteeing a server exists
+      before Mirror ever needs to spawn scene objects, adding
+      `NetworkIdentity` back onto Player this time did **not** reproduce
+      the original deactivation bug. Live-confirmed with a full gameplay
+      pass — camera rendered normally, HUD worked, opened a Furnace,
+      killed a Wolf bare-handed, `Editor.log` showed
+      `NetworkServer.active=True, NetworkClient.active=True` with no
+      errors. One minor unrelated note from that pass, logged separately
+      in `BUGS_AND_ENHANCEMENTS.md` rather than blocking here: the Wolf
+      didn't fight back when attacked. `Player` is now a genuine
+      `NetworkIdentity`-carrying, `NetworkTransformReliable`-synced object
+      spawned/kept alive through Mirror's real server/client loop, with
+      solo play behaviorally unchanged. **Sub-phase 2 (Inventory +
+      Equipment) is next.**
    2. **Inventory + Equipment** — most foundational, most-referenced state;
       everything else reads/writes through it.
    3. **Crafting + Building** — depends on Inventory already being synced.
