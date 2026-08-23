@@ -17,22 +17,23 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.176-dev is merged
+Nothing in progress right now — everything through v0.3.177-dev is merged
 to origin/main. Multiplayer Phase 3 sub-phases 1 (Bootstrap) and 2
 (Inventory + Equipment) are fully done - see MULTIPLAYER_PLANNING.md for
-the full list of what shipped. Sub-phase 3 (Crafting + Building) just
-started: PlayerCrafting.cs is now a NetworkBehaviour (base-class
-conversion only, live-confirmed safe - crafted a Stick, zero errors).
-Real complication flagged before designing any Command: crafting is a
-genuinely different shape than Inventory/Equipment's atomic moves -
-StartCraft validates several gating conditions (tool/skill/nearby
-Anvil-Furnace/Canteen water), consumes ingredients across multiple
-*reachable* inventories (not just the main one), and runs a real timed
-batch ticked in Update(). Designing the actual Command shape for that is
-real, undesigned work, not started yet. See `CHANGELOG.md`'s
-v0.3.176-dev entry and `MULTIPLAYER_PLANNING.md` section 3 item 3
-sub-phase 3 for full detail — pick up there next time rather than
-re-deriving the state.
+the full list of what shipped. Sub-phase 3 (Crafting + Building): the
+Crafting half has a real working Command now.
+RequestStartCraft/CmdStartCraft reuses StartCraft entirely unchanged
+server-side, resolving the CraftingRecipe asset by name against this
+player's own recipes array (validates availability for free).
+Update()'s batch-progression gained an isServer guard. Output/ingredient
+sync needed NO new code - rides entirely on PlayerInventory.syncedSlots
+from sub-phase 2. Live-confirmed with a real multi-item batch through
+the actual Craft button. One known deferred gap: crafting progress
+display isn't synced to a remote client yet (invisible in solo testing).
+Building (the other half of this sub-phase) hasn't been started at all.
+See `CHANGELOG.md`'s v0.3.177-dev entry and `MULTIPLAYER_PLANNING.md`
+section 3 item 3 sub-phase 3 for full detail — pick up there next time
+rather than re-deriving the state.
 
 Reminder for whoever picks this back up: the overall Multiplayer
 conversion was always scoped as multi-week (48 PlayerXXX.cs scripts
