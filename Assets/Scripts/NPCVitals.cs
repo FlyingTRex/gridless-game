@@ -1,5 +1,12 @@
+using Mirror;
 using UnityEngine;
 
+// Multiplayer, 2026-08-23 -- found during the same audit: passive
+// health regen in Update() was unguarded. Converted to NetworkBehaviour,
+// isServer guard added below. TakeDamage itself needs no guard -- every
+// call site (HostileCreature's attack logic, PlayerCombat/
+// PlayerRangedCombat's Commands) is already server-side.
+//
 // The project's first real NPC health/death system (2026-08-16,
 // GUARDING_PLANNING.md section 2) -- mirrors SkinnableCreature's own
 // TakeDamage/Die shape, but without the skin/loot/respawn half: a hired
@@ -10,7 +17,7 @@ using UnityEngine;
 // harmless for a Mining/Woodworking NPC today since nothing currently
 // attacks a non-Guard NPC, but means any future hostile-vs-NPC interaction
 // doesn't need this component retrofitted later.
-public class NPCVitals : MonoBehaviour, IDamageable
+public class NPCVitals : NetworkBehaviour, IDamageable
 {
     [SerializeField] private float maxHealth = 30f;
 
@@ -41,6 +48,7 @@ public class NPCVitals : MonoBehaviour, IDamageable
 
     private void Update()
     {
+        if (!isServer) return;
         if (isDead || health >= maxHealth) return;
         // Only regenerate while not mid-fight -- a Guard trading blows with
         // a Wolf shouldn't out-heal the damage it's currently taking.

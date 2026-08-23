@@ -1,5 +1,15 @@
+using Mirror;
 using UnityEngine;
 
+// Multiplayer, 2026-08-23 -- found during the "audit NPC-initiated
+// behavior" pass: Update()'s work/unpaid timer is real autonomous state
+// advancing every frame (same category as PlayerVitals' passive drain),
+// missed the first "NPCs move server-side" pass since it isn't movement.
+// Converted to NetworkBehaviour, isServer guard added below. TryHire/
+// Fire/TryPay themselves needed no change -- already only ever called
+// from NPCHiringScreen's Commands (built in Phase 3 sub-phase 5),
+// already server-side regardless of this component's own network status.
+//
 // Chunk 1 of the Hireable NPCs build (see BUGS_AND_ENHANCEMENTS.md,
 // 2026-08-10): the Hire/Fire/Pay state machine and currency spend, no job
 // logic yet. E now opens NPCHiringScreen's popup menu instead of going
@@ -18,7 +28,7 @@ using UnityEngine;
 [RequireComponent(typeof(NPCEncumbrance))]
 [RequireComponent(typeof(NPCCargo))]
 [RequireComponent(typeof(SaveId))]
-public class NPCHiring : MonoBehaviour, IInteractable
+public class NPCHiring : NetworkBehaviour, IInteractable
 {
     [SerializeField] private CoinType hireCoinType = CoinType.Copper;
     [SerializeField] private int hireCoinAmount = 10;
@@ -111,6 +121,8 @@ public class NPCHiring : MonoBehaviour, IInteractable
 
     private void Update()
     {
+        if (!isServer) return;
+
         if (isHired && isWaitingForPayment)
         {
             unpaidTimer += Time.deltaTime;

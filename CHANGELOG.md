@@ -5,10 +5,43 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.191-dev` — must always match `GameVersion` in
+**Current version:** `0.3.192-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (26)
+
+### v0.3.192-dev — Multiplayer: audit found and fixed 4 more missed NPC Update() loops
+
+Audit of "NPC-initiated behavior" (the item flagged as not-yet-checked
+after wildlife shipped) found 4 real gaps, all missed the first pass
+since none of them are movement: `NPCWander` (the actual foundational
+idle movement every hired NPC's job-driven mover pauses via
+`SetPaused` — converting only the 5 layers on top of it left the thing
+they all pause still simulating client-side), `NPCFlee` (negative-Fame
+flee reaction), `NPCVitals` (passive NPC health regen), and `NPCHiring`
+(the work/unpaid-payment timer). All 4 converted to `NetworkBehaviour`
+with an `isServer` guard on their own `Update()`, same pattern as
+everything else this phase. Their existing mutating methods
+(`TryHire`/`Fire`/`TryPay`, `TakeDamage`) needed no changes — already
+only ever called from an existing Command or from another now-guarded
+script.
+
+Confirmed `NPCAnimatorDriver`/`NPCEquipmentVisual` correctly need no
+guard — they're pure per-observer visual/cosmetic logic (animator
+params, tool-attachment display) that must keep running on every client
+for smooth local rendering, not simulation to make server-authoritative.
+
+`NPCFreeze` also converted for consistency (same cleanup pass), with a
+real remaining gap flagged rather than fixed: `SetFrozen` itself is
+still called directly by whichever client toggles the checkbox, not
+routed through a Command — same category as `NPCDialogue`'s Talk
+trigger, logged in `MULTIPLAYER_PLANNING.md`, not addressed here.
+
+Live-confirmed: idle wander, work timer counting down, zero errors.
+(Flee reaction untested this pass — Fame was positive, so nothing to
+flee from; correct behavior, not a gap.)
 
 ## 2026-08-23 (25)
 

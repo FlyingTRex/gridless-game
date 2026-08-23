@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 // First step toward Hireable autonomous NPCs (2026-08-10, Ben's call: place
@@ -6,7 +7,15 @@ using UnityEngine;
 // beyond the name. Same flat-ground Vector3.MoveTowards approach as
 // HostileCreature (no NavMesh in the project), picking a random point
 // within wanderRadius of spawn, walking to it, pausing, repeating.
-public class NPCWander : MonoBehaviour
+//
+// Multiplayer, 2026-08-23 -- found during an audit of NPC-initiated
+// behavior after the job-driven movers (NPCGathering/etc.) were
+// converted: THIS is the actual foundational idle movement those 5
+// scripts pause via SetPaused, and it was missed the first pass --
+// converting only the layers on top of it left every hired NPC's idle
+// wander still simulating client-side. Converted to NetworkBehaviour,
+// plus an isServer guard on Update(), same pattern as everything else.
+public class NPCWander : NetworkBehaviour
 {
     [SerializeField] private float wanderRadius = 6f;
     [SerializeField] private float moveSpeed = 1.2f;
@@ -43,6 +52,7 @@ public class NPCWander : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
         if (isPaused) return;
 
         if (isWalking)

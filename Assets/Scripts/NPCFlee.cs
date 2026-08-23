@@ -1,5 +1,11 @@
+using Mirror;
 using UnityEngine;
 
+// Multiplayer, 2026-08-23 -- found during the same NPCWander-adjacent
+// audit: real movement, missed the first pass since it wasn't part of
+// the named "5". Converted to NetworkBehaviour, isServer guard on
+// Update() below.
+//
 // Fame's negative-Fame output effect — see FAME_PLANNING.md (2026-08-14):
 // "if you have negative fame, npc's will run away from you. you are a
 // potential threat." Applies to every NPC, hired or not — a hired NPC's
@@ -12,7 +18,7 @@ using UnityEngine;
 // materially different target-picking rule (away from the player, not
 // random), not just a parameter tweak.
 [RequireComponent(typeof(NPCWander))]
-public class NPCFlee : MonoBehaviour
+public class NPCFlee : NetworkBehaviour
 {
     private const float DetectionRange = 10f;
     private const float FleeDistance = 8f;
@@ -35,6 +41,7 @@ public class NPCFlee : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
         if (playerFame == null) return;
 
         bool shouldFlee = playerFame.Fame < 0f &&

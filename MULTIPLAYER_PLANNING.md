@@ -1039,11 +1039,26 @@ needs authority over. What remains is the next phase down:
    pre-existing, unrelated to networking). Live-confirmed: Wolf/Rabbit/
    Pig all moving around normally, zero errors.
 
-   **Still not audited**: NPC-initiated Commands (any NPC action a
-   player didn't directly trigger via one of Phase 3's own Commands)
-   haven't been checked for correctness under this new server-only-
-   simulation model — worth a closer look before calling this whole
-   phase fully done, not just the movement-authority piece.
+   **Audit done, same day — found 4 more real gaps, all fixed.**
+   `NPCWander` (the actual foundational idle movement every job-driven
+   mover pauses via `SetPaused` — converting only the 5 layers on top
+   of it left the thing they all pause still simulating client-side),
+   `NPCFlee` (negative-Fame flee reaction), `NPCVitals` (passive NPC
+   health regen), and `NPCHiring` (the work/unpaid-payment timer) were
+   all missed the first pass since none of them are movement in the
+   named sense. All 4 converted to `NetworkBehaviour` with an
+   `isServer` guard on their own `Update()`. Their existing mutating
+   methods (`TryHire`/`Fire`/`TryPay`, `TakeDamage`) needed no changes
+   — already only ever called from an existing Command or another
+   now-guarded script. Confirmed `NPCAnimatorDriver`/
+   `NPCEquipmentVisual` correctly need no guard — pure per-observer
+   visual logic that must keep running on every client for smooth
+   rendering. `NPCFreeze` also converted for consistency, with a real
+   remaining gap flagged, not fixed: `SetFrozen` is still called
+   directly by whichever client toggles it, not routed through a
+   Command — same category as `NPCDialogue`'s Talk trigger. Live-
+   confirmed: idle wander, work timer, zero errors (flee reaction
+   untested — Fame was positive, correctly nothing to flee from).
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —
    a dedicated server with no save/load can't actually stay up
    indefinitely the way the design calls for.
