@@ -17,20 +17,20 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.168-dev is merged
+Nothing in progress right now — everything through v0.3.169-dev is merged
 to origin/main. Multiplayer Phase 3 sub-phase 1 (Bootstrap) is fully done.
-Sub-phase 2 (Inventory + Equipment)'s core sync infrastructure is a
-reasonable stopping point: PlayerInventory/PlayerEquipment are both
-NetworkBehaviour with real, live-confirmed SyncList sync; Player
-connection authority is fixed; two real Commands
-(PlayerInventory.RequestAddItem, RequestMove) prove the full client-
-request -> server-validate -> apply shape works end to end on genuine
-Player data. Explicitly deferred, not started: wiring either Command into
-the real InventoryScreen.cs drag-and-drop UI players actually touch (it
-moves between many other container types this scheme doesn't cover —
-Backpack, Furnace zones, NPC cargo), and networking Pickup.cs's world-
-pickup flow (needs NetworkIdentity on every Pickup instance, including
-dynamically-dropped ones — its own real undertaking, not a quick call-
-site swap). See `CHANGELOG.md`'s v0.3.168-dev entry and
+Sub-phase 2 (Inventory + Equipment)'s core sync + Command infrastructure
+is proven across every real shape it needs: real SyncList sync on
+PlayerInventory/PlayerEquipment, and three working Commands covering
+add-item, move-a-plain-item, and equip/unequip-a-real-equippable-instance
+(piloted on one specific prefab, MasterworkLeatherBackpackPickup, since
+NetworkIdentity+NetworkServer.Spawn turned out to be the real shared
+blocker behind both "real equip/unequip" and "world pickup networking" -
+neither equippables nor Pickups had it). Explicitly deferred, large,
+mechanical follow-on work: giving every other equippable prefab (~10
+types, Backpack alone has 10 tier/material variants) and every world
+Pickup prefab the same NetworkIdentity treatment, and wiring any of these
+Commands into the real InventoryScreen.cs drag-and-drop UI players
+actually touch. See `CHANGELOG.md`'s v0.3.169-dev entry and
 `MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2 for full detail —
 pick up there next time rather than re-deriving the state.
