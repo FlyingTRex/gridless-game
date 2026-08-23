@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 // Opened from NPCJobScreen's "Manage Crafting Queue" button once a
@@ -9,9 +10,16 @@ using UnityEngine;
 // use), read directly off PlayerCrafting.Recipes rather than a new
 // per-job recipe-list asset -- discovery is family-scoped, selection is
 // the queue itself.
+//
+// Multiplayer Phase 3 sub-phase 5, 2026-08-23: converted to
+// NetworkBehaviour, plus RequestSetMaterialsBox/RequestSetOutputBox
+// Commands -- same "Command runs server-side, calls straight into the
+// still-non-networked NPCCrafting" pattern as NPCJobScreen's own
+// RequestSetDepositContainer. Recipe queue add/remove itself stays
+// local-only (a separate, larger surface not addressed by this slice).
 [RequireComponent(typeof(PlayerCrafting))]
 [RequireComponent(typeof(PlayerNPCDeposit))]
-public class NPCCraftingScreen : MonoBehaviour
+public class NPCCraftingScreen : NetworkBehaviour
 {
     private const float PanelWidth = 480f;
     private const float PanelHeight = 460f;
@@ -93,24 +101,40 @@ public class NPCCraftingScreen : MonoBehaviour
 
     private void DrawBoxAssignment()
     {
-        DrawBoxRow("Materials Source", crafting.MaterialsSourceBox, crafting.SetMaterialsSourceBox);
-        DrawBoxRow("Output Box", crafting.OutputBox, crafting.SetOutputBox);
+        DrawBoxRow("Materials Source", crafting.MaterialsSourceBox, crafting.SetMaterialsSourceBox, isOutput: false);
+        DrawBoxRow("Output Box", crafting.OutputBox, crafting.SetOutputBox, isOutput: true);
     }
 
-    private void DrawBoxRow(string label, StorageBox assigned, System.Action<StorageBox> assign)
+    private void DrawBoxRow(string label, StorageBox assigned, System.Action<StorageBox> assign, bool isOutput)
     {
         GUILayout.BeginHorizontal();
         GUILayout.Label($"{label}: {(assigned != null ? assigned.DisplayName : "not set")}", DebugGUI.Label, GUILayout.Width(260));
 
         if (GUILayout.Button("Set", GUILayout.Width(60)))
         {
+            var npc = current;
             SetOpen(false);
-            deposit.BeginTargeting(assign);
+            deposit.BeginTargeting(box => SetBox(npc, box, isOutput, assign));
         }
         if (assigned != null && GUILayout.Button("Clear", GUILayout.Width(60)))
-            assign(null);
+            SetBox(current, null, isOutput, assign);
 
         GUILayout.EndHorizontal();
+    }
+
+    private void SetBox(NPCHiring npc, StorageBox box, bool isOutput, System.Action<StorageBox> localAssign)
+    {
+        if (npc != null && isClient && npc.TryGetComponent(out NetworkIdentity npcIdentity))
+        {
+            NetworkIdentity boxIdentity = null;
+            if (box != null) box.TryGetComponent(out boxIdentity);
+            if (isOutput) RequestSetOutputBox(npcIdentity, boxIdentity);
+            else RequestSetMaterialsBox(npcIdentity, boxIdentity);
+        }
+        else
+        {
+            localAssign(box);
+        }
     }
 
     // Family-scoped: only recipes whose trainedSkill matches the assigned
@@ -157,5 +181,31 @@ public class NPCCraftingScreen : MonoBehaviour
         GUILayout.Label(satisfiable ? "Ready" : "Not ready", satisfiable ? DebugGUI.Label : DebugGUI.Warning);
 
         GUILayout.EndHorizontal();
+    }
+
+    public void RequestSetMaterialsBox(NetworkIdentity npcIdentity, NetworkIdentity boxIdentity) =>
+        CmdSetMaterialsBox(npcIdentity, boxIdentity);
+
+    [Command]
+    private void CmdSetMaterialsBox(NetworkIdentity npcIdentity, NetworkIdentity boxIdentity)
+    {
+        var npcCrafting = npcIdentity != null ? npcIdentity.GetComponent<NPCCrafting>() : null;
+        if (npcCrafting == null) return;
+
+        var box = boxIdentity != null ? boxIdentity.GetComponent<StorageBox>() : null;
+        npcCrafting.SetMaterialsSourceBox(box);
+    }
+
+    public void RequestSetOutputBox(NetworkIdentity npcIdentity, NetworkIdentity boxIdentity) =>
+        CmdSetOutputBox(npcIdentity, boxIdentity);
+
+    [Command]
+    private void CmdSetOutputBox(NetworkIdentity npcIdentity, NetworkIdentity boxIdentity)
+    {
+        var npcCrafting = npcIdentity != null ? npcIdentity.GetComponent<NPCCrafting>() : null;
+        if (npcCrafting == null) return;
+
+        var box = boxIdentity != null ? boxIdentity.GetComponent<StorageBox>() : null;
+        npcCrafting.SetOutputBox(box);
     }
 }

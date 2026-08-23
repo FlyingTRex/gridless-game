@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.187-dev` — must always match `GameVersion` in
+**Current version:** `0.3.188-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (22)
+
+### v0.3.188-dev — Multiplayer sub-phase 5: real NPC deposit/materials/output box Commands
+
+`NPCJobScreen` gained `RequestSetDepositContainer`/`CmdSetDepositContainer`
+(Gathering NPCs); `NPCCraftingScreen` converted to `NetworkBehaviour` and
+gained `RequestSetMaterialsBox`/`RequestSetOutputBox` (Crafting NPCs) —
+same pattern as every other Command this sub-phase: runs server-side,
+calls straight into the still-non-networked `NPCJob`/`NPCCrafting`.
+`StorageBox.prefab` already had `NetworkIdentity`.
+
+Live-testing immediately hit a real bug — a `NullReferenceException` in
+the callback, traced to a self-inflicted ordering mistake in both
+screens: `SetOpen(false)` (which nulls the `current` NPC field) was
+called *before* capturing `var npc = current` for the closure, so the
+callback always captured `null`. Fixed by swapping the two lines in both
+`NPCJobScreen.DrawDepositContainer` and `NPCCraftingScreen.DrawBoxRow`.
+Live-confirmed after the fix: set Wren's deposit box, zero errors.
 
 ## 2026-08-23 (21)
 

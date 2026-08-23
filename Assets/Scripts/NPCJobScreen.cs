@@ -247,8 +247,21 @@ public class NPCJobScreen : NetworkBehaviour
 
         if (GUILayout.Button("Set Deposit Container", GUILayout.Width(180)))
         {
+            var npc = current;
             SetOpen(false);
-            deposit.BeginTargeting(job.SetDepositContainer);
+            deposit.BeginTargeting(selectedBox =>
+            {
+                if (isClient && npc.TryGetComponent(out NetworkIdentity npcIdentity))
+                {
+                    NetworkIdentity boxIdentity = null;
+                    if (selectedBox != null) selectedBox.TryGetComponent(out boxIdentity);
+                    RequestSetDepositContainer(npcIdentity, boxIdentity);
+                }
+                else
+                {
+                    job.SetDepositContainer(selectedBox);
+                }
+            });
         }
     }
 
@@ -357,5 +370,18 @@ public class NPCJobScreen : NetworkBehaviour
                 return;
             }
         }
+    }
+
+    public void RequestSetDepositContainer(NetworkIdentity npcIdentity, NetworkIdentity boxIdentity) =>
+        CmdSetDepositContainer(npcIdentity, boxIdentity);
+
+    [Command]
+    private void CmdSetDepositContainer(NetworkIdentity npcIdentity, NetworkIdentity boxIdentity)
+    {
+        var npcJob = npcIdentity != null ? npcIdentity.GetComponent<NPCJob>() : null;
+        if (npcJob == null) return;
+
+        var box = boxIdentity != null ? boxIdentity.GetComponent<StorageBox>() : null;
+        npcJob.SetDepositContainer(box);
     }
 }

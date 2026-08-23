@@ -960,13 +960,26 @@ Mapped onto Gridless's actual systems:
       correctly left alone. `spawnPrefabs` now 166. Live-confirmed fixed
       via the Guarding/tool-give test above.
 
-      **Not yet started, remaining in this sub-phase**: NPC deposit-
-      container targeting (`PlayerNPCDeposit`'s point-and-confirm flow),
-      admin tools beyond the spawn-gap fix above, and the broader
-      question of whether passive vital drain (`PlayerVitals.Update()`'s
-      hunger/thirst/stamina/health ticking) needs to move server-side
-      too — not addressed by any slice so far, which have only touched
-      player-input consumption/action paths.
+      **NPC deposit/materials/output box targeting — done, same
+      session.** `NPCJobScreen` gained `RequestSetDepositContainer`
+      (Gathering NPCs); `NPCCraftingScreen` converted to
+      `NetworkBehaviour` and gained `RequestSetMaterialsBox`/
+      `RequestSetOutputBox` (Crafting NPCs) — `PlayerNPCDeposit` itself
+      (the shared point-and-confirm targeting mechanism, used by both
+      screens via a caller-supplied `Action<StorageBox>` callback)
+      needed no changes at all; only what each caller's callback does
+      with the selected box changed. Live-testing immediately caught a
+      real self-inflicted bug: both screens called `SetOpen(false)`
+      (which nulls the `current` NPC field) *before* capturing the NPC
+      reference for the Command closure — fixed by reordering. Live-
+      confirmed after the fix: set an NPC's deposit box, zero errors.
+
+      **Not yet started, remaining in this sub-phase**: admin tools
+      beyond the spawn-gap fix above, and the broader question of
+      whether passive vital drain (`PlayerVitals.Update()`'s hunger/
+      thirst/stamina/health ticking) needs to move server-side too — not
+      addressed by any slice so far, which have only touched player-
+      input consumption/action paths.
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —
