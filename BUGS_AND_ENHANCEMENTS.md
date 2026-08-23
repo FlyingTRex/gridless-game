@@ -5,6 +5,20 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## A dropped Skill Book vanished shortly after dropping (found 2026-08-22, non-reproducible, not investigated)
+
+During Multiplayer sub-phase 2 live-testing (v0.3.163-dev): Ben dropped a
+Skill Book from Inventory, saw it on the ground briefly, then it
+disappeared with no Console error. Ruled out the obvious explanation —
+`PlayerDropping`'s equipment despawn delay is 120s, not instant. Did NOT
+reproduce with a different book dropped right after, so this looks
+specific to that one book instance rather than a systemic bug — possibly
+some leftover state from earlier testing in the same long session. Likely
+unrelated to the `PlayerInventory` `NetworkBehaviour` conversion that
+prompted the test (pickup and a separate Stick drop both worked cleanly
+in the same pass). Worth a clean, isolated re-test with a fresh book if
+it recurs.
+
 ## Player naming needs a real profanity filter before multiplayer (found 2026-08-22, not started)
 
 `PlayerIdentity.cs` (built 2026-08-22, player naming) only does basic

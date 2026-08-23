@@ -5,10 +5,26 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.162-dev` — must always match `GameVersion` in
+**Current version:** `0.3.163-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (10)
+
+### v0.3.163-dev — Multiplayer Phase 3 sub-phase 2 first slice: PlayerInventory is now a NetworkBehaviour
+
+`PlayerInventory.cs` converted from `MonoBehaviour` to `NetworkBehaviour` —
+deliberately isolated to just the base-class change, no new synced state
+yet. Real complication found before writing code: Mirror doesn't natively
+sync a `ScriptableObject` reference like `ItemDefinition`, so a genuinely
+synced Inventory needs a custom `SyncList` serializer resolving items by
+string ID (the same pattern `SaveManager`/`ItemDatabase.Find(id)` already
+use), not a trivial step — logged as real follow-up work in
+`MULTIPLAYER_PLANNING.md`. Confirmed all 36 `GetComponent<PlayerInventory>()`
+call sites are simple reads, no dynamic instantiation to break. Live-tested:
+Inventory screen, pickup, and drop all work normally. See
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-22 (9)
 

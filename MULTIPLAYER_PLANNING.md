@@ -365,9 +365,31 @@ Mapped onto Gridless's actual systems:
       sub-phase 2 starts, not just reacting to the next one a playtest
       happens to surface.
 
-      **Sub-phase 2 (Inventory + Equipment) is next.**
-   2. **Inventory + Equipment** — most foundational, most-referenced state;
-      everything else reads/writes through it.
+   2. **Inventory + Equipment — first slice built and live-confirmed
+      2026-08-22.** `PlayerInventory.cs` converted from `MonoBehaviour` to
+      `NetworkBehaviour` — deliberately isolated to just the base-class
+      change, no new synced state yet, matching the same "prove the
+      foundation before building on it" discipline sub-phase 1 used.
+      Real complication surfaced before writing any code: Mirror doesn't
+      natively sync a `ScriptableObject` reference like `ItemDefinition`
+      the way it syncs primitives — a genuinely synced Inventory needs a
+      custom `SyncList` serializer that resolves items by string ID, the
+      same by-ID pattern `SaveManager`/`ItemDatabase.Find(id)` already use
+      for persistence, not a trivial mechanical step. Confirmed all 36
+      `GetComponent<PlayerInventory>()` call sites are simple reads on the
+      Player object (already has `NetworkIdentity`) — no dynamic
+      `AddComponent<PlayerInventory>()` anywhere that could break.
+      Live-tested: Inventory screen renders normally, picking up a Skill
+      Book worked, dropping a Stick worked. One non-reproducible oddity
+      (a specific already-in-inventory Skill Book vanished shortly after
+      being dropped — no Console error, didn't recur with a different
+      book) logged as a minor, likely-unrelated note in
+      `BUGS_AND_ENHANCEMENTS.md` rather than blocking here. **Still not
+      done**: the actual `SyncList`-backed Inventory data + the custom
+      ItemDefinition-by-ID serializer + converting real mutation call
+      sites (pickup, drop, equip) to the Command/validate/replicate shape
+      — this slice only proved the base class conversion is safe, it
+      hasn't networked anything yet.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
