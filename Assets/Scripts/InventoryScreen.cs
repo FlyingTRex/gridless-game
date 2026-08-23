@@ -671,8 +671,28 @@ public class InventoryScreen : MonoBehaviour
     // by runtime type instead of the 8-branch if/else chains this file used
     // to have three separate copies of (DrawInventorySection,
     // DrawEquipmentSection, and this dispatch itself, pre-2026-08-12).
+    // Multiplayer sub-phase 2 rollout (2026-08-23) -- routes through the
+    // networked Command when equipping FROM the main inventory AND the
+    // target has exactly one valid destination slot (a click has no
+    // known destination the way a drag does, so an ambiguous multi-slot
+    // item -- Canteen/NavComputer/HealthMonitor/Tool -- still needs the
+    // existing choice-popup flow below; only single-destination types get
+    // routed directly). Falls through to the original local switch for
+    // anything else (a non-main source like a worn Backpack's nested
+    // inventory, an item with no NetworkIdentity, or an ambiguous type).
     private void EquipWithChoice(IEquippable equipment, Inventory source)
     {
+        if (source == playerInventory.Inventory && equipment is Component equipmentComponent
+            && equipmentComponent.TryGetComponent<Mirror.NetworkIdentity>(out _))
+        {
+            string singleSlot = FindSingleValidSlot(equipment);
+            if (singleSlot != null)
+            {
+                playerInventory.RequestEquipInstance(equipment, singleSlot);
+                return;
+            }
+        }
+
         switch (equipment)
         {
             case Backpack backpack: backpackCarrier.Equip(backpack, source); break;
@@ -689,11 +709,41 @@ public class InventoryScreen : MonoBehaviour
         }
     }
 
+    // First sees whether every SlotOrder entry equipment.CanEquipToSlot
+    // is true for exactly once -- if so, that's an unambiguous single
+    // destination safe to route directly through the networked Command
+    // without needing the click-choice popup. Returns null for zero
+    // matches (equipment.CanEquipToSlot rejects everything -- shouldn't
+    // normally happen) or 2+ matches (a real ambiguous multi-destination
+    // type, left for the existing popup flow to resolve).
+    private string FindSingleValidSlot(IEquippable equipment)
+    {
+        string found = null;
+        foreach (var slotName in SlotOrder)
+        {
+            if (!equipment.CanEquipToSlot(slotName)) continue;
+            if (found != null) return null;
+            found = slotName;
+        }
+        return found;
+    }
+
     // Same idea as EquipWithChoice, but for a drag drop onto a specific,
     // already-known slot (no ambiguity to resolve, unlike a click) — the
     // caller (TryDrop) has already confirmed equipment.CanEquipToSlot(slotName).
+    // Multiplayer sub-phase 2 rollout (2026-08-23): routes through the
+    // networked Command unconditionally when equipping from the main
+    // inventory, since the destination slot is already known here --
+    // no ambiguity to preserve the way EquipWithChoice's click path has.
     private bool EquipToSlotDispatch(IEquippable equipment, string slotName, Inventory source)
     {
+        if (source == playerInventory.Inventory && equipment is Component equipmentComponent
+            && equipmentComponent.TryGetComponent<Mirror.NetworkIdentity>(out _))
+        {
+            playerInventory.RequestEquipInstance(equipment, slotName);
+            return true;
+        }
+
         switch (equipment)
         {
             case Backpack backpack: return backpackCarrier.Equip(backpack, source);

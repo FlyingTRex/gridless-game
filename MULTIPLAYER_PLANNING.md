@@ -654,14 +654,37 @@ Mapped onto Gridless's actual systems:
       Live-confirmed clean after the fix: equipped and unequipped a
       crafted Knife through the real UI, zero errors.
 
-      **What's left**: Equip wiring in `InventoryScreen.cs` (harder than
-      Unequip — needs to know *which* container the item is currently
-      in, since my Commands assume the main inventory as source; only
-      safe to route through the Command when that's actually true,
-      falling back to the local path otherwise) and the broader mutation
-      surface outside Inventory/Equipment (crafting, NPC deposit, admin
-      tools) — both smaller in scope than what's already shipped this
-      session.
+      **Equip wiring done too, same session.** Two entry points, wired
+      differently since they have different ambiguity shapes:
+      - `EquipToSlotDispatch` (drag onto a specific, already-known slot)
+        routes through the Command unconditionally when the source is the
+        main inventory — no ambiguity to resolve, the drag target already
+        picked the destination.
+      - `EquipWithChoice` (click-to-equip, no known destination yet) adds
+        a `FindSingleValidSlot` check first: if `equipment.CanEquipToSlot`
+        is true for exactly one `SlotOrder` entry, that's an unambiguous
+        single-destination type (Backpack, Belt, Boot, Sunglasses,
+        MiningFaceShield, Shirt, Jeans) and routes directly through the
+        Command; a genuinely ambiguous multi-destination type (Canteen,
+        NavigationComputer, PersonalHealthMonitor, Tool — `CanEquipToSlot`
+        true for 2+ slots) falls through to the existing local
+        choice-popup flow unchanged, since a click has no destination to
+        pass the Command until the player actually picks one from that
+        popup. Live-confirmed all three real player-facing paths: drag-
+        equip, single-destination click-equip, and multi-destination
+        click-equip (popup still appears and works correctly) — zero
+        errors across all three.
+
+      **Both Equip and Unequip are now real, networked UI actions for
+      the common case (main inventory ↔ any equipment slot).** What's
+      left for sub-phase 2: multi-destination click-equip stays
+      local-only (the popup's final chosen-destination step was
+      deliberately not intercepted, to avoid touching that stateful
+      popup flow this session), moving items into/out of a non-main
+      container (a worn Backpack's nested inventory, Furnace zones, NPC
+      cargo) stays local-only, and the broader mutation surface outside
+      Inventory/Equipment (crafting, NPC deposit, admin tools) is still
+      local-only — all smaller in scope than what's already shipped.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment

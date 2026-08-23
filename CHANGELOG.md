@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.172-dev` — must always match `GameVersion` in
+**Current version:** `0.3.173-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (7)
+
+### v0.3.173-dev — Multiplayer sub-phase 2: real Equip wiring done, both directions now networked
+
+`EquipToSlotDispatch` (drag onto a known slot) routes through the Command
+unconditionally from the main inventory — no ambiguity, the drag target
+already picked the destination. `EquipWithChoice` (click-to-equip) adds a
+`FindSingleValidSlot` check: an unambiguous single-destination type
+(Backpack, Belt, Boot, Sunglasses, MiningFaceShield, Shirt, Jeans) routes
+directly through the Command; a genuinely ambiguous multi-destination
+type (Canteen, NavigationComputer, PersonalHealthMonitor, Tool) falls
+through to the existing local choice-popup flow unchanged, since a click
+has no destination to pass until the player picks one. Live-confirmed all
+three real player-facing paths: drag-equip, single-destination
+click-equip, multi-destination click-equip (popup still works correctly)
+— zero errors across all three. Both Equip and Unequip are now real,
+networked UI actions for the common case (main inventory ↔ any equipment
+slot). See `MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-23 (6)
 
