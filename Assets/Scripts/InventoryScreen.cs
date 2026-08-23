@@ -729,8 +729,25 @@ public class InventoryScreen : MonoBehaviour
         }
     }
 
+    // Multiplayer sub-phase 2 rollout (2026-08-23) -- routes through
+    // PlayerInventory's networked RequestUnequipInstance Command whenever
+    // the target item actually has a NetworkIdentity (true for every
+    // equippable prefab as of the 2026-08-23 bulk pass), falling back to
+    // the original local switch below for anything that doesn't (a
+    // future addition that hasn't been converted yet, or any edge case
+    // the bulk scan missed) -- defensive, so this can't silently no-op
+    // unequip for an item the Command path doesn't recognize. Unequip
+    // needs no "which source" disambiguation the way Equip does (see
+    // EquipToSlotDispatch below) -- every carrier's own Unequip finds
+    // wherever the item currently is worn on its own.
     private void UnequipDispatch(IEquippable equipment)
     {
+        if (equipment is Component equipmentComponent && equipmentComponent.TryGetComponent<Mirror.NetworkIdentity>(out _))
+        {
+            playerInventory.RequestUnequipInstance(equipment);
+            return;
+        }
+
         switch (equipment)
         {
             case Backpack backpack: backpackCarrier.Unequip(backpack); break;

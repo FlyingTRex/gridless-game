@@ -5,10 +5,32 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.171-dev` — must always match `GameVersion` in
+**Current version:** `0.3.172-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (6)
+
+### v0.3.172-dev — Multiplayer sub-phase 2: first real UI wiring (Unequip), plus a real spawn-gap bug found and fixed
+
+`InventoryScreen.UnequipDispatch` now routes through
+`PlayerInventory.RequestUnequipInstance` whenever the target has a
+`NetworkIdentity`, falling back to the original local switch defensively
+otherwise — chosen first since Unequip needs no "which source"
+disambiguation, unlike Equip. Real gap found live during testing: only
+`PlayerDropping.SpawnPickup` had the `NetworkServer.Spawn` treatment;
+unequipping a *crafted* Knife threw "Attempted to serialize unspawned
+GameObject" since `PlayerCrafting.cs` instantiates its own equipment
+output directly, never going through `SpawnPickup`. Extracted a shared
+`NetworkSpawnHelper.SpawnIfNetworked(GameObject)` and applied it to every
+real call site that instantiates an interactable item: `PlayerDropping`
+(refactored), `PlayerCrafting` (the actual bug), `EquipmentSaveUtility`
+(save/load restore), `PlayerWriting` (written Skill Books).
+Deliberately NOT applied to `NPCEquipmentVisual`'s purely cosmetic,
+physics-disabled NPC gear display. Live-confirmed clean after the fix:
+equipped and unequipped a crafted Knife through the real UI, zero
+errors. See `MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-23 (5)
 

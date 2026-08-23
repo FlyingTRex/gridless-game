@@ -146,6 +146,7 @@ public class PlayerWriting : MonoBehaviour
     private SkillBook SpawnBook()
     {
         var instance = Instantiate(skillBookItem.worldPickupPrefab);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         var book = instance.GetComponent<SkillBook>();
 
         if (book != null && playerInventory.Inventory.AddEquipmentItem(skillBookItem, book))

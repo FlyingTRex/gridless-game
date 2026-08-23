@@ -548,6 +548,7 @@ public class PlayerCrafting : MonoBehaviour
         }
 
         var instance = Object.Instantiate(item.worldPickupPrefab);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         var equippable = instance.GetComponent<IEquippable>();
         if (!inventory.Inventory.AddEquipmentItem(item, equippable))
         {

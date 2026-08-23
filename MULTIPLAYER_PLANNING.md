@@ -623,11 +623,45 @@ Mapped onto Gridless's actual systems:
       Sub-phase 2's core sync + Command infrastructure is now proven
       across every real shape it needs, *and* both major rollout pieces
       (world pickups, all equippables) are fully done — not pilots.
-      What's left is UI wiring (`InventoryScreen.cs` still calls local
-      methods directly instead of these Commands) and the broader
-      mutation surface outside Inventory/Equipment (crafting, NPC
-      deposit, admin tools) — both smaller in scope than what's already
-      shipped this session.
+
+      **First real UI wiring done and live-confirmed: Unequip.**
+      `InventoryScreen.UnequipDispatch` now routes through
+      `PlayerInventory.RequestUnequipInstance` whenever the target item
+      has a `NetworkIdentity` (true for every equippable as of the bulk
+      pass), falling back to the original local switch defensively for
+      anything that doesn't — chosen first since Unequip needs no "which
+      source container" disambiguation the way Equip does (every
+      carrier's own `Unequip` already finds wherever the item is
+      currently worn on its own), making it the lowest-risk piece of
+      real UI wiring to convert.
+
+      **Real gap found and fixed during that test — not every
+      Instantiate-a-real-item call site had the `NetworkServer.Spawn`
+      treatment.** Only `PlayerDropping.SpawnPickup` had it originally;
+      unequipping a *crafted* Knife threw "Attempted to serialize
+      unspawned GameObject" the moment its `NetworkIdentity` got
+      referenced in a Command, since crafting instantiates its own
+      equipment output directly (`PlayerCrafting.cs`) without ever going
+      through `SpawnPickup`. Extracted the spawn-or-not check into a
+      shared `NetworkSpawnHelper.SpawnIfNetworked(GameObject)` and
+      applied it everywhere a real, interactable item instance gets
+      created: `PlayerDropping` (refactored to use it too),
+      `PlayerCrafting` (the actual bug), `EquipmentSaveUtility` (save/
+      load restore), `PlayerWriting` (a written Skill Book).
+      Deliberately NOT applied to `NPCEquipmentVisual`'s bone-parented,
+      physics-disabled NPC gear display — that's a purely cosmetic
+      clone, never independently interacted with, correctly excluded.
+      Live-confirmed clean after the fix: equipped and unequipped a
+      crafted Knife through the real UI, zero errors.
+
+      **What's left**: Equip wiring in `InventoryScreen.cs` (harder than
+      Unequip — needs to know *which* container the item is currently
+      in, since my Commands assume the main inventory as source; only
+      safe to route through the Command when that's actually true,
+      falling back to the local path otherwise) and the broader mutation
+      surface outside Inventory/Equipment (crafting, NPC deposit, admin
+      tools) — both smaller in scope than what's already shipped this
+      session.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment

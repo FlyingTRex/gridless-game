@@ -40,6 +40,7 @@ public static class EquipmentSaveUtility
         if (item == null || item.worldPickupPrefab == null) return null;
 
         var instance = Object.Instantiate(item.worldPickupPrefab);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         if (!instance.TryGetComponent(out IEquippable equippable))
         {
             Object.Destroy(instance);

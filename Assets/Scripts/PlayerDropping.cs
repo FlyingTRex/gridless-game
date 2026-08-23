@@ -124,18 +124,14 @@ public class PlayerDropping : MonoBehaviour
         Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
         var spawned = Instantiate(prefab, position, Quaternion.identity);
 
-        // Multiplayer Phase 3 sub-phase 2 pilot (2026-08-23) -- a prefab
-        // carrying a NetworkIdentity (currently only
-        // MasterworkLeatherBackpackPickup, proving the pattern before
-        // it's applied to every other equippable/pickup prefab) needs to
-        // be spawned through the network, not just locally Instantiate'd,
-        // or it never gets a valid netId and can't be referenced by any
-        // future Command. Guarded by NetworkServer.active since this
-        // method can run from a context with no active server (shouldn't
-        // happen given NetworkAutoHost, but a plain Instantiate is a
-        // strictly safer fallback than throwing).
-        if (spawned.TryGetComponent<NetworkIdentity>(out _) && NetworkServer.active)
-            NetworkServer.Spawn(spawned);
+        // Multiplayer Phase 3 sub-phase 2 (2026-08-23) -- a prefab
+        // carrying a NetworkIdentity needs to be spawned through the
+        // network, not just locally Instantiate'd, or it never gets a
+        // valid netId and can't be referenced by any Command. See
+        // NetworkSpawnHelper.cs -- every other Instantiate-a-real-item
+        // call site (crafting output, save/load restore, a written skill
+        // book) needs this same treatment, not just world drops.
+        NetworkSpawnHelper.SpawnIfNetworked(spawned);
 
         if (spawned.TryGetComponent(out Pickup pickup))
         {
