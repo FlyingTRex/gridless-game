@@ -399,10 +399,36 @@ Mapped onto Gridless's actual systems:
       tree with it (confirms the equipped item is genuinely usable, not
       just visually shown), then unequipped it back into a worn Jeans'
       nested inventory slot. Both `PlayerInventory` and `PlayerEquipment`
-      are now `NetworkBehaviour` with solo play fully unaffected. The real
-      remaining work — the `SyncList` serializer and Command-converting
-      actual mutation call sites — is still the next, larger piece, not
-      started.
+      are now `NetworkBehaviour` with solo play fully unaffected.
+
+      **The `SyncList` serializer is now built and live-confirmed, same
+      session.** `PlayerInventory.SyncedInventorySlot` (a
+      `[Serializable] struct { string itemId; int count; }`) +
+      `SyncList<SyncedInventorySlot> syncedSlots`, resolved by string ID
+      the same way `SaveManager`/`ItemDatabase.Find(id)` already do for
+      persistence — Mirror can't natively sync a `ScriptableObject`
+      reference. **Deliberately excludes equipment-carrying slots** (a
+      worn Backpack/Canteen/etc. — a live GameObject+component, not just
+      data) — same complexity boundary `SAVE_LOAD_PLANNING.md` already
+      drew for persistence v1's "full recursive nested-equipment capture."
+      Server-side, polled from `Update()` (a change-signature string
+      comparison, not hooked into every mutation site — `Inventory` isn't
+      instrumented with change notifications and dozens of scripts mutate
+      it directly through the exposed `Inventory` property, not just
+      through `AddItem`/`RemoveItem`) rather than fully efficient, but
+      correct and low-risk for a first slice. Live-verified with a
+      temporary debug `OnGUI` (removed after confirming): picked up a
+      Potato Seed (equipment-routed Skill Book correctly excluded),
+      picked up Sticks into an equipped Backpack's own separate
+      `Inventory` (correctly NOT reflected, confirming the scope
+      boundary holds), moved them into the main inventory (correctly
+      then appeared, both `PotatoSeed x1` and `Stick x11`, right counts).
+      **Still not done**: this only broadcasts server-owned state to
+      observers — it does not yet convert `AddItem`/`RemoveItem` (or the
+      many other direct-mutation call sites) into Command-validated
+      calls, so a remote client still can't actually request an inventory
+      change themselves. That conversion, plus doing the equivalent for
+      `PlayerEquipment`'s own slot data, is the next piece.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment

@@ -5,10 +5,33 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.164-dev` — must always match `GameVersion` in
+**Current version:** `0.3.165-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (12)
+
+### v0.3.165-dev — Multiplayer sub-phase 2: real SyncList inventory sync built and live-confirmed
+
+`PlayerInventory.SyncedInventorySlot` (a `[Serializable]` struct of
+`itemId`/`count`) + `SyncList<SyncedInventorySlot> syncedSlots`, resolved
+by string ID via `ItemDatabase` — Mirror can't natively sync a
+`ScriptableObject` reference like `ItemDefinition`. Deliberately excludes
+equipment-carrying slots (a worn Backpack/Canteen — a live object, not
+just data), the same complexity boundary `SAVE_LOAD_PLANNING.md` already
+drew for persistence v1. Polled server-side from `Update()` via a
+change-signature comparison rather than hooked into every mutation call
+site, since `Inventory` has dozens of direct mutators and no built-in
+change notification. Live-verified with a temporary debug `OnGUI`
+(removed after confirming): picked up a Potato Seed, correctly excluded
+an equipment-routed Skill Book, correctly did NOT reflect Sticks that
+landed in a separate equipped Backpack, then correctly reflected them
+once moved into the main inventory — right items, right counts every
+time. Still ahead: converting `AddItem`/`RemoveItem` and the other direct
+mutation call sites into Command-validated calls, so a remote client can
+actually request a change rather than just observe server state. See
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-22 (11)
 

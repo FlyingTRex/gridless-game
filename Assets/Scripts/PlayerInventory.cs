@@ -1,28 +1,87 @@
 using Mirror;
 using UnityEngine;
 
-// Multiplayer Phase 3 sub-phase 2 (MULTIPLAYER_PLANNING.md), first slice
+// Multiplayer Phase 3 sub-phase 2 (MULTIPLAYER_PLANNING.md). First slice
 // (2026-08-22): converted from MonoBehaviour to NetworkBehaviour as its
-// own isolated step -- no new synced state yet, purely the base-class
-// change, matching the same "prove the foundation before building on it"
-// discipline sub-phase 1's Bootstrap used. A real synced Inventory needs
-// its own custom SyncList serializer (Mirror doesn't natively sync a
-// ScriptableObject reference like ItemDefinition -- it'll need the same
-// by-string-ID resolution SaveManager/ItemDatabase.Find(id) already use
-// for persistence), which is separate, larger follow-up work, not part
-// of this step.
+// own isolated step, base-class change only. Second slice, same session:
+// a real SyncList mirroring this Inventory's plain stackable slots (item
+// resolved by string ID, same as SaveManager/ItemDatabase.Find(id) already
+// use for persistence -- Mirror doesn't natively sync a ScriptableObject
+// reference). Equipment-carrying slots (a worn Backpack/Canteen/etc., a
+// live GameObject+component, not just data) are deliberately excluded --
+// same complexity boundary SAVE_LOAD_PLANNING.md already drew for
+// persistence v1 ("full recursive nested-equipment capture" flagged as
+// its hardest, separately-scoped piece). This slice only broadcasts
+// server-owned state to observers -- it does NOT yet convert AddItem/
+// RemoveItem (or the many other call sites that mutate `Inventory`
+// directly via the exposed property) into Command-validated calls; that's
+// still ahead.
 [DisallowMultipleComponent]
 public class PlayerInventory : NetworkBehaviour
 {
+    [System.Serializable]
+    public struct SyncedInventorySlot
+    {
+        public string itemId;
+        public int count;
+    }
+
     [SerializeField] private int capacity = 4;
 
     private Inventory inventory;
 
     public Inventory Inventory => inventory;
 
+    // Server-owned, broadcast to every observer. Rebuilt from `inventory`
+    // whenever its signature changes -- polled rather than hooked into
+    // every mutation site, since `Inventory` itself isn't instrumented
+    // with change notifications and dozens of scripts mutate it directly
+    // through the exposed `Inventory` property, not just through
+    // AddItem/RemoveItem below. A known inefficiency (string-building
+    // every frame to detect changes), acceptable for this first slice;
+    // worth revisiting once real Command-driven mutation replaces most of
+    // those direct call sites anyway.
+    public readonly SyncList<SyncedInventorySlot> syncedSlots = new SyncList<SyncedInventorySlot>();
+
+    private string lastSyncedSignature = string.Empty;
+
     private void Awake()
     {
         inventory = new Inventory(capacity);
+    }
+
+    private void Update()
+    {
+        if (!isServer) return;
+
+        string signature = ComputeSignature();
+        if (signature == lastSyncedSignature) return;
+
+        lastSyncedSignature = signature;
+        RefreshSyncedSlots();
+    }
+
+    private string ComputeSignature()
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment != null) continue;
+            sb.Append(slot.item != null ? slot.item.name : "null").Append(':').Append(slot.count).Append('|');
+        }
+        return sb.ToString();
+    }
+
+    private void RefreshSyncedSlots()
+    {
+        syncedSlots.Clear();
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment != null) continue;
+            string id = ItemDatabase.Instance.IdFor(slot.item);
+            if (id == null) continue;
+            syncedSlots.Add(new SyncedInventorySlot { itemId = id, count = slot.count });
+        }
     }
 
     // Returns the amount that did NOT fit (0 means everything was added).
