@@ -5,10 +5,31 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.161-dev` — must always match `GameVersion` in
+**Current version:** `0.3.162-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (9)
+
+### v0.3.162-dev — Multiplayer Bootstrap regression fixed: player-lookup race across 4 scripts
+
+Ben caught it live: "the wolf never moved towards me." Root cause:
+`HostileCreature.Start()`, `Campfire.Start()`, `PreyWander.Awake()`, and
+`ResourceNode.Start()`'s disguised-shield-wearer lookup all shared the
+same fragile pattern — a one-shot `FindFirstObjectByType<PlayerVitals>()`/
+`PlayerMiningFaceShield` lookup, cached forever. Now that Player carries a
+`NetworkIdentity` (v0.3.161-dev), it can be transiently deactivated at the
+exact moment one of these objects' own `Awake()`/`Start()` runs, since
+Unity doesn't guarantee cross-object execution order — whichever ran
+first could permanently miss the player. Fixed uniformly: a lazy
+`ResolvePlayerTarget()`/`ResolveShieldWearer()` retry, no-op once already
+resolved, called at startup and again from `Update()` whenever still
+null. Live-confirmed fixed: a Wolf genuinely attacked and damaged the
+player, a Campfire genuinely warmed them. See `MULTIPLAYER_PLANNING.md`
+section 3 item 3 for the broader lesson — this class of bug (a one-shot
+cached player lookup) is now a latent risk anywhere else in the codebase
+too, worth a deliberate sweep before sub-phase 2 starts.
 
 ## 2026-08-22 (8)
 

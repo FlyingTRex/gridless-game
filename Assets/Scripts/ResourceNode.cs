@@ -141,14 +141,26 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
 
     private void Start()
     {
-        if (IsDisguised)
-            shieldWearer = FindFirstObjectByType<PlayerMiningFaceShield>();
+        ResolveShieldWearer();
+    }
+
+    // Retried lazily, not just once in Start() -- Player now carries a
+    // NetworkIdentity (Multiplayer Bootstrap, 2026-08-22) and can be
+    // deactivated at the moment this object's Start() runs, since
+    // cross-object Start() order isn't guaranteed. A one-shot lookup here
+    // could permanently leave a disguised node unrevealable. Cheap no-op
+    // once already resolved.
+    private void ResolveShieldWearer()
+    {
+        if (!IsDisguised || shieldWearer != null) return;
+        shieldWearer = FindFirstObjectByType<PlayerMiningFaceShield>();
     }
 
     private void Update()
     {
         if (IsDisguised)
         {
+            if (shieldWearer == null) ResolveShieldWearer();
             var material = IsRevealed ? revealedMaterial : hiddenMaterial;
             foreach (var r in renderers)
                 r.sharedMaterial = material;

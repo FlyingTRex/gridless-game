@@ -44,11 +44,21 @@ public class HostileCreature : SkinnableCreature
 
     private void Start()
     {
-        // Looked up once rather than per-frame — same reasoning as
-        // ResourceNode's shieldWearer lookup: this object isn't parented
-        // under Player, so there's no cheap direct reference. Defaults to
-        // the player; a Guard that lands a hit redirects aggro onto itself
-        // via RedirectAggro below (2026-08-16, GUARDING_PLANNING.md).
+        ResolvePlayerTarget();
+    }
+
+    // Retried lazily (not just once in Start()) -- Player now carries a
+    // NetworkIdentity (Multiplayer Bootstrap, 2026-08-22) and stays
+    // deactivated until NetworkAutoHost's own Start() calls StartHost(),
+    // which isn't guaranteed to run before this object's Start(). A
+    // one-shot lookup here could permanently miss the player and leave
+    // this creature inert forever -- found live (a Wolf that never
+    // chased). Cheap no-op once target is already set, so this costs
+    // nothing in the common case; RedirectAggro's own non-player target
+    // is left alone since it only fires when target is still null.
+    private void ResolvePlayerTarget()
+    {
+        if (target != null) return;
         var vitals = FindFirstObjectByType<PlayerVitals>();
         target = vitals != null ? vitals.transform : null;
     }
@@ -76,7 +86,9 @@ public class HostileCreature : SkinnableCreature
 
     private void Update()
     {
-        if (isDead || target == null) return;
+        if (isDead) return;
+        if (target == null) ResolvePlayerTarget();
+        if (target == null) return;
 
         attackTimer -= Time.deltaTime;
         float distance = Vector3.Distance(transform.position, target.position);

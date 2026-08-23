@@ -54,6 +54,19 @@ public class PreyWander : MonoBehaviour
         spawnPosition = transform.position;
         pauseTimer = Random.Range(pauseDurationMin, pauseDurationMax);
 
+        ResolvePlayerTarget();
+    }
+
+    // Retried lazily, not just once in Awake() -- Player now carries a
+    // NetworkIdentity (Multiplayer Bootstrap, 2026-08-22) and can still be
+    // deactivated (Mirror hides unspawned scene NetworkIdentity objects)
+    // at the moment this object's own Awake() runs, since Awake() order
+    // across different GameObjects isn't guaranteed either. A one-shot
+    // lookup here could permanently miss the player. Cheap no-op once
+    // player is already set.
+    private void ResolvePlayerTarget()
+    {
+        if (player != null) return;
         var vitals = FindFirstObjectByType<PlayerVitals>();
         player = vitals != null ? vitals.transform : null;
     }
@@ -67,6 +80,8 @@ public class PreyWander : MonoBehaviour
             enabled = false;
             return;
         }
+
+        if (player == null) ResolvePlayerTarget();
 
         bool shouldFlee = player != null
             && Vector3.Distance(transform.position, player.position) < fleeDetectionRadius;

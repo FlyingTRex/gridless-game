@@ -336,8 +336,36 @@ Mapped onto Gridless's actual systems:
       didn't fight back when attacked. `Player` is now a genuine
       `NetworkIdentity`-carrying, `NetworkTransformReliable`-synced object
       spawned/kept alive through Mirror's real server/client loop, with
-      solo play behaviorally unchanged. **Sub-phase 2 (Inventory +
-      Equipment) is next.**
+      solo play behaviorally unchanged.
+
+      **A real regression surfaced right after, caught by Ben's own sharp
+      observation ("the wolf never moved towards me") and fixed same
+      session.** `HostileCreature.Start()`, `Campfire.Start()`,
+      `PreyWander.Awake()`, and `ResourceNode.Start()`'s disguised-shield-
+      wearer lookup all shared the identical fragile pattern: a **one-shot**
+      `FindFirstObjectByType<PlayerVitals>()` (or
+      `PlayerMiningFaceShield`) lookup, caching the result forever. Now
+      that Player carries a `NetworkIdentity`, it can be transiently
+      deactivated (Mirror hides unspawned scene `NetworkIdentity` objects
+      until `NetworkAutoHost`'s own `Start()` calls `StartHost()`) at the
+      exact moment one of these other objects' own `Awake()`/`Start()`
+      runs — Unity doesn't guarantee cross-object execution order, so
+      whichever ran first could permanently miss the player and never find
+      it again. Fixed uniformly across all four: a `ResolvePlayerTarget()`/
+      `ResolveShieldWearer()` helper that's a no-op once already resolved,
+      called once at startup and again lazily from `Update()` whenever the
+      cached reference is still null — cheap in the common case, self-
+      healing in the race case. Live-confirmed fixed: a Wolf genuinely
+      attacked and damaged the player, and a lit Campfire genuinely warmed
+      them. **This is a real, generalizable lesson for the rest of
+      Phase 3**: any script anywhere in the codebase with a one-shot
+      cached `FindFirstObjectByType<PlayerXXX>()` lookup is a latent
+      landmine now that Player's activation timing is no longer
+      instantaneous-at-scene-load — worth a deliberate sweep before
+      sub-phase 2 starts, not just reacting to the next one a playtest
+      happens to surface.
+
+      **Sub-phase 2 (Inventory + Equipment) is next.**
    2. **Inventory + Equipment** — most foundational, most-referenced state;
       everything else reads/writes through it.
    3. **Crafting + Building** — depends on Inventory already being synced.

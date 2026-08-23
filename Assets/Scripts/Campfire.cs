@@ -215,6 +215,20 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
 
     private void Start()
     {
+        ResolvePlayerTarget();
+    }
+
+    // Retried lazily, not just once in Start() -- Player now carries a
+    // NetworkIdentity (Multiplayer Bootstrap, 2026-08-22) and can be
+    // deactivated at the moment this object's Start() runs (Mirror hides
+    // unspawned scene NetworkIdentity objects until NetworkAutoHost's own
+    // Start() calls StartHost(), and cross-object Start() order isn't
+    // guaranteed). A one-shot lookup here could permanently leave this
+    // Campfire unable to warm/see the player. Cheap no-op once already
+    // resolved.
+    private void ResolvePlayerTarget()
+    {
+        if (player != null) return;
         playerVitals = FindFirstObjectByType<PlayerVitals>();
         player = playerVitals != null ? playerVitals.transform : null;
         playerSkills = player != null ? player.GetComponent<PlayerSkills>() : null;
@@ -224,6 +238,8 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
 
     private void Update()
     {
+        if (player == null) ResolvePlayerTarget();
+
         if (DebugEnabled && Time.time >= nextDebugLogTime)
         {
             nextDebugLogTime = Time.time + DebugLogInterval;

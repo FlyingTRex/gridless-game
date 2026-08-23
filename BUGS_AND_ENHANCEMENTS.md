@@ -5,18 +5,6 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
-## Wolf didn't fight back when attacked (found 2026-08-22, not investigated)
-
-Noted during the Multiplayer Bootstrap live-test pass (v0.3.161-dev): Ben
-killed a Wolf bare-handed with no aggro response — it just stood there
-taking hits instead of attacking back. Likely unrelated to the
-`NetworkIdentity`/`NetworkTransformReliable` changes just landed (`Wolf`/
-`HostileCreature` isn't part of the Player prefab at all), but flagged
-here rather than assumed benign — `HostileCreature.RedirectAggro` and its
-whole aggro-targeting system have had real bugs before (see the Guarding
-saga in `CHANGELOG.md`). Worth a clean re-test against a Wolf specifically
-(not mid-multiplayer-testing) before assuming it's nothing.
-
 ## Player naming needs a real profanity filter before multiplayer (found 2026-08-22, not started)
 
 `PlayerIdentity.cs` (built 2026-08-22, player naming) only does basic
