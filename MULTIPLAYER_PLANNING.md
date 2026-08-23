@@ -773,24 +773,49 @@ Mapped onto Gridless's actual systems:
       player wouldn't see their own crafting progress bar update without
       further work. Logged, not attempted this slice.
 
-      **Building — started, same session.** `PlayerBuilding.cs` converted
+      **Building — done, same session.** `PlayerBuilding.cs` converted
       from `MonoBehaviour` to `NetworkBehaviour`, base-class change only,
       same first-slice pattern as everything else in this sub-phase. Real
       complication flagged before designing any Command: `Confirm()`
       takes a live `BuildSocket` reference — not trivially network-
       serializable the way an `ItemDefinition`/`CraftingRecipe`'s stable
-      asset name is — and handles two real flows (a fresh build:
-      ingredient consumption, `Instantiate` a new `BuildPiece` prefab,
-      `PlacedPiece`/`SaveId` setup, skill XP; and re-placing an already-
-      owned instance, e.g. a `StorageBox` pick-up-and-move, no ingredient
-      cost). Every `BuildPiece` prefab also still needs the same
-      `NetworkIdentity` + `NetworkServer.Spawn` treatment the Pickup/
-      equippable rollout gave those prefabs — not done yet. Live-
-      confirmed the base-class conversion alone is safe: placed a real
-      piece through the normal flow, correct material consumption,
-      correct placement, zero errors. Designing the actual placement
-      Command (including how to resolve/validate the socket reference
-      server-side) is real, undesigned work ahead.
+      asset name is. Live-confirmed the base-class conversion alone was
+      safe first: placed a real piece through the normal flow, correct
+      material consumption, correct placement, zero errors.
+
+      **The socket problem solved without networking a reference at
+      all**: rather than giving `BuildSocket` its own `NetworkIdentity`
+      just to pass it through a Command, the server independently
+      re-derives the exact same socket from the placement position via
+      the already-existing `FindNearbySocket(position)` — deterministic,
+      so client and server always agree without ever syncing the
+      reference itself. `RequestConfirmPlacement`/`CmdConfirmPlacement`
+      calls `Confirm(position, rotation, socket)` entirely unchanged,
+      server-side, same "reuse the real method" pattern as Crafting's
+      Command. All 32 `BuildPiece` prefabs got the bulk `NetworkIdentity`
+      + `NetworkSpawnHelper.SpawnIfNetworked` treatment (spawnPrefabs
+      127→158), and both `HandleInput()` call sites (free placement,
+      socket-snapped placement) now route through the Command instead of
+      calling `Confirm` directly.
+
+      Live-confirmed both real scenarios: free placement in open space,
+      and socket-snapped placement (a second piece placed adjacent to a
+      first). One real side effect surfaced and resolved same session:
+      giving every `BuildPiece` prefab `NetworkIdentity` meant every
+      already-*placed* instance in `TestScene.unity` (GardenPlot,
+      Foundation, Campfire, Bookshelf, Desk, every Plank/Twig piece, etc.
+      — 67 objects total) needed the scene itself resaved so Mirror could
+      assign each a valid `sceneId`; until that resave, Mirror logged one
+      `LogError` per affected object ("needs to be opened and resaved").
+      Fixed by simply resaving `TestScene.unity` in the Editor — verified
+      via a second independent batch-mode process reading `NetworkIdentity
+      .sceneId` back through Mirror's own API (Force Binary scene
+      serialization means a guid/text grep can't confirm this — see
+      CLAUDE.md's own gotcha on that): all 67 scene objects now report a
+      non-zero sceneId, zero resave warnings on a fresh check. Crafting +
+      Building are both now functionally complete for sub-phase 3's core
+      loop; the one deferred gap is Crafting's progress-display sync
+      (above), nothing new for Building.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
       player-side inputs, admin tools.

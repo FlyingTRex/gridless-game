@@ -17,25 +17,24 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.178-dev is merged
+Nothing in progress right now — everything through v0.3.179-dev is merged
 to origin/main. Multiplayer Phase 3 sub-phases 1 (Bootstrap) and 2
 (Inventory + Equipment) are fully done - see MULTIPLAYER_PLANNING.md for
-the full list of what shipped. Sub-phase 3 (Crafting + Building): the
-Crafting half has a real working Command
-(RequestStartCraft/CmdStartCraft reuses StartCraft unchanged server-side,
-output rides PlayerInventory.syncedSlots for free, live-confirmed with a
-real multi-item batch). One known deferred gap: crafting progress
-display isn't synced to a remote client yet. Building just started:
-PlayerBuilding.cs is now a NetworkBehaviour (base-class conversion only,
-live-confirmed safe - placed a real piece, correct materials/placement,
-zero errors). Real complication flagged before designing a Command:
-Confirm() takes a live BuildSocket reference (not trivially network-
-serializable) and handles two flows (fresh build vs. re-placing an
-already-owned instance); every BuildPiece prefab also still needs
-NetworkIdentity + NetworkServer.Spawn, not done yet. See
-`CHANGELOG.md`'s v0.3.178-dev entry and `MULTIPLAYER_PLANNING.md`
-section 3 item 3 sub-phase 3 for full detail — pick up there next time
-rather than re-deriving the state.
+the full list of what shipped. Sub-phase 3 (Crafting + Building) is now
+functionally complete for the core loop: Crafting has a real working
+Command (RequestStartCraft/CmdStartCraft reuses StartCraft unchanged
+server-side, output rides PlayerInventory.syncedSlots for free) and
+Building has a real working Command (RequestConfirmPlacement/
+CmdConfirmPlacement — the server re-derives the BuildSocket from the
+placement position via FindNearbySocket instead of networking a live
+reference; all 32 BuildPiece prefabs got NetworkIdentity, spawnPrefabs
+127->158). Both live-confirmed: multi-item craft batch, plus free
+placement and socket-snapped placement. One known deferred gap:
+crafting progress display isn't synced to a remote client yet - logged,
+not attempted. Next up in the multiplayer conversion: sub-phase 4
+(Magic + Combat), not started. See `CHANGELOG.md`'s v0.3.179-dev entry
+and `MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 3 for full
+detail — pick up there next time rather than re-deriving the state.
 
 Reminder for whoever picks this back up: the overall Multiplayer
 conversion was always scoped as multi-week (48 PlayerXXX.cs scripts

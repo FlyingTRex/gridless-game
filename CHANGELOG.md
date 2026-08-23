@@ -5,10 +5,46 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.178-dev` — must always match `GameVersion` in
+**Current version:** `0.3.179-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (13)
+
+### v0.3.179-dev — Multiplayer sub-phase 3: real Building placement Command, Crafting + Building both functionally complete
+
+Building's placement Command, the real work flagged as undesigned in the
+previous entry: `Confirm()`'s live `BuildSocket` reference doesn't need
+networking at all — the server independently re-derives the exact same
+socket from the placement position via the already-existing
+`FindNearbySocket(position)`, deterministic on both sides. `Request
+ConfirmPlacement`/`CmdConfirmPlacement` calls `Confirm(position, rotation,
+socket)` entirely unchanged, server-side, same "reuse the real method"
+shape as Crafting's Command. All 32 `BuildPiece` prefabs got the bulk
+`NetworkIdentity` + `NetworkSpawnHelper.SpawnIfNetworked` treatment
+(spawnPrefabs 127→158). Both `HandleInput()` call sites (free placement,
+socket-snapped placement) now route through the Command. Live-confirmed
+both scenarios working.
+
+One real side effect from the bulk `NetworkIdentity` pass, found and fixed
+same session: every already-*placed* `BuildPiece` instance already sitting
+in `TestScene.unity` (GardenPlot, Foundation, Campfire, Bookshelf, Desk,
+every Plank/Twig piece — 67 objects) needed the scene itself resaved so
+Mirror could assign each a valid `sceneId`, or Mirror logs a real
+`LogError` per affected object at scene-process time. Fixed by resaving
+`TestScene.unity`; verified via a second independent batch-mode process
+reading `NetworkIdentity.sceneId` back through Mirror's own API (this
+scene uses Force Binary serialization, so a guid/text grep can't confirm
+an object-reference fix here — see `CLAUDE.md`'s own gotcha on that). All
+67 objects now report a valid sceneId, zero resave warnings on a fresh
+check.
+
+Multiplayer sub-phase 3 (Crafting + Building) is now functionally
+complete for the core gameplay loop — one deferred gap remains (Crafting's
+progress-bar display doesn't sync to a remote client yet, logged in
+`MULTIPLAYER_PLANNING.md`). See that doc, section 3 item 3 sub-phase 3,
+for full detail.
 
 ## 2026-08-23 (12)
 

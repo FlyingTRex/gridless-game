@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 2846094467261740669}
   - component: {fileID: 5774354597008704823}
   - component: {fileID: 4557649749536695791}
+  - component: {fileID: 4237870541318708908}
   m_Layer: 0
   m_Name: PlankHalfWallPiece
   m_TagString: Untagged
@@ -72,6 +73,23 @@ NavMeshObstacle:
   m_CarveOnlyStationary: 0
   m_Center: {x: 0, y: 1.3433433, z: 0}
   m_TimeToStationary: 0.5
+--- !u!114 &4237870541318708908
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 706497576379379151}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 0
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!1 &5236886428327467881
 GameObject:
   m_ObjectHideFlags: 0

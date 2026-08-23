@@ -490,7 +490,7 @@ public class PlayerBuilding : NetworkBehaviour
             {
                 if (snappedSocket != null)
                 {
-                    Confirm(ghost.transform.position, ghost.transform.rotation, snappedSocket);
+                    RequestConfirmPlacement(ghost.transform.position, ghost.transform.rotation);
                 }
                 else
                 {
@@ -512,9 +512,34 @@ public class PlayerBuilding : NetworkBehaviour
 
             if (mouse.leftButton.wasPressedThisFrame)
             {
-                Confirm(lockedPosition, lockedRotation, null);
+                RequestConfirmPlacement(lockedPosition, lockedRotation);
             }
         }
+    }
+
+    // Multiplayer sub-phase 3, second slice (2026-08-23) -- the real
+    // placement Command. Doesn't network the socket reference at all:
+    // FindNearbySocket(position) is a self-contained, deterministic
+    // function (armedPiece/armedSocketTypes + world BuildSocket state +
+    // position), so the server independently re-derives the exact same
+    // socket the client found during aiming, rather than trying to
+    // network a live BuildSocket reference. Correctly returns null for a
+    // free-placement confirm too, since that path only exists because no
+    // compatible socket was in range at that position to begin with.
+    // armedPiece itself is NOT yet synced from client to server -- a
+    // known gap invisible in solo host-alone testing (client and server
+    // share the same field there), real work needed for a genuine
+    // remote client to arm a piece the server also knows about.
+    public void RequestConfirmPlacement(Vector3 position, Quaternion rotation)
+    {
+        CmdConfirmPlacement(position, rotation);
+    }
+
+    [Command]
+    private void CmdConfirmPlacement(Vector3 position, Quaternion rotation)
+    {
+        var socket = FindNearbySocket(position);
+        Confirm(position, rotation, socket);
     }
 
     private void Confirm(Vector3 position, Quaternion rotation, BuildSocket socket)
@@ -580,6 +605,7 @@ public class PlayerBuilding : NetworkBehaviour
 
             RemoveIngredients(armedPiece);
             real = Instantiate(armedPiece.prefab, position, rotation);
+            NetworkSpawnHelper.SpawnIfNetworked(real);
             real.AddComponent<PlacedPiece>().Piece = armedPiece;
             // RequireComponent's auto-added SaveId doesn't reliably fire Reset()
             // when triggered by a runtime AddComponent call (same gotcha
