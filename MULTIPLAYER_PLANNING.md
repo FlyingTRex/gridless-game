@@ -831,14 +831,32 @@ Mapped onto Gridless's actual systems:
       Live-confirmed: punched a Wolf to death through the real Command,
       correct damage, zero errors.
 
-      **Not yet started**: `PlayerRangedCombat` (Bow/Arrow) — real
-      complication flagged, not solved: arrow consumption reads/writes an
-      equipment hand slot's *stack count*, and `PlayerEquipment
-      .syncedSlots` only syncs *which item* occupies a slot, not how many
-      — a real gap for a remote client seeing their own arrow count tick
-      down, separate from (but same shape as) Crafting's already-deferred
-      progress-sync gap. `PlayerMagic` (wishes) — `TryWish` mutates Will/
-      skill XP and rolls a success chance; those need the same
+      **Ranged — done, same session.** `PlayerRangedCombat` converted to
+      `NetworkBehaviour`; `RequestFireArrow`/`CmdFireArrow` mirrors
+      melee's split exactly — client resolves aim raycast/spread/draw-
+      fraction/target locally, server re-derives the equipped bow/arrow
+      off real `PlayerEquipment` data, consumes the arrow, computes
+      damage. Same known deferred gap as before: arrow-stack *count*
+      still isn't synced to a remote client (`PlayerEquipment
+      .syncedSlots` tracks which item, not how many), unchanged from the
+      original design note.
+
+      **Live-testing found a real bug — not in the new Command, in the
+      earlier creature `NetworkIdentity` sweep's coverage.** 40+ arrows
+      into a Deer did nothing; root cause was `Deer_001` and (audited at
+      the same time) `Chicken_001` both being real, functioning
+      `PreyCreature` instances living outside `Assets/Prefabs/` (under
+      the third-party `Assets/ithappy/Animals_FREE/Prefabs/` folder), so
+      the earlier Wolf/Rabbit/Pig/NPCFactoryWorker sweep's path-scoped
+      search missed them entirely — arrows fired/consumed correctly, but
+      the raycast's resolved hit target had no `NetworkIdentity` for the
+      Command to damage. Fixed (spawnPrefabs 162→164), and audited every
+      `PreyCreature`/`HostileCreature`/`NPCVitals` instance actually
+      placed in the scene (13 total, all now covered) to rule out a
+      third gap rather than stopping at the two reported.
+
+      **Not yet started**: `PlayerMagic` (wishes) — `TryWish` mutates
+      Will/skill XP and rolls a success chance; needs the same
       server-authority treatment as `StartCraft`, but `PlayerInteraction`
       (where `HandleWish` actually calls it) is a large, central script
       not yet touched by this conversion at all — converting it is real,

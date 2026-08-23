@@ -5,10 +5,44 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.180-dev` — must always match `GameVersion` in
+**Current version:** `0.3.181-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (15)
+
+### v0.3.181-dev — Multiplayer sub-phase 4: real Ranged Command, plus 2 creatures the earlier sweep missed
+
+`PlayerRangedCombat` converted to `NetworkBehaviour`; `RequestFireArrow`/
+`CmdFireArrow` mirrors melee's split exactly — client resolves the aim
+raycast/spread/draw-fraction/target locally (all only knowable client-
+side), server re-derives the equipped bow/arrow off real `PlayerEquipment`
+data, consumes the arrow, and computes damage, same trust boundary as
+`PlayerCombat`'s Command. `SpawnFlightVisual` stays purely client-side
+cosmetic, unchanged.
+
+**Live-testing found a real bug, not in the new code — a gap in the
+earlier creature `NetworkIdentity` sweep.** Traskmi/Ben fired 40+ arrows
+at a Deer with no kill; investigation found `Deer_001` (and, audited at
+the same time, `Chicken_001`) are both real, functioning `PreyCreature`
+instances that simply live outside `Assets/Prefabs/` — under the
+third-party `Assets/ithappy/Animals_FREE/Prefabs/` folder — so the
+Wolf/Rabbit/Pig/NPCFactoryWorker sweep's path-scoped search never found
+them. Their arrows were firing and consuming correctly (matches the "range
+is sort of working" report) but doing zero damage, since the raycast's
+resolved target had no `NetworkIdentity` for the Command to apply damage
+to. Fixed by adding `NetworkIdentity` to both prefabs (spawnPrefabs
+162→164) and auditing every `PreyCreature`/`HostileCreature`/`NPCVitals`
+instance actually placed in `TestScene.unity` (13 total) to confirm
+zero remaining gaps — not just fixing the two found, but checking there
+wasn't a third. Verified via the same independent-process sceneId read as
+prior slices: 80 total scene `NetworkIdentity` objects, zero missing
+sceneIds.
+
+Sub-phase 4's Ranged half is now functionally complete pending a live
+retest against Deer with real arrows. Magic (wishes) is still the one
+untouched piece — see `MULTIPLAYER_PLANNING.md`.
 
 ## 2026-08-23 (14)
 

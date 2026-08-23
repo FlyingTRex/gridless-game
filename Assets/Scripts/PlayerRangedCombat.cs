@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -13,11 +14,26 @@ using UnityEngine.InputSystem;
 // item or two-handed equip system was needed. PlayerCombat.cs itself
 // gates out punching whenever a ranged weapon is held, so the two
 // scripts never both react to the same click.
+//
+// Multiplayer Phase 3 sub-phase 4, 2026-08-23: converted to
+// NetworkBehaviour, same shape as PlayerCombat's melee Command. The
+// client still resolves the aim raycast/target locally (spread, draw
+// fraction, camera transform are all only known client-side), then
+// RequestFireArrow/CmdFireArrow re-derives the equipped bow/arrow, the
+// damage formula, and the arrow consumption entirely server-side off
+// real PlayerEquipment/PlayerSkills data — the client only ever tells
+// the server *what it hit*, never *how much damage it did*, same trust
+// boundary as melee. SpawnFlightVisual stays a pure client-side cosmetic
+// call, same as before (the hit already resolved via the Command by the
+// time the visual plays). Known deferred gap: the consumed arrow's
+// remaining stack *count* doesn't sync to a remote client today --
+// PlayerEquipment.syncedSlots only tracks which item occupies a slot, not
+// how many, same shape as Crafting's already-deferred progress-sync gap.
 [RequireComponent(typeof(PlayerInteraction))]
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerEquipment))]
 [RequireComponent(typeof(PlayerBuilding))]
-public class PlayerRangedCombat : MonoBehaviour
+public class PlayerRangedCombat : NetworkBehaviour
 {
     private const float DrawTimeSeconds = 1.2f;
     private const float BaseRange = 25f;
@@ -128,13 +144,6 @@ public class PlayerRangedCombat : MonoBehaviour
 
         cooldownRemaining = BaseCooldown * (1f - dexterity / 100f * 0.5f);
 
-        // Consume 1 arrow from the exact hand slot it came from — if the
-        // stack was already gone by release time (dragged away mid-draw,
-        // edge case), the shot still goes on cooldown but doesn't fire.
-        var arrowSlot = equipment.GetSlot(arrowHand);
-        if (arrowSlot == null || !arrowSlot.RemoveItem(arrow, 1))
-            return;
-
         float heldTime = Time.time - drawStartTime;
         float maxDraw = 0.5f + 0.5f * (strength / 100f);
         float drawFraction = Mathf.Clamp01(Mathf.Min(heldTime / DrawTimeSeconds, maxDraw));
@@ -142,29 +151,60 @@ public class PlayerRangedCombat : MonoBehaviour
         var camera = interaction.PlayerCamera;
         if (camera == null) return;
 
-        float baseDamage = Random.Range(BaseDamageMin, BaseDamageMax);
-        float damage = (baseDamage + arrow.EffectiveArrowDamageBonus + CraftTierScale.BowDamageBonus(bow.tier)) * drawFraction;
         float range = BaseRange * drawFraction;
         float spread = CraftTierScale.ArrowAccuracySpreadDegrees(arrow.tier) * (1f - dexterity / 100f * 0.3f);
 
         Vector3 direction = ApplySpread(camera.transform.forward, Mathf.Max(spread, 0f));
 
+        // Client resolves what got hit (aim/spread/range are only known
+        // client-side); the server decides how much damage it did and
+        // whether the arrow is actually there to consume, same trust
+        // boundary PlayerCombat's melee Command uses.
         Vector3 endPoint;
+        NetworkIdentity targetIdentity = null;
         if (Physics.Raycast(camera.transform.position, direction, out var hit, range))
         {
             endPoint = hit.point;
-            var target = hit.collider.GetComponentInParent<IDamageable>();
-            target?.TakeDamage(damage);
+            targetIdentity = hit.collider.GetComponentInParent<NetworkIdentity>();
         }
         else
         {
             endPoint = camera.transform.position + direction * range;
         }
 
+        if (isClient)
+            RequestFireArrow(arrowHand, targetIdentity, drawFraction);
+
         SpawnFlightVisual(camera.transform.position, endPoint);
 
         var animator = bodyModel != null ? bodyModel.ActiveAnimator : null;
         animator?.SetTrigger(ReleaseBowParam);
+    }
+
+    public void RequestFireArrow(string arrowHand, NetworkIdentity targetIdentity, float drawFraction)
+    {
+        CmdFireArrow(arrowHand, targetIdentity, drawFraction);
+    }
+
+    [Command]
+    private void CmdFireArrow(string arrowHand, NetworkIdentity targetIdentity, float drawFraction)
+    {
+        var (bow, arrow, resolvedHand) = GetEquippedBowAndArrow();
+        if (bow == null || arrow == null || resolvedHand != arrowHand) return;
+
+        // Consume 1 arrow from the exact hand slot it came from — if the
+        // stack was already gone by release time (dragged away mid-draw,
+        // edge case), the shot still goes on cooldown but doesn't fire.
+        var arrowSlot = equipment.GetSlot(arrowHand);
+        if (arrowSlot == null || !arrowSlot.RemoveItem(arrow, 1))
+            return;
+
+        float baseDamage = Random.Range(BaseDamageMin, BaseDamageMax);
+        float damage = (baseDamage + arrow.EffectiveArrowDamageBonus + CraftTierScale.BowDamageBonus(bow.tier))
+            * Mathf.Clamp01(drawFraction);
+
+        if (targetIdentity != null)
+            targetIdentity.GetComponent<IDamageable>()?.TakeDamage(damage);
 
         if (archerySkill != null)
             skills.GainExperience(archerySkill, archerySkillGain);
