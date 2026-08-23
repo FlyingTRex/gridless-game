@@ -5,10 +5,46 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.181-dev` — must always match `GameVersion` in
+**Current version:** `0.3.182-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (16)
+
+### v0.3.182-dev — Multiplayer sub-phase 4 complete: real Magic (wish) Command
+
+`PlayerInteraction` converted to `NetworkBehaviour`, plus a real
+`RequestWish`/`CmdWish` Command covering wish completion specifically
+(ordinary E/F `IInteractable` interactions stay local-only — a much
+larger surface out of scope for this slice, most of which doesn't
+mutate shared authoritative state the way a wish does). Same
+client-resolves-target/server-decides-outcome split as every other
+Command this sub-phase: `ResolveWishTarget`'s raycasting stays entirely
+client-side (aim is only known there), the Command carries the wish's
+stable asset name (`magic.IdForWish`, same by-name resolution
+`CraftingRecipe` already uses) plus the resolved target's
+`NetworkIdentity` (re-derived server-side into a real `IWishTarget`/
+`Rigidbody`, never trusted directly) and the push direction (client-only
+camera forward, same trust level as `PlayerRangedCombat`'s aim
+direction). `PlayerMagic.TryWish` — Will spend, skill XP, the success
+roll — now genuinely runs server-side. Campfire (the only `IWishTarget`
+in the project) already had `NetworkIdentity` from the earlier
+`BuildPiece` sweep, so no new creature/prefab pass was needed this time.
+
+Live-confirmed: cast Heal Self, wish succeeded, real healing applied.
+**Multiplayer sub-phase 4 (Magic + Combat) is now fully complete** —
+melee, ranged, and magic all have real server-authoritative Commands.
+
+One real UI bug found during this test, logged rather than chased live
+(`BUGS_AND_ENHANCEMENTS.md`): an empty hold-progress bar got stuck on
+screen after the Heal Self cast, persisting even after releasing every
+key and looking away from everything, until pressing E again cleared
+it. Shape matches `PlayerInteraction.DrawHoldBar` (the ordinary E-hold
+bar), but not yet confirmed whether it's a real regression from
+tonight's `PlayerInteraction` conversion or a pre-existing bug that
+happened to surface now — needs an isolated repro with debug logging,
+not attempted this session.
 
 ## 2026-08-23 (15)
 

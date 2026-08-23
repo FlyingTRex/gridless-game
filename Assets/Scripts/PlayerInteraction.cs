@@ -1,11 +1,27 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+// Multiplayer Phase 3 sub-phase 4, 2026-08-23: converted to
+// NetworkBehaviour, plus a real RequestWish/CmdWish Command covering the
+// wish-completion half of this script only (E/F ordinary IInteractable
+// interactions stay local-only for now — a much larger surface, most of
+// which already resolves through their own object's own Command where one
+// exists, out of scope for this slice). Same client-resolves-target/
+// server-decides-outcome split as every other Command this sub-phase:
+// the client already does all of ResolveWishTarget's raycasting (aim is
+// only known client-side), so the Command just carries the wish's stable
+// asset name (magic.IdForWish, same by-name resolution CraftingRecipe
+// already uses) plus the resolved target's NetworkIdentity (re-derived
+// server-side into a real IWishTarget/Rigidbody, never trusted directly)
+// and the push direction (client-only camera forward, same trust level as
+// PlayerRangedCombat's aim direction). magic.TryWish itself — Will spend,
+// skill XP, success roll — now genuinely runs server-side.
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerVitals))]
 [RequireComponent(typeof(PlayerMagic))]
-public class PlayerInteraction : MonoBehaviour
+public class PlayerInteraction : NetworkBehaviour
 {
     [SerializeField] private Camera playerCamera;
     [SerializeField] private float interactRange = 3f;
@@ -236,29 +252,18 @@ public class PlayerInteraction : MonoBehaviour
             wishHoldProgress += Time.deltaTime;
             if (wishHoldProgress >= skills.GetHoldDuration(currentWish.lineage))
             {
-                bool succeeded = magic.TryWish(currentWish);
-
-                // Dispatch explicitly on targeting mode, not on whether
-                // currentWishTarget happens to be null — Unconditional
-                // wishes have no target object either, but aren't Push.
-                if (currentWishTarget != null)
+                if (isClient)
                 {
-                    currentWishTarget.OnWishComplete(gameObject, succeeded);
+                    Vector3 pushDirection = playerCamera != null ? playerCamera.transform.forward : transform.forward;
+                    // currentWishGameObject is a sentinel (this player's own
+                    // GameObject) for Unconditional wishes, not a real
+                    // world target — don't send its NetworkIdentity along,
+                    // the server already knows the wish's targeting mode.
+                    GameObject targetGameObject = currentWish.targeting == WishTargeting.Unconditional
+                        ? null
+                        : currentWishGameObject;
+                    RequestWish(currentWish, targetGameObject, pushDirection);
                 }
-                else if (currentWish.targeting == WishTargeting.AnyRigidbody
-                    && succeeded && currentWishGameObject.TryGetComponent(out Rigidbody rb))
-                {
-                    rb.AddForce(playerCamera.transform.forward * pushForce, ForceMode.Impulse);
-                }
-                else if (currentWish.targeting == WishTargeting.Unconditional
-                    && succeeded && currentWish == healSelfWish)
-                {
-                    vitals.StartHealOverTime(healSelfAmount, healSelfDuration);
-                }
-                // Any other Unconditional wish: succeeded/failed still
-                // resolves through TryWish above (Will spent, skill trained,
-                // message shown on failure) — just no visible effect until
-                // it gets its own case here, same as Heal Self just did.
 
                 wishHoldProgress = 0f;
             }
@@ -267,6 +272,47 @@ public class PlayerInteraction : MonoBehaviour
         {
             wishHoldProgress = 0f;
         }
+    }
+
+    public void RequestWish(WishRecipe wish, GameObject targetGameObject, Vector3 pushDirection)
+    {
+        NetworkIdentity targetIdentity = null;
+        if (targetGameObject != null) targetGameObject.TryGetComponent(out targetIdentity);
+        CmdWish(magic.IdForWish(wish), targetIdentity, pushDirection);
+    }
+
+    [Command]
+    private void CmdWish(string wishId, NetworkIdentity targetIdentity, Vector3 pushDirection)
+    {
+        var wish = magic.FindWish(wishId);
+        if (wish == null) return;
+
+        bool succeeded = magic.TryWish(wish);
+        GameObject targetGameObject = targetIdentity != null ? targetIdentity.gameObject : null;
+
+        // Same targeting-mode dispatch HandleWish used to do locally, just
+        // re-derived server-side off the target's real NetworkIdentity
+        // instead of trusting a client-resolved IWishTarget/Rigidbody
+        // reference directly.
+        if (wish.targeting == WishTargeting.SpecificObject && targetGameObject != null)
+        {
+            var wishable = targetGameObject.GetComponentInParent<IWishTarget>();
+            if (wishable != null && wishable.GetWish(magic) == wish)
+                wishable.OnWishComplete(gameObject, succeeded);
+        }
+        else if (wish.targeting == WishTargeting.AnyRigidbody && succeeded
+            && targetGameObject != null && targetGameObject.TryGetComponent(out Rigidbody rb))
+        {
+            rb.AddForce(pushDirection * pushForce, ForceMode.Impulse);
+        }
+        else if (wish.targeting == WishTargeting.Unconditional && succeeded && wish == healSelfWish)
+        {
+            vitals.StartHealOverTime(healSelfAmount, healSelfDuration);
+        }
+        // Any other Unconditional wish: succeeded/failed still resolves
+        // through TryWish above (Will spent, skill trained, message shown
+        // on failure) — just no visible effect until it gets its own case
+        // here, same as Heal Self just did.
     }
 
     private const float BarWidth = 200f;

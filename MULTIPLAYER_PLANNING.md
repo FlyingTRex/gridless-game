@@ -855,12 +855,28 @@ Mapped onto Gridless's actual systems:
       placed in the scene (13 total, all now covered) to rule out a
       third gap rather than stopping at the two reported.
 
-      **Not yet started**: `PlayerMagic` (wishes) — `TryWish` mutates
-      Will/skill XP and rolls a success chance; needs the same
-      server-authority treatment as `StartCraft`, but `PlayerInteraction`
-      (where `HandleWish` actually calls it) is a large, central script
-      not yet touched by this conversion at all — converting it is real,
-      undesigned work, not a small addition to `PlayerMagic` alone.
+      **Magic — done, same session. Sub-phase 4 is now fully complete.**
+      `PlayerInteraction` converted to `NetworkBehaviour`, plus a real
+      `RequestWish`/`CmdWish` Command covering wish completion
+      specifically (ordinary E/F `IInteractable` interactions stay
+      local-only — a much larger surface out of scope here, most of
+      which doesn't mutate shared authoritative state the way a wish
+      does). Same client-resolves-target/server-decides-outcome split:
+      `ResolveWishTarget`'s raycasting stays client-side, the Command
+      carries the wish's stable name (`magic.IdForWish`) plus the
+      target's `NetworkIdentity` (re-derived into a real `IWishTarget`/
+      `Rigidbody` server-side) and the push direction. `PlayerMagic
+      .TryWish` (Will spend, skill XP, success roll) now genuinely runs
+      server-side. Campfire (the only `IWishTarget` in the project)
+      already had `NetworkIdentity` from the Building sweep, so no new
+      prefab pass was needed. Live-confirmed: cast Heal Self, wish
+      succeeded, real healing applied.
+
+      One real UI bug surfaced during this test and was logged rather
+      than chased live (`BUGS_AND_ENHANCEMENTS.md`) — a stuck empty
+      hold-progress bar, shape matching `PlayerInteraction.DrawHoldBar`,
+      cause not yet confirmed (possible regression from this slice's
+      conversion, or pre-existing).
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
       player-side inputs, admin tools.
    Sub-phase 5 not yet started.

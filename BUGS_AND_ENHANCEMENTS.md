@@ -5,6 +5,30 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## A hold-progress bar got stuck on screen after casting Heal Self (found 2026-08-23, not investigated)
+
+During Multiplayer sub-phase 4 live-testing (v0.3.181-dev+, right after
+confirming the new Magic Command — Heal Self itself worked correctly),
+an empty progress-bar outline (no visible fill) appeared on screen and
+stayed there persistently — confirmed by Ben to remain even after
+releasing every key and looking away from any object entirely, ruling
+out "just a real in-progress E-hold on some interactable." No Bow was
+being drawn at the time (ruled out `PlayerRangedCombat`'s own draw bar,
+same `GUI.Box` look). Pressing E again (while a Bow happened to be
+equipped but not in use) made the bar disappear. Shape matches
+`PlayerInteraction.DrawHoldBar` (the ordinary E-hold progress bar for
+non-instant `IInteractable`s like chopping/mining), but the exact
+mechanism wasn't traced — `ResolveTarget()` resets `current` to null
+unconditionally at the top of every `Update()`, so a naive read of the
+code doesn't obviously explain a bar that survives looking away. Not
+yet confirmed whether this is a real regression from `PlayerInteraction`
+being converted to a `NetworkBehaviour` + gaining the `RequestWish`/
+`CmdWish` Command in the same session, or a pre-existing bug that just
+happened to surface during this test. Needs a clean, isolated repro
+(cast a wish with nothing else touched, watch for the bar) with debug
+logging in `OnGUI`/`ResolveTarget` to nail down the exact state
+(`current`, `holdProgress`) when it appears.
+
 ## A dropped Skill Book vanished shortly after dropping (found 2026-08-22, non-reproducible, not investigated)
 
 During Multiplayer sub-phase 2 live-testing (v0.3.163-dev): Ben dropped a

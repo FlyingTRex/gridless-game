@@ -17,26 +17,18 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.181-dev is merged
-to origin/main. Multiplayer Phase 3 sub-phases 1 (Bootstrap), 2
-(Inventory + Equipment), and 3 (Crafting + Building) are fully done - see
-MULTIPLAYER_PLANNING.md for the full list of what shipped. Sub-phase 4
-(Magic + Combat): melee and ranged are both done. Melee: PlayerCombat is
-a NetworkBehaviour with a real RequestPunch/CmdPunch Command; live-
-confirmed punching a Wolf to death. Ranged: PlayerRangedCombat is a
-NetworkBehaviour with a real RequestFireArrow/CmdFireArrow Command, same
-client-resolves-aim/server-resolves-damage split as melee. Live testing
-of Ranged found a real bug (not in the new Command) - Deer_001 and
-Chicken_001 both live outside Assets/Prefabs/ (third-party ithappy
-folder) so the earlier creature NetworkIdentity sweep missed them
-entirely; fixed, and audited all 13 real creature instances in the scene
-to rule out a third gap. spawnPrefabs now 164. Not yet retested live
-against Deer with the fix in. Not yet started: PlayerMagic/wishes
-(TryWish needs the same server-authority treatment as StartCraft, but
-HandleWish lives in PlayerInteraction, a large central script not yet
-touched by this conversion at all). See `CHANGELOG.md`'s v0.3.181-dev
-entry and `MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 4 for
-full detail — pick up there next time rather than re-deriving the state.
+Nothing in progress right now — everything through v0.3.182-dev is merged
+to origin/main. Multiplayer Phase 3 sub-phases 1-4 (Bootstrap; Inventory
++ Equipment; Crafting + Building; Magic + Combat) are ALL fully done -
+see MULTIPLAYER_PLANNING.md for the full list of what shipped. Only
+sub-phase 5 (everything else - vitals, skills, NPC hiring/job-assignment
+player-side inputs, admin tools) remains before "NPCs move server-side"
+and the persistence restructure. One real UI bug found live and logged
+to BUGS_AND_ENHANCEMENTS.md rather than chased same-session: a stuck
+empty hold-progress bar after casting Heal Self, cause not yet
+confirmed. See `CHANGELOG.md`'s v0.3.182-dev entry and
+`MULTIPLAYER_PLANNING.md` section 3 item 3 for full sub-phase 1-4 detail
+— pick up sub-phase 5 next time rather than re-deriving the state.
 
 Reminder for whoever picks this back up: the overall Multiplayer
 conversion was always scoped as multi-week (48 PlayerXXX.cs scripts
