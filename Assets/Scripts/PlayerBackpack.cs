@@ -1,8 +1,18 @@
+using Mirror;
 using UnityEngine;
 
+// Multiplayer Phase 3 sub-phase 2 pilot (MULTIPLAYER_PLANNING.md,
+// 2026-08-23): converted to NetworkBehaviour, base-class change, plus a
+// real equip/unequip Command below -- the first equippable-instance
+// pilot (Backpack chosen specifically, not the whole equippable family;
+// see the planning doc for why the other ~10 types are deliberately
+// deferred). Only the Masterwork Leather Backpack prefab has been given
+// a NetworkIdentity so far -- every other Backpack tier/material variant
+// (9 more prefabs) still needs the same treatment before this actually
+// covers "backpacks" in general, let alone every equippable type.
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerEquipment))]
-public class PlayerBackpack : MonoBehaviour
+public class PlayerBackpack : NetworkBehaviour
 {
     private const string BackSlot = "Back";
     // Where PlayerLoot might have placed a picked-up backpack that hasn't
@@ -201,5 +211,45 @@ public class PlayerBackpack : MonoBehaviour
                 return slotName;
 
         return null;
+    }
+
+    // Pilot Command (2026-08-23), live-confirmed both directions -- proves
+    // a real equip/unequip flow for an actual equippable instance (not
+    // just a plain stackable item like PlayerInventory.RequestMove already
+    // proved). Identifies the target Backpack by its NetworkIdentity,
+    // since a Command can't carry a raw Component reference -- only works
+    // for a Backpack that was actually spawned through the network (see
+    // PlayerDropping.SpawnPickup's NetworkServer.Spawn call), which today
+    // means only a Masterwork Leather Backpack created via Admin Spawn or
+    // a fresh drop. Verified via a temporary debug keybind (removed):
+    // equipped a spawned Backpack (visually worn, its own nested
+    // Inventory contents accessible), then unequipped it (Back slot
+    // correctly emptied).
+    public void RequestEquip(Backpack backpack)
+    {
+        if (backpack == null || !backpack.TryGetComponent(out NetworkIdentity identity)) return;
+        CmdEquip(identity);
+    }
+
+    [Command]
+    private void CmdEquip(NetworkIdentity backpackIdentity)
+    {
+        var backpack = backpackIdentity != null ? backpackIdentity.GetComponent<Backpack>() : null;
+        if (backpack == null) return;
+        Equip(backpack);
+    }
+
+    public void RequestUnequip(Backpack backpack)
+    {
+        if (backpack == null || !backpack.TryGetComponent(out NetworkIdentity identity)) return;
+        CmdUnequip(identity);
+    }
+
+    [Command]
+    private void CmdUnequip(NetworkIdentity backpackIdentity)
+    {
+        var backpack = backpackIdentity != null ? backpackIdentity.GetComponent<Backpack>() : null;
+        if (backpack == null) return;
+        Unequip(backpack);
     }
 }

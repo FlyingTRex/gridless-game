@@ -5,10 +5,39 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.168-dev` — must always match `GameVersion` in
+**Current version:** `0.3.169-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (3)
+
+### v0.3.169-dev — Multiplayer sub-phase 2: real equippable-instance pilot (Backpack) networked and confirmed
+
+Real gap found while planning to wire the previous session's plain-item
+move Command into the actual UI: worn gear (Backpack, Canteen, Tool, ...)
+doesn't move through `InventoryTransfer.Move` at all — `InventoryScreen.cs`
+dispatches per-type to ~11 dedicated carrier components that take a
+reference to the actual equippable *instance*, and a `[Command]` can only
+receive a `GameObject`/`NetworkIdentity` for an object genuinely spawned
+on the network — which no equippable or world Pickup had. World-pickup
+networking and real equip/unequip Commands turned out to be the same
+underlying blocker. Proved the pattern on one prefab instead of every
+type: `NetworkIdentity` added to `MasterworkLeatherBackpackPickup.prefab`
+specifically (Backpack alone has 10 tier/material variants — even "one
+type" isn't one asset here) and registered in `NetworkManager.spawnPrefabs`;
+`PlayerDropping.SpawnPickup` now calls `NetworkServer.Spawn()` for any
+spawned object carrying a `NetworkIdentity`; `PlayerBackpack.cs` converted
+to `NetworkBehaviour` with a real `RequestEquip`/`CmdEquip` and
+`RequestUnequip`/`CmdUnequip` pair. Live-confirmed via a temporary debug
+keybind (removed): Admin-Spawned a Masterwork Leather Backpack, equipped
+it through the real Command (visually worn, nested contents accessible),
+unequipped it (Back slot correctly emptied). Sub-phase 2's core sync +
+Command infrastructure is now proven across every real shape it needs
+(add-item, move-plain-item, equip-a-real-instance) — the actual rollout
+(every other equippable prefab, every world Pickup, real UI wiring) is
+explicitly deferred, mechanical-but-large follow-on work. See
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-23 (2)
 

@@ -499,17 +499,60 @@ Mapped onto Gridless's actual systems:
       `PlayerEquipment`'s own named body slots — a worn Backpack/Belt's
       own nested `Inventory` is a separate object, out of scope here.
 
+      **Real equippable-instance pilot built and live-confirmed,
+      2026-08-23.** Attempting to wire the plain `RequestMove` Command
+      into the actual UI surfaced a real, deeper finding first: real worn
+      gear (Backpack, Canteen, Tool, ...) doesn't move through
+      `InventoryTransfer.Move` at all — `InventoryScreen.cs` dispatches
+      per-item-type to ~11 dedicated carrier components
+      (`BackpackCarrier.Equip`, `ToolCarrier.EquipTo`, ...), each managing
+      its own physical `SetCarried()` re-parenting directly. Those
+      methods take a reference to the actual equippable **instance** (a
+      live Component/GameObject), and a `[Command]` can only receive a
+      `GameObject`/`NetworkIdentity` argument for an object that's
+      genuinely spawned on the network — something no equippable
+      instance or world Pickup had. So world-pickup networking and real
+      equip/unequip Commands turned out to be the same underlying
+      blocker, not two separate tasks: physical item instances need real
+      `NetworkIdentity` + `NetworkServer.Spawn` before either can work.
+
+      Rather than attempt this across every equippable type, built and
+      proved the pattern on **one single prefab**:
+      `MasterworkLeatherBackpackPickup.prefab` (chosen since Backpack
+      already turned out to have 10 separate tier/material prefab
+      variants — even "one type" isn't one asset in this game).
+      `NetworkIdentity` added to that one prefab and registered in
+      `NetworkManager.spawnPrefabs`; `PlayerDropping.SpawnPickup` now
+      calls `NetworkServer.Spawn()` after `Instantiate()` when the
+      spawned object carries a `NetworkIdentity` (guarded by
+      `NetworkServer.active`), so an Admin-Spawned or dropped instance of
+      this specific prefab is genuinely network-addressable;
+      `PlayerBackpack.cs` converted to `NetworkBehaviour` with a real
+      `RequestEquip`/`CmdEquip` and `RequestUnequip`/`CmdUnequip` pair,
+      identifying the target Backpack by its `NetworkIdentity` and
+      reusing the existing `Equip`/`Unequip` methods server-side
+      unchanged. Live-confirmed via a temporary debug keybind (removed):
+      Admin-Spawned a Masterwork Leather Backpack, equipped it through
+      the real Command (visually worn, its own nested Inventory contents
+      accessible in the UI), then unequipped it (Back slot correctly
+      emptied).
+
       **Where sub-phase 2 actually stands**: both core scripts have real,
-      live-confirmed `SyncList` sync, and two real Commands prove the
-      full client-request → server-validate → apply shape works
-      end-to-end on genuine Player data (add an item, move/equip an
-      item). What's NOT done: neither Command is wired into the real UI
-      players actually touch, and the broader mutation surface (world
-      pickup, crafting, the many other direct `Inventory` callers) is
-      still local-only. A reasonable point to consider the *core sync
-      infrastructure* finished, with UI-wiring and world-pickup
-      networking as explicitly deferred, larger follow-on work — not
-      pretending the whole sub-phase is done.
+      live-confirmed `SyncList` sync, and three real Commands (add-item,
+      move-plain-item, equip/unequip-a-real-instance) prove every shape
+      of the client-request → server-validate → apply pattern this
+      sub-phase needs. What's explicitly NOT done, and now much better
+      understood: (1) none of these Commands are wired into the real UI
+      players actually touch, (2) only ONE of ~10+ equippable prefab
+      types (and only one of that type's ~10 tier/material variants) has
+      `NetworkIdentity` — every other equippable and every world Pickup
+      still needs the identical treatment, and (3) the broader mutation
+      surface (crafting, NPC deposit, admin tools) is still local-only.
+      This is a reasonable point to consider the *core sync + Command
+      infrastructure* proven across every real shape it needs, with the
+      actual rollout (every prefab, every UI call site) as explicitly
+      deferred, mechanical-but-large follow-on work — not pretending the
+      whole sub-phase is done.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
