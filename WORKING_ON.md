@@ -17,23 +17,22 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.172-dev is merged
+Nothing in progress right now — everything through v0.3.173-dev is merged
 to origin/main. Multiplayer Phase 3 sub-phase 1 (Bootstrap) is fully done.
 Sub-phase 2 (Inventory + Equipment): both major rollout pieces (world
 pickups, all equippables - 127 prefabs total) are DONE IN FULL, five
-working Commands, real SyncList sync. UI wiring has started: real
-Unequip now routes through the network (InventoryScreen.UnequipDispatch),
-live-confirmed, chosen first since it needs no "which source container"
-disambiguation. A real spawn-gap bug was found and fixed along the way -
-NetworkSpawnHelper.SpawnIfNetworked is now the shared, single place every
-real Instantiate-an-item call site (Dropping, Crafting, save/load
-restore, Skill Book writing) spawns a networked item correctly; missing
-this on PlayerCrafting specifically caused a live "unspawned GameObject"
-error when unequipping a crafted item. Explicitly still not done: Equip
-wiring in InventoryScreen.cs (harder than Unequip - needs to know which
-container the item is actually in before it's safe to route through the
-Command), and the broader mutation surface outside Inventory/Equipment
-(crafting, NPC deposit, admin tools) is still local-only. See
-`CHANGELOG.md`'s v0.3.172-dev entry and `MULTIPLAYER_PLANNING.md` section
-3 item 3 sub-phase 2 for full detail — pick up there next time rather
-than re-deriving the state.
+working Commands, real SyncList sync. UI wiring is now done for the
+common case, both directions: Unequip and Equip (both drag-to-slot and
+click-to-equip for single-destination types) route through the real
+network Commands, live-confirmed. A real spawn-gap bug was found and
+fixed along the way - NetworkSpawnHelper.SpawnIfNetworked is now the
+shared place every real Instantiate-an-item call site (Dropping,
+Crafting, save/load restore, Skill Book writing) spawns a networked item
+correctly. Explicitly still not done: multi-destination click-equip
+(Canteen/NavComputer/HealthMonitor/Tool - stays on the local choice-popup
+flow), moving items into/out of a non-main container (worn Backpack's
+nested inventory, Furnace zones, NPC cargo), and the broader mutation
+surface outside Inventory/Equipment (crafting, NPC deposit, admin tools)
+- all still local-only. See `CHANGELOG.md`'s v0.3.173-dev entry and
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2 for full detail —
+pick up there next time rather than re-deriving the state.
