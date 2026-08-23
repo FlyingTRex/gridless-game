@@ -90,4 +90,28 @@ public class PlayerInventory : NetworkBehaviour
     public bool RemoveItem(ItemDefinition item, int quantity) => inventory.RemoveItem(item, quantity);
 
     public int GetCount(ItemDefinition item) => inventory.GetCount(item);
+
+    // Third slice, same session -- proves the actual Command/validate/
+    // apply shape works end to end now that Player has real connection
+    // authority (GridlessNetworkManager.OnServerReady). Live-confirmed via
+    // a temporary debug keybind (removed): client requested, server
+    // validated and applied, correct item/quantity. Not yet wired into
+    // any real caller (Pickup.cs and the rest still call AddItem directly,
+    // which works fine host-alone but isn't a networked request from a
+    // remote client) -- this is the proof the mechanism itself works
+    // before converting real call sites over to it.
+    public void RequestAddItem(ItemDefinition item, int quantity)
+    {
+        string id = ItemDatabase.Instance.IdFor(item);
+        if (id == null) return;
+        CmdAddItemById(id, quantity);
+    }
+
+    [Command]
+    private void CmdAddItemById(string itemId, int quantity)
+    {
+        var item = ItemDatabase.Instance.Find(itemId);
+        if (item == null || quantity <= 0) return;
+        AddItem(item, quantity);
+    }
 }

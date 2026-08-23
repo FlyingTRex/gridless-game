@@ -423,12 +423,43 @@ Mapped onto Gridless's actual systems:
       `Inventory` (correctly NOT reflected, confirming the scope
       boundary holds), moved them into the main inventory (correctly
       then appeared, both `PotatoSeed x1` and `Stick x11`, right counts).
-      **Still not done**: this only broadcasts server-owned state to
-      observers — it does not yet convert `AddItem`/`RemoveItem` (or the
-      many other direct-mutation call sites) into Command-validated
-      calls, so a remote client still can't actually request an inventory
-      change themselves. That conversion, plus doing the equivalent for
-      `PlayerEquipment`'s own slot data, is the next piece.
+      **Real gap found and fixed while designing the first Command,
+      same session: Player had no client connection authority at all.**
+      `Player` is a server-owned scene `NetworkIdentity` (`autoCreatePlayer`
+      is off, since Player pre-exists rather than needing to spawn fresh
+      from a prefab) — without an explicit `NetworkServer.AddPlayerForConnection`
+      call, no connection ever owns it, so every `[Command]` on any Player
+      `NetworkBehaviour` would fail with an authority error. Fixed via a
+      new `GridlessNetworkManager : NetworkManager` subclass (swapped onto
+      the scene's `NetworkManager` GameObject, transport/settings
+      preserved) overriding `OnServerReady` to call
+      `AddPlayerForConnection` for the existing scene Player. **First
+      attempt used `OnServerConnect` instead and hit a real, informative
+      error** — `NetworkClient can't AddPlayer before being ready` —
+      `AddPlayerForConnection` needs the client's ready-handshake to have
+      completed first, which hasn't happened yet at raw-connect time even
+      in host mode; `OnServerReady` is the correct hook, confirmed via
+      debug logging showing `identity.isOwned` flipping `False` → `True`
+      exactly once, at the right point.
+
+      **First real `[Command]` built and live-confirmed end to end**:
+      `PlayerInventory.RequestAddItem`/`CmdAddItemById` — client resolves
+      an item to its string ID, calls the Command, server re-resolves the
+      ID and applies the real `AddItem`. Verified via a temporary debug
+      keybind (removed after confirming): Console showed the full chain in
+      order — client-side request logged, then the Command's own
+      server-side log with the correct item/quantity/leftover. This is the
+      actual Command/validate/apply shape sub-phase 2 needs, now proven
+      correct on the real `PlayerInventory`, not a throwaway pilot.
+
+      **Still not done**: only one narrow proof-of-concept Command exists
+      (`CmdAddItemById`) — the real remaining work is converting
+      `AddItem`/`RemoveItem`'s actual callers (`Pickup.cs`'s world pickup
+      flow, `PlayerCrafting`'s material consumption, equip/unequip, and
+      the many other direct-mutation call sites) to route through
+      Command-validated methods instead of local calls, plus doing the
+      equivalent synced-state + Command work for `PlayerEquipment`'s own
+      slot data. That's the next piece.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment

@@ -5,10 +5,34 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.165-dev` — must always match `GameVersion` in
+**Current version:** `0.3.166-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (13)
+
+### v0.3.166-dev — Multiplayer sub-phase 2: Player connection authority fixed, first real Command working end to end
+
+Real gap found while designing the first Command: `Player` was a
+server-owned scene `NetworkIdentity` with no connection ever assigned
+ownership (`autoCreatePlayer` is off), so any `[Command]` on it would fail
+with an authority error. Fixed via `GridlessNetworkManager.cs` (new
+`NetworkManager` subclass, swapped onto the scene's `NetworkManager`)
+overriding `OnServerReady` to call `AddPlayerForConnection` for the
+existing scene Player. First attempt used `OnServerConnect` and hit a
+real, informative error (`NetworkClient can't AddPlayer before being
+ready`) — `OnServerReady` is the correct hook, confirmed via debug logging
+showing `isOwned` flip `False`→`True` at exactly the right point.
+`PlayerInventory.RequestAddItem`/`CmdAddItemById` (new): the first real
+Command, live-confirmed end to end via a temporary debug keybind (removed)
+— client request logged, then the Command's own server-side log with the
+correct item/quantity/leftover, in order. Proves the actual
+Command/validate/apply shape sub-phase 2 needs, now on the real
+`PlayerInventory`. Still ahead: converting real callers (`Pickup.cs`,
+`PlayerCrafting`, equip/unequip) to route through Command-validated
+methods, and the equivalent work for `PlayerEquipment`. See
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-22 (12)
 
