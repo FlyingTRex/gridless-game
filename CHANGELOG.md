@@ -5,10 +5,26 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.163-dev` — must always match `GameVersion` in
+**Current version:** `0.3.164-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (11)
+
+### v0.3.164-dev — Multiplayer sub-phase 2: PlayerEquipment is now a NetworkBehaviour too
+
+Same slice as `PlayerInventory.cs` earlier tonight: `PlayerEquipment.cs`
+converted from `MonoBehaviour` to `NetworkBehaviour`, base-class change
+only, no dynamic instantiation found anywhere to break. Live-tested the
+full cycle: equipped an Axe (Left Hand slot updated correctly), chopped a
+tree with it (confirms the equipped item is genuinely functional, not
+just visually shown), unequipped it back into a worn Jeans' nested
+inventory. Both core inventory-family scripts are now `NetworkBehaviour`
+with solo play fully unaffected. The real remaining work — a `SyncList`
+serializer for `ItemDefinition`-by-ID and Command-converting actual
+mutation call sites — is still ahead. See `MULTIPLAYER_PLANNING.md`
+section 3 item 3 sub-phase 2.
 
 ## 2026-08-22 (10)
 

@@ -1,11 +1,16 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 
 // Named body-equipment slots for the character. Each slot is its own small
 // Inventory (capacity usually 1; Face is 2), so equipping into a slot is
 // exactly the same AddEquipmentItem/AddItem/RemoveItem flow used everywhere
 // else in the inventory system.
-public class PlayerEquipment : MonoBehaviour
+//
+// Multiplayer Phase 3 sub-phase 2 (MULTIPLAYER_PLANNING.md), same slice as
+// PlayerInventory.cs (2026-08-22): converted from MonoBehaviour to
+// NetworkBehaviour, base-class change only, no new synced state yet.
+public class PlayerEquipment : NetworkBehaviour
 {
     [System.Serializable]
     public class SlotConfig

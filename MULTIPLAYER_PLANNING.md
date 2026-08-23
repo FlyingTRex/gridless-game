@@ -390,6 +390,19 @@ Mapped onto Gridless's actual systems:
       sites (pickup, drop, equip) to the Command/validate/replicate shape
       — this slice only proved the base class conversion is safe, it
       hasn't networked anything yet.
+
+      **`PlayerEquipment.cs` converted the same way, same session.**
+      `MonoBehaviour` → `NetworkBehaviour`, base-class change only — no
+      dynamic `AddComponent<PlayerEquipment>()` found anywhere, same "safe
+      to convert" profile as `PlayerInventory`. Live-tested the full
+      cycle: equipped an Axe (Left Hand slot updated), actually chopped a
+      tree with it (confirms the equipped item is genuinely usable, not
+      just visually shown), then unequipped it back into a worn Jeans'
+      nested inventory slot. Both `PlayerInventory` and `PlayerEquipment`
+      are now `NetworkBehaviour` with solo play fully unaffected. The real
+      remaining work — the `SyncList` serializer and Command-converting
+      actual mutation call sites — is still the next, larger piece, not
+      started.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
