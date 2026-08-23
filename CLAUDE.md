@@ -1897,3 +1897,57 @@ edit one by editing its own `.asset` file's `SerializedObject` — not a
 new inlined data store. Don't reopen the "one big database" idea; the
 index being central is fine, the data staying distributed is what keeps
 merges safe.
+
+## Gotcha: a carrier's `Equipped` property only reports the *first* match
+across its valid slots — checking it to ask "is this specific instance
+worn" silently breaks the moment two instances of that type are worn at
+once
+
+Hit live (2026-08-23, `InventoryScreen.IsCurrentlyWorn`, testing
+Multiplayer's new Equip Command wiring): `PlayerTool.Equipped` — like
+every other multi-slot carrier's `Equipped` (Canteen's two hands + Belt,
+NavComputer/HealthMonitor's two wrists) — is written as "walk this
+type's valid slot names, return the first match":
+```csharp
+public Tool Equipped
+{
+    get
+    {
+        foreach (var slotName in HandSlots)
+            if (equipment.GetEquipped(slotName) is Tool t) return t;
+        return null;
+    }
+}
+```
+This is correct for "what's the canonical single equipped X," but
+`InventoryScreen.IsCurrentlyWorn(IEquippable equipment)` used it to
+answer a different question — "is *this exact instance* worn anywhere"
+— via `ReferenceEquals(toolCarrier.Equipped, equipment)`. With a
+Masterwork Knife in Left Hand and a Fine Axe in Right Hand (two Tools
+worn simultaneously, one per hand), `Equipped` always returned the
+Knife (Left Hand is checked first) — so right-clicking the Axe showed
+"Equip" instead of "Unequip," even though it was genuinely worn. No
+exception, no error — a pure logic bug, only visible by actually
+checking the resulting menu against known equipped state.
+
+**The fix — ask `PlayerEquipment` directly which slot(s) hold this
+exact instance, not each carrier's single-result summary property:**
+```csharp
+private bool IsCurrentlyWorn(IEquippable equipment)
+{
+    foreach (var slotName in SlotOrder)
+        if (ReferenceEquals(this.equipment.GetEquipped(slotName), equipment)) return true;
+    return false;
+}
+```
+
+**How to apply:** never use a carrier's `Equipped` property (or any
+"first match across N valid slots" property) to answer "is this specific
+instance worn" — it can only ever confirm ONE instance per type, so a
+second simultaneously-worn instance of the same type reads as
+not-equipped. This was found testing dual-wielded Tools specifically,
+but the identical shape exists for `PlayerCanteen`/`PlayerNavComputer`/
+`PlayerHealthMonitor` too (two wrists, or hands+Belt) — worth deliberately
+re-testing "two of the same equippable type worn at once" for those when
+that work comes up, since this bug class is silent until specifically
+exercised that way.

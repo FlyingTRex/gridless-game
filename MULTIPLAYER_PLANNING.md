@@ -675,16 +675,41 @@ Mapped onto Gridless's actual systems:
         click-equip (popup still appears and works correctly) — zero
         errors across all three.
 
+      **Multi-destination click-equip wired too, completing Equip
+      wiring in full, same session.** All four `TryEquipWithChoice`
+      overloads (Canteen, NavigationComputer, PersonalHealthMonitor,
+      Tool) now route both apply points — the immediate single-remaining-
+      destination case and the popup's chosen-destination callback —
+      through a shared `TryNetworkedEquip` helper, same source-checked,
+      defensive pattern as everything else this session.
+
+      **Real pre-existing bug found and fixed during that test — not
+      caused by the networking work, just surfaced by it.**
+      `InventoryScreen.IsCurrentlyWorn` checked each carrier's own
+      `Equipped` property, which only ever returns the *first* match
+      across that type's valid slots (`PlayerTool.Equipped` checks Left
+      Hand then Right Hand, returns whichever Tool it finds first). With
+      two different Tools worn at once (a Knife in Left Hand, an Axe in
+      Right Hand — exactly what testing multi-destination equip
+      produces), the second one always read as "not worn." Fixed by
+      scanning every body slot directly via `PlayerEquipment.GetEquipped`
+      instead of trusting each carrier's narrower single-result property
+      — see `CLAUDE.md`'s new gotcha entry, which also flags that
+      Canteen/NavComputer/HealthMonitor share the identical shape and
+      deserve the same "two worn at once" test whenever that work comes
+      up. Live-confirmed clean after the fix: right-clicking the
+      previously-misreported Axe now correctly offered Unequip, and both
+      equip and unequip worked.
+
       **Both Equip and Unequip are now real, networked UI actions for
-      the common case (main inventory ↔ any equipment slot).** What's
-      left for sub-phase 2: multi-destination click-equip stays
-      local-only (the popup's final chosen-destination step was
-      deliberately not intercepted, to avoid touching that stateful
-      popup flow this session), moving items into/out of a non-main
-      container (a worn Backpack's nested inventory, Furnace zones, NPC
-      cargo) stays local-only, and the broader mutation surface outside
+      every case `InventoryScreen.cs` supports from the main
+      inventory** — drag-to-slot, single-destination click, and
+      multi-destination click-with-choice all confirmed working. What's
+      left for sub-phase 2: moving items into/out of a non-main container
+      (a worn Backpack's nested inventory, Furnace zones, NPC cargo)
+      stays local-only, and the broader mutation surface outside
       Inventory/Equipment (crafting, NPC deposit, admin tools) is still
-      local-only — all smaller in scope than what's already shipped.
+      local-only — both smaller in scope than what's already shipped.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment

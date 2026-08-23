@@ -602,6 +602,25 @@ public class InventoryScreen : MonoBehaviour
         }
     }
 
+    // Multiplayer sub-phase 2 rollout (2026-08-23) -- shared by all four
+    // TryEquipWithChoice overloads below. Routes through the networked
+    // Command when equipping from the main inventory and the item is
+    // networked; returns false (meaning "fall through to the local
+    // carrier call") otherwise -- same source-checked, defensive pattern
+    // as EquipToSlotDispatch/EquipWithChoice above, just reusable across
+    // both apply points a multi-destination item has (the immediate
+    // single-destination case, and the popup's chosen-destination
+    // callback).
+    private bool TryNetworkedEquip(IEquippable equipment, string slotName, Inventory source)
+    {
+        if (source != playerInventory.Inventory) return false;
+        if (equipment is not Component equipmentComponent) return false;
+        if (!equipmentComponent.TryGetComponent<Mirror.NetworkIdentity>(out _)) return false;
+
+        playerInventory.RequestEquipInstance(equipment, slotName);
+        return true;
+    }
+
     // Equips immediately if there's 0 or 1 valid destination (nothing to
     // choose); opens the Equip destination popup instead if there are 2+.
     // source is where the canteen is actually sitting right now (main
@@ -612,13 +631,18 @@ public class InventoryScreen : MonoBehaviour
         var destinations = canteenCarrier.AvailableDestinations(canteen);
         if (destinations.Count <= 1)
         {
-            if (destinations.Count == 1) canteenCarrier.EquipTo(canteen, destinations[0], source);
+            if (destinations.Count == 1 && !TryNetworkedEquip(canteen, destinations[0], source))
+                canteenCarrier.EquipTo(canteen, destinations[0], source);
             return;
         }
 
         pendingEquipDestinations = destinations;
         pendingEquipLabel = canteen.DisplayName;
-        pendingEquipChoose = destination => canteenCarrier.EquipTo(canteen, destination, source);
+        pendingEquipChoose = destination =>
+        {
+            if (!TryNetworkedEquip(canteen, destination, source))
+                canteenCarrier.EquipTo(canteen, destination, source);
+        };
     }
 
     private void TryEquipWithChoice(NavigationComputer navComputer, Inventory source)
@@ -626,13 +650,18 @@ public class InventoryScreen : MonoBehaviour
         var destinations = navComputerCarrier.AvailableDestinations(navComputer);
         if (destinations.Count <= 1)
         {
-            if (destinations.Count == 1) navComputerCarrier.EquipTo(navComputer, destinations[0], source);
+            if (destinations.Count == 1 && !TryNetworkedEquip(navComputer, destinations[0], source))
+                navComputerCarrier.EquipTo(navComputer, destinations[0], source);
             return;
         }
 
         pendingEquipDestinations = destinations;
         pendingEquipLabel = navComputer.DisplayName;
-        pendingEquipChoose = destination => navComputerCarrier.EquipTo(navComputer, destination, source);
+        pendingEquipChoose = destination =>
+        {
+            if (!TryNetworkedEquip(navComputer, destination, source))
+                navComputerCarrier.EquipTo(navComputer, destination, source);
+        };
     }
 
     private void TryEquipWithChoice(PersonalHealthMonitor monitor, Inventory source)
@@ -640,13 +669,18 @@ public class InventoryScreen : MonoBehaviour
         var destinations = healthMonitorCarrier.AvailableDestinations(monitor);
         if (destinations.Count <= 1)
         {
-            if (destinations.Count == 1) healthMonitorCarrier.EquipTo(monitor, destinations[0], source);
+            if (destinations.Count == 1 && !TryNetworkedEquip(monitor, destinations[0], source))
+                healthMonitorCarrier.EquipTo(monitor, destinations[0], source);
             return;
         }
 
         pendingEquipDestinations = destinations;
         pendingEquipLabel = monitor.DisplayName;
-        pendingEquipChoose = destination => healthMonitorCarrier.EquipTo(monitor, destination, source);
+        pendingEquipChoose = destination =>
+        {
+            if (!TryNetworkedEquip(monitor, destination, source))
+                healthMonitorCarrier.EquipTo(monitor, destination, source);
+        };
     }
 
     private void TryEquipWithChoice(Tool tool, Inventory source)
@@ -654,13 +688,18 @@ public class InventoryScreen : MonoBehaviour
         var destinations = toolCarrier.AvailableDestinations(tool);
         if (destinations.Count <= 1)
         {
-            if (destinations.Count == 1) toolCarrier.EquipTo(tool, destinations[0], source);
+            if (destinations.Count == 1 && !TryNetworkedEquip(tool, destinations[0], source))
+                toolCarrier.EquipTo(tool, destinations[0], source);
             return;
         }
 
         pendingEquipDestinations = destinations;
         pendingEquipLabel = tool.DisplayName;
-        pendingEquipChoose = destination => toolCarrier.EquipTo(tool, destination, source);
+        pendingEquipChoose = destination =>
+        {
+            if (!TryNetworkedEquip(tool, destination, source))
+                toolCarrier.EquipTo(tool, destination, source);
+        };
     }
 
     // Single dispatch point for "equip this instance from this source",
@@ -814,23 +853,26 @@ public class InventoryScreen : MonoBehaviour
         }
     }
 
-    // True if this exact instance is the one currently worn/held in its
-    // type's own carried location (each carrier's Equipped already checks
-    // its full set of valid locations — both hands and the belt for a
-    // Canteen, either wrist for NavComputer/HealthMonitor, etc.).
+    // True if this exact instance is the one currently worn/held anywhere
+    // on the body. Real bug found live (2026-08-23): the previous version
+    // checked each carrier's own single-slot Equipped property, but
+    // Equipped only ever reports the FIRST match across that type's valid
+    // locations (e.g. PlayerTool.Equipped checks Left Hand then Right
+    // Hand and returns whichever Tool it finds first) -- with two
+    // different Tools worn simultaneously (a Knife in Left Hand, an Axe
+    // in Right Hand), the second one always read as "not worn" even
+    // though it genuinely was, since Equipped could only ever point at
+    // one of them. Fixed by scanning every body slot directly via
+    // PlayerEquipment.GetEquipped -- the actual ground truth for "what's
+    // in this specific slot" -- instead of trusting each carrier's own
+    // narrower single-result property.
     private bool IsCurrentlyWorn(IEquippable equipment)
     {
-        return ReferenceEquals(backpackCarrier.Equipped, equipment)
-            || ReferenceEquals(beltCarrier.Equipped, equipment)
-            || ReferenceEquals(bootCarrier.Equipped, equipment)
-            || ReferenceEquals(canteenCarrier.Equipped, equipment)
-            || ReferenceEquals(navComputerCarrier.Equipped, equipment)
-            || ReferenceEquals(healthMonitorCarrier.Equipped, equipment)
-            || ReferenceEquals(sunglassesCarrier.Equipped, equipment)
-            || ReferenceEquals(miningShieldCarrier.Equipped, equipment)
-            || ReferenceEquals(toolCarrier.Equipped, equipment)
-            || ReferenceEquals(shirtCarrier.Equipped, equipment)
-            || ReferenceEquals(jeansCarrier.Equipped, equipment);
+        foreach (var slotName in SlotOrder)
+        {
+            if (ReferenceEquals(this.equipment.GetEquipped(slotName), equipment)) return true;
+        }
+        return false;
     }
 
     // Registers one slot box's screen rect as a drop target for this frame.

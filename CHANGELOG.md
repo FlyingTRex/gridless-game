@@ -5,10 +5,32 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.173-dev` — must always match `GameVersion` in
+**Current version:** `0.3.174-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (8)
+
+### v0.3.174-dev — Multiplayer sub-phase 2: multi-destination Equip wiring complete, real pre-existing dual-wield bug found and fixed
+
+All four `TryEquipWithChoice` overloads (Canteen, NavigationComputer,
+PersonalHealthMonitor, Tool) now route through a shared
+`TryNetworkedEquip` helper at both apply points — the immediate
+single-destination case and the popup's chosen-destination callback —
+completing Equip wiring for every path `InventoryScreen.cs` supports.
+Testing it surfaced a real pre-existing bug, not caused by the networking
+work: `InventoryScreen.IsCurrentlyWorn` checked each carrier's own
+`Equipped` property, which only returns the *first* match across that
+type's valid slots — with a Knife in Left Hand and an Axe in Right Hand
+(two Tools worn at once), the Axe always read as "not worn." Fixed by
+scanning every body slot directly via `PlayerEquipment.GetEquipped`
+instead. New `CLAUDE.md` gotcha logged — Canteen/NavComputer/HealthMonitor
+share the identical shape and deserve the same "two worn at once" test
+when that work comes up. Live-confirmed clean after the fix. Both Equip
+and Unequip are now real, networked UI actions for every case
+`InventoryScreen.cs` supports from the main inventory. See
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-23 (7)
 
