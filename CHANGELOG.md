@@ -5,10 +5,28 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.174-dev` — must always match `GameVersion` in
+**Current version:** `0.3.175-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (9)
+
+### v0.3.175-dev — Multiplayer sub-phase 2: a worn Backpack's nested inventory now networked too
+
+`RequestMove`'s container-key scheme extended with `"worn:<slot>"` (that
+slot's worn `IInventoryHolder`'s own `Inventory`), and `CmdMoveItem`
+switched from the fixed-quantity `Move` to `MoveAsManyAsFit` to exactly
+match `InventoryTransfer`'s own local semantics. `InventoryScreen.cs`
+gained `ContainerKeyFor(Inventory)`, resolving a live `Inventory`
+reference back to a container key (main inventory or any worn slot's
+nested inventory); returns `null` for anything this scheme doesn't cover
+(Furnace zones, NPC cargo), correctly falling through to the original
+local path. `TryDrop`'s generic drag branch now routes through the
+Command whenever both sides resolve to a known key. Live-confirmed:
+dragged Sticks into and out of a worn Backpack's contents, correct count
+both directions, zero errors. See `MULTIPLAYER_PLANNING.md` section 3
+item 3 sub-phase 2.
 
 ## 2026-08-23 (8)
 

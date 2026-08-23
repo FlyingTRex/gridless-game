@@ -704,12 +704,34 @@ Mapped onto Gridless's actual systems:
       **Both Equip and Unequip are now real, networked UI actions for
       every case `InventoryScreen.cs` supports from the main
       inventory** — drag-to-slot, single-destination click, and
-      multi-destination click-with-choice all confirmed working. What's
-      left for sub-phase 2: moving items into/out of a non-main container
-      (a worn Backpack's nested inventory, Furnace zones, NPC cargo)
-      stays local-only, and the broader mutation surface outside
-      Inventory/Equipment (crafting, NPC deposit, admin tools) is still
-      local-only — both smaller in scope than what's already shipped.
+      multi-destination click-with-choice all confirmed working.
+
+      **A worn Backpack's nested inventory wired in too, same session.**
+      `RequestMove`'s container-key scheme extended with `"worn:<slot>"`
+      (that slot's worn `IInventoryHolder`'s own `Inventory`), and
+      `CmdMoveItem` switched from the fixed-quantity `Move` to
+      `MoveAsManyAsFit` to exactly match `InventoryTransfer`'s own local
+      semantics (a drag that doesn't fully fit partially succeeds instead
+      of failing outright). `InventoryScreen.cs` gained
+      `ContainerKeyFor(Inventory)` — resolves a live `Inventory`
+      reference back to a container key by checking it against the main
+      inventory and every worn slot's own nested inventory; returns
+      `null` for anything this scheme doesn't cover (Furnace zones, NPC
+      cargo, a Boot's knife sheath), which correctly falls through to the
+      original local-only path unchanged. `TryDrop`'s generic
+      (non-equip-slot) branch now routes through the Command whenever
+      both sides resolve to a known key. Live-confirmed: dragged Sticks
+      into a worn Backpack's contents and back out, correct count both
+      directions, zero errors.
+
+      **What's left for sub-phase 2**: containers this key scheme
+      deliberately doesn't cover — Furnace zones and NPC cargo aren't
+      Player state at all (Furnace isn't a `NetworkBehaviour` yet, NPCs
+      are an entirely later phase) — and the broader mutation surface
+      outside Inventory/Equipment (crafting, NPC deposit, admin tools) is
+      still local-only. Both smaller in scope than what's already
+      shipped, and arguably belong to their own later phases rather than
+      sub-phase 2 itself.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment

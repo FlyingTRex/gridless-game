@@ -1093,6 +1093,25 @@ public class InventoryScreen : MonoBehaviour
     // this equipment type, target full) needs no rollback — the source box
     // simply renders normally again next frame, i.e. "snaps back" for
     // free.
+    // Multiplayer sub-phase 2 rollout (2026-08-23) -- resolves a live
+    // Inventory reference back to a container key
+    // PlayerInventory.RequestMove understands ("main", or
+    // "worn:<slotName>" for that slot's worn IInventoryHolder's own
+    // nested Inventory, e.g. a worn Backpack's contents). Returns null
+    // for anything this scheme doesn't cover (Furnace zones, NPC cargo,
+    // a Boot's knife sheath, etc.) -- those fall through to the
+    // existing local-only path in TryDrop unchanged.
+    private string ContainerKeyFor(Inventory inv)
+    {
+        if (inv == playerInventory.Inventory) return "main";
+        foreach (var slotName in SlotOrder)
+        {
+            if (equipment.GetEquipped(slotName) is IInventoryHolder holder && holder.Inventory == inv)
+                return "worn:" + slotName;
+        }
+        return null;
+    }
+
     private void TryDrop(DropZone zone)
     {
         if (dragItem == null || dragSource == null || zone.Inventory == null) return;
@@ -1101,6 +1120,24 @@ public class InventoryScreen : MonoBehaviour
         if (zone.EquipSlotName == null)
         {
             bool wasEquipment = dragEquipment != null;
+
+            // Route through the networked Move Command when both sides
+            // resolve to a known container key and (for an equipped
+            // instance specifically) the item is actually networked --
+            // falls through to the original local-only path for anything
+            // this scheme doesn't cover.
+            bool networkedOk = !wasEquipment
+                || (dragEquipment is Component dragEquipmentComponent && dragEquipmentComponent.TryGetComponent<Mirror.NetworkIdentity>(out _));
+            string fromKey = ContainerKeyFor(dragSource);
+            string toKey = ContainerKeyFor(zone.Inventory);
+
+            if (networkedOk && fromKey != null && toKey != null)
+            {
+                playerInventory.RequestMove(fromKey, toKey, dragItem, dragQuantity);
+                if (wasEquipment) dragEquipment.Stash();
+                return;
+            }
+
             int moved = InventoryTransfer.MoveAsManyAsFit(dragSource, zone.Inventory, dragItem, dragQuantity);
             // InventoryTransfer.Move only ever moves data — it doesn't know
             // about "carried" visual state, so an equipped item landing in

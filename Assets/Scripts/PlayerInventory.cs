@@ -122,21 +122,27 @@ public class PlayerInventory : NetworkBehaviour
     // InventoryTransfer.cs's own header on why a plain RemoveItem/AddItem
     // pair would silently drop an equipped instance's carrier reference).
     // Containers are identified by a simple string key ("main" for this
-    // Inventory, any other value looked up as a PlayerEquipment slot
-    // name) since a Command can't carry a raw Inventory reference across
-    // the wire. Live-confirmed via a temporary debug keybind (removed):
-    // both directions moved correctly, the equipment slot visibly
-    // updated, and the item re-stacked correctly back in the main
-    // inventory. Scope boundary: only covers PlayerEquipment's own named
-    // body slots -- a worn Backpack/Belt's own nested Inventory is a
-    // separate object owned by that equipped instance, not reachable
-    // through this container-key scheme, and out of scope for this
-    // slice. Not yet wired into the real InventoryScreen.cs UI (which
-    // still calls InventoryTransfer.Move directly, locally) -- that
-    // screen's drag-and-drop also moves between many other container
-    // types (Backpack, Furnace zones, NPC cargo) this narrower scheme
-    // doesn't cover, and rewiring its live, heavily-used code is a
-    // separate, larger, riskier task than this proof-of-concept.
+    // Inventory, a PlayerEquipment slot name, or "worn:<slotName>" for
+    // that slot's worn IInventoryHolder's own nested Inventory -- e.g. a
+    // worn Backpack's contents) since a Command can't carry a raw
+    // Inventory reference across the wire. Live-confirmed via a
+    // temporary debug keybind (removed): both directions moved
+    // correctly, the equipment slot visibly updated, and the item
+    // re-stacked correctly back in the main inventory.
+    //
+    // Second slice (2026-08-23) -- extended to the "worn:" case and
+    // wired into InventoryScreen.cs's generic drag-drop path
+    // (TryDrop/ContainerKeyFor) for the single most common non-main
+    // container: a worn Backpack's nested inventory. Still scope-
+    // bounded to containers resolvable from the Player's own
+    // NetworkBehaviours -- Furnace zones and NPC cargo aren't Player
+    // state at all and stay local-only, a separate, larger task
+    // (Furnace isn't even a NetworkBehaviour yet, and NPCs are an
+    // entirely later phase per MULTIPLAYER_PLANNING.md).
+    // MoveAsManyAsFit (not the fixed-quantity Move) to match
+    // InventoryTransfer's own local-path semantics exactly -- a drag
+    // that doesn't fully fit partially succeeds instead of failing
+    // outright, same as it always has locally.
     public void RequestMove(string fromContainer, string toContainer, ItemDefinition item, int quantity)
     {
         string id = ItemDatabase.Instance.IdFor(item);
@@ -155,13 +161,21 @@ public class PlayerInventory : NetworkBehaviour
         Inventory to = ResolveContainer(toContainer, equipment);
         if (from == null || to == null) return;
 
-        InventoryTransfer.Move(from, to, item, quantity);
+        InventoryTransfer.MoveAsManyAsFit(from, to, item, quantity);
     }
 
     private Inventory ResolveContainer(string key, PlayerEquipment equipment)
     {
         if (key == "main") return inventory;
-        return equipment != null ? equipment.GetSlot(key) : null;
+        if (equipment == null) return null;
+
+        if (key.StartsWith("worn:"))
+        {
+            string slotName = key.Substring("worn:".Length);
+            return (equipment.GetEquipped(slotName) as IInventoryHolder)?.Inventory;
+        }
+
+        return equipment.GetSlot(key);
     }
 
     // Fifth slice (2026-08-23) -- routes a networked Pickup's Complete()
