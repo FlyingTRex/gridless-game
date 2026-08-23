@@ -17,24 +17,23 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.171-dev is merged
+Nothing in progress right now — everything through v0.3.172-dev is merged
 to origin/main. Multiplayer Phase 3 sub-phase 1 (Bootstrap) is fully done.
-Sub-phase 2 (Inventory + Equipment) has both major rollout pieces DONE IN
-FULL, not pilots: world-pickup networking (78 of 127 prefabs) and now
-every equippable type too (remaining 49 prefabs, 127 total networked).
-The equippable rollout used a real design improvement over the original
-Backpack pilot: one generic RequestEquipInstance/RequestUnequipInstance
-Command pair on PlayerInventory (mirroring InventoryScreen.cs's own
-dispatch switch) instead of converting all 10 carrier scripts to
-NetworkBehaviour individually. Real SyncList sync on
-PlayerInventory/PlayerEquipment, five working Commands total (add-item,
-move-a-plain-item, equip/unequip-any-instance, complete-a-world-pickup).
-Real bugs found and fixed live along the way (non-prefab scene pickups,
-scene-resave-for-sceneId gotcha) - see MULTIPLAYER_PLANNING.md. What's
-explicitly still not done: wiring any of these Commands into the real
-InventoryScreen.cs drag-and-drop UI players actually touch, and the
-broader mutation surface outside Inventory/Equipment (crafting, NPC
-deposit, admin tools) is still local-only - both smaller in scope than
-what's already shipped. See `CHANGELOG.md`'s v0.3.171-dev entry and
-`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2 for full detail —
-pick up there next time rather than re-deriving the state.
+Sub-phase 2 (Inventory + Equipment): both major rollout pieces (world
+pickups, all equippables - 127 prefabs total) are DONE IN FULL, five
+working Commands, real SyncList sync. UI wiring has started: real
+Unequip now routes through the network (InventoryScreen.UnequipDispatch),
+live-confirmed, chosen first since it needs no "which source container"
+disambiguation. A real spawn-gap bug was found and fixed along the way -
+NetworkSpawnHelper.SpawnIfNetworked is now the shared, single place every
+real Instantiate-an-item call site (Dropping, Crafting, save/load
+restore, Skill Book writing) spawns a networked item correctly; missing
+this on PlayerCrafting specifically caused a live "unspawned GameObject"
+error when unequipping a crafted item. Explicitly still not done: Equip
+wiring in InventoryScreen.cs (harder than Unequip - needs to know which
+container the item is actually in before it's safe to route through the
+Command), and the broader mutation surface outside Inventory/Equipment
+(crafting, NPC deposit, admin tools) is still local-only. See
+`CHANGELOG.md`'s v0.3.172-dev entry and `MULTIPLAYER_PLANNING.md` section
+3 item 3 sub-phase 2 for full detail — pick up there next time rather
+than re-deriving the state.
