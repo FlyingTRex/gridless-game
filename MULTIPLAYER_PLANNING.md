@@ -1022,14 +1022,28 @@ needs authority over. What remains is the next phase down:
    inherit it automatically). Live-confirmed: hired NPCs moving around
    normally, zero errors.
 
-   **Not yet decided/addressed**: whether `HostileCreature`/
-   `PreyCreature` (wildlife) should also move server-side eventually —
-   an open question, not part of this slice's named "5." NPC-initiated
-   Commands (any NPC action a player didn't directly trigger via one of
-   Phase 3's own Commands) haven't been audited for correctness under
-   this new server-only-simulation model — worth a closer look before
-   calling this phase fully done, not just the movement-authority
-   piece.
+   **Wildlife — done, same day, per Ben's explicit call.** `SkinnableCreature`
+   (the shared abstract base for `HostileCreature`/`PreyCreature`)
+   converted to `NetworkBehaviour` in one move, covering both subclasses
+   at once; `HostileCreature.Update()` and `PreyWander.Update()`
+   (Rabbit/Pig's actual movement — a sibling component, not part of
+   `SkinnableCreature`/`PreyCreature` themselves) both gained the same
+   `isServer` guard. `TakeDamage` needed no guard — already only ever
+   called via a Command, already server-side. Same real gotcha caught
+   again, not assumed fixed: Wolf/Rabbit/Pig all got
+   `NetworkTransformReliable` with `syncDirection` explicitly set to
+   `ServerToClient` (the fresh component's own default was confirmed
+   `ClientToServer` again). Deer/Chicken checked and correctly left
+   alone — no movement code exists for them at all (`PreyWander`'s own
+   header comment: "Chicken/Deer have stood still since they shipped,"
+   pre-existing, unrelated to networking). Live-confirmed: Wolf/Rabbit/
+   Pig all moving around normally, zero errors.
+
+   **Still not audited**: NPC-initiated Commands (any NPC action a
+   player didn't directly trigger via one of Phase 3's own Commands)
+   haven't been checked for correctness under this new server-only-
+   simulation model — worth a closer look before calling this whole
+   phase fully done, not just the movement-authority piece.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —
    a dedicated server with no save/load can't actually stay up
    indefinitely the way the design calls for.

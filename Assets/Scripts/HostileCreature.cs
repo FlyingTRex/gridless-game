@@ -86,6 +86,7 @@ public class HostileCreature : SkinnableCreature
 
     private void Update()
     {
+        if (!isServer) return;
         if (isDead) return;
         if (target == null) ResolvePlayerTarget();
         if (target == null) return;

@@ -5,10 +5,38 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.190-dev` — must always match `GameVersion` in
+**Current version:** `0.3.191-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (25)
+
+### v0.3.191-dev — Multiplayer: roaming wildlife moves server-side too (Ben's explicit call)
+
+Extended the "NPCs move server-side" phase beyond the originally-named
+"5" job-driven scripts to cover roaming wildlife too, per Ben's explicit
+ask. `SkinnableCreature` (the shared abstract base for `HostileCreature`/
+`PreyCreature`) converted to `NetworkBehaviour` in one move, covering
+both subclasses at once; `HostileCreature.Update()` and
+`PreyWander.Update()` (Rabbit/Pig's actual movement — a sibling
+component, not part of `SkinnableCreature`/`PreyCreature` themselves)
+both gained the same `isServer` guard as every other NPC movement
+script this phase. `TakeDamage` needed no guard — it already only ever
+runs via a Command (`PlayerCombat`/`PlayerRangedCombat`), already
+server-side.
+
+Same real gotcha as the hired-NPC slice, caught again rather than
+assumed fixed: Wolf/Rabbit/Pig all got `NetworkTransformReliable` with
+`syncDirection` explicitly set to `ServerToClient` (the fresh
+component's own default was confirmed `ClientToServer` again, which
+would silently sync nothing for a server-driven creature). Deer/Chicken
+were checked and correctly left alone — they have no movement code at
+all (`PreyWander`'s own header comment: "Chicken/Deer have stood still
+since they shipped," a pre-existing gap unrelated to networking, nothing
+to guard).
+
+Live-confirmed: Wolf/Rabbit/Pig all moving around normally, zero errors.
 
 ## 2026-08-23 (24)
 

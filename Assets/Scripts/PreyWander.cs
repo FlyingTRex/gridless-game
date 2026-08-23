@@ -1,5 +1,10 @@
+using Mirror;
 using UnityEngine;
 
+// Multiplayer, 2026-08-23 (roaming wildlife should be server-side too):
+// converted to NetworkBehaviour, plus an isServer guard on Update() --
+// same pattern as every other NPC movement script this phase.
+//
 // First real PreyCreature movement (2026-08-16) -- idle/wander until the
 // player gets close, then flee, closing the long-flagged "PreyCreature's
 // movement half unbuilt" gap (Chicken/Deer have stood still since they
@@ -14,7 +19,7 @@ using UnityEngine;
 // IsDead to stop driving movement/animation once dead, same as
 // HostileCreature's own internal isDead check.
 [RequireComponent(typeof(SkinnableCreature))]
-public class PreyWander : MonoBehaviour
+public class PreyWander : NetworkBehaviour
 {
     private enum State { Idle, Wandering, Fleeing }
 
@@ -73,6 +78,7 @@ public class PreyWander : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
         if (creature.IsDead)
         {
             // SkinnableCreature owns the death pose from here -- stop

@@ -72,7 +72,15 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1588090451174212, guid: c737dd230724d61469e1c672cf47ed9e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8350470211554024308}
+    - targetCorrespondingSourceObject: {fileID: 1588090451174212, guid: c737dd230724d61469e1c672cf47ed9e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7974400242168308311}
   m_SourcePrefab: {fileID: 100100000, guid: c737dd230724d61469e1c672cf47ed9e, type: 3}
+--- !u!4 &3570511062086018773 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4677745771901032, guid: c737dd230724d61469e1c672cf47ed9e, type: 3}
+  m_PrefabInstance: {fileID: 3575187978859321021}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &3573671013673514489 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 1588090451174212, guid: c737dd230724d61469e1c672cf47ed9e, type: 3}
@@ -111,6 +119,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b2e117f216f022d44b9a3870b9c6fe1b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PreyCreature
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   maxHealth: 10
   requiredTools:
   - {fileID: 11400000, guid: b770c40f049e6c548d471825e1df0ada, type: 2}
@@ -147,6 +158,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 50e4d682f8274114499a53a1077408c9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PreyWander
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   wanderRadius: 8
   moveSpeed: 1.2
   fleeSpeed: 4
@@ -172,3 +186,37 @@ MonoBehaviour:
   serverOnly: 0
   visibility: 0
   hasSpawned: 0
+--- !u!114 &7974400242168308311
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3573671013673514489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ff3ba0becae47b8b9381191598957c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror.Components::Mirror.NetworkTransformReliable
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+  target: {fileID: 3570511062086018773}
+  syncPosition: 1
+  syncRotation: 1
+  syncScale: 0
+  onlySyncOnChange: 1
+  compressRotation: 1
+  interpolatePosition: 1
+  interpolateRotation: 1
+  interpolateScale: 1
+  coordinateSpace: 0
+  timelineOffset: 1
+  showGizmos: 0
+  showOverlay: 0
+  overlayColor: {r: 0, g: 0, b: 0, a: 0.5}
+  onlySyncOnChangeCorrectionMultiplier: 2
+  useFixedUpdate: 0
+  rotationSensitivity: 0.01
+  positionPrecision: 0.01
+  scalePrecision: 0.01

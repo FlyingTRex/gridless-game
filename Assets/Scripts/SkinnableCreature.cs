@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 // Shared base for killable/lootable/skinnable creatures (2026-08-15 efficiency
@@ -8,8 +9,16 @@ using UnityEngine;
 // hold-to-skin interaction, and respawn. Subclasses own their own loot shape
 // via DropLoot() and anything AI-specific (HostileCreature keeps its own
 // Update() state machine entirely).
+//
+// Multiplayer, 2026-08-23 (roaming wildlife should be server-side too,
+// per Ben's explicit call — extending the "NPCs move server-side" phase
+// beyond the 5 job-driven scripts): converted to NetworkBehaviour so
+// both subclasses (HostileCreature/PreyCreature) inherit it in one
+// move. TakeDamage itself needs no isServer guard — it's only ever
+// called from a Command already (PlayerCombat/PlayerRangedCombat), so
+// it already runs server-side regardless.
 [RequireComponent(typeof(Collider))]
-public abstract class SkinnableCreature : MonoBehaviour, IDamageable, IInteractable
+public abstract class SkinnableCreature : NetworkBehaviour, IDamageable, IInteractable
 {
     [SerializeField] private float maxHealth = 15f;
 
