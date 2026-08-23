@@ -104,6 +104,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: NPCFactoryWorkerMale
       objectReference: {fileID: 0}
+    - target: {fileID: 3446120200624504512, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
+      propertyPath: _assetId
+      value: 736812019
+      objectReference: {fileID: 0}
     - target: {fileID: 7860393447680618419, guid: c4cc075bc5057a44095d19b97e36a959, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

@@ -116,6 +116,7 @@ public class ChoppableTree : MonoBehaviour, IInteractable, INPCHarvestable
             Vector3 offset = Random.insideUnitSphere * 0.5f;
             offset.y = Mathf.Abs(offset.y);
             var log = Instantiate(logPrefab, transform.position + Vector3.up * 0.3f + offset, Random.rotation);
+            NetworkSpawnHelper.SpawnIfNetworked(log);
 
             if (log.TryGetComponent(out Rigidbody rb))
             {

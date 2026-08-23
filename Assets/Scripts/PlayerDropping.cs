@@ -153,7 +153,8 @@ public class PlayerDropping : MonoBehaviour
         {
             Vector3 offset = Random.insideUnitSphere * 0.5f;
             offset.y = Mathf.Abs(offset.y);
-            Instantiate(prefab, position + offset, Random.rotation);
+            var extra = Instantiate(prefab, position + offset, Random.rotation);
+            NetworkSpawnHelper.SpawnIfNetworked(extra);
         }
     }
 }

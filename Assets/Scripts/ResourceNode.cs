@@ -287,6 +287,7 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
     {
         Vector3 offset = Random.insideUnitSphere * 0.3f;
         var chunk = Instantiate(prefab, transform.position + Vector3.up * 0.2f + offset, Random.rotation);
+        NetworkSpawnHelper.SpawnIfNetworked(chunk);
 
         if (chunk.TryGetComponent(out Rigidbody rb))
         {

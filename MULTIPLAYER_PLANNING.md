@@ -927,13 +927,46 @@ Mapped onto Gridless's actual systems:
       Live-confirmed: paid off 4 hired NPCs (40 coins), currency
       deducted, payment-due state cleared, zero real errors.
 
-      **Not yet started, remaining in this sub-phase**: NPC job
-      *assignment* itself (`NPCJobScreen` — a separate, larger surface
-      than Hire/Fire/Pay), admin tools (`AdminSpawnScreen`), and the
-      broader question of whether passive vital drain (`PlayerVitals
-      .Update()`'s hunger/thirst/stamina/health ticking) needs to move
-      server-side too — not addressed by any slice so far, which have
-      only touched player-input consumption/action paths.
+      **NPC job assignment — done, same session.** `NPCJobScreen`
+      converted to `NetworkBehaviour`; `RequestAssignJob`/
+      `RequestSwapTool` Commands, same pattern as Hiring's. Live-testing
+      immediately hit a real bug (see below) unrelated to this Command's
+      own logic — once fixed, live-confirmed: hired an NPC, assigned
+      Guarding, gave a Masterwork Knife tool, zero errors.
+
+      **Real bug found and fixed: 11 total `Instantiate` call sites
+      across the whole project were missing `NetworkSpawnHelper
+      .SpawnIfNetworked`, not just the one that surfaced.** Reported
+      symptom: hiring an NPC threw `Attempted to serialize unspawned
+      GameObject: NPCFactoryWorkerMale(Clone)`. Root cause:
+      `NPCFactoryWorkerMale`/`Female.prefab` (the two variants the
+      Village Flag spawner actually uses) inherited `NetworkIdentity` as
+      prefab variants of `NPCFactoryWorker.prefab` (converted in the
+      sub-phase 4 creature sweep) but were never registered in
+      `spawnPrefabs`, and their spawn call site
+      (`VillageFlagSpawner.SpawnAndSendToward`) never called
+      `NetworkServer.Spawn()` at all. A full audit of every
+      `Instantiate` call in `Assets/Scripts/` (not just the reported
+      site) found 10 more with the identical gap: `SaveManager
+      .RestoreNpcs`/`RestorePlacedPieces` (save/load restore),
+      `AdminSpawnScreen`'s admin BuildPiece spawn, `PlayerPieceUpgrade`'s
+      tier-upgrade spawn, `PlayerDropping.SpawnPickup`'s multi-count
+      scatter loop, all 5 "starting gear" auto-equip prefabs
+      (`PlayerBelt`/`Boot`/`Canteen`/`Jeans`/`Shirt` — every new
+      character's default clothing was silently unspawned), and the 4
+      gathered-resource drop points (`BerryBush`/`ChoppableTree`/
+      `HerbBush`/`ResourceNode`). Three cosmetic-only visual spawns
+      (crop growth stages, an NPC's held-tool display) were checked and
+      correctly left alone. `spawnPrefabs` now 166. Live-confirmed fixed
+      via the Guarding/tool-give test above.
+
+      **Not yet started, remaining in this sub-phase**: NPC deposit-
+      container targeting (`PlayerNPCDeposit`'s point-and-confirm flow),
+      admin tools beyond the spawn-gap fix above, and the broader
+      question of whether passive vital drain (`PlayerVitals.Update()`'s
+      hunger/thirst/stamina/health ticking) needs to move server-side
+      too — not addressed by any slice so far, which have only touched
+      player-input consumption/action paths.
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —

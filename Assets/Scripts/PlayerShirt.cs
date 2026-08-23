@@ -73,6 +73,7 @@ public class PlayerShirt : MonoBehaviour
         if (startingShirtPrefab == null || Equipped != null) return;
 
         var instance = Instantiate(startingShirtPrefab);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         var shirt = instance.GetComponent<Shirt>();
         var slot = equipment.GetSlot(ChestSlot);
 

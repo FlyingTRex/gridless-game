@@ -70,6 +70,7 @@ public class PlayerBelt : MonoBehaviour
         if (startingBeltPrefab == null || Equipped != null) return;
 
         var instance = Instantiate(startingBeltPrefab);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         var belt = instance.GetComponent<Belt>();
         var slot = equipment.GetSlot(WaistSlot);
 

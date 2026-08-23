@@ -94,6 +94,7 @@ public class PlayerBoot : MonoBehaviour
         if (startingBootPrefab == null || Equipped != null) return;
 
         var instance = Instantiate(startingBootPrefab);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         var boot = instance.GetComponent<Boot>();
         var slot = equipment.GetSlot(FeetSlot);
 

@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 // Opened from NPCHiringScreen's "Assign Job" button once an NPC is hired.
@@ -9,10 +10,23 @@ using UnityEngine;
 // `families`/`jobs` are manually-wired arrays, same convention as
 // CraftingScreen.disciplines/PlayerCrafting.recipes -- only one family
 // (Mining) and one job (Mine Ore) exist today.
+//
+// Multiplayer Phase 3 sub-phase 5, 2026-08-23: converted to
+// NetworkBehaviour, plus RequestAssignJob/RequestSwapTool Commands --
+// same "the Command runs server-side and calls straight into the
+// still-non-networked NPCJob" pattern NPCHiringScreen's own Hire/Fire/
+// Pay Commands just established. NPCJobDefinition resolves by stable
+// name (NPCJobDatabase.IdFor/Find, same shape CraftingRecipe already
+// uses); a ToolRequirement resolves by its own label string against the
+// job definition's own toolRequirements array (no separate id scheme
+// needed -- label is already the stable identifier DrawToolRequirements
+// keys off). DepositContainer's point-and-confirm targeting flow
+// (PlayerNPCDeposit) stays local-only for now, a separate and larger
+// piece, same as Crafting's recipe queue was left for a later slice.
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerEquipment))]
 [RequireComponent(typeof(PlayerNPCDeposit))]
-public class NPCJobScreen : MonoBehaviour
+public class NPCJobScreen : NetworkBehaviour
 {
     private const float PanelWidth = 480f;
     // Bumped 420 -> 460 alongside the tab-wrapping fix below (2026-08-17) —
@@ -166,7 +180,12 @@ public class NPCJobScreen : MonoBehaviour
                 GUILayout.Label(warning, DebugGUI.Warning);
 
             if (GUILayout.Button("Assign", GUILayout.Width(90)))
-                job.Assign(def);
+            {
+                if (isClient && current.TryGetComponent(out NetworkIdentity assignIdentity))
+                    RequestAssignJob(assignIdentity, def);
+                else
+                    job.Assign(def);
+            }
         }
         else
         {
@@ -269,7 +288,12 @@ public class NPCJobScreen : MonoBehaviour
                     GUILayout.Space(20);
                     string verb = equipped == null ? "Give" : "Swap to";
                     if (GUILayout.Button($"{verb} {candidate.itemName} (have {owned})", GUILayout.Width(240)))
-                        job.SwapTool(req, candidate, playerInventory, equipment);
+                    {
+                        if (isClient && current.TryGetComponent(out NetworkIdentity swapIdentity))
+                            RequestSwapTool(swapIdentity, def, req.label, candidate);
+                        else
+                            job.SwapTool(req, candidate, playerInventory, equipment);
+                    }
                     GUILayout.EndHorizontal();
                 }
             }
@@ -292,4 +316,46 @@ public class NPCJobScreen : MonoBehaviour
         return current.Skills.GetLevel(def.family) >= required;
     }
 
+    public void RequestAssignJob(NetworkIdentity npcIdentity, NPCJobDefinition jobDef)
+    {
+        string jobId = NPCJobDatabase.Instance.IdFor(jobDef);
+        if (jobId == null) return;
+        CmdAssignJob(npcIdentity, jobId);
+    }
+
+    [Command]
+    private void CmdAssignJob(NetworkIdentity npcIdentity, string jobId)
+    {
+        var npcJob = npcIdentity != null ? npcIdentity.GetComponent<NPCJob>() : null;
+        var jobDef = NPCJobDatabase.Instance.Find(jobId);
+        if (npcJob == null || jobDef == null) return;
+
+        npcJob.Assign(jobDef);
+    }
+
+    public void RequestSwapTool(NetworkIdentity npcIdentity, NPCJobDefinition jobDef, string requirementLabel, ItemDefinition newItem)
+    {
+        string jobId = NPCJobDatabase.Instance.IdFor(jobDef);
+        string itemId = ItemDatabase.Instance.IdFor(newItem);
+        if (jobId == null || itemId == null) return;
+        CmdSwapTool(npcIdentity, jobId, requirementLabel, itemId);
+    }
+
+    [Command]
+    private void CmdSwapTool(NetworkIdentity npcIdentity, string jobId, string requirementLabel, string itemId)
+    {
+        var npcJob = npcIdentity != null ? npcIdentity.GetComponent<NPCJob>() : null;
+        var jobDef = NPCJobDatabase.Instance.Find(jobId);
+        var newItem = ItemDatabase.Instance.Find(itemId);
+        if (npcJob == null || jobDef?.toolRequirements == null || newItem == null) return;
+
+        foreach (var req in jobDef.toolRequirements)
+        {
+            if (req != null && req.label == requirementLabel)
+            {
+                npcJob.SwapTool(req, newItem, playerInventory, equipment);
+                return;
+            }
+        }
+    }
 }

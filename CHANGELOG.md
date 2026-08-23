@@ -5,10 +5,55 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.186-dev` — must always match `GameVersion` in
+**Current version:** `0.3.187-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (21)
+
+### v0.3.187-dev — Multiplayer: real NPCJobScreen Commands, plus a real bug found and fixed across 11 missed spawn call sites
+
+`NPCJobScreen` converted to `NetworkBehaviour`; `RequestAssignJob`/
+`RequestSwapTool` Commands, same "runs server-side, calls straight into
+the still-non-networked `NPCJob`" pattern `NPCHiringScreen`'s own
+Commands established. `NPCJobDefinition` resolves by stable name
+(`NPCJobDatabase.IdFor`/`Find`, same shape `CraftingRecipe` uses); a
+`ToolRequirement` resolves by its own `label` string against the job's
+`toolRequirements` array. `DepositContainer` targeting stays local-only
+(a separate, larger piece).
+
+**Live-testing immediately found a real bug**: trying to hire an NPC
+threw `Attempted to serialize unspawned GameObject:
+NPCFactoryWorkerMale(Clone)`. Root cause: `NPCFactoryWorkerMale.prefab`/
+`NPCFactoryWorkerFemale.prefab` (the two variants the Village Flag
+spawner actually uses — a third, `NPCFactoryWorker.prefab`, got
+`NetworkIdentity` in the sub-phase 4 creature sweep, but these two
+siblings inherited it as prefab variants without ever being explicitly
+registered in `spawnPrefabs`) were spawned via a raw `Instantiate` with
+no `NetworkServer.Spawn()` call at all — genuinely unspawned on the
+network, not just missing registration.
+
+**A full audit of every `Instantiate` call site in `Assets/Scripts/`
+found 11 total missing the `NetworkSpawnHelper.SpawnIfNetworked`
+treatment** (not just the one reported) — fixed all of them rather than
+stopping at the first: `VillageFlagSpawner.SpawnAndSendToward` (the
+reported bug), `SaveManager.RestoreNpcs`/`RestorePlacedPieces` (save/
+load restore), `AdminSpawnScreen`'s admin BuildPiece spawn,
+`PlayerPieceUpgrade`'s tier-upgrade spawn, `PlayerDropping.SpawnPickup`'s
+multi-count scatter loop (dropping more than 1 of a stack), and all 5
+"starting gear" auto-equip prefabs (`PlayerBelt`/`PlayerBoot`/
+`PlayerCanteen`/`PlayerJeans`/`PlayerShirt` — every new character's
+default clothing was silently unspawned), plus the 4 gathered-resource
+drop points (`BerryBush`/`ChoppableTree`/`HerbBush`/`ResourceNode`).
+Three cosmetic-only visual spawns (crop growth stages in `GardenPlot`/
+`GardenPlot4x4`, an NPC's held-tool display in `NPCEquipmentVisual`) were
+checked and correctly left alone — colliders stripped, parented, no
+standalone item identity, nothing a Command would ever need to
+reference. Also registered `NPCFactoryWorkerMale`/`Female` in
+`spawnPrefabs` (164→166). Not yet retested live — this was bundled into
+one Editor-closed pass specifically to avoid repeated open/close
+interruptions during a live session.
 
 ## 2026-08-23 (20)
 

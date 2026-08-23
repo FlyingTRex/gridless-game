@@ -169,6 +169,7 @@ public class PlayerPieceUpgrade : MonoBehaviour
         Destroy(target.gameObject);
 
         var real = Instantiate(next.prefab, pos, rot);
+        NetworkSpawnHelper.SpawnIfNetworked(real);
         real.AddComponent<PlacedPiece>().Piece = next;
 
         foreach (var newSocket in real.GetComponentsInChildren<BuildSocket>())

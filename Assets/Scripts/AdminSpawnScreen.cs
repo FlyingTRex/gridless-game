@@ -248,6 +248,7 @@ public class AdminSpawnScreen : MonoBehaviour
             position = hit.point;
 
         var instance = Instantiate(piece.prefab, position, Quaternion.identity);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         instance.AddComponent<PlacedPiece>().Piece = piece;
         // Same explicit-generate fix as PlayerBuilding.Confirm -- see its
         // comment for why RequireComponent's auto-added SaveId can't be

@@ -138,6 +138,7 @@ public class PlayerCanteen : NetworkBehaviour
         if (belt == null) return;
 
         var instance = Instantiate(startingCanteenPrefab);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         var canteen = instance.GetComponent<Canteen>();
 
         if (canteen != null && belt.Inventory.AddEquipmentItem(canteenItem, canteen))

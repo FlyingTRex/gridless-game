@@ -657,6 +657,7 @@ public class SaveManager : MonoBehaviour
 
                 var position = ParseVector3(state["position"] as JObject);
                 var instance = Instantiate(prefab, position, Quaternion.identity);
+                NetworkSpawnHelper.SpawnIfNetworked(instance);
                 npc = instance.GetComponent<NPCHiring>();
                 if (npc == null) continue;
 
@@ -923,6 +924,7 @@ public class SaveManager : MonoBehaviour
                 var position = ParseVector3(state["position"] as JObject);
                 var rotation = Quaternion.Euler(0f, (float)(state["yaw"] ?? 0f), 0f);
                 var instance = Instantiate(buildPiece.prefab, position, rotation);
+                NetworkSpawnHelper.SpawnIfNetworked(instance);
 
                 piece = instance.GetComponent<PlacedPiece>();
                 if (piece == null) piece = instance.AddComponent<PlacedPiece>();

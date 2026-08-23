@@ -144,6 +144,7 @@ public class VillageFlagSpawner : MonoBehaviour
         spawnPos.y = GroundHeight.Sample(spawnPos, flag.transform.position.y);
 
         var instance = Instantiate(prefab, spawnPos, Quaternion.identity);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         instance.GetComponent<NPCDialogue>()?.Configure(NPCNameGenerator.PickUnique(isFemale), isFemale);
 
         var seek = instance.GetComponent<NPCSeekFlag>();

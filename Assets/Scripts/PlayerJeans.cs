@@ -80,6 +80,7 @@ public class PlayerJeans : MonoBehaviour
         if (startingJeansPrefab == null || Equipped != null) return;
 
         var instance = Instantiate(startingJeansPrefab);
+        NetworkSpawnHelper.SpawnIfNetworked(instance);
         var jeans = instance.GetComponent<Jeans>();
         var slot = equipment.GetSlot(LegSlot);
 

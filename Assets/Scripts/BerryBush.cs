@@ -138,6 +138,7 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable, I
         Vector2 horizontal = Random.insideUnitCircle.normalized * 0.45f;
         Vector3 offset = new Vector3(horizontal.x, 0.15f, horizontal.y);
         var obj = Instantiate(prefab, transform.position + offset, Random.rotation);
+        NetworkSpawnHelper.SpawnIfNetworked(obj);
 
         if (obj.TryGetComponent(out Rigidbody rb))
         {
