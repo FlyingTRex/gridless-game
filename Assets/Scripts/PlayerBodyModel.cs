@@ -55,6 +55,20 @@ public class PlayerBodyModel : MonoBehaviour
         navComputer = GetComponent<PlayerNavComputer>();
         shirt = GetComponent<PlayerShirt>();
         jeans = GetComponent<PlayerJeans>();
+    }
+
+    // Deliberately Start(), not the end of Awake() above -- ApplyGender's
+    // RefreshAnchor() calls reach into 11 other components (PlayerTool,
+    // PlayerBackpack, ...) that only work once each one's own Awake() has
+    // already populated its fields. Unity guarantees every component's
+    // Awake() on this GameObject completes before any Start() runs,
+    // regardless of component-list order -- the previous Awake()-time call
+    // instead relied on an unguaranteed implicit ordering (component list
+    // position) that a prefab conversion can silently disturb. Found live
+    // 2026-08-22 via a real NRE (PlayerTool.get_Equipped) during the
+    // Multiplayer Phase 3 Bootstrap attempt -- see MULTIPLAYER_PLANNING.md.
+    private void Start()
+    {
         ApplyGender(isMale);
     }
 

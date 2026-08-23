@@ -273,8 +273,45 @@ Mapped onto Gridless's actual systems:
       (b) go component-by-component/reference-by-reference through what
       `SaveAsPrefabAssetAndConnect` actually changed on an object this
       size before trusting it, rather than a single one-shot conversion
-      + live-test. Not started again yet — sub-phase 1 is back to fully
-      unbuilt, same state as before tonight's attempt.
+      + live-test.
+
+      **Retried the same night, isolated to just the prefab conversion
+      alone (no `NetworkIdentity` this time) — succeeded, with the real
+      bug found and fixed.** The exact same `PlayerTool` NRE reproduced
+      even with zero Mirror components involved, proving the earlier
+      "Mirror deactivation" theory wasn't the whole story. Root cause:
+      `PlayerBodyModel.Awake()` called `ApplyGender()`, which calls
+      `RefreshAnchor()` on 11 other components (`PlayerTool`,
+      `PlayerBackpack`, `PlayerBoot`, ...) that only work once each one's
+      own `Awake()` has already populated its fields — an implicit
+      ordering dependency on component-list position that Unity doesn't
+      guarantee and that `SaveAsPrefabAssetAndConnect` evidently disturbs.
+      Fixed by moving the initial `ApplyGender(isMale)` call from
+      `Awake()` to `Start()` (Unity guarantees every component's
+      `Awake()` on a GameObject completes before any `Start()` runs,
+      regardless of component order) — a real, standalone bugfix, not a
+      multiplayer-specific workaround. Two apparent "second regressions"
+      during debugging both turned out to be false alarms, not new bugs:
+      the odd "craft" progress bar on a live Wolf is pre-existing
+      `SkinnableCreature`/`IInteractable` behavior
+      (`HostileCreature : SkinnableCreature`), and "left-click doesn't
+      damage the Wolf" was `PlayerCombat` correctly refusing to punch
+      while a Bow was equipped (`IsHoldingRangedWeapon()`) — confirmed
+      via temporary debug logging added to `PlayerCombat.cs` (removed
+      after diagnosis) that traced the exact gate each time, then a
+      clean live kill (3 real hits, 9 damage each, confirmed straight
+      from `Editor.log`) once bare-handed. The earlier "~128KB scene
+      shrink = corruption" read from attempt #1 was also a red herring
+      — that shrink is normal/expected (data moves from the scene file
+      into the new prefab file on disk, not lost). **Bootstrap's prefab-
+      conversion step is now genuinely done and confirmed live**:
+      `Assets/Prefabs/Player.prefab` exists, connected, 75/75 components,
+      combat and interaction both confirmed working. **Still not done**:
+      `NetworkIdentity`/`NetworkTransformReliable` were deliberately not
+      re-added this session (stopping at one clean checkpoint rather than
+      pushing through to a second risky step same-session) — that, plus
+      the auto-host-on-load mechanism it depends on, is the next piece
+      for a future session.
    2. **Inventory + Equipment** — most foundational, most-referenced state;
       everything else reads/writes through it.
    3. **Crafting + Building** — depends on Inventory already being synced.

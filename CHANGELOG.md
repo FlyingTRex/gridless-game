@@ -5,10 +5,37 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.158-dev` — must always match `GameVersion` in
+**Current version:** `0.3.159-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-22 (6)
+
+### v0.3.159-dev — Multiplayer Phase 3 Bootstrap: prefab conversion done, real Awake-order bug found and fixed
+
+Retried the Bootstrap prefab conversion in isolation (no `NetworkIdentity`
+this time) after the earlier full revert. The exact same `PlayerTool` NRE
+reproduced with zero Mirror components involved, ruling out the earlier
+"Mirror deactivation" theory as the sole cause. Real root cause:
+`PlayerBodyModel.Awake()` called `ApplyGender()`, which reaches into 11
+other components (`PlayerTool`, `PlayerBackpack`, `PlayerBoot`, ...) that
+only work once their own `Awake()` has already run — an implicit ordering
+dependency on component-list position that `SaveAsPrefabAssetAndConnect`
+disturbs. Fixed by deferring the initial `ApplyGender(isMale)` call to
+`Start()`, which Unity guarantees runs after every component's `Awake()`
+regardless of order — a genuine standalone bugfix. Two further "regressions"
+found during debugging turned out to be false alarms, both confirmed via
+temporary debug logging added to and then removed from `PlayerCombat.cs`:
+a "craft" progress bar on a live Wolf is pre-existing `SkinnableCreature`
+skin-interaction behavior, and "left-click does no damage" was
+`PlayerCombat` correctly refusing to punch while a Bow was equipped. Live-
+confirmed clean straight from `Editor.log`: 3 real punches, 9 damage each,
+Wolf killed. `Assets/Prefabs/Player.prefab` now exists as a real, connected,
+working prefab. `NetworkIdentity`/`NetworkTransformReliable` deliberately
+not re-added this session — stopping at this clean checkpoint rather than
+pushing into a second risky step same-session. See `MULTIPLAYER_PLANNING.md`
+section 3 item 3 sub-phase 1 for full detail.
 
 ## 2026-08-22 (5)
 
