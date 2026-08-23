@@ -17,22 +17,25 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.173-dev is merged
+Nothing in progress right now — everything through v0.3.174-dev is merged
 to origin/main. Multiplayer Phase 3 sub-phase 1 (Bootstrap) is fully done.
 Sub-phase 2 (Inventory + Equipment): both major rollout pieces (world
 pickups, all equippables - 127 prefabs total) are DONE IN FULL, five
-working Commands, real SyncList sync. UI wiring is now done for the
-common case, both directions: Unequip and Equip (both drag-to-slot and
-click-to-equip for single-destination types) route through the real
-network Commands, live-confirmed. A real spawn-gap bug was found and
-fixed along the way - NetworkSpawnHelper.SpawnIfNetworked is now the
-shared place every real Instantiate-an-item call site (Dropping,
-Crafting, save/load restore, Skill Book writing) spawns a networked item
-correctly. Explicitly still not done: multi-destination click-equip
-(Canteen/NavComputer/HealthMonitor/Tool - stays on the local choice-popup
-flow), moving items into/out of a non-main container (worn Backpack's
-nested inventory, Furnace zones, NPC cargo), and the broader mutation
-surface outside Inventory/Equipment (crafting, NPC deposit, admin tools)
-- all still local-only. See `CHANGELOG.md`'s v0.3.173-dev entry and
-`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2 for full detail —
-pick up there next time rather than re-deriving the state.
+working Commands, real SyncList sync. UI wiring is DONE for every real
+case InventoryScreen.cs supports from the main inventory: Unequip,
+drag-to-slot Equip, single-destination click-equip, AND multi-destination
+click-equip (Canteen/NavComputer/HealthMonitor/Tool, popup included) all
+route through the real network Commands, live-confirmed. Two real bugs
+found and fixed along the way, neither caused by the networking work
+itself: a spawn-gap (NetworkSpawnHelper.SpawnIfNetworked is now the
+shared place every real item-instantiation call site spawns correctly)
+and a dual-wield display bug (IsCurrentlyWorn used to only detect ONE
+worn instance per type - see CLAUDE.md's new gotcha, also flags
+Canteen/NavComputer/HealthMonitor need the same "two worn at once" test
+later). Explicitly still not done: moving items into/out of a non-main
+container (worn Backpack's nested inventory, Furnace zones, NPC cargo),
+and the broader mutation surface outside Inventory/Equipment (crafting,
+NPC deposit, admin tools) - both still local-only. See `CHANGELOG.md`'s
+v0.3.174-dev entry and `MULTIPLAYER_PLANNING.md` section 3 item 3
+sub-phase 2 for full detail — pick up there next time rather than
+re-deriving the state.
