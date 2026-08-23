@@ -5,10 +5,39 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.188-dev` — must always match `GameVersion` in
+**Current version:** `0.3.189-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (23)
+
+### v0.3.189-dev — Multiplayer Phase 3 sub-phase 5 complete: vitals guarded server-side, admin tools dropped from scope
+
+`PlayerVitals` converted to `NetworkBehaviour`, plus an `isServer` guard
+on its passive-drain `Update()` loop — same pattern `PlayerCrafting`'s
+own batch-progression `Update()` already established. Correct for a
+future remote client (their vitals simulation runs once, authoritatively,
+on the server, not duplicated client-side) with zero effect on solo
+host-alone testing. No new Command needed on `PlayerVitals` itself —
+every mutating method (`Damage`, `Restore`, `ConsumeWill`,
+`StartHealOverTime`, ...) is already only ever called from somewhere
+server-side (a Command) or at load. Live-confirmed: played normally,
+hunger/thirst ticked down correctly, zero errors.
+
+**Admin tools dropped from the sub-phase 5 scope, same correction as
+"skill/attribute point spending" earlier** — `AdminSpawnScreen` is
+entirely `#if UNITY_EDITOR`-gated and never ships in a real build, so
+there's no multiplayer-correctness concern to solve there at all (it
+only ever runs in-Editor, where the local session IS the server anyway).
+
+**This closes out Multiplayer Phase 3 sub-phase 5 entirely — which
+means all 5 sub-phases of Phase 3 (Bootstrap; Inventory + Equipment;
+Crafting + Building; Magic + Combat; everything else) are now done.**
+See `MULTIPLAYER_PLANNING.md` for the full list of what shipped across
+the whole phase, and its own list of what comes next (NPCs move
+server-side, the persistence restructure, and the design-brief's
+remaining Phase 2/3 items).
 
 ## 2026-08-23 (22)
 

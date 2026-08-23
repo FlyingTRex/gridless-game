@@ -17,34 +17,32 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.188-dev is merged
-to origin/main. Multiplayer Phase 3 sub-phases 1-4 (Bootstrap; Inventory
-+ Equipment; Crafting + Building; Magic + Combat) are ALL fully done -
-see MULTIPLAYER_PLANNING.md for the full list of what shipped. Sub-phase
-5 (everything else) in progress: PlayerEating, PlayerMedicine,
-PlayerCanteen, NPCHiringScreen, NPCJobScreen, and NPCCraftingScreen are
-all NetworkBehaviours with real Commands covering eating/medicine
-(container-key shape), Canteen drink/fill, NPC hire/fire/pay, job
-assign/tool swap, and deposit/materials/output box targeting - all
-running server-side and calling straight into the still-non-networked
-NPCHiring/NPCJob/NPCCrafting, no conversion needed there. All live-
-confirmed working, zero real errors. "Skill/attribute point spending"
-dropped from the sub-phase 5 list - doesn't exist as a real system.
-Two real bugs found and fixed same session, both worth remembering: (1)
-11 total Instantiate call sites project-wide were missing
-NetworkSpawnHelper.SpawnIfNetworked (not just the one that surfaced
-hiring an NPC) - fixed all 11, spawnPrefabs now 166; (2) a self-
-inflicted ordering bug in both NPCJobScreen/NPCCraftingScreen's box-
-targeting callbacks - SetOpen(false) (nulls `current`) was called
-before capturing the NPC reference for the closure - fixed by
-reordering. Not yet started in sub-phase 5: admin tools beyond the
-spawn-gap fix, and whether PlayerVitals' passive drain needs to move
-server-side too. One real UI bug found live and logged to
-BUGS_AND_ENHANCEMENTS.md rather than chased same-session: a stuck empty
-hold-progress bar after casting Heal Self, cause not yet confirmed. See
-`CHANGELOG.md`'s v0.3.188-dev entry and `MULTIPLAYER_PLANNING.md`
-section 3 item 3 sub-phase 5 for full detail — pick up there next time
-rather than re-deriving the state.
+Nothing in progress right now — everything through v0.3.189-dev is merged
+to origin/main. **Multiplayer Phase 3 is fully complete** — all 5
+sub-phases (Bootstrap; Inventory + Equipment; Crafting + Building; Magic
++ Combat; everything else) shipped and live-confirmed. See
+MULTIPLAYER_PLANNING.md for the full list of what shipped across the
+whole phase. Sub-phase 5's last pieces: PlayerVitals converted to
+NetworkBehaviour with an isServer guard on its passive-drain Update()
+loop (no Command needed - every mutating method already runs server-side
+via an existing Command or at load); "admin tools" dropped from scope
+(AdminSpawnScreen is #if UNITY_EDITOR-only, never ships in a real build,
+so no multiplayer-correctness concern exists there), same correction as
+"skill/attribute point spending" earlier. Live-confirmed: played
+normally, hunger/thirst ticked down correctly, zero errors.
+
+Next up, per MULTIPLAYER_PLANNING.md's own roadmap: NPCs move
+server-side (the 5 Update()-driven NPC scripts stop running client-side
+entirely), then the persistence restructure for a real dedicated server,
+then the design-brief's remaining Phase 2/3 items. None of these are
+started yet.
+
+One real UI bug found live and logged to BUGS_AND_ENHANCEMENTS.md rather
+than chased same-session: a stuck empty hold-progress bar after casting
+Heal Self, cause not yet confirmed. See `CHANGELOG.md`'s v0.3.189-dev
+entry and `MULTIPLAYER_PLANNING.md` section 3's Phase-3-complete note
+for full detail — pick up NPCs-server-side next time rather than
+re-deriving the state.
 
 Reminder for whoever picks this back up: the overall Multiplayer
 conversion was always scoped as multi-week (48 PlayerXXX.cs scripts

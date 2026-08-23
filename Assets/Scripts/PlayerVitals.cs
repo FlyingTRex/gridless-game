@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 public enum VitalType
@@ -8,8 +9,23 @@ public enum VitalType
     Stamina
 }
 
+// Multiplayer Phase 3 sub-phase 5, 2026-08-23: converted to
+// NetworkBehaviour, plus an isServer guard on the passive-drain Update()
+// loop -- same pattern PlayerCrafting's own batch-progression Update()
+// already established. Correct for a future remote client (their vitals
+// simulation runs once, authoritatively, on the server, not duplicated
+// client-side too) with zero effect on solo host-alone testing (isServer
+// is true there too). Every mutating method here (Damage, Restore,
+// ConsumeWill, StartHealOverTime, ...) is already only ever called from
+// somewhere that's either server-side itself (a Command, like
+// PlayerEating/PlayerMedicine/PlayerInteraction's wish handling) or
+// runs once at Awake/RestoreVitals (load) -- no new Command needed on
+// this class itself, just the Update() guard. Known deferred gap, same
+// shape as Crafting's progress-display and Ranged's arrow-count gaps: a
+// genuine remote client wouldn't see their own vitals numbers tick in
+// real time without a sync mechanism, not addressed here.
 [DisallowMultipleComponent]
-public class PlayerVitals : MonoBehaviour
+public class PlayerVitals : NetworkBehaviour
 {
     // Stamina must be at or above this percentage to get the sprint speed
     // bonus at all — below it, FirstPersonController caps movement to
@@ -106,6 +122,8 @@ public class PlayerVitals : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
+
         float dt = Time.deltaTime;
 
         hunger = Mathf.Max(0f, hunger - hungerDrainPerSecond * dt);

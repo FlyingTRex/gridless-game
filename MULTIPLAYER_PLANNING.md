@@ -732,7 +732,7 @@ Mapped onto Gridless's actual systems:
       still local-only. Both smaller in scope than what's already
       shipped, and arguably belong to their own later phases rather than
       sub-phase 2 itself.
-   3. **Crafting + Building — started 2026-08-23.** `PlayerCrafting.cs`
+   3. **Crafting + Building — done, 2026-08-23.** `PlayerCrafting.cs`
       converted from `MonoBehaviour` to `NetworkBehaviour`, base-class
       change only, same "prove the foundation first" slice as sub-phase
       2's opening move. Real complication flagged before designing any
@@ -816,7 +816,7 @@ Mapped onto Gridless's actual systems:
       Building are both now functionally complete for sub-phase 3's core
       loop; the one deferred gap is Crafting's progress-display sync
       (above), nothing new for Building.
-   4. **Magic + Combat — started 2026-08-23.** Melee is done: `PlayerCombat`
+   4. **Magic + Combat — done, 2026-08-23.** Melee is done: `PlayerCombat`
       converted to `NetworkBehaviour`, with a real `RequestPunch`/
       `CmdPunch` Command in the same commit (simple enough to skip the
       usual base-class-only first slice — a single raycast + `TakeDamage`
@@ -877,7 +877,7 @@ Mapped onto Gridless's actual systems:
       hold-progress bar, shape matching `PlayerInteraction.DrawHoldBar`,
       cause not yet confirmed (possible regression from this slice's
       conversion, or pre-existing).
-   5. **Everything else — started 2026-08-23.** Vitals, skills, NPC
+   5. **Everything else — done, 2026-08-23.** Vitals, skills, NPC
       hiring/job-assignment player-side inputs, admin tools. First
       slice: `PlayerEating` converted to `NetworkBehaviour`, plus a real
       `RequestEatFrom`/`CmdEatFrom` Command in the same commit (simple
@@ -974,12 +974,27 @@ Mapped onto Gridless's actual systems:
       reference for the Command closure — fixed by reordering. Live-
       confirmed after the fix: set an NPC's deposit box, zero errors.
 
-      **Not yet started, remaining in this sub-phase**: admin tools
-      beyond the spawn-gap fix above, and the broader question of
-      whether passive vital drain (`PlayerVitals.Update()`'s hunger/
-      thirst/stamina/health ticking) needs to move server-side too — not
-      addressed by any slice so far, which have only touched player-
-      input consumption/action paths.
+      **Vitals passive drain — done, same session. Sub-phase 5 (and
+      with it, all of Phase 3) is now fully complete.** `PlayerVitals`
+      converted to `NetworkBehaviour`, plus an `isServer` guard on its
+      `Update()` drain loop — same pattern `PlayerCrafting`'s own batch-
+      progression `Update()` already established. No new Command needed
+      on `PlayerVitals` itself; every mutating method is already only
+      ever called from somewhere server-side (a Command) or at load.
+      Live-confirmed: played normally, hunger/thirst ticked down
+      correctly, zero errors.
+
+      **"Admin tools" dropped from this sub-phase's scope**, same
+      correction as "skill/attribute point spending" earlier —
+      `AdminSpawnScreen` is entirely `#if UNITY_EDITOR`-gated and never
+      ships in a real build, so there's no multiplayer-correctness
+      concern to solve there.
+**Phase 3 is fully complete as of 2026-08-23 — all 5 sub-phases above
+(Bootstrap; Inventory + Equipment; Crafting + Building; Magic + Combat;
+everything else) shipped and live-confirmed.** Real Commands now cover
+every player-input mutation this project's design surface actually
+needs authority over. What remains is the next phase down:
+
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —
