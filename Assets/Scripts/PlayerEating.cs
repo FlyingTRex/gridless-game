@@ -1,8 +1,18 @@
+using Mirror;
 using UnityEngine;
 
+// Multiplayer Phase 3 sub-phase 5, 2026-08-23: converted to
+// NetworkBehaviour, first real Command of this sub-phase ("everything
+// else" -- vitals, skills, NPC hiring/job-assignment inputs, admin
+// tools). RequestEatFrom carries a container key (same scheme
+// PlayerInventory.RequestMove already uses) plus a stable item id
+// instead of live references, resolved back into a real Inventory/
+// ItemDefinition entirely server-side via PlayerInventory
+// .ResolveContainerByKey/ItemDatabase -- TryEatFrom itself (the actual
+// hunger/vital restore + inventory removal) then runs unchanged.
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerVitals))]
-public class PlayerEating : MonoBehaviour
+public class PlayerEating : NetworkBehaviour
 {
     [SerializeField] private EdibleItem[] edibles;
 
@@ -52,5 +62,26 @@ public class PlayerEating : MonoBehaviour
             source.AddItem(edible.returnItem, edible.consumeCount);
 
         return true;
+    }
+
+    // containerKey uses the same scheme as PlayerInventory.RequestMove
+    // ("main", an equipment slot name, or "worn:<slot>").
+    public void RequestEatFrom(string containerKey, ItemDefinition item)
+    {
+        string id = ItemDatabase.Instance.IdFor(item);
+        if (id == null) return;
+        CmdEatFrom(containerKey, id);
+    }
+
+    [Command]
+    private void CmdEatFrom(string containerKey, string itemId)
+    {
+        var item = ItemDatabase.Instance.Find(itemId);
+        if (item == null) return;
+
+        var source = inventory.ResolveContainerByKey(containerKey);
+        if (source == null) return;
+
+        TryEatFrom(source, item);
     }
 }

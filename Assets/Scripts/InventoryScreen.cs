@@ -468,7 +468,11 @@ public class InventoryScreen : MonoBehaviour
         var edible = eating != null ? eating.FindEdible(pendingActionItem) : null;
         if (edible != null && GUILayout.Button(edible.verb))
         {
-            eating.TryEatFrom(pendingActionSource, pendingActionItem);
+            string sourceKey = ContainerKeyFor(pendingActionSource);
+            if (sourceKey != null)
+                eating.RequestEatFrom(sourceKey, pendingActionItem);
+            else
+                eating.TryEatFrom(pendingActionSource, pendingActionItem);
             return true;
         }
 
@@ -1108,6 +1112,10 @@ public class InventoryScreen : MonoBehaviour
         {
             if (equipment.GetEquipped(slotName) is IInventoryHolder holder && holder.Inventory == inv)
                 return "worn:" + slotName;
+            // A plain equipment slot itself (e.g. an item held in a hand) --
+            // matches PlayerInventory.ResolveContainer's fallback case.
+            if (equipment.GetSlot(slotName) == inv)
+                return slotName;
         }
         return null;
     }

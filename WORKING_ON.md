@@ -17,18 +17,24 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.182-dev is merged
+Nothing in progress right now — everything through v0.3.183-dev is merged
 to origin/main. Multiplayer Phase 3 sub-phases 1-4 (Bootstrap; Inventory
 + Equipment; Crafting + Building; Magic + Combat) are ALL fully done -
-see MULTIPLAYER_PLANNING.md for the full list of what shipped. Only
-sub-phase 5 (everything else - vitals, skills, NPC hiring/job-assignment
-player-side inputs, admin tools) remains before "NPCs move server-side"
-and the persistence restructure. One real UI bug found live and logged
-to BUGS_AND_ENHANCEMENTS.md rather than chased same-session: a stuck
-empty hold-progress bar after casting Heal Self, cause not yet
-confirmed. See `CHANGELOG.md`'s v0.3.182-dev entry and
-`MULTIPLAYER_PLANNING.md` section 3 item 3 for full sub-phase 1-4 detail
-— pick up sub-phase 5 next time rather than re-deriving the state.
+see MULTIPLAYER_PLANNING.md for the full list of what shipped. Sub-phase
+5 (everything else) started: PlayerEating is a NetworkBehaviour with a
+real RequestEatFrom/CmdEatFrom Command (container-key scheme, same as
+Inventory Move). Live-confirmed: ate an MRE, hunger/health restored,
+zero errors. Not yet started in sub-phase 5: PlayerMedicine (same shape,
+likely next), Canteen drink/fill (different shape - acts on the
+physical instance, not a container removal), skill/attribute point
+spending, NPC hiring/firing/job-assignment inputs, admin tools, and
+whether PlayerVitals' own passive drain (Update()'s hunger/thirst/
+stamina/health ticking) needs to move server-side too. One real UI bug
+found live and logged to BUGS_AND_ENHANCEMENTS.md rather than chased
+same-session: a stuck empty hold-progress bar after casting Heal Self,
+cause not yet confirmed. See `CHANGELOG.md`'s v0.3.183-dev entry and
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 5 for full detail —
+pick up there next time rather than re-deriving the state.
 
 Reminder for whoever picks this back up: the overall Multiplayer
 conversion was always scoped as multi-week (48 PlayerXXX.cs scripts

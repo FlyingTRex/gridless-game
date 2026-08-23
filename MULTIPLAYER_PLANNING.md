@@ -877,9 +877,33 @@ Mapped onto Gridless's actual systems:
       hold-progress bar, shape matching `PlayerInteraction.DrawHoldBar`,
       cause not yet confirmed (possible regression from this slice's
       conversion, or pre-existing).
-   5. **Everything else** — vitals, skills, NPC hiring/job-assignment
-      player-side inputs, admin tools.
-   Sub-phase 5 not yet started.
+   5. **Everything else — started 2026-08-23.** Vitals, skills, NPC
+      hiring/job-assignment player-side inputs, admin tools. First
+      slice: `PlayerEating` converted to `NetworkBehaviour`, plus a real
+      `RequestEatFrom`/`CmdEatFrom` Command in the same commit (simple
+      enough vertical slice, same as melee's own first Command). Carries
+      a container key (same "main"/"worn:\<slot\>"/bare-slot-name scheme
+      `PlayerInventory.RequestMove` established in sub-phase 2) plus a
+      stable item id, resolved server-side into a real `Inventory`/
+      `ItemDefinition` — `TryEatFrom` itself (hunger/vital restore,
+      inventory removal) runs unchanged. `PlayerInventory` gained a
+      small public `ResolveContainerByKey` wrapper for this and future
+      Commands in this sub-phase to reuse without duplicating the
+      resolution logic. `InventoryScreen.ContainerKeyFor` extended to
+      also recognize a bare equipment slot (an item held directly in a
+      hand), not just a "worn:" nested container. Live-confirmed: ate an
+      MRE, hunger/health restored, item consumed, zero errors.
+
+      **Not yet started, remaining in this sub-phase**: `PlayerMedicine`
+      (same shape as Eating — `TryApplyFrom`, likely the next natural
+      slice), Canteen drink/fill (acts on the physical instance directly,
+      not a container-key removal — different shape), skill/attribute
+      point spending, NPC hiring/firing/job-assignment inputs, admin
+      tools (`AdminSpawnScreen`), and the broader question of whether
+      passive vital drain (`PlayerVitals.Update()`'s hunger/thirst/
+      stamina/health ticking) needs to move server-side too — not
+      addressed by this slice, which only touched the player-input eating
+      path.
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —

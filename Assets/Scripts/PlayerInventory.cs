@@ -164,6 +164,12 @@ public class PlayerInventory : NetworkBehaviour
         InventoryTransfer.MoveAsManyAsFit(from, to, item, quantity);
     }
 
+    // Public wrapper so other Player NetworkBehaviours' own Commands (e.g.
+    // PlayerEating's RequestEatFrom) can resolve a container key without
+    // duplicating ResolveContainer's logic -- same container-key scheme,
+    // one source of truth.
+    public Inventory ResolveContainerByKey(string key) => ResolveContainer(key, GetComponent<PlayerEquipment>());
+
     private Inventory ResolveContainer(string key, PlayerEquipment equipment)
     {
         if (key == "main") return inventory;

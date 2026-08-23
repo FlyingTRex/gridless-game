@@ -5,10 +5,30 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.182-dev` — must always match `GameVersion` in
+**Current version:** `0.3.183-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (17)
+
+### v0.3.183-dev — Multiplayer sub-phase 5 started: real Eating Command
+
+First slice of sub-phase 5 ("everything else" — vitals, skills, NPC
+hiring/job-assignment inputs, admin tools). `PlayerEating` converted to
+`NetworkBehaviour`; `RequestEatFrom`/`CmdEatFrom` carries a container key
+(same "main"/"worn:\<slot\>"/bare-slot-name scheme `PlayerInventory
+.RequestMove` already established) plus a stable item id instead of live
+references, resolved back into a real `Inventory`/`ItemDefinition`
+entirely server-side. `PlayerInventory` gained a small public
+`ResolveContainerByKey` wrapper so this and future sub-phase-5 Commands
+can reuse the same resolution logic without duplicating it.
+`InventoryScreen`'s `ContainerKeyFor` extended to also recognize a bare
+equipment slot (not just "worn:" nested containers), needed for eating
+something held directly in a hand slot. Networked-first with a local
+fallback for anything the key scheme doesn't cover, same pattern as
+every other Command this project. Live-confirmed: ate an MRE, hunger and
+health restored correctly, item consumed, zero errors.
 
 ## 2026-08-23 (16)
 
