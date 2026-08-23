@@ -68,6 +68,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8174123436053332509, guid: c82a0d5500110db499f34059d262071a, type: 3}
       insertIndex: -1
       addedObject: {fileID: 409497788452341320}
+    - targetCorrespondingSourceObject: {fileID: 8174123436053332509, guid: c82a0d5500110db499f34059d262071a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4290038361810000997}
   m_SourcePrefab: {fileID: -4161369568681901532, guid: c82a0d5500110db499f34059d262071a, type: 3}
 --- !u!1 &5177285499503326357 stripped
 GameObject:
@@ -155,3 +158,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
   settleVelocityThreshold: 0.05
   settleDuration: 1.5
+--- !u!114 &4290038361810000997
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5177285499503326357}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 2262408207
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0

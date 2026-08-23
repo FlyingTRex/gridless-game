@@ -5,10 +5,36 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.169-dev` — must always match `GameVersion` in
+**Current version:** `0.3.170-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (4)
+
+### v0.3.170-dev — Multiplayer sub-phase 2: world-pickup networking done in full
+
+Bulk pass: 78 of 127 unique `worldPickupPrefab` prefabs (every one
+carrying a plain `Pickup` component — the other 49 are equippable types
+with their own carrier flow) given `NetworkIdentity` and registered in
+`NetworkManager.spawnPrefabs`. `Pickup.Complete()` now routes through a
+server-authoritative Command (`PlayerInventory.RequestCompletePickup`/
+`CmdCompletePickup`) when networked, reusing the exact same resolution
+logic (renamed `ServerComplete`) with `NetworkServer.Destroy` in place of
+a plain `Destroy` — one shared conversion covering all 78 prefabs at
+once. Two real bugs found and fixed during rollout, both root-caused via
+direct `Editor.log` reads rather than guessed at: (1) two already-placed
+scene pickups turned out to be `NotAPrefab` (hand-placed, never inherited
+the bulk `NetworkIdentity`), which cascaded into unrelated-looking
+`NullReferenceException`s elsewhere (`PlayerInventory`, `NPCEncumbrance`,
+`Furnace`) until traced to this one root cause; (2) two prefab-instance
+objects needed the scene resaved to backfill valid scene IDs after their
+prefab gained a `NetworkIdentity` — new process lesson logged for next
+time this pattern comes up. Live-confirmed clean after both fixes: full
+pickup Command round-trip working, zero exceptions in a fresh session.
+This is the single largest piece of sub-phase 2's actual rollout, fully
+done — not just a pilot. See `MULTIPLAYER_PLANNING.md` section 3 item 3
+sub-phase 2.
 
 ## 2026-08-23 (3)
 

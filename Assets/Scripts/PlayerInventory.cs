@@ -163,4 +163,21 @@ public class PlayerInventory : NetworkBehaviour
         if (key == "main") return inventory;
         return equipment != null ? equipment.GetSlot(key) : null;
     }
+
+    // Fifth slice (2026-08-23) -- routes a networked Pickup's Complete()
+    // through a server-authoritative Command, reusing Pickup.ServerComplete
+    // unchanged. Identifies the target by its NetworkIdentity, same
+    // pattern as PlayerBackpack's equip/unequip Commands.
+    public void RequestCompletePickup(Pickup pickup)
+    {
+        if (pickup == null || !pickup.TryGetComponent(out NetworkIdentity identity)) return;
+        CmdCompletePickup(identity);
+    }
+
+    [Command]
+    private void CmdCompletePickup(NetworkIdentity pickupIdentity)
+    {
+        var pickup = pickupIdentity != null ? pickupIdentity.GetComponent<Pickup>() : null;
+        pickup?.ServerComplete(gameObject);
+    }
 }

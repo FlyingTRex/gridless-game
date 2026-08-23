@@ -1,5 +1,16 @@
+using Mirror;
 using UnityEngine;
 
+// Multiplayer Phase 3 sub-phase 2 rollout (2026-08-23): most
+// worldPickupPrefab prefabs (78 of 127, the rest being the ~10
+// equippable types with their own carrier-based flow) now carry a
+// NetworkIdentity. Complete() below routes through a server-
+// authoritative Command when networked, reusing the exact same logic
+// this class already had (see ServerComplete) -- one shared conversion
+// covering all 78 prefabs at once, not 78 separate ones, since they all
+// share this one script. Falls back to the original local-only path for
+// any prefab that doesn't have a NetworkIdentity (the 49 skipped ones,
+// or any future addition that hasn't been converted yet).
 public class Pickup : MonoBehaviour, IInteractable
 {
     [SerializeField] private ItemDefinition item;
@@ -78,6 +89,23 @@ public class Pickup : MonoBehaviour, IInteractable
 
     public void Complete(GameObject player)
     {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            player.GetComponent<PlayerInventory>()?.RequestCompletePickup(this);
+            return;
+        }
+
+        ServerComplete(player);
+    }
+
+    // The real pickup-resolution logic -- item/loot handoff, skill gain,
+    // and either despawn or respawn-hide. Runs directly (local-only path)
+    // for any prefab without a NetworkIdentity, or server-side only (via
+    // PlayerInventory.CmdCompletePickup) for a networked one -- either
+    // way this is the single source of truth for what "completing" a
+    // pickup actually does, not duplicated logic.
+    public void ServerComplete(GameObject player)
+    {
         var loot = player.GetComponent<PlayerLoot>();
         int leftover;
         if (loot != null)
@@ -105,6 +133,10 @@ public class Pickup : MonoBehaviour, IInteractable
         {
             SetVisible(false);
             respawnAt = Time.time + respawnDelay;
+        }
+        else if (TryGetComponent<NetworkIdentity>(out _) && NetworkServer.active)
+        {
+            NetworkServer.Destroy(gameObject);
         }
         else
         {

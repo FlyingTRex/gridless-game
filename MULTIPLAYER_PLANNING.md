@@ -541,18 +541,65 @@ Mapped onto Gridless's actual systems:
       live-confirmed `SyncList` sync, and three real Commands (add-item,
       move-plain-item, equip/unequip-a-real-instance) prove every shape
       of the client-request → server-validate → apply pattern this
-      sub-phase needs. What's explicitly NOT done, and now much better
-      understood: (1) none of these Commands are wired into the real UI
-      players actually touch, (2) only ONE of ~10+ equippable prefab
-      types (and only one of that type's ~10 tier/material variants) has
-      `NetworkIdentity` — every other equippable and every world Pickup
-      still needs the identical treatment, and (3) the broader mutation
-      surface (crafting, NPC deposit, admin tools) is still local-only.
-      This is a reasonable point to consider the *core sync + Command
-      infrastructure* proven across every real shape it needs, with the
-      actual rollout (every prefab, every UI call site) as explicitly
-      deferred, mechanical-but-large follow-on work — not pretending the
-      whole sub-phase is done.
+      sub-phase needs.
+
+      **World-pickup networking done in full, 2026-08-23 — the biggest
+      remaining piece of sub-phase 2 closed out in one session.**
+      Bulk pass: every `worldPickupPrefab` carrying a plain `Pickup`
+      component (78 of 127 unique prefabs across every `ItemDefinition`
+      asset — the other 49 are the equippable types with their own
+      carrier flow) given `NetworkIdentity` and registered in
+      `NetworkManager.spawnPrefabs`. `Pickup.Complete()` now routes
+      through a server-authoritative Command
+      (`PlayerInventory.RequestCompletePickup`/`CmdCompletePickup`) when
+      networked, reusing the exact same resolution logic (renamed
+      `ServerComplete`, unchanged) with `NetworkServer.Destroy` in place
+      of a plain `Destroy` — one shared conversion covering all 78
+      prefabs at once, not 78 separate ones, since they all share this
+      one script.
+
+      **Two real bugs found and fixed during rollout, both root-caused
+      via `Editor.log` rather than guessed at:**
+      1. Two already-scene-placed pickups (`Stick Pickup`, `Stick Pickup
+         2`) turned out to be `NotAPrefab` — plain hand-placed
+         GameObjects, not instances of `StickPickup.prefab` — so they
+         never inherited the bulk pass's `NetworkIdentity`. Their
+         `Complete()` silently fell back to the local-only path instead
+         of erroring, which cascaded into real, repeating
+         `NullReferenceException`s elsewhere (`PlayerInventory
+         .ComputeSignature`, `NPCEncumbrance`/`PlayerEncumbrance`, even
+         `Furnace.AutoRefill`) — all traced back to this one root cause
+         once diagnosed properly, not independent bugs. Fixed by adding
+         `NetworkIdentity` directly to those two specific instances,
+         same pattern as the original Player fix.
+      2. Two other prefab-instance objects (`Plank`, `SoccerBall`) threw
+         a real "scene object has no valid sceneId, needs to be opened
+         and resaved" error after the bulk prefab edit — fixed by
+         reopening and resaving `TestScene.unity`, which backfills scene
+         IDs for prefab instances whose prefab gained a `NetworkIdentity`
+         after the scene was last saved. **New process lesson**: any
+         prefab-only `NetworkIdentity` addition needs a scene resave pass
+         immediately after, or already-placed instances of that prefab
+         silently don't get valid scene IDs.
+      Live-confirmed clean after both fixes: picked up multiple Sticks,
+      full `Editor.log` trace showed the Command round-trip working
+      correctly (client request → server resolve → skill gain → destroy),
+      zero exceptions anywhere in a fresh session.
+
+      **What's explicitly still NOT done**: (1) none of these Commands
+      are wired into the real UI players actually touch — `Pickup`
+      interaction already routes through the Command automatically via
+      `PlayerInteraction`, but `InventoryScreen.cs`'s drag-and-drop still
+      calls local methods directly; (2) only ONE of ~10+ equippable
+      prefab types (and only one of that type's ~10 tier/material
+      variants) has `NetworkIdentity` — every other equippable still
+      needs the identical Backpack-pilot treatment; (3) the broader
+      mutation surface (crafting, NPC deposit, admin tools) is still
+      local-only. Sub-phase 2's core sync + Command infrastructure is now
+      proven across every real shape it needs, *and* the single largest
+      piece of actual rollout (world pickups) is fully done — not just a
+      pilot. Remaining rollout (equippables, UI wiring) is smaller in
+      scope than what's already shipped.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
