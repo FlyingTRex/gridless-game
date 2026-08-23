@@ -901,14 +901,24 @@ Mapped onto Gridless's actual systems:
       confirmed: used Healing Paste, heal-over-time applied, item
       consumed, zero errors.
 
-      **Not yet started, remaining in this sub-phase**: Canteen
-      drink/fill (acts on the physical instance directly, not a
-      container-key removal — different shape), skill/attribute point
-      spending, NPC hiring/firing/job-assignment inputs, admin tools
-      (`AdminSpawnScreen`), and the broader question of whether passive
-      vital drain (`PlayerVitals.Update()`'s hunger/thirst/stamina/health
-      ticking) needs to move server-side too — not addressed by either
-      slice so far, which only touched player-input consumption paths.
+      **Canteen — done, same session.** `PlayerCanteen` converted to
+      `NetworkBehaviour`; `RequestDrink`/`CmdDrink` and `RequestFill`/
+      `CmdFill` are a genuinely different shape from Eating/Medicine —
+      no item id or container key travels over the wire at all, the
+      Command just reads `this.Equipped` server-side (already the real
+      carried instance) and calls `Drink`/`Fill` on it directly.
+      `Canteen.prefab` already had `NetworkIdentity` from the equippable
+      sweep. Live-confirmed: drank past the overdrink threshold, got
+      sick, health ticked down, refilled — full vitals interaction
+      confirmed through the Command, zero errors.
+
+      **Not yet started, remaining in this sub-phase**: skill/attribute
+      point spending, NPC hiring/firing/job-assignment inputs, admin
+      tools (`AdminSpawnScreen`), and the broader question of whether
+      passive vital drain (`PlayerVitals.Update()`'s hunger/thirst/
+      stamina/health ticking) needs to move server-side too — not
+      addressed by any slice so far, which have only touched player-input
+      consumption paths.
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —

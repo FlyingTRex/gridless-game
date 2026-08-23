@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.184-dev` — must always match `GameVersion` in
+**Current version:** `0.3.185-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (19)
+
+### v0.3.185-dev — Multiplayer sub-phase 5: real Canteen Drink/Fill Commands
+
+`PlayerCanteen` converted to `NetworkBehaviour`; `RequestDrink`/`CmdDrink`
+and `RequestFill`/`CmdFill` are a genuinely different shape from Eating/
+Medicine's container-key Commands — Drink/Fill act on the physical
+Canteen instance directly (whichever one is currently carried), not a
+container removal, so no item id or container key travels over the wire
+at all. Each Command just reads `this.Equipped` server-side (already the
+real, server-authoritative carried instance, same "read it fresh off
+real component state" pattern as `PlayerCombat.ResolveAttack`) and
+invokes `Drink`/`Fill` on it directly. `Canteen.prefab` already had
+`NetworkIdentity` from the earlier equippable sweep, so no new prefab
+pass was needed. Live-confirmed: drank past the overdrink threshold
+(intentionally, to exercise the full path), got sick, health ticked
+down correctly, refilled the Canteen — every step of the real vitals
+interaction confirmed working through the Command, zero errors.
 
 ## 2026-08-23 (18)
 

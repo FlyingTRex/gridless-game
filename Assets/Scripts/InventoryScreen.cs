@@ -495,13 +495,15 @@ public class InventoryScreen : MonoBehaviour
         {
             if (!canteen.IsEmpty && GUILayout.Button("Drink"))
             {
-                canteen.Drink(vitals);
+                if (canteenCarrier != null) canteenCarrier.RequestDrink();
+                else canteen.Drink(vitals);
                 return true;
             }
 
             if (!canteen.IsFull && GUILayout.Button("Fill"))
             {
-                canteen.Fill(LiquidType.Water);
+                if (canteenCarrier != null) canteenCarrier.RequestFill();
+                else canteen.Fill(LiquidType.Water);
                 return true;
             }
         }

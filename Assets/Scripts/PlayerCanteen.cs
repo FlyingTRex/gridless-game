@@ -1,8 +1,19 @@
+using Mirror;
 using UnityEngine;
 
+// Multiplayer Phase 3 sub-phase 5, 2026-08-23: converted to
+// NetworkBehaviour, plus RequestDrink/CmdDrink and RequestFill/CmdFill.
+// A genuinely different shape from Eating/Medicine's container-key
+// Commands — Drink/Fill act on the physical Canteen instance itself
+// (whichever one is currently carried), not a container removal, so no
+// item id or container key needs to travel over the wire at all. The
+// Command just calls this.Equipped server-side (already the real,
+// server-authoritative carried instance, same "read it fresh off real
+// component state" pattern as PlayerCombat's ResolveAttack) and invokes
+// Drink/Fill on it directly.
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerEquipment))]
-public class PlayerCanteen : MonoBehaviour
+public class PlayerCanteen : NetworkBehaviour
 {
     // Tried in order when equipping. "Belt" isn't a PlayerEquipment slot
     // name — it's a sentinel meaning "the currently-equipped Belt's
@@ -48,6 +59,7 @@ public class PlayerCanteen : MonoBehaviour
     private PlayerLoot loot;
     private PlayerBelt beltCarrier;
     private PlayerBodyModel bodyModel;
+    private PlayerVitals vitals;
 
     // Unlike Sunglasses/PersonalHealthMonitor, a canteen has no dedicated
     // "worn" slot — holding it in a hand or clipped to a worn Belt's
@@ -75,6 +87,7 @@ public class PlayerCanteen : MonoBehaviour
         loot = GetComponent<PlayerLoot>();
         beltCarrier = GetComponent<PlayerBelt>();
         bodyModel = GetComponent<PlayerBodyModel>();
+        vitals = GetComponent<PlayerVitals>();
     }
 
     // Bone + fallback + offset for a given carry destination — the single
@@ -277,4 +290,19 @@ public class PlayerCanteen : MonoBehaviour
         }
     }
 
+    public void RequestDrink() => CmdDrink();
+
+    [Command]
+    private void CmdDrink()
+    {
+        Equipped?.Drink(vitals);
+    }
+
+    public void RequestFill() => CmdFill();
+
+    [Command]
+    private void CmdFill()
+    {
+        Equipped?.Fill(LiquidType.Water);
+    }
 }
