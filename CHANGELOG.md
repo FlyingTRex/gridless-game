@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.175-dev` — must always match `GameVersion` in
+**Current version:** `0.3.176-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (10)
+
+### v0.3.176-dev — Multiplayer sub-phase 3 (Crafting + Building) started: PlayerCrafting is a NetworkBehaviour
+
+First slice of a new sub-phase, same "prove the foundation first"
+discipline as sub-phase 2's opening move: `PlayerCrafting.cs` converted
+from `MonoBehaviour` to `NetworkBehaviour`, base-class change only. Real
+complication flagged before designing any Command: crafting is a
+genuinely different shape than Inventory/Equipment's atomic moves —
+`StartCraft` validates several gating conditions, consumes ingredients
+across multiple *reachable* inventories (not just the main one), and
+runs a real timed batch ticked in `Update()`. None of that maps cleanly
+onto the request/validate/apply-in-one-shot Command shape used
+everywhere in sub-phase 2. Live-confirmed the conversion alone is safe:
+crafted a Stick, correct output and ingredient consumption, zero errors.
+Designing the actual Command shape for a timed, multi-container batch
+process is real, undesigned work ahead. See `MULTIPLAYER_PLANNING.md`
+section 3 item 3 sub-phase 3.
 
 ## 2026-08-23 (9)
 

@@ -732,13 +732,27 @@ Mapped onto Gridless's actual systems:
       still local-only. Both smaller in scope than what's already
       shipped, and arguably belong to their own later phases rather than
       sub-phase 2 itself.
-   3. **Crafting + Building** — depends on Inventory already being synced.
+   3. **Crafting + Building — started 2026-08-23.** `PlayerCrafting.cs`
+      converted from `MonoBehaviour` to `NetworkBehaviour`, base-class
+      change only, same "prove the foundation first" slice as sub-phase
+      2's opening move. Real complication flagged before designing any
+      Command: crafting is a genuinely different shape of problem than
+      Inventory/Equipment's atomic moves — `StartCraft` validates several
+      gating conditions (tool, skill, nearby Anvil/Furnace, Canteen
+      water), consumes ingredients across multiple *reachable*
+      inventories (not just this Player's own main inventory), and runs
+      a real timed batch (`activeRecipe`/`activeTotal`/`activeElapsed`)
+      ticked in `Update()` — none of that maps cleanly onto the
+      request/validate/apply-in-one-shot Command shape sub-phase 2 used
+      everywhere. Live-confirmed the base-class conversion alone is
+      safe: crafted a Stick, correct output produced, correct ingredients
+      consumed, zero errors. Designing the actual Command shape for a
+      timed, multi-container batch process is real, undesigned work —
+      not attempted in this slice.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
       player-side inputs, admin tools.
-   Not yet started — deliberately not rushed into the same session as the
-   Phase 0/1 pilots above, given the risk of breaking the single-player
-   game the pilots didn't carry.
+   Sub-phases 4-5 not yet started.
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —

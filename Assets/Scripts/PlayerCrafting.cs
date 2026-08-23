@@ -1,8 +1,21 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 
+// Multiplayer Phase 3 sub-phase 3 (MULTIPLAYER_PLANNING.md), first slice
+// (2026-08-23): converted from MonoBehaviour to NetworkBehaviour, base-
+// class change only, no new synced state or Commands yet -- same "prove
+// the foundation before building on it" discipline sub-phase 2 used for
+// PlayerInventory/PlayerEquipment. Crafting is a genuinely different
+// shape of problem than Inventory/Equipment's atomic moves: StartCraft
+// validates several gating conditions (tool, skill, nearby Anvil/
+// Furnace, Canteen water), consumes ingredients across multiple
+// *reachable* inventories (not just this Player's own main inventory),
+// and runs a real timed batch (activeRecipe/activeTotal/activeElapsed)
+// ticked in Update() -- designing the actual Command shape needs its own
+// dedicated pass, not attempted in this slice.
 [RequireComponent(typeof(PlayerInventory))]
-public class PlayerCrafting : MonoBehaviour
+public class PlayerCrafting : NetworkBehaviour
 {
     [SerializeField] private CraftingRecipe[] recipes;
     [SerializeField] private float storageRange = 10f;
