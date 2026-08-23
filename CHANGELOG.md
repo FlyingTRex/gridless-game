@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.166-dev` — must always match `GameVersion` in
+**Current version:** `0.3.167-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23
+
+### v0.3.167-dev — Multiplayer sub-phase 2: PlayerEquipment is now a NetworkBehaviour too
+
+Real gap found before writing code: unlike `Inventory` (mostly plain
+stackable slots), an equip slot is virtually always equipment-carrying by
+definition, so excluding those from sync the way `PlayerInventory` does
+would sync nothing. Fixed by syncing *which item* occupies each named
+slot (`SyncedEquipmentSlot { slotName, itemId }`) rather than trying to
+exclude equipment slots — the equipped object's own deep state (a worn
+Backpack's contents, a Canteen's fill level) still isn't synced, same
+complexity boundary as before, just correctly applied to this class's
+actual data shape. Live-confirmed via a temporary debug `OnGUI` (removed):
+correctly showed real starting gear on scene load, correctly tracked a
+live equip/unequip/re-equip cycle. Both `PlayerInventory` and
+`PlayerEquipment` now have working `SyncList` sync; neither yet has a
+real Command for a remote client to actually request an equip/unequip —
+still ahead. See `MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-22 (13)
 

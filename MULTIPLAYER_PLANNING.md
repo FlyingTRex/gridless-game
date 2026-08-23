@@ -452,14 +452,35 @@ Mapped onto Gridless's actual systems:
       actual Command/validate/apply shape sub-phase 2 needs, now proven
       correct on the real `PlayerInventory`, not a throwaway pilot.
 
+      **`PlayerEquipment`'s own synced state built and live-confirmed,
+      2026-08-23.** Same by-string-ID `SyncList` pattern as
+      `PlayerInventory`, but shaped differently — a real complication
+      found before writing code: unlike `Inventory` (mostly plain
+      stackable slots, only a few equipment-carrying ones excluded from
+      sync), an equip slot is *virtually always* equipment-carrying by
+      definition, so excluding those the same way would sync nothing at
+      all. Fixed by syncing *which item* occupies each named slot (what's
+      visibly worn where — `SyncedEquipmentSlot { slotName, itemId }`,
+      one entry per configured slot, empty `itemId` string distinguishing
+      "confirmed empty" from "no data yet"), while still not syncing the
+      equipped object's own deep state (a worn Backpack's nested
+      contents, a Canteen's fill level) — the same complexity boundary
+      as before, just applied correctly to this class's actual slot-
+      shaped data. Live-confirmed via a temporary debug `OnGUI` (removed
+      after confirming): correctly showed the real starting gear (Face/
+      Chest/Back/Waist/Leg/Feet all populated correctly on scene load),
+      then correctly tracked a live equip → unequip → re-equip cycle.
+
       **Still not done**: only one narrow proof-of-concept Command exists
-      (`CmdAddItemById`) — the real remaining work is converting
-      `AddItem`/`RemoveItem`'s actual callers (`Pickup.cs`'s world pickup
-      flow, `PlayerCrafting`'s material consumption, equip/unequip, and
-      the many other direct-mutation call sites) to route through
-      Command-validated methods instead of local calls, plus doing the
-      equivalent synced-state + Command work for `PlayerEquipment`'s own
-      slot data. That's the next piece.
+      (`PlayerInventory.CmdAddItemById`) — the real remaining work is
+      converting `AddItem`/`RemoveItem`'s actual callers (`Pickup.cs`'s
+      world pickup flow, `PlayerCrafting`'s material consumption, and the
+      many other direct-mutation call sites) to route through Command-
+      validated methods instead of local calls, plus a real Command for
+      equip/unequip itself (not just observing the resulting state, which
+      is all `syncedSlots` does today). Both core scripts now have
+      working sync; neither yet has a remote client able to actually
+      request a change to either.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
