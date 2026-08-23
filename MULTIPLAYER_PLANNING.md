@@ -771,8 +771,26 @@ Mapped onto Gridless's actual systems:
       synced to a remote client — invisible in solo testing since host
       and client share the same fields there, but a genuine remote
       player wouldn't see their own crafting progress bar update without
-      further work. Logged, not attempted this slice — Building (the
-      other half of this sub-phase) hasn't been started at all yet.
+      further work. Logged, not attempted this slice.
+
+      **Building — started, same session.** `PlayerBuilding.cs` converted
+      from `MonoBehaviour` to `NetworkBehaviour`, base-class change only,
+      same first-slice pattern as everything else in this sub-phase. Real
+      complication flagged before designing any Command: `Confirm()`
+      takes a live `BuildSocket` reference — not trivially network-
+      serializable the way an `ItemDefinition`/`CraftingRecipe`'s stable
+      asset name is — and handles two real flows (a fresh build:
+      ingredient consumption, `Instantiate` a new `BuildPiece` prefab,
+      `PlacedPiece`/`SaveId` setup, skill XP; and re-placing an already-
+      owned instance, e.g. a `StorageBox` pick-up-and-move, no ingredient
+      cost). Every `BuildPiece` prefab also still needs the same
+      `NetworkIdentity` + `NetworkServer.Spawn` treatment the Pickup/
+      equippable rollout gave those prefabs — not done yet. Live-
+      confirmed the base-class conversion alone is safe: placed a real
+      piece through the normal flow, correct material consumption,
+      correct placement, zero errors. Designing the actual placement
+      Command (including how to resolve/validate the socket reference
+      server-side) is real, undesigned work ahead.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
       player-side inputs, admin tools.

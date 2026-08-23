@@ -5,10 +5,28 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.177-dev` — must always match `GameVersion` in
+**Current version:** `0.3.178-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (12)
+
+### v0.3.178-dev — Multiplayer sub-phase 3: Building started, PlayerBuilding is a NetworkBehaviour
+
+First slice for Building, same discipline as everything else this
+sub-phase: `PlayerBuilding.cs` converted from `MonoBehaviour` to
+`NetworkBehaviour`, base-class change only. Real complication flagged
+before designing any Command: `Confirm()` takes a live `BuildSocket`
+reference — not trivially network-serializable the way an
+`ItemDefinition`/`CraftingRecipe`'s stable asset name is — and handles
+two real flows (fresh build with ingredient consumption + Instantiate,
+vs. re-placing an already-owned instance like a moved `StorageBox`).
+Every `BuildPiece` prefab also still needs `NetworkIdentity` +
+`NetworkServer.Spawn`, not done yet. Live-confirmed the conversion alone
+is safe: placed a real piece through the normal flow, correct materials
+and placement, zero errors. See `MULTIPLAYER_PLANNING.md` section 3
+item 3 sub-phase 3.
 
 ## 2026-08-23 (11)
 

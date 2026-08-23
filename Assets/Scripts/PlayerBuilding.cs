@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -17,11 +18,25 @@ using UnityEngine.InputSystem;
 // Deliberately NOT hidden like magic (see PlayerMagic/no-UI-hints) —
 // Building is a learnable system, not a mystery mechanic, so this draws a
 // real ghost and real messages.
+// Multiplayer Phase 3 sub-phase 3 (MULTIPLAYER_PLANNING.md), Building's
+// first slice (2026-08-23): converted from MonoBehaviour to
+// NetworkBehaviour, base-class change only, no new synced state or
+// Commands yet -- same discipline Crafting's own first slice used. Real
+// complication flagged before designing any Command: Confirm() takes a
+// live BuildSocket reference (not trivially network-serializable the way
+// an ItemDefinition/CraftingRecipe's stable asset name is) and handles
+// two real flows -- a fresh build (ingredient consumption, Instantiate a
+// new BuildPiece prefab, PlacedPiece/SaveId setup, skill XP) and
+// re-placing an already-owned instance (a StorageBox pick-up-and-move,
+// no ingredient cost). Every BuildPiece prefab also needs the same
+// NetworkIdentity + NetworkServer.Spawn treatment the Pickup/equippable
+// rollout gave those prefabs, not done yet either -- designing the
+// actual Command shape needs its own dedicated pass.
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerInteraction))]
-public class PlayerBuilding : MonoBehaviour
+public class PlayerBuilding : NetworkBehaviour
 {
     private enum Phase { Following, Locked }
 
