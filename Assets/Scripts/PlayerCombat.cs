@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -6,11 +7,22 @@ using UnityEngine.InputSystem;
 // IInteractable's hold-and-release model (same reasoning PlayerPieceUpgrade
 // already applied to a different action) — an attack needs to resolve on a
 // quick tap, not a multi-second hold.
+//
+// Multiplayer Phase 3 sub-phase 4 (MULTIPLAYER_PLANNING.md), 2026-08-23:
+// converted to NetworkBehaviour, plus a real RequestPunch/CmdPunch Command.
+// The client still does the aim raycast locally (only the client has an
+// up-to-date camera transform) and resolves the hit target, but damage/XP
+// application itself runs server-side via the Command, same "client
+// resolves what, server decides whether/how much" split every other
+// Command in this project uses. ResolveAttack() reads equipment.
+// GetHandItems() directly, which is real server-authoritative data
+// regardless of who's driving the object (host or remote client), so no
+// separate weapon-resolution needs to travel over the wire.
 [RequireComponent(typeof(PlayerInteraction))]
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerBuilding))]
 [RequireComponent(typeof(PlayerEquipment))]
-public class PlayerCombat : MonoBehaviour
+public class PlayerCombat : NetworkBehaviour
 {
     [SerializeField] private float attackRange = 2.5f;
     [SerializeField] private float punchDamage = 9f;
@@ -79,6 +91,35 @@ public class PlayerCombat : MonoBehaviour
             return;
 
         var target = hit.collider.GetComponentInParent<IDamageable>();
+        if (target == null) return;
+
+        // Networked-first with a local fallback for any target that
+        // doesn't have a NetworkIdentity yet (defensive, same pattern as
+        // InventoryScreen's networked-Command call sites) -- so an
+        // untested/edge-case IDamageable never silently stops taking
+        // damage just because it wasn't included in the creature/NPC
+        // NetworkIdentity pass.
+        if (isClient && hit.collider.GetComponentInParent<NetworkIdentity>() is NetworkIdentity targetIdentity)
+        {
+            RequestPunch(targetIdentity);
+            return;
+        }
+
+        var (damage, trainedSkill) = ResolveAttack();
+        target.TakeDamage(damage);
+        skills.GainExperience(trainedSkill, skillGain);
+    }
+
+    public void RequestPunch(NetworkIdentity targetIdentity)
+    {
+        CmdPunch(targetIdentity);
+    }
+
+    [Command]
+    private void CmdPunch(NetworkIdentity targetIdentity)
+    {
+        if (targetIdentity == null) return;
+        var target = targetIdentity.GetComponent<IDamageable>();
         if (target == null) return;
 
         var (damage, trainedSkill) = ResolveAttack();

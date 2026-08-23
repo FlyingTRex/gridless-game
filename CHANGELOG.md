@@ -5,10 +5,38 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.179-dev` — must always match `GameVersion` in
+**Current version:** `0.3.180-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (14)
+
+### v0.3.180-dev — Multiplayer sub-phase 4 started: real melee Command, Wolf/Rabbit/Pig/NPCFactoryWorker networked
+
+First slice of sub-phase 4 (Magic + Combat) — went straight to a real
+Command rather than a base-class-only first slice, since `PlayerCombat`'s
+punch is simple enough (a single raycast + `TakeDamage` + `GainExperience`)
+to build the whole vertical slice at once. `PlayerCombat` converted to
+`NetworkBehaviour`; `RequestPunch`/`CmdPunch` runs the hit resolution
+(`ResolveAttack`, weapon/skill lookup off real server-authoritative
+`PlayerEquipment` data) entirely server-side, reusing the exact same logic
+as before. Client still does the aim raycast locally (only the client has
+an up-to-date camera transform) and resolves the hit target, then routes
+through the Command — networked-first with a local-fallback path for any
+`IDamageable` that doesn't have a `NetworkIdentity` yet, so an untested
+target never silently stops taking damage.
+
+Wolf/Rabbit/Pig/`NPCFactoryWorker` all got `NetworkIdentity` (the first 4
+creature/NPC prefabs converted; spawnPrefabs 162 total). A same-session
+scene-resave hiccup, identical in shape to the Building slice's: the
+warning briefly reappeared for Wolf/Rabbit/Pig in the live Editor session
+right after adding their `NetworkIdentity`, before the fix (a scene
+resave via the bulk script) had propagated into that already-open Editor's
+in-memory state — confirmed transient by checking later domain-reload
+cycles in the same session, which showed zero recurrence. Live-confirmed:
+punched a Wolf to death through the real Command, correct damage, zero
+errors in the final state.
 
 ## 2026-08-23 (13)
 

@@ -69,6 +69,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1588090451174212, guid: c737dd230724d61469e1c672cf47ed9e, type: 3}
       insertIndex: -1
       addedObject: {fileID: 2429661505152153840}
+    - targetCorrespondingSourceObject: {fileID: 1588090451174212, guid: c737dd230724d61469e1c672cf47ed9e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8350470211554024308}
   m_SourcePrefab: {fileID: 100100000, guid: c737dd230724d61469e1c672cf47ed9e, type: 3}
 --- !u!1 &3573671013673514489 stripped
 GameObject:
@@ -128,6 +131,10 @@ MonoBehaviour:
   lootBMinCount: 1
   lootBMaxCount: 1
   lootBDropChance: 1
+  lootItemC: {fileID: 0}
+  lootCMinCount: 1
+  lootCMaxCount: 1
+  lootCDropChance: 1
 --- !u!114 &2429661505152153840
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -148,3 +155,20 @@ MonoBehaviour:
   fleeDetectionRadius: 8
   fleeDistance: 10
   modelForwardOffsetY: 0
+--- !u!114 &8350470211554024308
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3573671013673514489}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 4245191841
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0

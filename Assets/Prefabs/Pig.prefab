@@ -69,6 +69,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 1905525985821456, guid: b1c498527cda9b14ab458a07bfb4d082, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7375524545173576675}
+    - targetCorrespondingSourceObject: {fileID: 1905525985821456, guid: b1c498527cda9b14ab458a07bfb4d082, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 485195709217206589}
   m_SourcePrefab: {fileID: 100100000, guid: b1c498527cda9b14ab458a07bfb4d082, type: 3}
 --- !u!1 &4090408737245538371 stripped
 GameObject:
@@ -152,3 +155,20 @@ MonoBehaviour:
   fleeDetectionRadius: 8
   fleeDistance: 10
   modelForwardOffsetY: 0
+--- !u!114 &485195709217206589
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4090408737245538371}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 2945062300
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0

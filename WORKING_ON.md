@@ -17,24 +17,23 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.179-dev is merged
-to origin/main. Multiplayer Phase 3 sub-phases 1 (Bootstrap) and 2
-(Inventory + Equipment) are fully done - see MULTIPLAYER_PLANNING.md for
-the full list of what shipped. Sub-phase 3 (Crafting + Building) is now
-functionally complete for the core loop: Crafting has a real working
-Command (RequestStartCraft/CmdStartCraft reuses StartCraft unchanged
-server-side, output rides PlayerInventory.syncedSlots for free) and
-Building has a real working Command (RequestConfirmPlacement/
-CmdConfirmPlacement — the server re-derives the BuildSocket from the
-placement position via FindNearbySocket instead of networking a live
-reference; all 32 BuildPiece prefabs got NetworkIdentity, spawnPrefabs
-127->158). Both live-confirmed: multi-item craft batch, plus free
-placement and socket-snapped placement. One known deferred gap:
-crafting progress display isn't synced to a remote client yet - logged,
-not attempted. Next up in the multiplayer conversion: sub-phase 4
-(Magic + Combat), not started. See `CHANGELOG.md`'s v0.3.179-dev entry
-and `MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 3 for full
-detail — pick up there next time rather than re-deriving the state.
+Nothing in progress right now — everything through v0.3.180-dev is merged
+to origin/main. Multiplayer Phase 3 sub-phases 1 (Bootstrap), 2
+(Inventory + Equipment), and 3 (Crafting + Building) are fully done - see
+MULTIPLAYER_PLANNING.md for the full list of what shipped. Sub-phase 4
+(Magic + Combat) just started: melee is done (PlayerCombat is a
+NetworkBehaviour with a real RequestPunch/CmdPunch Command, client
+resolves the aim raycast, server runs ResolveAttack/TakeDamage/XP;
+Wolf/Rabbit/Pig/NPCFactoryWorker all got NetworkIdentity, spawnPrefabs
+158->162). Live-confirmed: punched a Wolf to death through the real
+Command, zero errors. Not yet started: PlayerRangedCombat (Bow/Arrow -
+real complication flagged, arrow-stack-count isn't synced by
+PlayerEquipment.syncedSlots today) and PlayerMagic/wishes (TryWish needs
+the same server-authority treatment as StartCraft, but HandleWish lives
+in PlayerInteraction, a large central script not yet touched by this
+conversion at all). See `CHANGELOG.md`'s v0.3.180-dev entry and
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 4 for full detail —
+pick up there next time rather than re-deriving the state.
 
 Reminder for whoever picks this back up: the overall Multiplayer
 conversion was always scoped as multi-week (48 PlayerXXX.cs scripts

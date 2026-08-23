@@ -74,6 +74,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 2242888416370347441, guid: da1b501ce17e1a0428759aa0276f6140, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3670660172910038481}
+    - targetCorrespondingSourceObject: {fileID: 2242888416370347441, guid: da1b501ce17e1a0428759aa0276f6140, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7935128259324352833}
   m_SourcePrefab: {fileID: -3199799093341109342, guid: da1b501ce17e1a0428759aa0276f6140, type: 3}
 --- !u!1 &2300847714225371504 stripped
 GameObject:
@@ -116,6 +119,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HostileCreature
   maxHealth: 60
+  requiredTools:
+  - {fileID: 11400000, guid: b770c40f049e6c548d471825e1df0ada, type: 2}
+  - {fileID: 11400000, guid: cab50ab63360c6a4980d65ff4194a603, type: 2}
+  - {fileID: 11400000, guid: 9b1ad9cc97308904386310222340b53a, type: 2}
+  - {fileID: 11400000, guid: b67b3678beead1e4780de292a0cdbf7a, type: 2}
+  - {fileID: 11400000, guid: 895e12c4910884d418218d6e5edb27f2, type: 2}
+  requiredToolLabel: Knife
+  skinningSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
+  skinningSkillGain: 0.5
+  skinHoldDuration: 2
+  respawnDelay: 180
   detectionRadius: 10
   giveUpRadius: 20
   attackRange: 2
@@ -128,14 +142,20 @@ MonoBehaviour:
   peltDropChance: 0.5
   meatMinCount: 1
   meatMaxCount: 2
-  requiredTools:
-  - {fileID: 11400000, guid: b770c40f049e6c548d471825e1df0ada, type: 2}
-  - {fileID: 11400000, guid: cab50ab63360c6a4980d65ff4194a603, type: 2}
-  - {fileID: 11400000, guid: 9b1ad9cc97308904386310222340b53a, type: 2}
-  - {fileID: 11400000, guid: b67b3678beead1e4780de292a0cdbf7a, type: 2}
-  - {fileID: 11400000, guid: 895e12c4910884d418218d6e5edb27f2, type: 2}
-  requiredToolLabel: Knife
-  skinningSkill: {fileID: 11400000, guid: ac8cff212e93cf848b2e684c57212ab4, type: 2}
-  skinningSkillGain: 0.5
-  skinHoldDuration: 2
-  respawnDelay: 180
+--- !u!114 &7935128259324352833
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2300847714225371504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 551857005
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0

@@ -816,10 +816,36 @@ Mapped onto Gridless's actual systems:
       Building are both now functionally complete for sub-phase 3's core
       loop; the one deferred gap is Crafting's progress-display sync
       (above), nothing new for Building.
-   4. **Magic + Combat**.
+   4. **Magic + Combat — started 2026-08-23.** Melee is done: `PlayerCombat`
+      converted to `NetworkBehaviour`, with a real `RequestPunch`/
+      `CmdPunch` Command in the same commit (simple enough to skip the
+      usual base-class-only first slice — a single raycast + `TakeDamage`
+      + `GainExperience`, no multi-flow branching like Building had).
+      Client resolves the aim raycast/hit target locally (only the client
+      has a current camera transform), then routes through the Command;
+      `ResolveAttack` (weapon/skill lookup) runs server-side against real
+      `PlayerEquipment` data, no extra sync needed. Networked-first with a
+      local-fallback path for any `IDamageable` without a `NetworkIdentity`
+      yet. Wolf/Rabbit/Pig/`NPCFactoryWorker` all got `NetworkIdentity`
+      (spawnPrefabs 158→162) — the first creature/NPC prefabs converted.
+      Live-confirmed: punched a Wolf to death through the real Command,
+      correct damage, zero errors.
+
+      **Not yet started**: `PlayerRangedCombat` (Bow/Arrow) — real
+      complication flagged, not solved: arrow consumption reads/writes an
+      equipment hand slot's *stack count*, and `PlayerEquipment
+      .syncedSlots` only syncs *which item* occupies a slot, not how many
+      — a real gap for a remote client seeing their own arrow count tick
+      down, separate from (but same shape as) Crafting's already-deferred
+      progress-sync gap. `PlayerMagic` (wishes) — `TryWish` mutates Will/
+      skill XP and rolls a success chance; those need the same
+      server-authority treatment as `StartCraft`, but `PlayerInteraction`
+      (where `HandleWish` actually calls it) is a large, central script
+      not yet touched by this conversion at all — converting it is real,
+      undesigned work, not a small addition to `PlayerMagic` alone.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
       player-side inputs, admin tools.
-   Sub-phases 4-5 not yet started.
+   Sub-phase 5 not yet started.
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —
