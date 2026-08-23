@@ -261,6 +261,41 @@ public class PlayerCrafting : NetworkBehaviour
         return any ? Mathf.Max(0, max) : 0;
     }
 
+    // Multiplayer sub-phase 3, second slice (2026-08-23) -- the actual
+    // Command for starting a batch, reusing StartCraft's existing
+    // validation/consumption logic unchanged server-side. CraftingRecipe
+    // is a ScriptableObject asset (same category as ItemDefinition), so
+    // it's resolved by its stable asset name -- but unlike ItemDatabase,
+    // this looks the name up against THIS player's own `recipes` array
+    // rather than a separate database, which validates "is this recipe
+    // actually available to this player" for free at the same time as
+    // resolving it (no separate availability check needed). Output/
+    // ingredient sync for the resulting batch riding on
+    // PlayerInventory.syncedSlots, already proven in sub-phase 2 -- no
+    // new sync plumbing needed for that half. Progress display
+    // (activeRecipe/activeCompleted/activeTotal) is NOT yet synced to a
+    // remote client -- a real, known gap for genuine multiplayer,
+    // invisible in solo host-alone testing since client and server share
+    // the same fields there. Deferred, not attempted this slice.
+    public void RequestStartCraft(CraftingRecipe recipe, int quantity)
+    {
+        if (recipe == null) return;
+        CmdStartCraft(recipe.name, quantity);
+    }
+
+    [Command]
+    private void CmdStartCraft(string recipeName, int quantity)
+    {
+        CraftingRecipe recipe = null;
+        foreach (var candidate in recipes)
+        {
+            if (candidate != null && candidate.name == recipeName) { recipe = candidate; break; }
+        }
+        if (recipe == null) return;
+
+        StartCraft(recipe, quantity);
+    }
+
     // Starts a batch of `quantity` — fails outright (no side effects) if
     // the same gates a single craft always needed don't pass, or if
     // another batch is already running. Ingredients for the *entire*
@@ -351,6 +386,13 @@ public class PlayerCrafting : NetworkBehaviour
 
     private void Update()
     {
+        // Multiplayer sub-phase 3 (2026-08-23) -- batch progression is
+        // now server-authoritative only, matching StartCraft being
+        // Command-driven. No effect on solo host-alone play (isServer is
+        // true there, same as everywhere else this session), but this is
+        // what stops a remote (non-host) client from also independently
+        // ticking its own local copy of the batch once one exists.
+        if (!isServer) return;
         if (!IsCrafting) return;
 
         activeElapsed += Time.deltaTime;

@@ -746,9 +746,33 @@ Mapped onto Gridless's actual systems:
       request/validate/apply-in-one-shot Command shape sub-phase 2 used
       everywhere. Live-confirmed the base-class conversion alone is
       safe: crafted a Stick, correct output produced, correct ingredients
-      consumed, zero errors. Designing the actual Command shape for a
-      timed, multi-container batch process is real, undesigned work —
-      not attempted in this slice.
+      consumed, zero errors.
+
+      **The real Command shape turned out simpler than feared, same
+      session.** `RequestStartCraft`/`CmdStartCraft` reuses `StartCraft`
+      entirely unchanged, server-side — the recipe (a `CraftingRecipe`
+      asset, same category as `ItemDefinition`, which Mirror can't
+      serialize directly) is resolved by its stable asset name against
+      **this player's own `recipes` array** rather than a separate
+      database, which validates "is this recipe actually available to
+      this player" for free at the same time as resolving it. `Update()`
+      gained an `isServer` guard on the batch-progression logic —
+      genuinely correct for a future remote client, zero effect on
+      solo host-alone testing (`isServer` is true there too). The output/
+      ingredient side needed **no new sync code at all** — it rides
+      entirely on `PlayerInventory.syncedSlots`, already proven in
+      sub-phase 2, since crafting output is still just an `Inventory`
+      mutation under the hood. Live-confirmed with a real multi-item
+      batch through the actual Craft button: correct total output,
+      correct total ingredient consumption, zero errors.
+
+      **One real, known gap, deliberately deferred**: crafting *progress*
+      display (`activeRecipe`/`activeCompleted`/`activeTotal`) isn't
+      synced to a remote client — invisible in solo testing since host
+      and client share the same fields there, but a genuine remote
+      player wouldn't see their own crafting progress bar update without
+      further work. Logged, not attempted this slice — Building (the
+      other half of this sub-phase) hasn't been started at all yet.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment
       player-side inputs, admin tools.

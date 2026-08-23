@@ -274,7 +274,7 @@ public class CraftingScreen : MonoBehaviour
         GUILayout.BeginHorizontal();
         GUI.enabled = gatesOk && hasSpace && maxCraftable >= quantity;
         if (GUILayout.Button("Craft", GUILayout.Width(90)))
-            crafting.StartCraft(recipe, quantity);
+            crafting.RequestStartCraft(recipe, quantity);
         GUI.enabled = true;
 
         GUI.enabled = gatesOk && maxCraftable > 0;

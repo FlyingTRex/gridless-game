@@ -5,10 +5,29 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.176-dev` — must always match `GameVersion` in
+**Current version:** `0.3.177-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (11)
+
+### v0.3.177-dev — Multiplayer sub-phase 3: real crafting Command, output rides existing Inventory sync for free
+
+`RequestStartCraft`/`CmdStartCraft` reuses `StartCraft` entirely
+unchanged, server-side — the `CraftingRecipe` asset is resolved by its
+stable name against this player's own `recipes` array (validates
+availability for free, no separate database needed). `Update()`'s batch-
+progression logic gained an `isServer` guard, correct for a future remote
+client with zero effect on solo testing. The output/ingredient side
+needed no new sync code — it rides entirely on
+`PlayerInventory.syncedSlots` from sub-phase 2, since crafting output is
+still just an `Inventory` mutation underneath. Live-confirmed with a real
+multi-item batch through the actual Craft button: correct total output
+and ingredient consumption, zero errors. One real, known, deliberately
+deferred gap: crafting progress display isn't synced to a remote client
+yet (invisible in solo testing). See `MULTIPLAYER_PLANNING.md` section 3
+item 3 sub-phase 3.
 
 ## 2026-08-23 (10)
 
