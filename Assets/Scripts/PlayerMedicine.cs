@@ -1,12 +1,18 @@
+using Mirror;
 using UnityEngine;
 
 // Mirrors PlayerEating.cs's exact shape (2026-08-10) — see MedicineItem.cs
 // for why this is a parallel system rather than extending PlayerEating
 // directly (Medicine isn't food; heals over time via StartHealOverTime,
 // not Restore).
+//
+// Multiplayer Phase 3 sub-phase 5, 2026-08-23: converted to
+// NetworkBehaviour, same RequestXFrom/CmdXFrom Command shape as
+// PlayerEating's own conversion — same container-key scheme, same
+// PlayerInventory.ResolveContainerByKey reuse.
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerVitals))]
-public class PlayerMedicine : MonoBehaviour
+public class PlayerMedicine : NetworkBehaviour
 {
     [SerializeField] private MedicineItem[] medicines;
 
@@ -44,5 +50,24 @@ public class PlayerMedicine : MonoBehaviour
 
         vitals.StartHealOverTime(medicine.healAmount, medicine.healDuration);
         return true;
+    }
+
+    public void RequestApplyFrom(string containerKey, ItemDefinition item)
+    {
+        string id = ItemDatabase.Instance.IdFor(item);
+        if (id == null) return;
+        CmdApplyFrom(containerKey, id);
+    }
+
+    [Command]
+    private void CmdApplyFrom(string containerKey, string itemId)
+    {
+        var item = ItemDatabase.Instance.Find(itemId);
+        if (item == null) return;
+
+        var source = inventory.ResolveContainerByKey(containerKey);
+        if (source == null) return;
+
+        TryApplyFrom(source, item);
     }
 }

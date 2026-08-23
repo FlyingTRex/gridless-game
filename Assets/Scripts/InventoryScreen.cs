@@ -479,7 +479,11 @@ public class InventoryScreen : MonoBehaviour
         var medicineItem = medicine != null ? medicine.FindMedicine(pendingActionItem) : null;
         if (medicineItem != null && GUILayout.Button(medicineItem.verb))
         {
-            medicine.TryApplyFrom(pendingActionSource, pendingActionItem);
+            string medicineSourceKey = ContainerKeyFor(pendingActionSource);
+            if (medicineSourceKey != null)
+                medicine.RequestApplyFrom(medicineSourceKey, pendingActionItem);
+            else
+                medicine.TryApplyFrom(pendingActionSource, pendingActionItem);
             return true;
         }
 

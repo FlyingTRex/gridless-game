@@ -894,16 +894,21 @@ Mapped onto Gridless's actual systems:
       hand), not just a "worn:" nested container. Live-confirmed: ate an
       MRE, hunger/health restored, item consumed, zero errors.
 
-      **Not yet started, remaining in this sub-phase**: `PlayerMedicine`
-      (same shape as Eating — `TryApplyFrom`, likely the next natural
-      slice), Canteen drink/fill (acts on the physical instance directly,
-      not a container-key removal — different shape), skill/attribute
-      point spending, NPC hiring/firing/job-assignment inputs, admin
-      tools (`AdminSpawnScreen`), and the broader question of whether
-      passive vital drain (`PlayerVitals.Update()`'s hunger/thirst/
-      stamina/health ticking) needs to move server-side too — not
-      addressed by this slice, which only touched the player-input eating
-      path.
+      **Medicine — done, same session.** `PlayerMedicine` converted to
+      `NetworkBehaviour`; `RequestApplyFrom`/`CmdApplyFrom` is the exact
+      same shape as Eating's Command (`PlayerMedicine` already mirrored
+      `PlayerEating`'s structure field-for-field before this). Live-
+      confirmed: used Healing Paste, heal-over-time applied, item
+      consumed, zero errors.
+
+      **Not yet started, remaining in this sub-phase**: Canteen
+      drink/fill (acts on the physical instance directly, not a
+      container-key removal — different shape), skill/attribute point
+      spending, NPC hiring/firing/job-assignment inputs, admin tools
+      (`AdminSpawnScreen`), and the broader question of whether passive
+      vital drain (`PlayerVitals.Update()`'s hunger/thirst/stamina/health
+      ticking) needs to move server-side too — not addressed by either
+      slice so far, which only touched player-input consumption paths.
 4. **NPCs move server-side.** The 5 `Update()`-driven NPC scripts stop
    running client-side entirely; results replicate to observers.
 5. **Persistence layer.** Needed regardless, but now genuinely blocking —

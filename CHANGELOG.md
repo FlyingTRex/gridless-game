@@ -5,10 +5,22 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.183-dev` — must always match `GameVersion` in
+**Current version:** `0.3.184-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (18)
+
+### v0.3.184-dev — Multiplayer sub-phase 5: real Medicine Command
+
+`PlayerMedicine` converted to `NetworkBehaviour`; `RequestApplyFrom`/
+`CmdApplyFrom` is the exact same shape as `PlayerEating`'s own Command
+from the previous slice — same container-key scheme, same
+`PlayerInventory.ResolveContainerByKey` reuse, since `PlayerMedicine`
+already mirrored `PlayerEating`'s structure field-for-field before this
+conversion too. Live-confirmed: used Healing Paste, heal-over-time
+applied, item consumed from inventory, zero errors.
 
 ## 2026-08-23 (17)
 
