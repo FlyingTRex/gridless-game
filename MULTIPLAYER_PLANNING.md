@@ -229,14 +229,52 @@ Mapped onto Gridless's actual systems:
    host too. Split into 5 ordered sub-phases, each its own live-test
    checkpoint before the next starts (same discipline as every other
    major system build in this project):
-   1. **Bootstrap** — `TestScene.unity` gains a real `NetworkManager`; the
-      player prefab spawns via Mirror's connection flow instead of being
-      scene-baked. True first slice — nothing else can convert until a
-      player *object* exists in Mirror's model at all. Highest single-
-      player blast radius of the whole phase (touches the one scene both
-      collaborators' every session depends on) — needs its own dedicated
-      session and live-test checkpoint immediately after, not bundled
-      with anything else.
+   1. **Bootstrap — attempted and fully reverted 2026-08-22, two real
+      problems found live.** `Player` (75 components — the single scene-
+      baked GameObject the entire game runs through) was converted into
+      `Assets/Prefabs/Player.prefab` via `SaveAsPrefabAssetAndConnect`,
+      then given `NetworkIdentity` + `NetworkTransformReliable`, alongside
+      an inert `NetworkManager` + `KcpTransport` added to
+      `TestScene.unity`. **Problem 1**: Mirror deactivates any
+      scene-placed `NetworkIdentity` object until a server actually spawns
+      it, and `TestScene` had no way to start one (no
+      `NetworkManagerHUD`) — the entire Player hierarchy, camera
+      included, silently went inactive the instant Play mode started
+      (blank "No cameras rendering" screen, a downstream `PlayerTool` NRE
+      from `Awake()` never running on the now-disabled object). This part
+      was root-caused live with Ben (confirmed via the Hierarchy's
+      grayed-out inactive-object indicator) and `NetworkIdentity`/
+      `NetworkTransformReliable` were reverted, restoring the camera. **A
+      second problem then surfaced even in the reverted state**: bare-
+      handed combat stopped registering left-click entirely, and E-key
+      interaction started resolving to an unexpected "craft" progress-bar
+      prompt while aiming at a Wolf (which doesn't implement
+      `IInteractable` at all, ruling out that specific target as the real
+      raycast hit). `git diff --stat` on `TestScene.unity` showed the
+      saved scene had shrunk by ~128KB from the `SaveAsPrefabAssetAndConnect`
+      conversion alone — far more change than adding/removing two small
+      components could explain, and Force Binary serialization means
+      that diff can't be inspected directly (see `CLAUDE.md`'s gotcha on
+      this). Rather than debug forward from a scene already shown to
+      silently corrupt something once, **the entire experiment was
+      reverted via `git checkout -- Assets/Scenes/TestScene.unity`** plus
+      deleting the untracked `Player.prefab` — a full rollback to the
+      last-committed state, not a partial keep.
+      **Real conclusion for next time**: converting the single 75-component
+      scene-baked Player object into a prefab via
+      `PrefabUtility.SaveAsPrefabAssetAndConnect` is not safe to treat as
+      a small, inert first step the way it was here — something about
+      that conversion silently altered scene data beyond the two
+      Mirror components added afterward, on an object this large and
+      cross-referenced. A future attempt at this same slice should
+      either: (a) build and test the auto-host-on-load mechanism *first*
+      against a much smaller, isolated test object (not the real 75-
+      component Player) before ever touching the real Player prefab, or
+      (b) go component-by-component/reference-by-reference through what
+      `SaveAsPrefabAssetAndConnect` actually changed on an object this
+      size before trusting it, rather than a single one-shot conversion
+      + live-test. Not started again yet — sub-phase 1 is back to fully
+      unbuilt, same state as before tonight's attempt.
    2. **Inventory + Equipment** — most foundational, most-referenced state;
       everything else reads/writes through it.
    3. **Crafting + Building** — depends on Inventory already being synced.

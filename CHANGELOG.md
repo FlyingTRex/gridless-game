@@ -10,6 +10,38 @@ skimmable version.
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
 
+## 2026-08-22 (5)
+
+### Multiplayer Phase 3 Bootstrap attempt — two real regressions found live, fully reverted (doc-only, no version bump)
+
+Attempted the Bootstrap sub-phase: converted the scene-baked `Player`
+GameObject (75 components — the entire player-side system stack) into
+`Assets/Prefabs/Player.prefab` via `SaveAsPrefabAssetAndConnect`, added
+`NetworkIdentity`/`NetworkTransformReliable`, and added an inert
+`NetworkManager`/`KcpTransport` to `TestScene.unity`. Ben caught a real
+regression within a minute of live-testing (blank "No cameras rendering"
+screen, `PlayerTool` NRE) — Mirror deactivates any scene-placed
+`NetworkIdentity` until a server spawns it, and `TestScene` had no way to
+start one, so the whole Player hierarchy silently went inactive. Root-
+caused live (confirmed via the Hierarchy's grayed-out inactive-object
+indicator), `NetworkIdentity`/`NetworkTransformReliable` reverted, camera
+confirmed working again. **A second, unexplained regression then
+surfaced even in that reverted state**: bare-handed combat stopped
+registering left-click, and E-key interaction started resolving to an
+unexpected "craft" prompt while aiming at a Wolf (which doesn't implement
+`IInteractable` at all). `git diff --stat` showed the saved scene had
+shrunk ~128KB from the prefab conversion alone — far more than two small
+component additions/removals could explain. Rather than debug forward
+from a scene already shown to silently corrupt something once, reverted
+the entire experiment via `git checkout -- Assets/Scenes/TestScene.unity`
+plus deleting the untracked `Player.prefab`. Real conclusion logged in
+`MULTIPLAYER_PLANNING.md`: converting the real 75-component Player object
+via `SaveAsPrefabAssetAndConnect` isn't safe to treat as a small, inert
+first step — a future attempt needs either a much smaller isolated test
+object first, or a careful reference-by-reference audit of what that
+conversion actually changes on an object this size. Sub-phase 1 is back
+to fully unbuilt.
+
 ## 2026-08-22 (4)
 
 ### v0.3.158-dev — Multiplayer Phase 1 pilot — synced world object, live-tested
