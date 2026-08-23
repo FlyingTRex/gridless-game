@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 7460376992654511725}
   - component: {fileID: 131115296379043409}
   - component: {fileID: 2375798389065537799}
+  - component: {fileID: 6510169774308554991}
   m_Layer: 0
   m_Name: RudimentaryLeatherBackpackPickup
   m_TagString: Untagged
@@ -112,6 +113,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::RigidbodySettler
   settleVelocityThreshold: 0.05
   settleDuration: 1.5
+--- !u!114 &6510169774308554991
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6427214831703120809}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 0
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!1001 &1896828038828889501
 PrefabInstance:
   m_ObjectHideFlags: 0

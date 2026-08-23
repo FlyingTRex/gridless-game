@@ -5,10 +5,35 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.170-dev` — must always match `GameVersion` in
+**Current version:** `0.3.171-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (5)
+
+### v0.3.171-dev — Multiplayer sub-phase 2: every equippable type networked, one generic Command covers all of them
+
+Bulk pass: the remaining 48 equippable prefab variants (Belt/Boot/
+Sunglasses/MiningFaceShield/Canteen/NavigationComputer/
+PersonalHealthMonitor/Tool/Shirt/Jeans, Backpack's other 9 variants, plus
+SkillBook/StorageBox — both also implement IEquippable, caught
+automatically) given NetworkIdentity — 127 total prefabs now networked
+(78 Pickups + 49 equippables). Real design improvement found applying the
+Backpack pattern a second time: instead of converting all 10 remaining
+carrier scripts to NetworkBehaviour with their own Command pairs (what
+the Backpack pilot did), built ONE generic
+RequestEquipInstance/CmdEquipInstance + RequestUnequipInstance/
+CmdUnequipInstance pair on PlayerInventory, mirroring
+InventoryScreen.cs's own EquipToSlotDispatch/UnequipDispatch switch
+statements — one shared Command dispatching to whichever carrier's
+existing Equip/Unequip method handles that type. None of the 10 carrier
+scripts needed to become NetworkBehaviour; only the item instances
+needed NetworkIdentity. Live-confirmed via a temporary debug keybind
+(removed): equipped a real Belt and a real Boot through the same shared
+Command, zero exceptions. Both major sub-phase 2 rollout pieces (world
+pickups, all equippables) are now fully done, not pilots. See
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2.
 
 ## 2026-08-23 (4)
 

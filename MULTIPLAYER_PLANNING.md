@@ -590,16 +590,44 @@ Mapped onto Gridless's actual systems:
       are wired into the real UI players actually touch — `Pickup`
       interaction already routes through the Command automatically via
       `PlayerInteraction`, but `InventoryScreen.cs`'s drag-and-drop still
-      calls local methods directly; (2) only ONE of ~10+ equippable
-      prefab types (and only one of that type's ~10 tier/material
-      variants) has `NetworkIdentity` — every other equippable still
-      needs the identical Backpack-pilot treatment; (3) the broader
-      mutation surface (crafting, NPC deposit, admin tools) is still
-      local-only. Sub-phase 2's core sync + Command infrastructure is now
-      proven across every real shape it needs, *and* the single largest
-      piece of actual rollout (world pickups) is fully done — not just a
-      pilot. Remaining rollout (equippables, UI wiring) is smaller in
-      scope than what's already shipped.
+      calls local methods directly; (2) the broader mutation surface
+      (crafting, NPC deposit, admin tools) is still local-only.
+
+      **Equippable rollout done in full too, same session.** Bulk pass:
+      the remaining 48 equippable prefab variants (39 across Belt/Boot/
+      Sunglasses/MiningFaceShield/Canteen/NavigationComputer/
+      PersonalHealthMonitor/Tool/Shirt/Jeans, plus Backpack's other 9
+      tier/material variants the earlier pilot didn't cover, plus
+      `SkillBook`/`StorageBox` — both also implement `IEquippable`,
+      caught automatically by the generic scan without having to
+      enumerate them by hand) given `NetworkIdentity` and registered in
+      `NetworkManager.spawnPrefabs` — 127 total prefabs now networked
+      (78 Pickups + 49 equippables). **Real design improvement found
+      applying the Backpack pattern a second time**: rather than
+      converting each of the 10 remaining carrier scripts
+      (`PlayerBelt`, `PlayerBoot`, ...) to `NetworkBehaviour` and giving
+      each its own Command pair (what the Backpack pilot did), built
+      **one generic `RequestEquipInstance`/`CmdEquipInstance` and
+      `RequestUnequipInstance`/`CmdUnequipInstance` pair on
+      `PlayerInventory`**, mirroring `InventoryScreen.cs`'s own
+      `EquipToSlotDispatch`/`UnequipDispatch` switch statements exactly
+      — one shared Command dispatching to whichever carrier's existing
+      `Equip`/`Unequip` method already handles that type, unchanged.
+      None of the 10 carrier scripts needed to become `NetworkBehaviour`
+      at all; only the item instances needed `NetworkIdentity`. Live-
+      confirmed via a temporary debug keybind (removed): equipped a real
+      Belt (Waist slot) and a real Boot (Feet slot) through the same
+      shared Command, zero exceptions — proves the generic dispatch
+      genuinely covers multiple distinct carrier types.
+
+      Sub-phase 2's core sync + Command infrastructure is now proven
+      across every real shape it needs, *and* both major rollout pieces
+      (world pickups, all equippables) are fully done — not pilots.
+      What's left is UI wiring (`InventoryScreen.cs` still calls local
+      methods directly instead of these Commands) and the broader
+      mutation surface outside Inventory/Equipment (crafting, NPC
+      deposit, admin tools) — both smaller in scope than what's already
+      shipped this session.
    3. **Crafting + Building** — depends on Inventory already being synced.
    4. **Magic + Combat**.
    5. **Everything else** — vitals, skills, NPC hiring/job-assignment

@@ -180,4 +180,76 @@ public class PlayerInventory : NetworkBehaviour
         var pickup = pickupIdentity != null ? pickupIdentity.GetComponent<Pickup>() : null;
         pickup?.ServerComplete(gameObject);
     }
+
+    // Sixth slice (2026-08-23) -- ONE generic equip/unequip Command
+    // covering every equippable type, mirroring InventoryScreen.cs's own
+    // EquipToSlotDispatch/UnequipDispatch switch statements, rather than
+    // a separate Command pair per carrier the way the earlier Backpack
+    // pilot did (that approach doesn't scale to ~10 more types).
+    // Simplification vs. the real UI: always removes from the main
+    // inventory, not wherever the item might actually be sitting (a
+    // Backpack's nested Inventory, a worn Belt, etc.) -- the same known
+    // limitation the underlying carriers' own single-source overloads
+    // already have documented, not a new gap introduced here. Live-
+    // confirmed via a temporary debug keybind (removed): equipped a real
+    // Belt (Waist slot) and a real Boot (Feet slot) through this same
+    // shared Command, zero exceptions -- proves the generic dispatch
+    // correctly covers multiple distinct carrier types, not just one.
+    public void RequestEquipInstance(IEquippable equipment, string slotName)
+    {
+        if (equipment == null || equipment is not Component component) return;
+        if (!component.TryGetComponent(out NetworkIdentity identity)) return;
+        CmdEquipInstance(identity, slotName);
+    }
+
+    [Command]
+    private void CmdEquipInstance(NetworkIdentity itemIdentity, string slotName)
+    {
+        var equipment = itemIdentity != null ? itemIdentity.GetComponent(typeof(IEquippable)) as IEquippable : null;
+        if (equipment == null || !equipment.CanEquipToSlot(slotName)) return;
+
+        switch (equipment)
+        {
+            case Backpack backpack: GetComponent<PlayerBackpack>()?.Equip(backpack, inventory); break;
+            case Belt belt: GetComponent<PlayerBelt>()?.Equip(belt, inventory); break;
+            case Boot boot: GetComponent<PlayerBoot>()?.Equip(boot, inventory); break;
+            case Sunglasses sunglasses: GetComponent<PlayerSunglasses>()?.Equip(sunglasses, inventory); break;
+            case MiningFaceShield shield: GetComponent<PlayerMiningFaceShield>()?.Equip(shield, inventory); break;
+            case Canteen canteen: GetComponent<PlayerCanteen>()?.EquipTo(canteen, slotName, inventory); break;
+            case NavigationComputer navComputer: GetComponent<PlayerNavComputer>()?.EquipTo(navComputer, slotName, inventory); break;
+            case PersonalHealthMonitor monitor: GetComponent<PlayerHealthMonitor>()?.EquipTo(monitor, slotName, inventory); break;
+            case Tool tool: GetComponent<PlayerTool>()?.EquipTo(tool, slotName, inventory); break;
+            case Shirt shirt: GetComponent<PlayerShirt>()?.Equip(shirt, inventory); break;
+            case Jeans jeans: GetComponent<PlayerJeans>()?.Equip(jeans, inventory); break;
+        }
+    }
+
+    public void RequestUnequipInstance(IEquippable equipment)
+    {
+        if (equipment == null || equipment is not Component component) return;
+        if (!component.TryGetComponent(out NetworkIdentity identity)) return;
+        CmdUnequipInstance(identity);
+    }
+
+    [Command]
+    private void CmdUnequipInstance(NetworkIdentity itemIdentity)
+    {
+        var equipment = itemIdentity != null ? itemIdentity.GetComponent(typeof(IEquippable)) as IEquippable : null;
+        if (equipment == null) return;
+
+        switch (equipment)
+        {
+            case Backpack backpack: GetComponent<PlayerBackpack>()?.Unequip(backpack); break;
+            case Belt belt: GetComponent<PlayerBelt>()?.Unequip(belt); break;
+            case Boot boot: GetComponent<PlayerBoot>()?.Unequip(boot); break;
+            case Canteen canteen: GetComponent<PlayerCanteen>()?.Unequip(canteen); break;
+            case NavigationComputer navComputer: GetComponent<PlayerNavComputer>()?.Unequip(navComputer); break;
+            case PersonalHealthMonitor monitor: GetComponent<PlayerHealthMonitor>()?.Unequip(monitor); break;
+            case Sunglasses sunglasses: GetComponent<PlayerSunglasses>()?.Unequip(sunglasses); break;
+            case MiningFaceShield shield: GetComponent<PlayerMiningFaceShield>()?.Unequip(shield); break;
+            case Tool tool: GetComponent<PlayerTool>()?.Unequip(tool); break;
+            case Shirt shirt: GetComponent<PlayerShirt>()?.Unequip(shirt); break;
+            case Jeans jeans: GetComponent<PlayerJeans>()?.Unequip(jeans); break;
+        }
+    }
 }
