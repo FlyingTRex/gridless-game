@@ -17,21 +17,24 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.170-dev is merged
+Nothing in progress right now — everything through v0.3.171-dev is merged
 to origin/main. Multiplayer Phase 3 sub-phase 1 (Bootstrap) is fully done.
-Sub-phase 2 (Inventory + Equipment) has made major progress: real SyncList
-sync on PlayerInventory/PlayerEquipment, four working Commands (add-item,
-move-a-plain-item, equip/unequip-a-real-instance, complete-a-world-pickup),
-and world-pickup networking is DONE IN FULL (not just a pilot) - 78 of 127
-worldPickupPrefab prefabs converted, Pickup.Complete() routes through a
-real server-authoritative Command. Two real bugs found and fixed live
-during that rollout (non-prefab scene pickups, scene-resave-for-sceneId
-gotcha) - see MULTIPLAYER_PLANNING.md for both, worth knowing before doing
-the equivalent for equippables. Explicitly deferred, remaining work:
-giving every other equippable prefab (~10 types, Backpack alone has 10
-tier/material variants) the same NetworkIdentity treatment as the one
-Backpack pilot, and wiring any of these Commands into the real
-InventoryScreen.cs drag-and-drop UI players actually touch. See
-`CHANGELOG.md`'s v0.3.170-dev entry and `MULTIPLAYER_PLANNING.md` section
-3 item 3 sub-phase 2 for full detail — pick up there next time rather than
-re-deriving the state.
+Sub-phase 2 (Inventory + Equipment) has both major rollout pieces DONE IN
+FULL, not pilots: world-pickup networking (78 of 127 prefabs) and now
+every equippable type too (remaining 49 prefabs, 127 total networked).
+The equippable rollout used a real design improvement over the original
+Backpack pilot: one generic RequestEquipInstance/RequestUnequipInstance
+Command pair on PlayerInventory (mirroring InventoryScreen.cs's own
+dispatch switch) instead of converting all 10 carrier scripts to
+NetworkBehaviour individually. Real SyncList sync on
+PlayerInventory/PlayerEquipment, five working Commands total (add-item,
+move-a-plain-item, equip/unequip-any-instance, complete-a-world-pickup).
+Real bugs found and fixed live along the way (non-prefab scene pickups,
+scene-resave-for-sceneId gotcha) - see MULTIPLAYER_PLANNING.md. What's
+explicitly still not done: wiring any of these Commands into the real
+InventoryScreen.cs drag-and-drop UI players actually touch, and the
+broader mutation surface outside Inventory/Equipment (crafting, NPC
+deposit, admin tools) is still local-only - both smaller in scope than
+what's already shipped. See `CHANGELOG.md`'s v0.3.171-dev entry and
+`MULTIPLAYER_PLANNING.md` section 3 item 3 sub-phase 2 for full detail —
+pick up there next time rather than re-deriving the state.
