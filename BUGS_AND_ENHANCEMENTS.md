@@ -5,6 +5,34 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## Mining Face Shield's recipe is a placeholder — should require real Glass, not Rock+Stick (found 2026-08-24, not started)
+
+`MiningFaceShieldRecipe.asset` currently costs 2 Rock + 1 Stick — the
+exact same bootstrap-tier ingredients as `CrudePickaxeRecipe`, copy-
+pasted as a stand-in rather than designed for what a face shield
+actually is. Ben's explicit intent: a real Mining Face Shield should
+require **Glass**, made from **Sand** (dug at a sand site,
+`Sand.asset` already exists and is diggable — see the 2026-08-14
+session notes) — not raw Rock/Stick.
+
+**Confirmed directly, not assumed: neither piece of this chain exists
+yet.** No `Glass` item exists anywhere in `Assets/Data/`. `Sand` is
+completely unused as a crafting ingredient in every recipe/smeltable
+asset in the project — it's diggable, but nothing currently consumes
+it. This is genuinely new content, not a partially-built chain waiting
+to be wired up.
+
+**Real scope, if/when this gets built**: a new `Glass` `ItemDefinition`,
+a Sand→Glass recipe (real glassmaking needs heat, so this likely wants
+a `requiresFurnace` gate — worth deciding deliberately, not assuming),
+and then updating `MiningFaceShieldRecipe` to require Glass instead of
+Rock+Stick. Deliberately not built tonight — surfaced while auditing
+the early-game bootstrap chain (the same pass that found the Iron/
+Copper Nail StorageBox gap, `MULTIPLAYER_PLANNING.md`-adjacent
+playtesting, 2026-08-24) but not needed for what that testing pass was
+actually checking (whether ingots are reachable early), so explicitly
+deferred rather than scope-creeped into that fix.
+
 ## No placed/built structure tracks who owns it (found 2026-08-23, not started)
 
 Confirmed directly (not assumed): `CapturePlacedPiece` (`SaveManager.cs`)
