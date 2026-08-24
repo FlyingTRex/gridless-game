@@ -5,10 +5,37 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.192-dev` — must always match `GameVersion` in
+**Current version:** `0.3.193-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (27)
+
+### v0.3.193-dev — Persistence restructure chunk 1: world/character data split
+
+First chunk of the multiplayer persistence restructure
+(`MULTIPLAYER_PLANNING.md` section 3 item 5, planned earlier this
+session). Pure data-shape refactor, zero new capability — `SaveManager
+.Save()`'s single flat `JObject` split into `"player"` (unchanged
+content, still singular — chunk 3 is what turns this into a real
+per-player dictionary once chunk 2 gives it a stable ID to key on) and a
+new `"world"` sub-object holding everything else (storageBoxes,
+resourceNodes, npcs, gardenPlots, gardenPlots4x4, placedPieces,
+furnaces, vendorStalls, villageFlagSpawnTimer). `Load()` updated to
+match — same restore order as before (`RestorePlacedPieces`/
+`RestoreVendorStalls` still run before their dependent
+`RestoreWorldObjects<T>` calls, per the existing ordering gotcha), just
+reading from `world?["X"]` instead of the old top-level `data["X"]`.
+
+Breaking save-format change, deliberate — no migration path for a
+pre-restructure dev save. The existing `save.json` was renamed aside
+(`save.json.pre-restructure-backup`, matching the existing `.bak`
+pattern already in that folder) rather than deleted.
+
+Live-confirmed: fresh save with real world state (a placed StorageBox,
+etc.) and character state, reload, everything restored correctly, zero
+errors.
 
 ## 2026-08-23 (26)
 

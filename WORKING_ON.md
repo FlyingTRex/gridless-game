@@ -17,43 +17,67 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-Nothing in progress right now — everything through v0.3.191-dev is merged
-to origin/main. **Multiplayer Phase 3 is fully complete** — all 5
-sub-phases (Bootstrap; Inventory + Equipment; Crafting + Building; Magic
-+ Combat; everything else) shipped and live-confirmed. See
-MULTIPLAYER_PLANNING.md for the full list of what shipped across the
-whole phase.
+**Everything through v0.3.193-dev is merged to origin/main.** Multiplayer
+Phase 3 is fully complete (all 5 sub-phases). "NPCs move server-side" is
+substantially done: the 5 job-driven NPC scripts, roaming wildlife (Wolf/
+Rabbit/Pig), and a follow-up audit that found and fixed 4 more missed
+Update() loops (NPCWander — the actual foundational idle movement,
+NPCFlee, NPCVitals, NPCHiring's work timer) are all server-guarded and
+live-confirmed. See MULTIPLAYER_PLANNING.md section 3 item 4 for the full
+detail.
 
-**NPCs move server-side (the next phase) is well underway.**
-NPCGathering/NPCCrafting/NPCGuarding/NPCSeekFlag/NPCTraining (the 5
-job-driven NPC scripts) are all NetworkBehaviours with isServer guards.
-Roaming wildlife also done, per Ben's explicit call: SkinnableCreature
-(shared base for HostileCreature/PreyCreature) converted to
-NetworkBehaviour in one move, HostileCreature.Update()/PreyWander
-.Update() both isServer-guarded. All relevant prefabs (3
-NPCFactoryWorker* variants, Wolf, Rabbit, Pig) got a real
-NetworkTransformReliable for position replication - caught and fixed
-the SAME real wrong-default twice: this Mirror version's own default
-syncDirection for a fresh NetworkTransformReliable is ClientToServer,
-which would silently sync nothing for a server-driven creature with no
-owning client; set explicitly to ServerToClient both times. Deer/
-Chicken checked and correctly left alone - no movement code exists for
-them at all (pre-existing gap, unrelated to networking). Live-confirmed
-both slices: hired NPCs and Wolf/Rabbit/Pig all moving around normally,
-zero errors.
+**2026-08-23 — uncommitted local work, not yet tested or pushed — pick
+this up first next session:**
+- `NPCHiringScreen.cs` — added `RequestTalk`/`RequestSetFrozen` Commands,
+  closing the last flagged low-priority gap (Talk/Freeze were still
+  calling `NPCDialogue`/`NPCFreeze` directly instead of through a
+  Command). Compiles clean, **not yet live-tested** — verify Talk still
+  opens dialogue and the Frozen checkbox still holds an NPC in place
+  before committing.
+- `PlayerInteraction.cs` / `PlayerRangedCombat.cs` — **temporary debug
+  logging only, not meant to ship as-is.** Added to chase the stuck
+  empty hold-progress-bar bug (`BUGS_AND_ENHANCEMENTS.md`) — Ben's
+  latest report ties it to Bow/arrow usage specifically ("something I'm
+  trying to do and then click the mouse"), seen a few times since the
+  original Heal Self report. `PlayerRangedCombat` logs every `isDrawing`
+  state transition; `PlayerInteraction.OnGUI` logs (throttled, once/sec)
+  whenever the E-hold bar is actually drawing, printing which
+  `IInteractable` and its progress/duration. Next session: reproduce
+  with the bow (draw/fire, including odd timing like clicking right as
+  something else happens), read the log for `[RangedDebug]`/
+  `[HoldBarDebug]` lines, root-cause it, then **remove this logging**
+  before committing the real fix — don't ship the instrumentation.
 
-Still not audited: whether any NPC-initiated gameplay interaction (not
-directly triggered by a player Command) breaks under the new
-server-only-simulation model - worth a look before calling this phase
-fully done. Still to do after that: the persistence restructure for a
-real dedicated server, then the design-brief's remaining Phase 2/3
-items - neither started yet.
+The persistence restructure for a real dedicated server is now underway
+(chunked, 2026-08-23, see `MULTIPLAYER_PLANNING.md` section 3 item 5 for
+the full 7-chunk breakdown: data-shape split -> real player identity ->
+per-player load/save -> new-vs-returning logic -> real save triggers ->
+real connectivity -> live multi-connection test). **Chunk 1 done, same
+day (v0.3.193-dev, pushed)**: `SaveManager.Save()`/`Load()` split into
+`"player"` (still singular) vs. `"world"` — pure refactor, same restore
+order preserved, live-confirmed (real world state + character state,
+manual Save button and auto-Load both exercised, zero errors). Breaking
+save-format change — the old dev `save.json` was renamed aside
+(`save.json.pre-restructure-backup`), not deleted. One real decision
+still open before chunk 2: single JSON file with a per-player dictionary
+vs. real separate files (leaning toward the single-file shape). One
+real, concrete prerequisite surfaced during planning: Ben and traskmi
+test from genuinely different physical locations (both confirmed real
+public IPs, no CGNAT, both have router access) — so chunk 6 (a real
+Connect screen + port forwarding on whichever side hosts) is a genuine
+blocker for the final live test, not later polish. Confirmed directly
+(not assumed): zero Connect UI exists anywhere today, not even Mirror's
+own stock `NetworkManagerHUD` wired into `TestScene.unity`.
 
-One real UI bug found live and logged to BUGS_AND_ENHANCEMENTS.md rather
-than chased same-session: a stuck empty hold-progress bar after casting
-Heal Self, cause not yet confirmed. See `CHANGELOG.md`'s v0.3.191-dev
-entry and `MULTIPLAYER_PLANNING.md` section 3 item 4 for full detail —
-pick up there next time rather than re-deriving the state.
+Still to do after the persistence restructure: whether the design-brief's
+other Phase 2/3 items need anything.
+
+Also cleaned up this session: an unrelated Discord bot project (`pom.xml`/
+`src/`/`config.json`, using JDA) had somehow been scaffolded directly into
+this repo, clobbering `.gitignore` with a generic Maven template in the
+process. `.gitignore` restored to the Unity-specific version via `git
+checkout`; the Discord bot files were removed entirely at Ben's request —
+not part of Gridless, shouldn't reappear here.
 
 Reminder for whoever picks this back up: the overall Multiplayer
 conversion was always scoped as multi-week (48 PlayerXXX.cs scripts

@@ -74,11 +74,24 @@ public class SaveManager : MonoBehaviour
         if (SaveExists) Load();
     }
 
+    // Multiplayer persistence restructure, chunk 1 (MULTIPLAYER_PLANNING.md
+    // section 3 item 5), 2026-08-23: pure data-shape split, zero new
+    // capability -- everything that's per-character lives under "player"
+    // (still singular; chunk 3 is what turns this into a real per-player
+    // dictionary once chunk 2 gives it a stable ID to key on), everything
+    // that's shared world state lives under "world". Still one save file,
+    // one implicit player, saves/loads exactly like before from the
+    // outside -- this only creates the seam later chunks build on.
+    //
+    // Breaking format change, deliberate: an existing save.json written by
+    // the old flat shape won't load correctly under this Load() (every
+    // world/character key now nests one level deeper) -- delete any old
+    // save.json before testing this, there's no migration path and none
+    // is planned for a pre-restructure dev save.
     public void Save()
     {
-        var data = new JObject
+        var world = new JObject
         {
-            ["player"] = CapturePlayer(),
             ["storageBoxes"] = CaptureWorldObjects<StorageBox>(CaptureStorageBox),
             ["resourceNodes"] = CaptureWorldObjects<ResourceNode>(CaptureResourceNode),
             ["npcs"] = CaptureWorldObjects<NPCHiring>(CaptureNpc),
@@ -94,6 +107,12 @@ public class SaveManager : MonoBehaviour
             // "nothing to validate, just resume from it" shape as
             // PlayerFame's own single-value capture.
             ["villageFlagSpawnTimer"] = villageFlagSpawner != null ? villageFlagSpawner.SpawnTimerSeconds : (float?)null,
+        };
+
+        var data = new JObject
+        {
+            ["player"] = CapturePlayer(),
+            ["world"] = world,
         };
 
         File.WriteAllText(FilePath, data.ToString());
@@ -119,8 +138,14 @@ public class SaveManager : MonoBehaviour
 
         if (data["player"] is JObject player) RestorePlayer(player);
 
-        if (villageFlagSpawner != null && data["villageFlagSpawnTimer"] != null)
-            villageFlagSpawner.SpawnTimerSeconds = (float)data["villageFlagSpawnTimer"];
+        // Chunk 1 (see Save() above): every world key now lives nested
+        // under "world" instead of top-level -- everything below reads
+        // from this local instead of `data` directly, same restore order
+        // as before, just re-pointed at the new location.
+        var world = data["world"] as JObject;
+
+        if (villageFlagSpawner != null && world?["villageFlagSpawnTimer"] != null)
+            villageFlagSpawner.SpawnTimerSeconds = (float)world["villageFlagSpawnTimer"];
 
         // RestorePlacedPieces must run before any RestoreWorldObjects<T>
         // call whose T can be player-built via a BuildPiece (StorageBox,
@@ -133,7 +158,7 @@ public class SaveManager : MonoBehaviour
         // already had this right (its own RestoreWorldObjects call ran
         // after RestorePlacedPieces) -- that's the correct order, now
         // applied consistently.
-        RestorePlacedPieces(data["placedPieces"] as JArray);
+        RestorePlacedPieces(world?["placedPieces"] as JArray);
 
         // Must run before RestoreWorldObjects<StorageBox> below, for the
         // same reason RestorePlacedPieces must run before it (2026-08-21,
@@ -143,14 +168,14 @@ public class SaveManager : MonoBehaviour
         // (which only ever restores an *existing* object, never creates
         // one) would silently find nothing to restore into unless this
         // runs first and creates the box under its saved SaveId.
-        RestoreVendorStalls(data["vendorStalls"] as JArray);
+        RestoreVendorStalls(world?["vendorStalls"] as JArray);
 
-        RestoreWorldObjects<StorageBox>(data["storageBoxes"] as JArray, RestoreStorageBox);
-        RestoreWorldObjects<ResourceNode>(data["resourceNodes"] as JArray, RestoreResourceNode);
-        RestoreNpcs(data["npcs"] as JArray);
-        RestoreWorldObjects<GardenPlot>(data["gardenPlots"] as JArray, RestoreGardenPlot);
-        RestoreWorldObjects<GardenPlot4x4>(data["gardenPlots4x4"] as JArray, RestoreGardenPlot4x4);
-        RestoreWorldObjects<Furnace>(data["furnaces"] as JArray, RestoreFurnace);
+        RestoreWorldObjects<StorageBox>(world?["storageBoxes"] as JArray, RestoreStorageBox);
+        RestoreWorldObjects<ResourceNode>(world?["resourceNodes"] as JArray, RestoreResourceNode);
+        RestoreNpcs(world?["npcs"] as JArray);
+        RestoreWorldObjects<GardenPlot>(world?["gardenPlots"] as JArray, RestoreGardenPlot);
+        RestoreWorldObjects<GardenPlot4x4>(world?["gardenPlots4x4"] as JArray, RestoreGardenPlot4x4);
+        RestoreWorldObjects<Furnace>(world?["furnaces"] as JArray, RestoreFurnace);
 
         // NavMesh Phase 1 (2026-08-21) only rebakes on live PlayerBuilding/
         // PlayerPieceUpgrade actions -- a wall/door restored here via

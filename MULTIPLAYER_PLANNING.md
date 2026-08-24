@@ -1059,9 +1059,83 @@ needs authority over. What remains is the next phase down:
    Command — same category as `NPCDialogue`'s Talk trigger. Live-
    confirmed: idle wander, work timer, zero errors (flee reaction
    untested — Fame was positive, correctly nothing to flee from).
-5. **Persistence layer.** Needed regardless, but now genuinely blocking —
-   a dedicated server with no save/load can't actually stay up
-   indefinitely the way the design calls for.
+5. **Persistence layer — chunked, 2026-08-23, planning only, nothing
+   built.** Needed regardless, but now genuinely blocking — a dedicated
+   server with no save/load can't actually stay up indefinitely the way
+   the design calls for. `SaveManager.cs` (997 lines, wired into 28
+   files) is a single omnibus JSON file at a fixed path — one implicit
+   "the player," no per-player keying, no world/character split, a
+   manual Save button and auto-Load on `Start()`. Restructuring this is
+   a real multi-session lift, closer to a data-model redesign of an
+   already-shipped, depended-upon system than new work on nothing — a
+   worse risk profile than building it fresh would have been, per
+   section 1's own audit finding.
+
+   **Decision needed before any of this is built**: one JSON file with
+   a `"characters": { playerId: {...} }` dictionary, vs. real separate
+   files per player. Leaning toward the single-file-with-a-dictionary
+   shape — at this project's scale (a handful of players, not an MMO)
+   it avoids filesystem/directory management entirely and is a smaller
+   step from what exists today.
+
+   **Chunk breakdown** (same "prove the foundation first, checkpoint
+   each piece live" discipline as Phase 3):
+   1. **Done, 2026-08-23 (v0.3.193-dev).** `SaveManager.Save()`'s flat
+      `JObject` split into `"player"` (unchanged content, still
+      singular) and a new `"world"` sub-object holding everything else
+      (storageBoxes/resourceNodes/npcs/gardenPlots/gardenPlots4x4/
+      placedPieces/furnaces/vendorStalls/villageFlagSpawnTimer).
+      `Load()` updated to match, same restore order preserved
+      (`RestorePlacedPieces`/`RestoreVendorStalls` still run before
+      their dependent `RestoreWorldObjects<T>` calls). Breaking
+      save-format change, deliberate — no migration path; the existing
+      dev `save.json` was renamed aside rather than deleted. Live-
+      confirmed: fresh save with real world state (a placed
+      StorageBox) and character state, reload, everything restored
+      correctly, zero errors — both the manual Save button and the
+      auto-Load-on-Start path were exercised.
+   2. Real stable player identity — `PlayerIdentity` today only holds a
+      renameable display name, no unique ID to key a character record
+      on at all. Small, self-contained, everything after this depends
+      on it existing first.
+   3. Per-player character load/save, keyed by that ID — the real
+      architectural change. World data stays shared and singular; "the
+      player" genuinely becomes "N players" here.
+   4. New-vs-returning player logic — `SaveExists` today is one global
+      bool; multiplayer needs a per-player version (does *this*
+      connecting player have an existing character record, independent
+      of whether the world itself has ever been saved).
+   5. Real save triggers for a server with nobody to click a button —
+      autosave on an interval, save-on-disconnect (that one character),
+      save-on-shutdown (everything). Genuinely new logic, not an
+      adaptation of the manual-button flow.
+   6. **Real connectivity, before the live multi-connection test can
+      happen at all** — Ben and traskmi test from genuinely different
+      physical locations, both with real public IPs (no CGNAT, both
+      confirmed direct router access) — so this is a real prerequisite,
+      not later polish:
+      - Confirm the actual configured Mirror transport port in the
+        Editor directly (not assumed — the default is `KcpTransport`'s
+        7777, but `TestScene.unity`'s Force Binary serialization means
+        this can't be grep-verified, only checked live in the
+        Inspector).
+      - Whoever is hosting a given session forwards that port on their
+        own router — only the host's router needs it, the connecting
+        side just needs normal outbound internet.
+      - Build a real Connect screen (`ConnectScreen.cs`, OnGUI, same
+        shape as every other screen in this project — IP field,
+        Connect button, connection-failure feedback). Mirror's stock
+        `NetworkManagerHUD` (confirmed not currently wired into
+        `TestScene.unity` at all — zero matches, checked directly) is
+        a fine stand-in for solo two-Editor-instance testing in the
+        meantime, but isn't what either of them would actually use to
+        connect to each other.
+   7. Live multi-connection test with actual separate characters — Ben
+      and traskmi each connected from their own location, independent
+      inventory/vitals/position, save, disconnect one, reconnect,
+      confirm it comes back correctly while the other stayed live and
+      unaffected. The real proof, not just "compiles and doesn't error
+      solo."
 6. **Everything design-brief item 6 implies beyond core sync** — IP-
    geolocated spawn points, settlement/city growth as shared macro-layer
    state, Warfare/PvP (`docs/design-brief.md`'s Settlement Warfare
