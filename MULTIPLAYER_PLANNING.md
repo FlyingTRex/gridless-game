@@ -1128,10 +1128,28 @@ needs authority over. What remains is the next phase down:
       (no save file) -> crafted a new Village Flag -> saved -> logged
       back in -> character (inventory) and world (the Flag) both
       restored correctly, zero errors.
-   4. New-vs-returning player logic — `SaveExists` today is one global
-      bool; multiplayer needs a per-player version (does *this*
-      connecting player have an existing character record, independent
-      of whether the world itself has ever been saved).
+   4. **Done, 2026-08-23 (v0.3.196-dev).** Found a real bug while
+      scoping this: `PlayerMagic.Awake()` decided "give this player
+      their free random starting Magic lineage" using the old global
+      `SaveExists` — checked "does *a* save file exist" rather than
+      "does *my* character exist in it," and fired before `PlayerId`
+      even resolves. A second player joining a world someone else had
+      already saved would read `SaveExists` true and silently skip
+      their own free lineage, violating the design-brief's "no
+      lineage-less players" guarantee. Fixed by moving the decision
+      into a new `SaveManager.ResolveFreshStart()` — the one place
+      that now correctly determines "is this a genuinely new
+      character" per-player, called once `PlayerId` is known (same
+      `PlayerIdReady` timing as chunk 3). `Load()` only sets
+      `LoadedFromSave` true when this player's own record was actually
+      found; `ResolveFreshStart()` calls `AssignRandomLineageIfNone`/
+      `SelectDefaultWishIfNone` whenever it wasn't — covering both "no
+      save file at all" and "file exists, my entry doesn't" with one
+      correct signal. `PlayerMagic.Awake()`'s old check removed
+      entirely. Live-confirmed: a fresh character got a random starting
+      lineage *and* correctly kept a second lineage restored from an
+      earlier session's skill-book read — new-player fallback and
+      returning-player restore both correct together, zero errors.
    5. Real save triggers for a server with nobody to click a button —
       autosave on an interval, save-on-disconnect (that one character),
       save-on-shutdown (everything). Genuinely new logic, not an

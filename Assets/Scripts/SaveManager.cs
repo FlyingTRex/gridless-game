@@ -81,7 +81,7 @@ public class SaveManager : MonoBehaviour
             // Already ready by the time this runs (e.g. host testing,
             // where the round trip resolves same-frame) -- no need to
             // wait for an event that already fired.
-            if (SaveExists) Load();
+            ResolveFreshStart();
         }
         else if (identity != null)
         {
@@ -92,7 +92,30 @@ public class SaveManager : MonoBehaviour
     private void OnPlayerIdReady(string id)
     {
         identity.PlayerIdReady -= OnPlayerIdReady;
+        ResolveFreshStart();
+    }
+
+    // Chunk 4 (MULTIPLAYER_PLANNING.md section 3 item 5), 2026-08-23:
+    // the one place that now decides "is this a genuinely new
+    // character" per-player, replacing the old global SaveManager
+    // .SaveExists check other scripts (PlayerMagic) used to reach for
+    // directly -- that check couldn't tell "no save file exists at
+    // all" apart from "a save file exists but doesn't have *my*
+    // character in it," and a second player joining a world someone
+    // else had already saved needs exactly that distinction. Load()
+    // only ever sets LoadedFromSave true when this player's own
+    // character record was actually found -- covers both cases
+    // (missing file entirely, or file exists without this player's
+    // entry) with the same one correct signal.
+    private void ResolveFreshStart()
+    {
         if (SaveExists) Load();
+
+        if (!LoadedFromSave)
+        {
+            magic?.AssignRandomLineageIfNone();
+            magic?.SelectDefaultWishIfNone();
+        }
     }
 
     private void OnDestroy()

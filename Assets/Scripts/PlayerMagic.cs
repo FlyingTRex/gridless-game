@@ -79,22 +79,25 @@ public class PlayerMagic : MonoBehaviour
         vitals = GetComponent<PlayerVitals>();
 
         // Only a genuinely new character gets the free random lineage
-        // (design-brief.md's "no lineage-less players") -- a save file
-        // means SaveManager.Load() (Start(), after every Awake()) is about
-        // to call RestoreLineages/SelectWish with the real saved data, so
-        // randomizing here would just get immediately overwritten anyway,
-        // except it wasn't: PlayerMagic previously had no save/restore at
-        // all, so this ran unconditionally every load and silently
-        // discarded whatever the player had actually learned. Same
-        // SaveManager.SaveExists guard GardenPlot4x4's own fresh-start
-        // init already uses.
-        if (!SaveManager.SaveExists && allLineages != null && allLineages.Length > 0)
-        {
-            StartingLineage = allLineages[Random.Range(0, allLineages.Length)];
-            knownLineages.Add(StartingLineage);
-        }
-
-        SelectDefaultWishIfNone();
+        // (design-brief.md's "no lineage-less players") -- deciding that
+        // used to happen right here, gated on the old global
+        // SaveManager.SaveExists (does *a* save file exist at all).
+        //
+        // Persistence restructure chunk 4 (MULTIPLAYER_PLANNING.md
+        // section 3 item 5), 2026-08-23: that check is wrong once more
+        // than one player exists -- a second player joining a world
+        // that already has *some* saved data (because a different
+        // player saved) would incorrectly read SaveExists as true and
+        // skip their own free lineage, even though *their* character
+        // has never been saved. It's also fired too early regardless:
+        // PlayerId (chunk 2) isn't populated yet in Awake(), so there
+        // was never a way to ask "does *my* character exist" here even
+        // if the check were otherwise correct. Moved entirely into
+        // SaveManager.ResolveFreshStart(), which runs once PlayerId is
+        // actually known and calls AssignRandomLineageIfNone() /
+        // SelectDefaultWishIfNone() itself, using the one signal that's
+        // actually correct per-player: whether *this* player's own
+        // character record was found and restored.
     }
 
     // Backward-compat fallback for a save file written before this fix

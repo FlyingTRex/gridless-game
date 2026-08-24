@@ -5,10 +5,41 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.195-dev` — must always match `GameVersion` in
+**Current version:** `0.3.196-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (30)
+
+### v0.3.196-dev — Persistence restructure chunk 4: new-vs-returning player logic, and a real multiplayer bug caught before it shipped
+
+Found a real bug while scoping this chunk: `PlayerMagic.Awake()`
+decided "give this player their free random starting Magic lineage"
+using the old global `SaveManager.SaveExists` — fired before `PlayerId`
+(chunk 2) even resolves, and checking "does *a* save file exist" rather
+than "does *my* character exist in it." In multiplayer, a second player
+joining a world someone else had already saved would read `SaveExists`
+as true and silently skip their own free lineage, violating the
+design-brief's "no lineage-less players" guarantee.
+
+Fixed by moving the decision entirely into `SaveManager`, in a new
+`ResolveFreshStart()` — the one place that now correctly determines
+"is this a genuinely new character" per-player, called once `PlayerId`
+is actually known (same `PlayerIdReady` timing chunk 3 already
+established). `Load()` only ever sets `LoadedFromSave` true when this
+player's own character record was actually found; `ResolveFreshStart()`
+calls `magic.AssignRandomLineageIfNone()`/`SelectDefaultWishIfNone()`
+whenever it wasn't — covering both "no save file exists at all" (the
+very first player ever) and "a save file exists but doesn't have my
+entry yet" (a new player joining an existing world) with the same one
+correct signal. `PlayerMagic.Awake()`'s old check removed entirely.
+
+Live-confirmed: a fresh character correctly got a random starting
+lineage (Elemental) *and* correctly kept a second lineage (Kinetic)
+restored from an earlier session's skill-book read — both the new-
+player fallback and the returning-player restore path working
+together correctly, zero errors.
 
 ## 2026-08-23 (29)
 

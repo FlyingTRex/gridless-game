@@ -17,7 +17,7 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.195-dev is merged to origin/main.** Multiplayer
+**Everything through v0.3.196-dev is merged to origin/main.** Multiplayer
 Phase 3 is fully complete (all 5 sub-phases). "NPCs move server-side" is
 substantially done: the 5 job-driven NPC scripts, roaming wildlife (Wolf/
 Rabbit/Pig), and a follow-up audit that found and fixed 4 more missed
@@ -52,21 +52,23 @@ The persistence restructure for a real dedicated server is now underway
 (chunked, 2026-08-23, see `MULTIPLAYER_PLANNING.md` section 3 item 5 for
 the full 7-chunk breakdown: data-shape split -> real player identity ->
 per-player load/save -> new-vs-returning logic -> real save triggers ->
-real connectivity -> live multi-connection test). **Chunks 1-3 done,
-2026-08-23 (v0.3.193-dev through v0.3.195-dev, all pushed).** Chunk 1
+real connectivity -> live multi-connection test). **Chunks 1-4 done,
+2026-08-23 (v0.3.193-dev through v0.3.196-dev, all pushed).** Chunk 1
 split `"player"` vs. `"world"`. Chunk 2 gave `PlayerIdentity` a real
-stable `PlayerId` (`NetworkBehaviour`, generated via `PlayerPrefs`,
-handed to the server via `CmdSetPlayerId`). Chunk 3 is the real
-architectural change: `"player"` became `"characters"`, a dictionary
-keyed by `PlayerId`, with `Save()` doing a read-modify-write so one
-player's save doesn't clobber another's, and a real timing-hazard fix
-(`SaveManager` now waits for `PlayerIdentity`'s new `PlayerIdReady`
-event instead of assuming `Start()` ordering guarantees `PlayerId` is
-already set). Live-confirmed with a real fresh-session round trip:
-empty start -> crafted a Village Flag -> saved -> reloaded -> character
-and world both restored correctly, zero errors. Next up: chunk 4
-(new-vs-returning player logic — `SaveExists` is still a global bool,
-not yet per-player).
+stable `PlayerId`. Chunk 3 turned `"player"` into `"characters"`, a
+dictionary keyed by `PlayerId`, with a read-modify-write `Save()` and a
+`PlayerIdReady`-driven timing fix. Chunk 4 found and fixed a real
+multiplayer bug: `PlayerMagic.Awake()` decided "give this player their
+free starting Magic lineage" off the old global `SaveExists` (fired
+before `PlayerId` even resolves) — a second player joining a world
+someone else had saved would silently skip their own free lineage.
+Moved into a new `SaveManager.ResolveFreshStart()`, the one place that
+now correctly determines "is this a genuinely new character" per-
+player. Live-confirmed: a fresh character got a random starting
+lineage *and* correctly kept a second one restored from an earlier
+session's skill-book read, zero errors. Next up: chunk 5 (real save
+triggers — autosave, save-on-disconnect, save-on-shutdown; today it's
+still a manual button + auto-Load-on-Start).
 
 One real decision already made during planning: single JSON file with
 a per-player dictionary, not real separate files (confirmed by Ben
