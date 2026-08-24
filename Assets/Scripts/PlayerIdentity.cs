@@ -48,6 +48,14 @@ public class PlayerIdentity : NetworkBehaviour
     // immediately.
     public string PlayerId => playerId;
 
+    // Fired exactly once, right after CmdSetPlayerId actually populates
+    // playerId server-side. SaveManager (chunk 3) needs this rather than
+    // just reading PlayerId in its own Start() -- the Command is a real
+    // client-to-server round trip, not instant, so Start() ordering alone
+    // can't guarantee PlayerId is populated yet by the time SaveManager
+    // would otherwise try to use it.
+    public event Action<string> PlayerIdReady;
+
     // Read by the rename popup to show the real cost before committing --
     // 0 for the still-free first rename.
     public int NextRenameCostGold => hasBeenNamed && fame != null ? fame.RenameCostGold : 0;
@@ -89,6 +97,7 @@ public class PlayerIdentity : NetworkBehaviour
         if (string.IsNullOrEmpty(id)) return;
         playerId = id;
         Debug.Log($"[PlayerIdentity] PlayerId set to {playerId}");
+        PlayerIdReady?.Invoke(playerId);
     }
 
     // Basic sanitization only (2026-08-22) -- trim, length cap, strip

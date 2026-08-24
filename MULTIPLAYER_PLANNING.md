@@ -1109,9 +1109,25 @@ needs authority over. What remains is the next phase down:
       client needs to see another player's raw ID. `SaveManager` isn't
       touched yet — that's chunk 3. Live-confirmed: real GUID generated
       and reached the server correctly, zero errors.
-   3. Per-player character load/save, keyed by that ID — the real
-      architectural change. World data stays shared and singular; "the
-      player" genuinely becomes "N players" here.
+   3. **Done, 2026-08-23 (v0.3.195-dev).** The real architectural
+      change — `SaveManager`'s `"player"` (singular) became
+      `"characters"`, a real dictionary keyed by `PlayerId`. `Save()`
+      does a read-modify-write instead of overwriting the whole file,
+      so one player saving doesn't clobber another player's already-
+      saved character record in the same file; world data still gets
+      freshly captured every save regardless of who's saving (chunk
+      5's call, not this one). `Load()` looks up this player's own
+      entry; a missing one correctly falls through to fresh-start
+      defaults. Also fixed a real timing hazard along the way:
+      `Start()` used to call `Load()` unconditionally, but `PlayerId`
+      is only populated after `CmdSetPlayerId`'s round trip — `Start()`
+      ordering can't guarantee that's happened yet. `PlayerIdentity`
+      gained a `PlayerIdReady` event; `SaveManager` waits for it (or
+      proceeds immediately if already set, e.g. same-frame on host).
+      Live-confirmed with a real fresh-session round trip: empty start
+      (no save file) -> crafted a new Village Flag -> saved -> logged
+      back in -> character (inventory) and world (the Flag) both
+      restored correctly, zero errors.
    4. New-vs-returning player logic — `SaveExists` today is one global
       bool; multiplayer needs a per-player version (does *this*
       connecting player have an existing character record, independent

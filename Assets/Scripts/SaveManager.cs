@@ -69,28 +69,72 @@ public class SaveManager : MonoBehaviour
         identity = GetComponent<PlayerIdentity>();
     }
 
+    // Chunk 3 (see Save()/Load() below): can't call Load() from Start()
+    // unconditionally the way chunk 1 did -- PlayerId is only populated
+    // after CmdSetPlayerId's client-to-server round trip completes, which
+    // Start()'s own ordering can't guarantee has happened yet. Wait for
+    // PlayerIdentity's own readiness signal instead.
     private void Start()
     {
+        if (identity != null && !string.IsNullOrEmpty(identity.PlayerId))
+        {
+            // Already ready by the time this runs (e.g. host testing,
+            // where the round trip resolves same-frame) -- no need to
+            // wait for an event that already fired.
+            if (SaveExists) Load();
+        }
+        else if (identity != null)
+        {
+            identity.PlayerIdReady += OnPlayerIdReady;
+        }
+    }
+
+    private void OnPlayerIdReady(string id)
+    {
+        identity.PlayerIdReady -= OnPlayerIdReady;
         if (SaveExists) Load();
     }
 
+    private void OnDestroy()
+    {
+        if (identity != null) identity.PlayerIdReady -= OnPlayerIdReady;
+    }
+
     // Multiplayer persistence restructure, chunk 1 (MULTIPLAYER_PLANNING.md
-    // section 3 item 5), 2026-08-23: pure data-shape split, zero new
-    // capability -- everything that's per-character lives under "player"
-    // (still singular; chunk 3 is what turns this into a real per-player
-    // dictionary once chunk 2 gives it a stable ID to key on), everything
-    // that's shared world state lives under "world". Still one save file,
-    // one implicit player, saves/loads exactly like before from the
-    // outside -- this only creates the seam later chunks build on.
+    // section 3 item 5), 2026-08-23: pure data-shape split -- everything
+    // that's per-character lives under "player"/now "characters", every
+    // shared world key lives under "world".
+    //
+    // Chunk 3, same day: "player" (singular) became "characters" (a real
+    // dictionary keyed by PlayerIdentity.PlayerId from chunk 2) -- this is
+    // the actual "one player" -> "N players" architectural change. Save()
+    // does a read-modify-write rather than overwriting the whole file, so
+    // one player saving doesn't clobber another player's already-saved
+    // character record still sitting in the same file. World data is
+    // still captured/restored by every player's own SaveManager
+    // regardless of who's saving -- deciding whether that should be
+    // server-only is chunk 5's job (real save triggers), not this one.
     //
     // Breaking format change, deliberate: an existing save.json written by
-    // the old flat shape won't load correctly under this Load() (every
-    // world/character key now nests one level deeper) -- delete any old
-    // save.json before testing this, there's no migration path and none
-    // is planned for a pre-restructure dev save.
+    // an older shape won't load correctly under this Load() -- delete any
+    // old save.json before testing this, there's no migration path and
+    // none is planned for a pre-restructure dev save.
     public void Save()
     {
-        var world = new JObject
+        string playerId = identity != null ? identity.PlayerId : null;
+        if (string.IsNullOrEmpty(playerId))
+        {
+            Debug.LogWarning("SaveManager: Save() called before PlayerId was ready -- skipping.");
+            return;
+        }
+
+        var data = TryReadExisting() ?? new JObject();
+
+        var characters = data["characters"] as JObject ?? new JObject();
+        characters[playerId] = CapturePlayer();
+        data["characters"] = characters;
+
+        data["world"] = new JObject
         {
             ["storageBoxes"] = CaptureWorldObjects<StorageBox>(CaptureStorageBox),
             ["resourceNodes"] = CaptureWorldObjects<ResourceNode>(CaptureResourceNode),
@@ -109,34 +153,45 @@ public class SaveManager : MonoBehaviour
             ["villageFlagSpawnTimer"] = villageFlagSpawner != null ? villageFlagSpawner.SpawnTimerSeconds : (float?)null,
         };
 
-        var data = new JObject
-        {
-            ["player"] = CapturePlayer(),
-            ["world"] = world,
-        };
-
         File.WriteAllText(FilePath, data.ToString());
-        Debug.Log($"SaveManager: saved to {FilePath}");
+        Debug.Log($"SaveManager: saved character '{playerId}' to {FilePath}");
+    }
+
+    private static JObject TryReadExisting()
+    {
+        if (!SaveExists) return null;
+        try
+        {
+            return JObject.Parse(File.ReadAllText(FilePath));
+        }
+        catch (Exception e)
+        {
+            Debug.LogError($"SaveManager: failed to read existing save file — {e.Message}");
+            return null;
+        }
     }
 
     public void Load()
     {
         if (!SaveExists) return;
 
-        JObject data;
-        try
-        {
-            data = JObject.Parse(File.ReadAllText(FilePath));
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"SaveManager: failed to read save file — {e.Message}");
-            return;
-        }
+        var data = TryReadExisting();
+        if (data == null) return;
 
-        LoadedFromSave = true;
+        string playerId = identity != null ? identity.PlayerId : null;
+        var characters = data["characters"] as JObject;
 
-        if (data["player"] is JObject player) RestorePlayer(player);
+        // A missing entry for this player's own id means a genuinely new
+        // character (or PlayerId genuinely never got set) -- correctly
+        // skip RestorePlayer and let Awake()'s own fresh-start defaults
+        // stand, same as if no save file existed at all. Chunk 4 (new-
+        // vs-returning player logic) is what makes this determination
+        // more precise; this is already correct for the common case.
+        if (!string.IsNullOrEmpty(playerId) && characters?[playerId] is JObject player)
+        {
+            RestorePlayer(player);
+            LoadedFromSave = true;
+        }
 
         // Chunk 1 (see Save() above): every world key now lives nested
         // under "world" instead of top-level -- everything below reads

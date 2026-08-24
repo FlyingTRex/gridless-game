@@ -5,10 +5,44 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.194-dev` — must always match `GameVersion` in
+**Current version:** `0.3.195-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (29)
+
+### v0.3.195-dev — Persistence restructure chunk 3: per-player character records, keyed by PlayerId
+
+The real architectural change of the whole restructure — `SaveManager`'s
+`"player"` (singular) became `"characters"`, a real dictionary keyed by
+`PlayerIdentity.PlayerId` (chunk 2). `Save()` now does a read-modify-
+write instead of overwriting the whole file, so one player saving
+doesn't clobber another player's already-saved character record sitting
+in the same file — world data still gets freshly captured every save
+regardless of who's saving (deciding whether that should be server-only
+is chunk 5's job, not this one). `Load()` looks up this player's own
+entry by `PlayerId`; a missing entry correctly falls through to
+`Awake()`'s fresh-start defaults, same as no save file existing at all.
+
+Also fixed a real timing hazard while wiring this up, not just the data
+shape: `SaveManager.Start()` used to call `Load()` unconditionally, but
+`PlayerId` is only populated after `CmdSetPlayerId`'s client-to-server
+round trip completes — `Start()`'s own ordering can't guarantee that's
+already happened. `PlayerIdentity` gained a `PlayerIdReady` event,
+fired once right after the Command actually sets the id;
+`SaveManager` now waits for it (or proceeds immediately if it's
+somehow already set by the time `Start()` runs, e.g. same-frame on
+host).
+
+Breaking save-format change again — the old `save.json` from tonight's
+chunk 1/2 testing was renamed aside (`save.json.pre-chunk3-backup`),
+not deleted.
+
+Live-confirmed with a real fresh-session round trip: no save file ->
+correctly empty start -> crafted a new Village Flag -> saved -> logged
+back in -> both the character (inventory, etc.) and the world (the
+Flag) restored correctly, zero errors.
 
 ## 2026-08-23 (28)
 
