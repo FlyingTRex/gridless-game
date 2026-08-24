@@ -17,7 +17,7 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.193-dev is merged to origin/main.** Multiplayer
+**Everything through v0.3.194-dev is merged to origin/main.** Multiplayer
 Phase 3 is fully complete (all 5 sub-phases). "NPCs move server-side" is
 substantially done: the 5 job-driven NPC scripts, roaming wildlife (Wolf/
 Rabbit/Pig), and a follow-up audit that found and fixed 4 more missed
@@ -52,15 +52,22 @@ The persistence restructure for a real dedicated server is now underway
 (chunked, 2026-08-23, see `MULTIPLAYER_PLANNING.md` section 3 item 5 for
 the full 7-chunk breakdown: data-shape split -> real player identity ->
 per-player load/save -> new-vs-returning logic -> real save triggers ->
-real connectivity -> live multi-connection test). **Chunk 1 done, same
-day (v0.3.193-dev, pushed)**: `SaveManager.Save()`/`Load()` split into
-`"player"` (still singular) vs. `"world"` — pure refactor, same restore
-order preserved, live-confirmed (real world state + character state,
-manual Save button and auto-Load both exercised, zero errors). Breaking
-save-format change — the old dev `save.json` was renamed aside
-(`save.json.pre-restructure-backup`), not deleted. One real decision
-still open before chunk 2: single JSON file with a per-player dictionary
-vs. real separate files (leaning toward the single-file shape). One
+real connectivity -> live multi-connection test). **Chunks 1 and 2 done,
+2026-08-23 (v0.3.193-dev and v0.3.194-dev, both pushed).** Chunk 1:
+`SaveManager.Save()`/`Load()` split into `"player"` (still singular) vs.
+`"world"` — pure refactor, same restore order preserved, live-confirmed
+(real world state + character state, manual Save button and auto-Load
+both exercised, zero errors). Breaking save-format change — the old dev
+`save.json` was renamed aside (`save.json.pre-restructure-backup`), not
+deleted. Chunk 2: `PlayerIdentity` converted to `NetworkBehaviour`,
+gained a real stable `PlayerId` (separate from the renameable
+`DisplayName`) generated once per machine via `PlayerPrefs`, handed to
+the server via `CmdSetPlayerId` from `OnStartLocalPlayer`. Live-
+confirmed: real GUID generated, reached the server correctly, zero
+errors. `SaveManager` not yet touched by chunk 2 — that's chunk 3 next,
+actually keying character records on this ID. One real decision still
+open before chunk 3: single JSON file with a per-player dictionary vs.
+real separate files (leaning toward the single-file shape). One
 real, concrete prerequisite surfaced during planning: Ben and traskmi
 test from genuinely different physical locations (both confirmed real
 public IPs, no CGNAT, both have router access) — so chunk 6 (a real

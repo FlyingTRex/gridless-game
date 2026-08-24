@@ -5,10 +5,34 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.193-dev` — must always match `GameVersion` in
+**Current version:** `0.3.194-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-23 (28)
+
+### v0.3.194-dev — Persistence restructure chunk 2: real stable player identity
+
+`PlayerIdentity` converted to `NetworkBehaviour`, gaining a real
+`PlayerId` distinct from the renameable `DisplayName` — the display
+name is never guaranteed unique and can change, so it can't key a save
+record; chunk 3 needs something that can. The ID is generated once per
+machine (via `PlayerPrefs`, `Guid.NewGuid()`) and persists across
+sessions on that machine automatically. Genuine client-to-server
+handoff, not something either side could produce alone: read (or
+created) client-side in `OnStartLocalPlayer` — the one hook guaranteed
+to run only for the connecting player's own machine, since `Awake()`/
+`Update()` run on every machine holding a copy of a `NetworkBehaviour`
+(server, owning client, observers) and `PlayerPrefs` is local to
+whichever one executes the read — then sent to the server via
+`CmdSetPlayerId`, a private field, deliberately not a `SyncVar` since no
+other client/observer needs to see another player's raw ID. Chunk 2
+stops here — `SaveManager` isn't touched until chunk 3 actually keys
+character records on this.
+
+Live-confirmed: real GUID generated and reached the server correctly
+(`[PlayerIdentity] PlayerId set to da7c5cd5...`), zero errors.
 
 ## 2026-08-23 (27)
 

@@ -1,4 +1,6 @@
+using System;
 using System.Text;
+using Mirror;
 using UnityEngine;
 
 // The player's own display name (2026-08-22, MULTIPLAYER_PLANNING.md's
@@ -7,21 +9,44 @@ using UnityEngine;
 // raycast-triggered like world objects -- right-click-rename doesn't
 // make sense on yourself, so the entry point is a dedicated Player-tab
 // control instead (PlayerMenuScreen), not PlayerRenaming's world-aim flow.
+//
+// Persistence restructure chunk 2 (MULTIPLAYER_PLANNING.md section 3
+// item 5), 2026-08-23: converted to NetworkBehaviour, plus a real stable
+// PlayerId -- DisplayName is renameable and never guaranteed unique, so
+// it can't key a save record; chunk 3 needs something that can. The ID
+// has to be generated client-side (so the SAME id comes back on this
+// person's own machine every session, via PlayerPrefs) but recorded
+// server-side (so SaveManager, which will run server-side once this
+// restructure is done, can actually read it) -- a genuine client-to-
+// server handoff, not something either side can produce alone.
+// Deliberately NOT a SyncVar: no other client/observer needs to see
+// another player's raw ID, so it's a private field set once via Command
+// rather than broadcasting it. Chunk 2 stops here -- SaveManager itself
+// isn't touched until chunk 3 actually keys character records on this.
 [RequireComponent(typeof(PlayerCurrency))]
 [RequireComponent(typeof(PlayerFame))]
-public class PlayerIdentity : MonoBehaviour
+public class PlayerIdentity : NetworkBehaviour
 {
     private const string DefaultName = "Traveler";
     private const int MaxNameLength = 30;
+    private const string PlayerIdPrefKey = "GridlessPlayerId";
 
     [SerializeField] private string playerName = DefaultName;
     [SerializeField] private bool hasBeenNamed;
 
     private PlayerCurrency wallet;
     private PlayerFame fame;
+    private string playerId;
 
     public string DisplayName => playerName;
     public bool HasBeenNamed => hasBeenNamed;
+
+    // Server-side only -- empty until CmdSetPlayerId has actually run
+    // (right after OnStartLocalPlayer on the owning client). Chunk 3's
+    // save/load keying needs to guard against this still being empty
+    // for a frame or two after spawn, not assume it's populated
+    // immediately.
+    public string PlayerId => playerId;
 
     // Read by the rename popup to show the real cost before committing --
     // 0 for the still-free first rename.
@@ -31,6 +56,39 @@ public class PlayerIdentity : MonoBehaviour
     {
         wallet = GetComponent<PlayerCurrency>();
         fame = GetComponent<PlayerFame>();
+    }
+
+    // Client-only setup -- reads (or creates) this machine's own stable
+    // id from PlayerPrefs and hands it to the server. Never read
+    // PlayerPrefs from anywhere else in this class: Awake()/Update() run
+    // on every machine holding a copy of this object (server, owning
+    // client, any observers), and PlayerPrefs is local to whichever
+    // machine executes the call -- reading it outside this
+    // local-player-only hook would silently return the SERVER's own
+    // prefs instead of the connecting player's.
+    public override void OnStartLocalPlayer()
+    {
+        base.OnStartLocalPlayer();
+        CmdSetPlayerId(GetOrCreateLocalPlayerId());
+    }
+
+    private static string GetOrCreateLocalPlayerId()
+    {
+        if (PlayerPrefs.HasKey(PlayerIdPrefKey))
+            return PlayerPrefs.GetString(PlayerIdPrefKey);
+
+        string id = Guid.NewGuid().ToString("N");
+        PlayerPrefs.SetString(PlayerIdPrefKey, id);
+        PlayerPrefs.Save();
+        return id;
+    }
+
+    [Command]
+    private void CmdSetPlayerId(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return;
+        playerId = id;
+        Debug.Log($"[PlayerIdentity] PlayerId set to {playerId}");
     }
 
     // Basic sanitization only (2026-08-22) -- trim, length cap, strip

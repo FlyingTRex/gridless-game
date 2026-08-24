@@ -1094,10 +1094,21 @@ needs authority over. What remains is the next phase down:
       StorageBox) and character state, reload, everything restored
       correctly, zero errors — both the manual Save button and the
       auto-Load-on-Start path were exercised.
-   2. Real stable player identity — `PlayerIdentity` today only holds a
-      renameable display name, no unique ID to key a character record
-      on at all. Small, self-contained, everything after this depends
-      on it existing first.
+   2. **Done, 2026-08-23 (v0.3.194-dev).** `PlayerIdentity` converted to
+      `NetworkBehaviour`, gaining a real `PlayerId` distinct from the
+      renameable `DisplayName` (never guaranteed unique, can change —
+      can't key a save record). Generated once per machine
+      (`PlayerPrefs` + `Guid.NewGuid()`), persists across sessions on
+      that machine automatically. Genuine client-to-server handoff:
+      read/created client-side in `OnStartLocalPlayer` (the one hook
+      guaranteed to run only for the connecting player's own machine —
+      `Awake()`/`Update()` run on every machine holding a copy of a
+      `NetworkBehaviour`, and `PlayerPrefs` is local to whichever one
+      executes the read), sent to the server via `CmdSetPlayerId` into
+      a private field, deliberately not a `SyncVar` since no other
+      client needs to see another player's raw ID. `SaveManager` isn't
+      touched yet — that's chunk 3. Live-confirmed: real GUID generated
+      and reached the server correctly, zero errors.
    3. Per-player character load/save, keyed by that ID — the real
       architectural change. World data stays shared and singular; "the
       player" genuinely becomes "N players" here.
