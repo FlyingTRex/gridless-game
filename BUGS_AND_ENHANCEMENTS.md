@@ -33,6 +33,27 @@ playtesting, 2026-08-24) but not needed for what that testing pass was
 actually checking (whether ingots are reachable early), so explicitly
 deferred rather than scope-creeped into that fix.
 
+## High Mining skill should also reveal disguised ore boulders, not just the Mining Face Shield (found 2026-08-24, not started)
+
+`ResourceNode.IsRevealed` today only checks one path: `shieldWearer !=
+null && shieldWearer.IsWorn` (the Mining Face Shield, `MiningFaceShield
+.cs`). Confirmed directly — zero skill-based reveal path exists
+anywhere in `ResourceNode.cs`. Ben's stated intent: a high enough
+Mining skill level should *also* let a player see the difference in
+disguised boulders (i.e. a second, independent way to reveal Iron and
+similar hidden ore nodes, alongside wearing the Face Shield) — "we just
+never built that."
+
+Only `Mining` exists as a skill today (checked — no separate
+"Stonecrafting" skill exists), so this would presumably hook off
+`Mining`'s own level via `PlayerSkills.GetLevel`, at some real
+threshold (not yet decided — needs its own design pass, same as every
+other skill-gated visibility/quality threshold in this project uses
+`CraftTierScale.SkillRequirement` or a dedicated curve, not an
+arbitrary number). Not started — logged alongside the same reveal-
+mechanism area as the Face Shield's placeholder recipe above, surfaced
+in the same 2026-08-24 bootstrap-chain playtest.
+
 ## No placed/built structure tracks who owns it (found 2026-08-23, not started)
 
 Confirmed directly (not assumed): `CapturePlacedPiece` (`SaveManager.cs`)
