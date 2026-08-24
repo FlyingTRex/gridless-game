@@ -5,6 +5,42 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## No placed/built structure tracks who owns it (found 2026-08-23, not started)
+
+Confirmed directly (not assumed): `CapturePlacedPiece` (`SaveManager.cs`)
+only saves `buildPiece`/`position`/`yaw` (plus a Village Flag's own
+display name) — there's no `placedBy`/owner field anywhere on
+`PlacedPiece`, `VillageFlag`, `StorageBox`, `Furnace`, or any other
+build-piece-shaped object. Surfaced during the persistence restructure
+(chunk 2, `MULTIPLAYER_PLANNING.md` section 3 item 5) when Ben asked
+whether a placed Village Flag is tagged with who placed it, needed for
+Team/Guild territory later — it isn't, for anything.
+
+**Ben's explicit scope, 2026-08-23**: every *placed/built* structure
+needs a real owner — buildings, Furnace, Anvil, StorageBox, VendorStall,
+GardenPlot, Village Flag, anything with a fixed world position.
+Deliberately **not** portable items — food, tools, clothing, gear
+(regular inventory/equipment) should stay untracked, since those already
+just belong to whoever's currently carrying them.
+
+This isn't a new requirement — `TEAMS_AND_GUILDS_PLANNING.md` already
+calls out that territory needs "the builder explicitly picks the actual
+owner at placement time" for both Team Flags and Guild markers, and
+`COMMERCE_PLANNING.md` hit the identical gap for `VendorStall`'s stock
+box (`StorageBox` "has no ownership concept," logged as a real
+prerequisite there too). This is the same underlying gap, now confirmed
+to apply project-wide across every placeable, not just those two cases.
+
+**Real prerequisite that just landed**: `PlayerIdentity.PlayerId`
+(persistence chunk 2, `MULTIPLAYER_PLANNING.md` section 3 item 5) gives
+this a real, stable id to actually stamp a `placedBy` field with — it
+didn't exist before tonight. Building this now would mean adding a
+`placedBy` (or similar) field to `PlacedPiece` (and any placeable type
+that isn't routed through it), set at placement time from the placing
+player's `PlayerId`, captured/restored alongside the rest of each
+piece's save data. Not started — logged here so it isn't lost before
+Team/Guild territory design actually needs it.
+
 ## A hold-progress bar got stuck on screen after casting Heal Self (found 2026-08-23, not investigated)
 
 During Multiplayer sub-phase 4 live-testing (v0.3.181-dev+, right after
