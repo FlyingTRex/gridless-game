@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 // Minimal placeholder Talk behavior (2026-08-10). No branching conversation
@@ -16,8 +17,19 @@ using UnityEngine;
 // identification") -- same right-click PlayerRenaming flow StorageBox/
 // VillageFlag already use, layered on top of the auto-assigned spawn
 // name below rather than replacing it.
+//
+// Multiplayer, 2026-08-25: converted to NetworkBehaviour and isTalking
+// made a real [SyncVar] -- this project's first use of one. Needed once
+// NPCHiringScreen's Talk button started routing through a real Command
+// (server-authoritative, closing the gap this class's own header used to
+// flag): BeginDialogue() now only ever runs on the SERVER's copy of this
+// object, so a plain local bool would only ever flip true there, leaving
+// the actual calling client's own OnGUI never showing the dialogue box
+// at all. A SyncVar replicates the real server truth to every observer
+// instead -- correctly also means anyone standing nearby sees an NPC
+// visibly pause to talk, not just whoever clicked Talk.
 [RequireComponent(typeof(NPCWander))]
-public class NPCDialogue : MonoBehaviour, IRenameable
+public class NPCDialogue : NetworkBehaviour, IRenameable
 {
     [SerializeField] private string npcName = "Factory Worker";
     [SerializeField] private bool isFemale;
@@ -28,7 +40,7 @@ public class NPCDialogue : MonoBehaviour, IRenameable
     private NPCGathering gathering;
     private NPCCrafting crafting;
     private NPCGuarding guarding;
-    private bool isTalking;
+    [SyncVar] private bool isTalking;
     private float talkTimer;
 
     public string DisplayName => npcName;
@@ -67,6 +79,7 @@ public class NPCDialogue : MonoBehaviour, IRenameable
 
     private void Update()
     {
+        if (!isServer) return;
         if (!isTalking) return;
 
         talkTimer -= Time.deltaTime;

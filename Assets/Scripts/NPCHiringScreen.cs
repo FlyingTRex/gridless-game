@@ -103,7 +103,10 @@ public class NPCHiringScreen : NetworkBehaviour
 
         if (GUILayout.Button("Talk"))
         {
-            current.Talk();
+            if (isClient && current.TryGetComponent(out NetworkIdentity talkIdentity))
+                RequestTalk(talkIdentity);
+            else
+                current.Talk();
             SetOpen(false);
             GUILayout.EndArea();
             return;
@@ -198,7 +201,20 @@ public class NPCHiringScreen : NetworkBehaviour
             // so this quietly no-ops for any NPC that doesn't have one yet.
             var freeze = current.GetComponent<NPCFreeze>();
             if (freeze != null)
-                freeze.SetFrozen(GUILayout.Toggle(freeze.IsFrozen, "Frozen (stay in place)"));
+            {
+                bool wasFrozen = freeze.IsFrozen;
+                bool nowFrozen = GUILayout.Toggle(wasFrozen, "Frozen (stay in place)");
+                // Only send on an actual change -- GUILayout.Toggle returns
+                // the current state every frame this menu is open, so a
+                // naive pass-through would spam a Command every frame.
+                if (nowFrozen != wasFrozen)
+                {
+                    if (isClient && current.TryGetComponent(out NetworkIdentity freezeIdentity))
+                        RequestSetFrozen(freezeIdentity, nowFrozen);
+                    else
+                        freeze.SetFrozen(nowFrozen);
+                }
+            }
 
             // Debug logging toggle (2026-08-21, Ben's ask) -- writes this
             // NPC's target/movement state to DebugLog.FilePath once per
@@ -367,5 +383,23 @@ public class NPCHiringScreen : NetworkBehaviour
     {
         var npc = npcIdentity != null ? npcIdentity.GetComponent<NPCHiring>() : null;
         npc?.TryPay(wallet);
+    }
+
+    public void RequestTalk(NetworkIdentity npcIdentity) => CmdTalk(npcIdentity);
+
+    [Command]
+    private void CmdTalk(NetworkIdentity npcIdentity)
+    {
+        var npc = npcIdentity != null ? npcIdentity.GetComponent<NPCHiring>() : null;
+        npc?.Talk();
+    }
+
+    public void RequestSetFrozen(NetworkIdentity npcIdentity, bool frozen) => CmdSetFrozen(npcIdentity, frozen);
+
+    [Command]
+    private void CmdSetFrozen(NetworkIdentity npcIdentity, bool frozen)
+    {
+        var freeze = npcIdentity != null ? npcIdentity.GetComponent<NPCFreeze>() : null;
+        freeze?.SetFrozen(frozen);
     }
 }

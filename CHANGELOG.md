@@ -5,10 +5,54 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.203-dev` — must always match `GameVersion` in
+**Current version:** `0.3.204-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-25 (6)
+
+### v0.3.204-dev — Multiplayer roadmap closed out: NPC Talk/Freeze routed through real Commands, live-confirmed
+
+Closes the last flagged gap in `MULTIPLAYER_PLANNING.md`'s
+player-authoritative conversion. `NPCHiringScreen`'s Talk button and
+Frozen checkbox now route through real `RequestTalk`/`CmdTalk` and
+`RequestSetFrozen`/`CmdSetFrozen` Commands instead of calling
+`NPCHiring.Talk()`/`NPCFreeze.SetFrozen()` directly client-side.
+
+Reviewing this (uncommitted from earlier in the session) surfaced a
+real correctness gap before it ever shipped: both `NPCDialogue
+.isTalking` and `NPCFreeze.IsFrozen` were plain, non-networked local
+fields. Routing their setters through a Command correctly makes the
+underlying effect (NPC pausing) server-authoritative, but a plain field
+only ever updates on the *server's* copy of the object — the actual
+calling client's own local copy (what their own `OnGUI`/checkbox reads)
+would never see the change. Fixed by making both real `[SyncVar]`s —
+this project's first use of one. `NPCDialogue` converted to
+`NetworkBehaviour` to support it (`isTalking` gated to server-only via
+the same `isServer` guard pattern already used throughout the NPC
+conversion work); `NPCFreeze.IsFrozen` changed from an auto-property to
+a `[SyncVar]`-backed one, same public API. A useful side effect: anyone
+standing nearby now correctly sees an NPC visibly pause to talk, not
+just whoever clicked the button.
+
+Live-confirmed: Talk shows the dialogue line on screen, Frozen
+correctly stops/resumes an NPC's movement.
+
+Also cleaned up: `[RangedDebug]`/`[HoldBarDebug]` temporary debug
+logging (added 2026-08-23 chasing a stuck hold-progress-bar bug, never
+actually reproduced) had accidentally shipped into committed code
+without being removed — pure noise with no diagnostic value absent a
+live repro to correlate it against. Removed; the underlying bug is
+still open, logged in `BUGS_AND_ENHANCEMENTS.md` with a note that any
+future repro attempt should also capture the new local-player-gating
+state as a candidate cause.
+
+**This closes out the entire Multiplayer Phase 3 + persistence
+restructure + per-connection spawning roadmap in `MULTIPLAYER_PLANNING
+.md`.** The only remaining item is chunk 7 — the real live test with
+traskmi from two separate physical locations — which isn't a build
+task, just real-world coordination (port forwarding, both connecting).
 
 ## 2026-08-25 (5)
 

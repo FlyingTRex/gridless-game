@@ -362,8 +362,6 @@ public class PlayerInteraction : NetworkBehaviour
 
         if (current != null && !current.IsInstant && holdProgress > 0f)
         {
-            if (Time.frameCount % 60 == 0)
-                Debug.Log($"[HoldBarDebug] drawing bar: current={current.Prompt} holdProgress={holdProgress:F2} holdDuration={holdDuration:F2}");
             DrawHoldBar(holdProgress / Mathf.Max(holdDuration, 0.01f));
         }
     }

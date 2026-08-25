@@ -3,11 +3,16 @@ using UnityEngine;
 
 // Multiplayer, 2026-08-23 -- converted to NetworkBehaviour, isServer
 // guard on Update() below, same cleanup pass as NPCWander/NPCFlee/
-// NPCVitals. Note: SetFrozen itself is still called directly by
-// whichever client toggles it (NPCHiringScreen's checkbox), not routed
-// through a Command yet -- same category as NPCDialogue's Talk trigger,
-// a real remaining gap flagged in MULTIPLAYER_PLANNING.md but not fixed
-// by this pass, which only addressed Update()-driven simulation.
+// NPCVitals.
+//
+// 2026-08-25: SetFrozen now routes through a real Command
+// (NPCHiringScreen.RequestSetFrozen), closing the gap this comment used
+// to flag. That made IsFrozen need to become a real [SyncVar] too --
+// SetFrozen now only ever runs on the SERVER's copy of this object, so
+// a plain local bool would only ever update there, leaving the actual
+// calling client's own checkbox (which reads IsFrozen locally) stuck
+// showing stale state next time the menu reopens. A SyncVar replicates
+// the real server truth to every observer instead.
 //
 // Manual "stay put" toggle for any NPC (2026-08-17, BUGS_AND_ENHANCEMENTS.md
 // "NPC management"), independent of NPCDialogue's own pause-during-Talk
@@ -30,7 +35,8 @@ public class NPCFreeze : NetworkBehaviour
     private NPCCrafting crafting;
     private NPCGuarding guarding;
 
-    public bool IsFrozen { get; private set; }
+    [SyncVar] private bool isFrozen;
+    public bool IsFrozen => isFrozen;
 
     private void Awake()
     {
@@ -40,7 +46,7 @@ public class NPCFreeze : NetworkBehaviour
         guarding = GetComponent<NPCGuarding>();
     }
 
-    public void SetFrozen(bool frozen) => IsFrozen = frozen;
+    public void SetFrozen(bool frozen) => isFrozen = frozen;
 
     // NPCTraining deliberately not included -- it has no pause concept of
     // its own (only CancelTraining, which would discard the training

@@ -1054,11 +1054,28 @@ needs authority over. What remains is the next phase down:
    `NPCEquipmentVisual` correctly need no guard — pure per-observer
    visual logic that must keep running on every client for smooth
    rendering. `NPCFreeze` also converted for consistency, with a real
-   remaining gap flagged, not fixed: `SetFrozen` is still called
-   directly by whichever client toggles it, not routed through a
-   Command — same category as `NPCDialogue`'s Talk trigger. Live-
-   confirmed: idle wander, work timer, zero errors (flee reaction
+   remaining gap flagged at the time, not fixed in this pass: `SetFrozen`
+   was still called directly by whichever client toggled it, not routed
+   through a Command — same category as `NPCDialogue`'s Talk trigger.
+   Live-confirmed: idle wander, work timer, zero errors (flee reaction
    untested — Fame was positive, correctly nothing to flee from).
+
+   **Both gaps closed, 2026-08-25, v0.3.204-dev, live-confirmed.**
+   `NPCHiringScreen`'s Talk button and Frozen checkbox now route through
+   real `RequestTalk`/`CmdTalk` and `RequestSetFrozen`/`CmdSetFrozen`
+   Commands. Reviewing the (uncommitted) patch before testing it
+   surfaced a real correctness gap: both `NPCDialogue.isTalking` and
+   `NPCFreeze.IsFrozen` were plain non-networked local fields, so
+   routing their setters through a Command would have correctly
+   server-authorized the *effect* (NPC pausing) but left the actual
+   calling client's own `OnGUI`/checkbox reading a copy that never
+   updated. Fixed by making both real `[SyncVar]`s — this project's
+   first use of one. `NPCDialogue` converted to `NetworkBehaviour` to
+   support it; `NPCFreeze.IsFrozen` changed from an auto-property to a
+   `[SyncVar]`-backed one. Side effect: anyone standing nearby now
+   correctly sees an NPC visibly pause to talk, not just whoever clicked
+   the button. Live-confirmed: Talk shows the dialogue line, Frozen
+   correctly stops/resumes movement.
 5. **Persistence layer — chunked, 2026-08-23, planning only, nothing
    built.** Needed regardless, but now genuinely blocking — a dedicated
    server with no save/load can't actually stay up indefinitely the way

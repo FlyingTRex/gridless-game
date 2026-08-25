@@ -453,7 +453,7 @@ player's `PlayerId`, captured/restored alongside the rest of each
 piece's save data. Not started — logged here so it isn't lost before
 Team/Guild territory design actually needs it.
 
-## A hold-progress bar got stuck on screen after casting Heal Self (found 2026-08-23, not investigated)
+## A hold-progress bar got stuck on screen after casting Heal Self (found 2026-08-23, not investigated, debug logging tried and removed)
 
 During Multiplayer sub-phase 4 live-testing (v0.3.181-dev+, right after
 confirming the new Magic Command — Heal Self itself worked correctly),
@@ -476,6 +476,19 @@ happened to surface during this test. Needs a clean, isolated repro
 (cast a wish with nothing else touched, watch for the bar) with debug
 logging in `OnGUI`/`ResolveTarget` to nail down the exact state
 (`current`, `holdProgress`) when it appears.
+
+**Update, 2026-08-25**: `[RangedDebug]`/`[HoldBarDebug]` logging was
+added to `PlayerInteraction.cs`/`PlayerRangedCombat.cs` to chase this,
+per the note above — it was never actually reproduced during the
+session it was added in, and the logging itself accidentally shipped
+into committed code without being removed first. Removed now (was pure
+noise, no diagnostic value without a live repro to correlate it
+against). Still genuinely unfixed — the next attempt needs to
+re-add similar logging (or better: also log `netIdentity.isLocalPlayer`
+and `isServer`/`isClient` state, since this session's local-player
+gating work is a real new candidate cause that didn't exist when this
+bug was first found) at the actual moment of reproduction, not ahead of
+time.
 
 ## A dropped Skill Book vanished shortly after dropping (found 2026-08-22, non-reproducible, not investigated)
 

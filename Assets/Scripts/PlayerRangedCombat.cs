@@ -101,18 +101,15 @@ public class PlayerRangedCombat : NetworkBehaviour
 
         if (bow == null || arrow == null)
         {
-            if (isDrawing) Debug.Log($"[RangedDebug] isDrawing->false (bow/arrow gone) canOperate={canOperate}");
             isDrawing = false;
         }
         else if (!isDrawing && mouse.leftButton.wasPressedThisFrame && cooldownRemaining <= 0f)
         {
             isDrawing = true;
             drawStartTime = Time.time;
-            Debug.Log($"[RangedDebug] isDrawing->true at Time.time={Time.time:F2}");
         }
         else if (isDrawing && mouse.leftButton.wasReleasedThisFrame)
         {
-            Debug.Log($"[RangedDebug] isDrawing->false (fired) heldTime={Time.time - drawStartTime:F2}");
             Fire(bow, arrow, arrowHand);
             isDrawing = false;
         }
