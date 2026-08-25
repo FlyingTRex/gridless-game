@@ -1166,9 +1166,42 @@ needs authority over. What remains is the next phase down:
       to call directly from anything already running server-side.
       Live-confirmed: saved through the Command, verified the real
       `save.json` on disk had correct data under the right `PlayerId`
-      key, zero errors. Autosave/disconnect/shutdown (5b) not started
-      — `PlayerAutosave.cs` (already exists, 10-minute interval) still
-      calls `Save()` directly, unguarded by `isServer`.
+      key, zero errors.
+
+      **Sub-chunk 5b done, 2026-08-25 (v0.3.199-dev).**
+      `PlayerAutosave` converted to `NetworkBehaviour` with an
+      `isServer` guard on its 10-minute timer — same reasoning as 5a,
+      the server's disk is the source of truth. Its toast is now
+      server-only-set (a known deferred cosmetic gap, not addressed).
+      `GridlessNetworkManager` gained `OnServerDisconnect` (saves the
+      disconnecting connection's own player *before* calling
+      `base.OnServerDisconnect`, since Mirror's own default
+      implementation calls `NetworkServer.DestroyPlayerForConnection`
+      first — confirmed via direct source read, not assumed) and
+      `OnStopServer` (saves every `SaveManager` present, covering a
+      full shutdown). Chunk 5 (server-authoritative saving) is now
+      fully closed out. **Live-confirmed, 2026-08-25**: hired a
+      Woodworking NPC (Sian) mid-session, autosave fired on its own
+      10-minute timer and `save.json` came back showing
+      `"isHired": true, "job": "ChopWoodJob"` — correctly picking up
+      the hire that happened after the *previous* autosave tick.
+      Closing the Editor afterward (stopping Play mode, exercising
+      `OnStopServer`) advanced the save again with the same data
+      intact.
+
+      **Real gap surfaced while writing this, not yet solved**:
+      `OnStopServer`'s per-`SaveManager` loop was deliberately written
+      to cover *every* connected player rather than assuming a single
+      one — writing it that way surfaced that there's currently only
+      ever one `SaveManager` to find, because `GridlessNetworkManager
+      .OnServerReady` assigns the one pre-existing scene Player to
+      whichever connection asks first and explicitly refuses to hand
+      out a second one. See item 6/7 below and
+      `BUGS_AND_ENHANCEMENTS.md`'s new entry — this needs solving
+      before chunk 7's live two-player test, and probably before
+      chunk 6's Connect screen is worth building at all (a working
+      Connect flow that hands the second player nothing to control
+      isn't useful to test with).
    6. **Real connectivity, before the live multi-connection test can
       happen at all** — Ben and traskmi test from genuinely different
       physical locations, both with real public IPs (no CGNAT, both

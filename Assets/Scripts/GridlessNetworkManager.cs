@@ -49,4 +49,35 @@ public class GridlessNetworkManager : NetworkManager
 
         NetworkServer.AddPlayerForConnection(conn, player.gameObject);
     }
+
+    // Persistence restructure chunk 5b (MULTIPLAYER_PLANNING.md section
+    // 3 item 5), 2026-08-24: save-on-disconnect. Must run BEFORE
+    // base.OnServerDisconnect -- Mirror's own default implementation
+    // calls NetworkServer.DestroyPlayerForConnection(conn), which clears
+    // the connection's association with its player before we'd get a
+    // chance to read it. Saves whichever player this specific connection
+    // owned, not every connected player -- OnStopServer below is the
+    // save-everyone case.
+    public override void OnServerDisconnect(NetworkConnectionToClient conn)
+    {
+        var saveManager = conn.identity != null ? conn.identity.GetComponent<SaveManager>() : null;
+        saveManager?.Save();
+
+        base.OnServerDisconnect(conn);
+    }
+
+    // Save-on-shutdown -- the server itself stopping (not just one
+    // connection dropping), e.g. a dedicated server process exiting or
+    // leaving Play mode. Iterates every SaveManager actually present
+    // rather than assuming "the" single player -- forward-compatible
+    // with real per-connection player spawning once that exists (today
+    // there's only ever the one pre-existing scene Player, see this
+    // class's own header comment, so this loop runs once in practice).
+    public override void OnStopServer()
+    {
+        foreach (var saveManager in FindObjectsByType<SaveManager>(FindObjectsSortMode.None))
+            saveManager.Save();
+
+        base.OnStopServer();
+    }
 }

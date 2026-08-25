@@ -17,20 +17,34 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.198-dev is merged to origin/main.** Multiplayer
-Phase 3 is fully complete (all 5 sub-phases). "NPCs move server-side" is
-substantially done (see `MULTIPLAYER_PLANNING.md` section 3 item 4).
+**Everything through v0.3.198-dev is merged to origin/main. v0.3.199-dev
+(chunk 5b) is compiled AND live-confirmed, ready to commit/push.**
+Multiplayer Phase 3 is fully complete (all 5 sub-phases). "NPCs move
+server-side" is substantially done (see `MULTIPLAYER_PLANNING.md`
+section 3 item 4).
 
-**Persistence restructure — chunks 1-4 done + chunk 5a done, 2026-08-23/24**
-(see `MULTIPLAYER_PLANNING.md` section 3 item 5 for full chunk-by-chunk
-detail). Chunk 5's remaining sub-chunk (5b: autosave/save-on-disconnect/
-save-on-shutdown, all server-guarded) not started —
-`PlayerAutosave.cs` still calls `Save()` directly, unguarded by
-`isServer`. Chunk 6 (a real Connect screen + port forwarding) is a
-confirmed prerequisite for the eventual live test with traskmi (both
-have real public IPs, no CGNAT, router access — port forwarding will
-work) — zero Connect UI exists anywhere today, not even Mirror's stock
-`NetworkManagerHUD`.
+**Persistence restructure — chunks 1-5 done, 2026-08-23/25** (see
+`MULTIPLAYER_PLANNING.md` section 3 item 5 for full chunk-by-chunk
+detail). Chunk 5b (2026-08-25, v0.3.199-dev): `PlayerAutosave` gained an
+`isServer` guard; `GridlessNetworkManager` gained `OnServerDisconnect`
+(save the disconnecting player before Mirror's own default destroys the
+connection-player link) and `OnStopServer` (save everyone on shutdown).
+**Live-confirmed**: hired a Woodworking NPC, autosave fired on its own
+10-minute timer and `save.json` correctly picked up the hire; closing
+the Editor afterward advanced the save again with the same data intact.
+Chunk 5 (server-authoritative saving) is fully closed out.
+
+**Real gap found while building 5b, not yet solved — likely blocks
+chunk 6/7**: `GridlessNetworkManager.OnServerReady` only ever hands out
+the one pre-existing scene Player object; a second connection gets
+none. Logged in `BUGS_AND_ENHANCEMENTS.md`. Chunk 6 (a real Connect
+screen + port forwarding) is still a confirmed prerequisite for the
+eventual live test with traskmi (both have real public IPs, no CGNAT,
+router access — port forwarding will work) — zero Connect UI exists
+anywhere today, not even Mirror's stock `NetworkManagerHUD` — but this
+per-connection-spawning gap probably needs solving first, since a
+working Connect flow that hands the second player nothing to control
+isn't useful to test with.
 
 **2026-08-24 — a genuinely functional playtest (Ben deliberately
 avoiding Admin Spawn) found and fixed a real early-game bootstrap

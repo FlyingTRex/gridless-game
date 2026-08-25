@@ -5,10 +5,60 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.198-dev` — must always match `GameVersion` in
+**Current version:** `0.3.199-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-25
+
+### v0.3.199-dev — Persistence restructure chunk 5b: autosave/disconnect/shutdown save, all server-guarded
+
+Closes out chunk 5 (server-authoritative saving) alongside chunk 5a's
+Save Command. `PlayerAutosave` converted to `NetworkBehaviour` with an
+`isServer` guard on its 10-minute timer — same reasoning as every other
+server-only trigger this restructure adds, the server's disk is the
+real source of truth. Its toast (`message`/`messageExpireTime`) is now
+only ever set server-side, a known deferred cosmetic gap (a genuine
+remote client won't see their own "Game autosaved." toast, only the
+host would) — not addressed here, matches the same shape as other
+known sync gaps left for later.
+
+`GridlessNetworkManager` gained `OnServerDisconnect`/`OnStopServer`
+overrides. `OnServerDisconnect` saves specifically the disconnecting
+connection's own player *before* calling `base.OnServerDisconnect` —
+confirmed via direct source read that Mirror's own default
+implementation (`Assets/Mirror/Core/NetworkManager.cs:1322`) calls
+`NetworkServer.DestroyPlayerForConnection(conn)`, which would sever the
+connection-to-player link before a save could read it if the base call
+ran first. `OnStopServer` saves every `SaveManager` present (covers a
+full server shutdown, e.g. exiting Play mode or a dedicated server
+process stopping) — written as a loop over `FindObjectsByType`, not "the
+one player," so it's forward-compatible with real per-connection player
+spawning whenever that lands, even though today it only ever runs once
+in practice (see the real gap noted below).
+
+**Real architectural gap found while building this, not yet
+addressed**: `GridlessNetworkManager.OnServerReady` assigns connection
+authority to a single pre-existing scene Player object
+(`autoCreatePlayer` is off) and explicitly early-returns if that
+identity is already owned by a connection — so a *second* connecting
+player currently gets no player object at all. This is a real blocker
+for genuine two-machine play, separate from chunk 6 (the still-unbuilt
+Connect screen). Logged in `BUGS_AND_ENHANCEMENTS.md` and flagged in
+`MULTIPLAYER_PLANNING.md` as a prerequisite that needs solving before
+chunk 7's live two-player test, not something chunk 6 alone fixes.
+
+**Live-confirmed same day**: hired a Woodworking NPC (Sian), let Play
+mode run past the 10-minute mark — `Editor.log` showed a second
+`SaveManager: saved character ...` line right on schedule (the first
+had fired before the hire, from an earlier autosave tick), and
+`save.json` came back with `"isHired": true, "job": "ChopWoodJob"` for
+Sian, correctly reflecting the hire that happened *after* the first
+save. Editor was then closed (stopping Play mode, exercising
+`OnStopServer`) and `save.json`'s timestamp advanced again with the
+same data intact — the autosave and shutdown-save paths both verified
+against real state, not just a clean compile.
 
 ## 2026-08-24 (2)
 

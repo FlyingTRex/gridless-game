@@ -5,6 +5,56 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## Piece Destroy was never actually moved to X — still bound to hold-E, contradicting its own code comment (found 2026-08-25, not started)
+
+`PlayerPieceUpgrade.cs`'s header comment (added 2026-08-21, v0.3.155-dev)
+says "Click-to-upgrade (E) / hold-to-destroy (X)" and explains in detail
+why Destroy was moved off E onto its own key: several `PlacedPiece`
+types (Furnace, StorageBox, Anvil) have their own competing E-driven
+`PlayerInteraction` action (open, pick up, ...) that fires the same
+frame a hold begins and kills it before `destroyDuration` is ever
+reached — the comment claims this is why destroy "only ever seemed to
+work on walls."
+
+The actual `HandleInput()` code was never updated to match: it still
+reads `keyboard.eKey.isPressed` for the destroy-hold and
+`keyboard.eKey.wasReleasedThisFrame` for upgrade — there is no
+`xKey` reference anywhere in the file. The comment describes an
+intended fix that never landed in code; the original E-collision bug
+it describes is presumably still live on Furnace/StorageBox/Anvil today.
+
+**Fix**: change `HandleInput()`'s destroy branch to read
+`keyboard.xKey.isPressed` instead of `eKey`, independent of the
+upgrade branch's `eKey.wasReleasedThisFrame` check (so holding X
+doesn't also require E to be involved at all). Update the header
+comment's already-correct description to now actually be true, and add
+X to `GameMenuScreen.ControlsList` — the comment's "deliberately no
+on-screen hint" framing was about *not signaling this is possible* on a
+per-object popup, not about omitting it from the Controls tab, which
+this project's own convention says must reflect every real binding.
+
+## Multiplayer: only one Player object exists — a second connection gets none (found 2026-08-24, not started)
+
+`GridlessNetworkManager.OnServerReady` assigns connection authority to a
+single pre-existing scene `Player` object (`autoCreatePlayer` is off,
+by design — see the class's own header comment). It explicitly checks
+`identity.connectionToClient != null` and early-returns if the one
+Player is already owned by a connection, so a second connecting client
+today gets no player object at all — not an error, just silently no
+avatar, no camera control, nothing.
+
+Found while building persistence restructure chunk 5b
+(`MULTIPLAYER_PLANNING.md` section 3 item 5) — `OnStopServer`/
+`OnServerDisconnect`'s per-`SaveManager` loop was written to be
+forward-compatible with real per-connection spawning, which surfaced
+that it doesn't exist yet.
+
+**Real prerequisite for chunk 7** (the live two-player test with
+traskmi), separate from chunk 6 (the Connect-screen UI). Needs a real
+design pass: `autoCreatePlayer` + a `playerPrefab`-based spawn per
+connection, each with their own `PlayerIdentity`/`SaveManager`/camera,
+rather than the current single baked-in scene Player. Not started.
+
 ## Tool tier gives no real functional benefit within its own class — only weight savings (found 2026-08-24, not started)
 
 Ben's observation, confirmed directly against the code: a Fine Axe does
