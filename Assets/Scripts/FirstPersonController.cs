@@ -69,24 +69,22 @@ public class FirstPersonController : MonoBehaviour
     private NetworkIdentity netIdentity;
     private bool cursorInitialized;
 
-    // Remote-player body visibility (2026-08-25, found in the first-ever
-    // live two-connection test): the body Visual permanently sits on
-    // WornEquipmentLayer (8, see PlayerCameraMode's own comment on why --
-    // it's how a player's own camera hides their own first-person body).
-    // That exclusion is a property of the CAMERA, not "hide MY body" --
-    // it hides every layer-8 object from that camera, so a non-local
-    // Player's body was invisible to every other camera too, not just its
-    // own. Fixed by keeping the LOCAL player's own body on layer 8
-    // (unchanged, still correctly hidden from its own camera) but forcing
-    // a NON-local instance's body onto the normal Default layer, per
-    // client -- isLocalPlayer is already per-client, so this naturally
-    // resolves to "my own body hidden from me, everyone else's visible to
-    // me" independently on every machine.
+    // Remote-player visibility (2026-08-25, found across the first two
+    // live two-connection tests): the body Visual AND every worn
+    // IEquippable permanently/independently sit on WornEquipmentLayer (8,
+    // see PlayerCameraMode's own comment on why -- it's how a player's
+    // own camera hides their own first-person body/gear). That exclusion
+    // is a property of the CAMERA, not "hide MY stuff" -- it hides every
+    // layer-8 object from that camera, so a non-local Player's body AND
+    // equipment were both invisible to every other camera too, not just
+    // their own. Fixed by keeping a LOCAL player's own layer-8 objects
+    // unchanged (still correctly hidden from its own camera) but forcing
+    // everything under a NON-local instance back onto the normal Default
+    // layer, per client -- isLocalPlayer is already per-client, so this
+    // naturally resolves to "my own stuff hidden from me, everyone
+    // else's visible to me" independently on every machine.
     private const int WornEquipmentLayer = 8;
     private const int DefaultLayer = 0;
-    private PlayerBodyModel bodyModel;
-    private bool lastAppliedBodyLayerLocal = true;
-    private GameObject lastAppliedBodyLayerTarget;
 
     private CharacterController controller;
     private PlayerVitals vitals;
@@ -133,7 +131,6 @@ public class FirstPersonController : MonoBehaviour
     private void Awake()
     {
         netIdentity = GetComponent<NetworkIdentity>();
-        bodyModel = GetComponent<PlayerBodyModel>();
         controller = GetComponent<CharacterController>();
         vitals = GetComponent<PlayerVitals>();
         encumbrance = GetComponent<PlayerEncumbrance>();
@@ -174,30 +171,37 @@ public class FirstPersonController : MonoBehaviour
         if (listener != null && listener.enabled != local)
             listener.enabled = local;
 
-        ApplyBodyLayer(local);
+        ApplyRemoteVisibilityLayer(local);
     }
 
-    // Only re-walks the hierarchy when the local/remote state or the
-    // active gendered Visual actually changed (gender toggle, or
-    // isLocalPlayer settling shortly after spawn) -- cheap steady-state
-    // instead of a recursive layer assignment every single frame forever.
-    private void ApplyBodyLayer(bool local)
+    // Body visibility fix (2026-08-25) widened same-day to cover worn
+    // equipment too, found in the very next live retest: the body Visual
+    // isn't the only thing permanently on WornEquipmentLayer -- every
+    // IEquippable (Backpack, Boot, Belt, Canteen, Shirt, Jeans, Tool, ...)
+    // independently toggles its OWN carried object onto the identical
+    // layer 8 via its own SetCarried, so the body-only fix left worn
+    // equipment invisible in first person (confirmed live: visible in
+    // third person, since that toggle includes layer 8 wholesale, exactly
+    // the same mechanism as the original bug). Rather than touching all
+    // 11 equippable scripts individually, this sweeps the WHOLE hierarchy
+    // for a non-local instance and forces anything currently on layer 8
+    // back to Default -- correctly catches the body AND whatever's
+    // currently worn/carried, without needing to know which carrier owns
+    // which child. No local-side sweep needed: the local player's own
+    // items already correctly manage layer 8 via their own SetCarried,
+    // this only ever corrects a REMOTE instance.
+    private void ApplyRemoteVisibilityLayer(bool local)
     {
-        var visual = bodyModel != null ? bodyModel.ActiveVisualObject : null;
-        if (visual == lastAppliedBodyLayerTarget && local == lastAppliedBodyLayerLocal) return;
-
-        lastAppliedBodyLayerTarget = visual;
-        lastAppliedBodyLayerLocal = local;
-        if (visual == null) return;
-
-        SetLayerRecursively(visual.transform, local ? WornEquipmentLayer : DefaultLayer);
+        if (local) return;
+        ForceLayerRecursively(transform, WornEquipmentLayer, DefaultLayer);
     }
 
-    private static void SetLayerRecursively(Transform root, int layer)
+    private static void ForceLayerRecursively(Transform root, int fromLayer, int toLayer)
     {
-        root.gameObject.layer = layer;
+        if (root.gameObject.layer == fromLayer)
+            root.gameObject.layer = toLayer;
         for (int i = 0; i < root.childCount; i++)
-            SetLayerRecursively(root.GetChild(i), layer);
+            ForceLayerRecursively(root.GetChild(i), fromLayer, toLayer);
     }
 
     private void OnEnable()
@@ -411,7 +415,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.202-dev";
+    private const string GameVersion = "0.3.203-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

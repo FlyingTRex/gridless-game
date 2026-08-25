@@ -58,7 +58,7 @@ on-screen hint" framing was about *not signaling this is possible* on a
 per-object popup, not about omitting it from the Controls tab, which
 this project's own convention says must reflect every real binding.
 
-## Multiplayer: a remote player's body was fully invisible — root-caused and fixed same session (found + fixed 2026-08-25)
+## Multiplayer: a remote player's body AND worn equipment were fully invisible — root-caused and fixed live in two rounds (found + fixed 2026-08-25)
 
 Found during the first-ever live two-connection test (Editor host +
 standalone exe client, localhost): the host couldn't see the exe
@@ -83,26 +83,26 @@ camera, including a completely different player's body. This was
 invisible for the entire project's history because there was never a
 second player to be hidden by it until tonight.
 
-**Fixed same session**: `PlayerBodyModel.ActiveVisualObject` (new
-public property) exposes the currently active gendered Visual;
-`FirstPersonController.ApplyBodyLayer` (called from the same
-`ApplyLocalOwnershipVisuals` hook that already handles Camera/
-AudioListener) keeps a LOCAL player's own body on layer 8 (unchanged
-behavior) but forces a NON-local instance's body onto the normal
-Default layer — `isLocalPlayer` is already per-client, so this
-resolves correctly and independently on every machine ("my own body
-hidden from me, everyone else's visible to me"). Compile-verified only
-— needs a live retest to confirm the fix actually works, not yet done.
+**Round 1 fix, v0.3.202-dev, live-confirmed working**: forced a
+non-local instance's body onto the normal Default layer while leaving a
+local player's own body on layer 8 unchanged — `isLocalPlayer` is
+already per-client, so this resolves correctly and independently on
+every machine. Confirmed live: the host could see the exe client's
+body for the first time.
 
-**Known real gap, deliberately not solved by this fix**: currently
-*worn equipment* (Backpack, Boot, Belt, Canteen, etc.) independently
-manages its own `WornEquipmentLayer` assignment via each item's own
-`SetCarried()` call, which this fix doesn't touch. A remote player's
-body should now be visible, but their worn equipment may still render
-invisible (same root cause, different code path) until that's
-addressed too — logged here rather than solved blind, since it's not
-confirmed to actually reproduce yet and touches several more files
-(the same 11-carrier list `PlayerBodyModel.ApplyGender` already walks).
+**Round 2, same night**: the very next retest found worn *equipment*
+(Backpack, Boot, Belt, Canteen, Shirt, Jeans, Tool, ...) had the
+identical problem — each of the 11 equippables independently manages
+the same `WornEquipmentLayer` via its own `SetCarried()`, confirmed
+live via the same third-person-reveals-it mechanism as round 1. Rather
+than touching all 11 scripts, generalized into one fix: `FirstPersonController
+.ApplyRemoteVisibilityLayer` sweeps the whole hierarchy of a non-local
+instance and forces anything currently on layer 8 back to Default —
+correctly catches the body and whatever's currently worn/carried in one
+pass. `PlayerBodyModel.ActiveVisualObject` (round 1's narrower
+accessor) removed as dead code, superseded by the general sweep.
+v0.3.203-dev, compile-verified only — the equipment half of this fix
+hasn't been retested live yet (the body half already was, in round 1).
 
 ## Multiplayer: per-connection spawning — live-confirmed working (found 2026-08-24, built + live-tested 2026-08-25)
 

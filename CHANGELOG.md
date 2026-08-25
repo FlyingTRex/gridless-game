@@ -5,10 +5,43 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.202-dev` — must always match `GameVersion` in
+**Current version:** `0.3.203-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-25 (5)
+
+### v0.3.203-dev — Remote-player visibility fix widened to cover worn equipment, live-confirmed in part
+
+v0.3.202-dev's body-only fix was live-confirmed working (host could see
+the exe client's body for the first time), but the very next retest
+found the gap it deliberately hadn't covered: worn equipment (Backpack,
+Boot, Belt, Canteen, Shirt, Jeans, Tool, ...) independently toggles the
+exact same `WornEquipmentLayer` via each item's own `SetCarried()` —
+confirmed live, third-person view revealed a remote player's equipment
+exactly the same way it revealed the body before, since that toggle
+includes layer 8 wholesale.
+
+Rather than touching all 11 equippable scripts individually,
+`FirstPersonController.ApplyRemoteVisibilityLayer` replaces the
+narrower body-only fix with a full-hierarchy sweep: for a non-local
+instance only, force anything currently on `WornEquipmentLayer` back to
+the Default layer, recursively — correctly catches the body AND
+whatever's currently worn/carried in one pass, without needing to know
+which of the 11 carriers owns which child. `PlayerBodyModel
+.ActiveVisualObject` (the narrower fix's own accessor) removed as
+dead code now that the general sweep supersedes it.
+
+Also found and explained the same night: the standalone exe client
+crashed mid-test with `d3d12: Device failed error, Unrecoverable GPU
+device error` — a real native GPU driver crash (this GPU + D3D12 +
+this project's shader load), confirmed via the crash report, completely
+unrelated to any of tonight's code. Worked around by relaunching with
+`-force-d3d11`.
+
+Compile-verified only — the equipment half of this fix hasn't been
+retested live yet (the body half already was, in the previous entry).
 
 ## 2026-08-25 (4)
 
