@@ -5,10 +5,45 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.200-dev` — must always match `GameVersion` in
+**Current version:** `0.3.201-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-25 (3)
+
+### v0.3.201-dev — Persistence/Multiplayer chunk 6: a real Host/Join Connect screen
+
+Closes chunk 6. `NetworkAutoHost.cs` repurposed in place (class/file
+name kept to avoid breaking the scene's existing component reference)
+from "silently auto-host the instant Play starts, no choice" into a
+real Host/Join startup screen — the old behavior meant every Play
+session immediately started its own server, so there was never an
+actual path to *join* someone else's game through normal play. Ben's
+explicit call over keeping the old default, even knowing it adds one
+Host click to every solo Editor session going forward. Shows an OnGUI
+panel (Host button; IP field + Connect button) whenever neither
+`NetworkServer.active` nor `NetworkClient.active` is true, and clears
+itself once either is.
+
+`GridlessNetworkManager` gained `OnClientError`/`OnClientDisconnect`
+overrides so a failed join attempt (bad address, host not running, port
+not forwarded) actually says something instead of silently sitting
+there — a sticky-message window on the screen itself keeps a specific
+`OnClientError` reason from being immediately overwritten by the
+generic disconnect message Mirror raises right after it for the same
+failure.
+
+Confirmed the actual transport config via a second independent
+batch-mode process (not a guid grep — Force Binary serialization makes
+that unreliable for `.unity` files): `KcpTransport`, port `7777`,
+`networkAddress` defaults to `"localhost"`. Port forwarding itself
+stays a manual step on whoever's hosting — not something this can
+automate.
+
+Compile-verified only — not yet live-tested (needs the same solo
+standalone-build-plus-Editor-host setup as chunk 5's per-connection
+spawning, still itself unverified live).
 
 ## 2026-08-25 (2)
 

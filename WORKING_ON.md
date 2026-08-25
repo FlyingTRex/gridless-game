@@ -17,11 +17,28 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.199-dev is merged to origin/main. v0.3.200-dev
-(per-connection spawning + local-input gating, below) is compiled,
-ready to commit/push, but NOT yet live-tested.** Multiplayer Phase 3 is
-fully complete (all 5 sub-phases). "NPCs move server-side" is
-substantially done (see `MULTIPLAYER_PLANNING.md` section 3 item 4).
+**Everything through v0.3.200-dev is merged to origin/main. v0.3.201-dev
+(chunk 6, Connect screen, below) is compiled, ready to commit/push, but
+NOT yet live-tested — same as chunk 5's per-connection spawning
+underneath it, neither has had a real two-connection test yet.**
+Multiplayer Phase 3 is fully complete (all 5 sub-phases). "NPCs move
+server-side" is substantially done (see `MULTIPLAYER_PLANNING.md`
+section 3 item 4).
+
+**2026-08-25 — chunk 6, real Host/Join Connect screen, v0.3.201-dev,
+NOT yet live-tested.** `NetworkAutoHost.cs` repurposed in place (silent
+auto-host-on-Play → a real Host/Join OnGUI screen, Ben's explicit
+call — the old behavior meant there was never an actual path to join
+someone else's game, every Play session just started its own server).
+`GridlessNetworkManager` gained `OnClientError`/`OnClientDisconnect`
+feeding real failure messages into it. Confirmed transport config via
+an independent verification process: `KcpTransport`, port `7777`.
+**Real trade-off Ben chose knowingly**: every Play session, including
+solo Editor testing, now needs one Host click first — no more instant
+auto-host. Port forwarding itself is still a manual step for whoever
+hosts. Chunk 7 (the actual live two-player test) is next, but needs
+this AND chunk 5's per-connection spawning both live-verified first —
+neither has had a real second connection yet, only compile checks.
 
 **Persistence restructure — chunks 1-5 done, 2026-08-23/25** (see
 `MULTIPLAYER_PLANNING.md` section 3 item 5 for full chunk-by-chunk

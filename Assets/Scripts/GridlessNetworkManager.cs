@@ -142,4 +142,28 @@ public class GridlessNetworkManager : NetworkManager
 
         base.OnStopServer();
     }
+
+    // Chunk 6 (MULTIPLAYER_PLANNING.md section 3 item 6), 2026-08-25 --
+    // connection-failure feedback for the Host/Join screen
+    // (NetworkAutoHost.cs). Without this, a failed join attempt (wrong
+    // IP, host not running, port not forwarded) just silently drops back
+    // to the connect screen with zero explanation. Both hooks feed the
+    // same ShowStatus -- OnClientError covers "never connected in the
+    // first place" (bad address, refused connection), OnClientDisconnect
+    // covers "was connected, then dropped" (host closed, network blip).
+    public override void OnClientError(TransportError error, string reason)
+    {
+        GetComponent<NetworkAutoHost>()?.ShowStatus($"Connection failed: {reason}");
+        base.OnClientError(error, reason);
+    }
+
+    public override void OnClientDisconnect()
+    {
+        // Backs off on its own if OnClientError just set a more specific
+        // message for this same failure -- see NetworkAutoHost's own
+        // comment on ShowStatusIfNotRecentlySet.
+        GetComponent<NetworkAutoHost>()?.ShowStatusIfNotRecentlySet("Disconnected from server.");
+
+        base.OnClientDisconnect();
+    }
 }

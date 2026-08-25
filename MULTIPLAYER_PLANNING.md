@@ -1229,22 +1229,39 @@ needs authority over. What remains is the next phase down:
       physical locations, both with real public IPs (no CGNAT, both
       confirmed direct router access) — so this is a real prerequisite,
       not later polish:
-      - Confirm the actual configured Mirror transport port in the
-        Editor directly (not assumed — the default is `KcpTransport`'s
-        7777, but `TestScene.unity`'s Force Binary serialization means
-        this can't be grep-verified, only checked live in the
-        Inspector).
+      - **Confirmed, 2026-08-25**: `KcpTransport`, port `7777`,
+        `networkAddress` defaults to `"localhost"` — checked via a
+        second independent batch-mode process reading the scene through
+        Unity's own API (not a guid grep — `TestScene.unity`'s Force
+        Binary serialization makes that unreliable, per this project's
+        own gotcha).
       - Whoever is hosting a given session forwards that port on their
         own router — only the host's router needs it, the connecting
-        side just needs normal outbound internet.
-      - Build a real Connect screen (`ConnectScreen.cs`, OnGUI, same
-        shape as every other screen in this project — IP field,
-        Connect button, connection-failure feedback). Mirror's stock
-        `NetworkManagerHUD` (confirmed not currently wired into
-        `TestScene.unity` at all — zero matches, checked directly) is
-        a fine stand-in for solo two-Editor-instance testing in the
-        meantime, but isn't what either of them would actually use to
-        connect to each other.
+        side just needs normal outbound internet. Still a manual,
+        real-world step neither side of this can automate.
+      - **Built, 2026-08-25, compile-verified only.** A real Connect
+        screen — repurposed `NetworkAutoHost.cs` in place (kept the
+        class/file name to avoid breaking the scene's existing component
+        reference) from "always silently auto-host the instant Play
+        starts" into a real Host/Join choice screen, per Ben's explicit
+        call: the old auto-host default meant there was never a way to
+        actually *join* someone else's game through normal play, every
+        instance just started its own server unconditionally. Now shows
+        a small OnGUI panel (Host button; IP field + Connect button)
+        whenever neither `NetworkServer.active` nor `NetworkClient
+        .active` is true, and gets out of the way once either is.
+        `GridlessNetworkManager` gained `OnClientError`/
+        `OnClientDisconnect` overrides feeding real failure messages
+        back into it (a sticky-message window keeps a specific
+        `OnClientError` reason from being immediately stomped by the
+        generic disconnect message Mirror raises right after it for the
+        same failure). **Trade-off Ben chose knowingly**: every Play
+        session, including solo Editor testing, now needs one Host
+        click before anything works — no more instant auto-host.
+        Mirror's stock `NetworkManagerHUD` (confirmed not wired into
+        `TestScene.unity` — zero matches, checked directly) was never
+        used; this is a purpose-built screen matching every other
+        screen's shape in the project instead.
    7. Live multi-connection test with actual separate characters — Ben
       and traskmi each connected from their own location, independent
       inventory/vitals/position, save, disconnect one, reconnect,
