@@ -58,7 +58,7 @@ on-screen hint" framing was about *not signaling this is possible* on a
 per-object popup, not about omitting it from the Controls tab, which
 this project's own convention says must reflect every real binding.
 
-## Multiplayer: a remote player's body AND worn equipment were fully invisible — root-caused and fixed live in two rounds (found + fixed 2026-08-25)
+## Multiplayer: a remote player's body AND worn equipment were fully invisible — root-caused and fixed live in two rounds, both confirmed working (found + fixed + confirmed 2026-08-25)
 
 Found during the first-ever live two-connection test (Editor host +
 standalone exe client, localhost): the host couldn't see the exe
@@ -101,8 +101,23 @@ instance and forces anything currently on layer 8 back to Default —
 correctly catches the body and whatever's currently worn/carried in one
 pass. `PlayerBodyModel.ActiveVisualObject` (round 1's narrower
 accessor) removed as dead code, superseded by the general sweep.
-v0.3.203-dev, compile-verified only — the equipment half of this fix
-hasn't been retested live yet (the body half already was, in round 1).
+v0.3.203-dev.
+
+**Live-confirmed working, same night**: from the host's (Editor) side,
+both the other player's body and worn equipment now render correctly
+in first person AND third person — the full fix holds up. **One real
+asymmetry, not a code bug**: the standalone exe client was built once,
+early in this session, before any of tonight's visibility fixes
+existed — the Editor picks up new code automatically on every compile,
+but a standalone `.exe` is a frozen snapshot. So the exe's own view
+still shows the old broken behavior (host invisible in first person)
+until it's rebuilt with the current code. This explains an earlier
+confusing report ("back to being invisible" from the exe's own
+first-person view, while third-person on that same exe *did* show two
+characters via the layer-8 include) — the exe was simply still running
+pre-fix code the whole time. Rebuild needed before a true bidirectional
+confirmation, not yet done (Ben deferred it, host-side confirmation was
+enough for now).
 
 ## Multiplayer: per-connection spawning — live-confirmed working (found 2026-08-24, built + live-tested 2026-08-25)
 

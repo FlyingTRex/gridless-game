@@ -12,7 +12,7 @@ change; see `CLAUDE.md` for the exact rule.
 
 ## 2026-08-25 (5)
 
-### v0.3.203-dev — Remote-player visibility fix widened to cover worn equipment, live-confirmed in part
+### v0.3.203-dev — Remote-player visibility fix widened to cover worn equipment, live-confirmed
 
 v0.3.202-dev's body-only fix was live-confirmed working (host could see
 the exe client's body for the first time), but the very next retest
@@ -40,8 +40,15 @@ this project's shader load), confirmed via the crash report, completely
 unrelated to any of tonight's code. Worked around by relaunching with
 `-force-d3d11`.
 
-Compile-verified only — the equipment half of this fix hasn't been
-retested live yet (the body half already was, in the previous entry).
+**Live-confirmed same night**: from the host's (Editor) side, the other
+player's body AND worn equipment both render correctly in first person
+and third person — the full fix holds. The standalone exe's own view
+still showed the old broken behavior in this same test, traced to a
+harmless asymmetry rather than a code bug: the `.exe` was built once
+early in the session, before any of these fixes existed, and hadn't
+been rebuilt since — the Editor picks up new code automatically, a
+standalone build doesn't. Rebuild deferred, not urgent now that the fix
+itself is proven from the host's side.
 
 ## 2026-08-25 (4)
 

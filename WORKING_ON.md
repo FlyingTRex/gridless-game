@@ -17,27 +17,33 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.202-dev is merged to origin/main. v0.3.203-dev
-(equipment visibility widened, below) is compiled, ready to commit/push,
-but its own equipment half hasn't been retested live yet.** Multiplayer
-Phase 3 is fully complete (all 5 sub-phases). "NPCs move server-side" is
-substantially done (see `MULTIPLAYER_PLANNING.md` section 3 item 4).
+**Everything through v0.3.203-dev is merged to origin/main and
+LIVE-CONFIRMED — both visibility fixes hold up, from the host's side.**
+Multiplayer Phase 3 is fully complete (all 5 sub-phases). "NPCs move
+server-side" is substantially done (see `MULTIPLAYER_PLANNING.md`
+section 3 item 4).
 
 **2026-08-25 — THE FIRST REAL LIVE TWO-CONNECTION TEST HAPPENED AND
-MOSTLY WORKED, iterated twice live.** Editor host + standalone exe
+WORKED, iterated three times live.** Editor host + standalone exe
 client, localhost. Per-connection spawning (v0.3.200-dev) and the
 Connect screen (v0.3.201-dev) are both genuinely live-confirmed —
 `Player(Clone)` spawned correctly, independent character state, correct
-non-local ownership. Two rounds of the same underlying bug found and
-fixed live: **round 1 (v0.3.202-dev, live-confirmed)** — neither side
-could see the other's BODY at all, root-caused via the V-key
-third-person toggle (no code needed to diagnose it) to
-`WornEquipmentLayer`'s camera-cullingMask exclusion being
-global-per-camera rather than "hide my own body." **Round 2
-(v0.3.203-dev, compile-verified only, NOT yet retested)** — the very
-next test found worn EQUIPMENT had the identical problem (each of 11
-equippables independently manages the same layer via its own
-`SetCarried`), fixed by generalizing into one full-hierarchy sweep
+non-local ownership. Two rounds of the same underlying bug found, fixed,
+and now both confirmed working from the host's side: **round 1
+(v0.3.202-dev)** — neither side could see the other's BODY at all,
+root-caused via the V-key third-person toggle (no code needed to
+diagnose it) to `WornEquipmentLayer`'s camera-cullingMask exclusion
+being global-per-camera rather than "hide my own body." **Round 2
+(v0.3.203-dev)** — the very next test found worn EQUIPMENT had the
+identical problem (each of 11 equippables independently manages the
+same layer via its own `SetCarried`), fixed by generalizing into one
+full-hierarchy sweep. **Confirmed from the host's side: body AND
+equipment both render correctly in first person and third person.**
+The exe's own view still shows the old broken behavior — a real but
+harmless asymmetry, not a code bug: the standalone `.exe` was built
+once early in the session, before any of these fixes existed, and
+hasn't been rebuilt since. Rebuild whenever a true bidirectional
+confirmation is wanted (not urgent — the fix itself is proven).
 (`FirstPersonController.ApplyRemoteVisibilityLayer`) instead of the
 narrower body-only fix. Also found and explained (unrelated to any
 code): the exe crashed once mid-test from a native D3D12 GPU driver
