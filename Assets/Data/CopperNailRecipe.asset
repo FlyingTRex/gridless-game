@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92d301792e8030a012592c540fbc7d6b, type: 3}
+  m_Name: CopperNailRecipe
+  m_EditorClassIdentifier: Assembly-CSharp::CraftingRecipe
+  ingredients:
+  - item: {fileID: 11400000, guid: 433731c4662884e45872497e481f4ec0, type: 2}
+    count: 1
+  outputItem: {fileID: 11400000, guid: fc66b5ca88224b64bb4ed855ba77c79f, type: 2}
+  outputCount: 5
+  bonusItem: {fileID: 0}
+  bonusCount: 1
+  lowerTierItem: {fileID: 0}
+  higherTierItem: {fileID: 0}
+  trainedSkill: {fileID: 11400000, guid: 026b005b8956b244d8bd104f47370603, type: 2}
+  skillGain: 1
+  requiredTools:
+  - {fileID: 11400000, guid: d3dbb5fbb880fb6418f3f08df806b1d6, type: 2}
+  - {fileID: 11400000, guid: 8cdad264a739768478c14af1ebb648a4, type: 2}
+  - {fileID: 11400000, guid: c1cc15f12fe268f4ea539d0ce34a54b6, type: 2}
+  - {fileID: 11400000, guid: 92fa178ed407c5c42968c0abb8242bc6, type: 2}
+  - {fileID: 11400000, guid: 6b95fbeb9c150b34ba78b46a8d25cf29, type: 2}
+  requiredToolLabel: Hammer
+  requiresAnvilSurface: 1
+  requiresCanteenWater: 0
+  canteenWaterAmount: 20
+  requiresFurnace: 0

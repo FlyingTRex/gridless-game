@@ -5,10 +5,74 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.196-dev` — must always match `GameVersion` in
+**Current version:** `0.3.197-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-24 (1)
+
+### v0.3.197-dev — Real playtest found and fixed an early-game bootstrap deadlock: Copper Nail
+
+A genuinely functional playtest (Ben deliberately avoiding Admin Spawn
+to exercise the real crafting chain) found a real progression bug: a
+Storage Box needs Plank + Nail, Nail needs a Hammer + smelted Iron, and
+the only placed Iron-yielding Boulder in the scene is deliberately
+disguised (`ResourceNode.hiddenMaterial`) — invisible without a Mining
+Face Shield or a high enough Mining skill, neither of which existed as
+a real blocker before this session's persistence work even started.
+Iron was never meant to gate the very first structure a player builds.
+
+Fixed per Ben's explicit direction: added `CopperNail.asset` (same
+physical shape as the iron `Nail`, reusing its model/icon rather than
+generating a new one for a visually-near-identical item) and
+`CopperNailRecipe.asset` (same Hammer+Anvil shape as the iron recipe,
+1 raw Copper -> 5 Copper Nail — swapped from an initial Copper Ingot
+version once testing found the Furnace itself *also* requires iron
+Nails to build, making Ingot-gated Copper Nails just as blocked; raw
+Copper — confirmed directly as the actual item `CopperChunk.prefab`
+yields when mined, not the separate unused `CopperOre.asset` — skips
+smelting entirely). `StorageBoxPiece` swapped from Nail to CopperNail.
+The iron Nail recipe itself is untouched, kept for whatever future
+path needs it. `CopperNailRecipe` registered in `Player.prefab`'s
+`PlayerCrafting.recipes` (a manually-wired array, not auto-discovered)
+and the item/recipe databases repopulated.
+
+Also confirmed live, not assumed: the "how do we even see Iron"
+question already has a real answer that was never broken — a Mining
+Face Shield is genuinely craftable from bootstrap materials (2 Rock +
+1 Stick, no tool/Anvil/Furnace gate) and reveals disguised nodes when
+worn. Two real design gaps surfaced along the way and logged in
+`BUGS_AND_ENHANCEMENTS.md` rather than built tonight (out of scope for
+"can we reach ingots at all"): the Face Shield's Rock+Stick recipe is
+an acknowledged placeholder (should require real Glass, made from Sand
+— confirmed neither exists yet), and a high-Mining-skill reveal path
+(around Normal/Fine tier) was designed but never built alongside the
+Face Shield.
+
+**Two more real findings from the same investigation, both fixed same
+day**: every one of the 73 scattered Boulders in the real playable
+world turned out to already have a genuine `AnvilSurface` component —
+confirmed *intentional*, not a bug (`PlayerCrafting.HasNearbyAnvilSurface`'s
+own comment explicitly lists "Boulder, Anvil, ..." as valid anvil
+sources — the original "Hammer + Boulder → Nail" design, already
+correctly implemented). Separately, `MineOreJob.asset` listed the
+Mining Face Shield as a *mandatory* NPC tool requirement — since
+`NPCJob.IsReady` needs every listed tool before an NPC will work at
+all, a Mining NPC could never start, even to mine ordinary non-
+disguised rock. Fixed by removing it from the job's tool list
+entirely; the Shield should only ever be a situational benefit, never
+a hard blocker on the job. The dev-convenience Anvil, Furnace, and a
+placed Mining Face Shield pickup sitting near spawn were also removed
+from `TestScene.unity` for a genuinely from-zero test — they weren't
+masking any real bug once the Boulder-Anvil finding turned out
+intentional, just making the (already-fixed) chain trivial instead of
+proving it out.
+
+Live-confirmed end-to-end, a real from-zero playtest: crafted a Copper
+Nail directly from raw Copper (no Furnace step), gathered Plank, and
+built a Storage Box — the actual bootstrap deadlock this whole entry
+is about, confirmed genuinely fixed, zero errors.
 
 ## 2026-08-23 (30)
 

@@ -17,7 +17,7 @@ MonoBehaviour:
   ingredients:
   - item: {fileID: 11400000, guid: e51a1943e164464b8d0533a24ee79519, type: 2}
     count: 4
-  - item: {fileID: 11400000, guid: 2b36e703d09015046a72e40d36725d82, type: 2}
+  - item: {fileID: 11400000, guid: fc66b5ca88224b64bb4ed855ba77c79f, type: 2}
     count: 6
   trainedSkill: {fileID: 11400000, guid: a05cd28340d5c8b41bcf4af8f1892fe0, type: 2}
   unlockTier: 0
@@ -25,5 +25,8 @@ MonoBehaviour:
   groundReach: 0
   groundOffset: 0.25
   nextTier: {fileID: 0}
+  requiresCityStatus: 0
+  requiresCityFoundingConditions: 0
+  requiresVillageFlagAndHiredNpc: 0
   icon: {fileID: 21300000, guid: 84f5efc44242bda40ae719a8b6c50949, type: 3}
   previewIcon: {fileID: 21300000, guid: 6f90db66dfde7cd4daac97008b4bebf0, type: 3}
