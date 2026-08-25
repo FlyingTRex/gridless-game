@@ -315,6 +315,11 @@ public class PlayerBuilding : NetworkBehaviour
 
     private void Update()
     {
+        // Multiplayer per-connection spawning (2026-08-25) -- a non-local
+        // replica must never read this machine's own keyboard/mouse or
+        // raycast off this machine's own camera on someone else's behalf.
+        if (!isLocalPlayer) return;
+
         if (armedPiece == null || armedPiece.prefab == null || interaction?.PlayerCamera == null)
         {
             ClearGhost();
@@ -739,6 +744,7 @@ public class PlayerBuilding : NetworkBehaviour
     // Below PlayerMagic's message (y=150) — same stacking convention.
     private void OnGUI()
     {
+        if (!isLocalPlayer) return;
         if (message == null || Time.time >= messageExpireTime) return;
 
         const float width = 420f;

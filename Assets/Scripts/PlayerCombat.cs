@@ -50,6 +50,11 @@ public class PlayerCombat : NetworkBehaviour
 
     private void Update()
     {
+        // Multiplayer per-connection spawning (2026-08-25) -- a non-local
+        // replica must never read this machine's own mouse/keyboard for
+        // punch input on someone else's behalf.
+        if (!isLocalPlayer) return;
+
         if (cooldownRemaining > 0f)
             cooldownRemaining -= Time.deltaTime;
 

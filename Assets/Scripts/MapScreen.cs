@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -46,16 +47,22 @@ public class MapScreen : MonoBehaviour
 
     private Texture2D mapTexture;
     private int cachedRevealVersion = -1;
+    // Multiplayer per-connection spawning (2026-08-25) -- see
+    // FirstPersonController's own field comment for why every sibling on
+    // the Player root needs this same gate.
+    private NetworkIdentity netIdentity;
 
     public bool IsOpen => isOpen;
 
     private void Awake()
     {
         exploration = GetComponent<PlayerMapExploration>();
+        netIdentity = GetComponent<NetworkIdentity>();
     }
 
     private void Update()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         var keyboard = Keyboard.current;
         if (keyboard == null || !keyboard.mKey.wasPressedThisFrame) return;
 
@@ -79,6 +86,7 @@ public class MapScreen : MonoBehaviour
 
     private void OnGUI()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (!isOpen) return;
 
         var screenRect = new Rect(0, 0, Screen.width, Screen.height);

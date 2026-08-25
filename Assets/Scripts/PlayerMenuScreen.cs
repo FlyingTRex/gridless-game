@@ -1,4 +1,5 @@
 using System;
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -101,11 +102,16 @@ public class PlayerMenuScreen : MonoBehaviour
     private bool renamePopupOpen;
     private string renameEditingName;
     private string renameMessage;
+    // Multiplayer per-connection spawning (2026-08-25) -- see
+    // FirstPersonController's own field comment for why every sibling on
+    // the Player root needs this same gate.
+    private NetworkIdentity netIdentity;
 
     public bool IsOpen => isOpen;
 
     private void Awake()
     {
+        netIdentity = GetComponent<NetworkIdentity>();
         inventoryScreen = GetComponent<InventoryScreen>();
         skillsScreen = GetComponent<SkillsScreen>();
         craftingScreen = GetComponent<CraftingScreen>();
@@ -126,6 +132,7 @@ public class PlayerMenuScreen : MonoBehaviour
 
     private void Update()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (Keyboard.current == null || !Keyboard.current.tabKey.wasPressedThisFrame) return;
 
         // Always allow closing. Only allow opening from normal gameplay —
@@ -157,6 +164,7 @@ public class PlayerMenuScreen : MonoBehaviour
 
     private void OnGUI()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (!isOpen) return;
 
         var rect = new Rect(0, 0, Screen.width, Screen.height);

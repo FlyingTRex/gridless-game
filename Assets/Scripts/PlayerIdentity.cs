@@ -38,6 +38,20 @@ public class PlayerIdentity : NetworkBehaviour
     private PlayerFame fame;
     private string playerId;
 
+    // Nearby-player-joined announcement (2026-08-25, Ben's ask alongside
+    // per-connection spawning): fog of war still hides a new arrival on
+    // the Map, but a toast lets players know someone's out there. Server
+    // calls TargetNotifyNearbyPlayerJoined on each EXISTING player's own
+    // PlayerIdentity, targeting that SAME player's connection, whenever a
+    // NEW connection spawns within announceRadius -- delivered only to
+    // that one client, same TargetRpc pattern used nowhere else yet in
+    // this project but the standard Mirror shape for "tell exactly one
+    // client something." No new-arrival-side toast (the new player didn't
+    // ask "who's here," they just spawned) -- one-directional by design.
+    private string nearbyPlayerMessage;
+    private float nearbyPlayerMessageExpireTime;
+    private const float NearbyPlayerMessageDuration = 8f;
+
     public string DisplayName => playerName;
     public bool HasBeenNamed => hasBeenNamed;
 
@@ -151,5 +165,30 @@ public class PlayerIdentity : NetworkBehaviour
     {
         if (!string.IsNullOrWhiteSpace(savedName)) playerName = savedName;
         hasBeenNamed = savedHasBeenNamed;
+    }
+
+    [TargetRpc]
+    public void TargetNotifyNearbyPlayerJoined(NetworkConnectionToClient target, string arrivingPlayerName)
+    {
+        nearbyPlayerMessage = string.IsNullOrEmpty(arrivingPlayerName)
+            ? "Someone has arrived nearby."
+            : $"{arrivingPlayerName} has arrived nearby.";
+        nearbyPlayerMessageExpireTime = Time.time + NearbyPlayerMessageDuration;
+    }
+
+    // Same top-center toast shape as PlayerAutosave.cs -- this is only
+    // ever set client-side by the TargetRpc above, so unlike PlayerAutosave
+    // it doesn't need an isLocalPlayer/isServer guard: a TargetRpc only
+    // ever executes on the one connection it targets in the first place.
+    private void OnGUI()
+    {
+        if (nearbyPlayerMessage == null || Time.time >= nearbyPlayerMessageExpireTime) return;
+
+        const float width = 340f;
+        const float height = 30f;
+        var rect = new Rect((Screen.width - width) / 2f, 190f, width, height);
+
+        DebugGUI.DrawPanel(rect);
+        GUI.Label(rect, nearbyPlayerMessage, DebugGUI.Header);
     }
 }

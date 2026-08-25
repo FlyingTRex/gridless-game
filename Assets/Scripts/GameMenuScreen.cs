@@ -1,4 +1,5 @@
 using System;
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -58,6 +59,10 @@ public class GameMenuScreen : MonoBehaviour
     private SaveManager saveManager;
     private string saveStatusMessage;
     private float saveStatusExpireTime;
+    // Multiplayer per-connection spawning (2026-08-25) -- see
+    // FirstPersonController's own field comment for why every sibling on
+    // the Player root needs this same gate.
+    private NetworkIdentity netIdentity;
 
     public bool IsOpen => isOpen;
 
@@ -66,10 +71,12 @@ public class GameMenuScreen : MonoBehaviour
         adminSpawnScreen = GetComponent<AdminSpawnScreen>();
         bodyModel = GetComponent<PlayerBodyModel>();
         saveManager = GetComponent<SaveManager>();
+        netIdentity = GetComponent<NetworkIdentity>();
     }
 
     private void Update()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (Keyboard.current == null || !Keyboard.current.backquoteKey.wasPressedThisFrame) return;
 
         // Always allow closing. Only allow opening from normal gameplay —
@@ -92,6 +99,7 @@ public class GameMenuScreen : MonoBehaviour
 
     private void OnGUI()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (!isOpen) return;
 
         var rect = new Rect(0, 0, Screen.width, Screen.height);

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -41,6 +42,10 @@ public class PlayerPieceUpgrade : MonoBehaviour
     private PlayerEquipment equipment;
     private PlayerInteraction interaction;
     private PlayerBackpack backpackCarrier;
+    // Multiplayer per-connection spawning (2026-08-25) -- see
+    // FirstPersonController's own field comment for why every sibling on
+    // the Player root needs this same gate.
+    private NetworkIdentity netIdentity;
     private readonly List<StorageBox> nearbyStorages = new List<StorageBox>();
 
     private PlacedPiece currentTarget;
@@ -57,6 +62,7 @@ public class PlayerPieceUpgrade : MonoBehaviour
         equipment = GetComponent<PlayerEquipment>();
         interaction = GetComponent<PlayerInteraction>();
         backpackCarrier = GetComponent<PlayerBackpack>();
+        netIdentity = GetComponent<NetworkIdentity>();
     }
 
     // Same reach as PlayerBuilding.ReachableInventories — main inventory
@@ -94,6 +100,8 @@ public class PlayerPieceUpgrade : MonoBehaviour
 
     private void Update()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
+
         ResolveTarget();
         HandleInput();
     }
@@ -259,6 +267,7 @@ public class PlayerPieceUpgrade : MonoBehaviour
     // and learnable. Below PlayerBuilding's own message (y=190).
     private void OnGUI()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (currentTarget != null && HammerInHand)
         {
             string text;

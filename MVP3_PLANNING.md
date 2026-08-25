@@ -104,6 +104,14 @@ designed). Recommended build order from that doc, unchanged:
 
 ## MVP4 — Teams & Guilds + Team/Guild Vendor + TBD
 
+**Ben confirmed, 2026-08-25 (while per-connection spawning was being
+built): Teams specifically should be in scope for MVP4 "at least"** —
+not left as pure "whatever else." Still blocked on the same
+prerequisite as everything else here (MVP3's multiplayer half, real
+player identity), so this doesn't pull Teams forward into MVP3 — it's
+a confirmation of priority *within* MVP4's own already-open scope, not
+a re-sequencing.
+
 Deliberately not scoped further yet — genuinely can't be, since it's
 downstream of MVP3's multiplayer half actually landing, and there's no value
 in pre-ordering work against a foundation that doesn't exist. What's already

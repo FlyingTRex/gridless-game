@@ -86,6 +86,13 @@ public class PlayerInteraction : NetworkBehaviour
 
     private void Update()
     {
+        // Multiplayer per-connection spawning (2026-08-25) -- a non-local
+        // replica (another connection's character, present on this client
+        // only for rendering/position sync) must never read this
+        // machine's own keyboard/mouse or raycast off this machine's own
+        // camera on someone else's behalf.
+        if (!isLocalPlayer) return;
+
         ResolveTarget();
 
         var keyboard = Keyboard.current;
@@ -354,7 +361,11 @@ public class PlayerInteraction : NetworkBehaviour
         }
 
         if (current != null && !current.IsInstant && holdProgress > 0f)
+        {
+            if (Time.frameCount % 60 == 0)
+                Debug.Log($"[HoldBarDebug] drawing bar: current={current.Prompt} holdProgress={holdProgress:F2} holdDuration={holdDuration:F2}");
             DrawHoldBar(holdProgress / Mathf.Max(holdDuration, 0.01f));
+        }
     }
 
     private void DrawHoldBar(float fraction)

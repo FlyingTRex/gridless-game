@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -13,6 +14,7 @@ public enum MovementStance
 [RequireComponent(typeof(PlayerVitals))]
 [RequireComponent(typeof(PlayerEncumbrance))]
 [RequireComponent(typeof(PlayerDexterity))]
+[RequireComponent(typeof(NetworkIdentity))]
 public class FirstPersonController : MonoBehaviour
 {
     // Stamina tiers below SprintStaminaThreshold (see PlayerVitals) that
@@ -49,6 +51,23 @@ public class FirstPersonController : MonoBehaviour
     [SerializeField] private float gravity = -20f;
     [SerializeField] private float mouseSensitivity = 0.12f;
     [SerializeField] private float lookPitchLimit = 85f;
+
+    // Multiplayer per-connection spawning (2026-08-25, MULTIPLAYER_PLANNING.md
+    // section 3 item 6): FirstPersonController is the root input pump for this
+    // whole GameObject -- every *Screen.cs sibling below is only ever opened as
+    // a downstream reaction to a key this class itself reads (HandleCursorToggle
+    // closing/opening menus, etc.), so gating Update()/OnEnable() here is enough
+    // to stop a non-local Player replica (another connection's character,
+    // present on this client purely for rendering/position sync) from reading
+    // this machine's own keyboard/mouse or popping open menus that belong to a
+    // different physical player. Individual screens don't need their own gate on
+    // top of this one, since none of them can open without this class calling
+    // into them first. A plain sibling NetworkIdentity lookup (not converting to
+    // NetworkBehaviour) keeps this change local instead of touching this class's
+    // whole inheritance chain and every existing GetComponent<FirstPersonController>()
+    // caller elsewhere in the project.
+    private NetworkIdentity netIdentity;
+    private bool cursorInitialized;
 
     private CharacterController controller;
     private PlayerVitals vitals;
@@ -94,6 +113,7 @@ public class FirstPersonController : MonoBehaviour
 
     private void Awake()
     {
+        netIdentity = GetComponent<NetworkIdentity>();
         controller = GetComponent<CharacterController>();
         vitals = GetComponent<PlayerVitals>();
         encumbrance = GetComponent<PlayerEncumbrance>();
@@ -115,14 +135,50 @@ public class FirstPersonController : MonoBehaviour
         npcDeposit = GetComponent<PlayerNPCDeposit>();
     }
 
+    // Camera/AudioListener must be disabled on a non-local replica the
+    // instant it exists on this client -- otherwise two active Cameras and
+    // two active AudioListeners exist simultaneously the moment a second
+    // Player object appears (Unity errors on the AudioListener case, and
+    // both Cameras compete to render). Checked every OnEnable/Update tick
+    // rather than once, since isLocalPlayer isn't guaranteed to already be
+    // its final value the instant this object is enabled (Mirror assigns
+    // local-player ownership slightly after spawn) -- cheap enough to just
+    // re-check.
+    private void ApplyLocalOwnershipVisuals()
+    {
+        bool local = netIdentity == null || netIdentity.isLocalPlayer;
+        if (playerCamera != null && playerCamera.enabled != local)
+            playerCamera.enabled = local;
+
+        var listener = playerCamera != null ? playerCamera.GetComponent<AudioListener>() : null;
+        if (listener != null && listener.enabled != local)
+            listener.enabled = local;
+    }
+
     private void OnEnable()
     {
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        ApplyLocalOwnershipVisuals();
     }
 
     private void Update()
     {
+        ApplyLocalOwnershipVisuals();
+
+        // A non-local replica (another connection's character, present on
+        // this client only for rendering/position sync) must never read
+        // this machine's own keyboard/mouse or pop open menus that belong
+        // to a different physical player -- see this class's own field
+        // comment above for why gating here is sufficient for every
+        // sibling *Screen.cs too.
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
+
+        if (!cursorInitialized)
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+            cursorInitialized = true;
+        }
+
         HandleCursorToggle();
         HandleStance();
         HandleLook();
@@ -310,7 +366,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.199-dev";
+    private const string GameVersion = "0.3.200-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

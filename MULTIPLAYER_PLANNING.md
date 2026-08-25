@@ -1189,19 +1189,41 @@ needs authority over. What remains is the next phase down:
       `OnStopServer`) advanced the save again with the same data
       intact.
 
-      **Real gap surfaced while writing this, not yet solved**:
-      `OnStopServer`'s per-`SaveManager` loop was deliberately written
-      to cover *every* connected player rather than assuming a single
-      one — writing it that way surfaced that there's currently only
-      ever one `SaveManager` to find, because `GridlessNetworkManager
-      .OnServerReady` assigns the one pre-existing scene Player to
-      whichever connection asks first and explicitly refuses to hand
-      out a second one. See item 6/7 below and
-      `BUGS_AND_ENHANCEMENTS.md`'s new entry — this needs solving
-      before chunk 7's live two-player test, and probably before
-      chunk 6's Connect screen is worth building at all (a working
-      Connect flow that hands the second player nothing to control
-      isn't useful to test with).
+      **Real gap surfaced while writing this — built and closed out
+      the same session, 2026-08-25.** `OnStopServer`'s per-`SaveManager`
+      loop was deliberately written to cover *every* connected player
+      rather than assuming a single one — writing it that way surfaced
+      that there was only ever one `SaveManager` to find, because
+      `GridlessNetworkManager.OnServerReady` assigned the one
+      pre-existing scene Player to whichever connection asked first and
+      explicitly refused to hand out a second one. Fixed:
+      `OnServerReady` now spawns a real second (and later) Player from
+      `playerPrefab` (now wired in the scene, was `NULL`) for every
+      connection after the first, which keeps claiming the pre-existing
+      scene object as before. That surfaced a second, much bigger gap
+      on inspection — none of the 48 `PlayerXXX.cs` scripts gated local
+      input/`OnGUI()` by `isLocalPlayer`, invisible until a second real
+      Player object could ever exist — fixed the same session across
+      `FirstPersonController` (also now disables its own Camera/
+      AudioListener for a non-local instance) plus the 12 other scripts
+      that read local input directly. Full detail in
+      `BUGS_AND_ENHANCEMENTS.md`'s entry. A nearby-player-joined toast
+      (Ben's ask, `PlayerIdentity.TargetNotifyNearbyPlayerJoined`) was
+      built alongside it — fog of war still hides the arrival on the
+      Map, this is announcement only.
+
+      **Compile-verified only — not yet live-tested with a real second
+      connection.** Per this project's own "Compiled Game" testing
+      convention: build a standalone Player executable, host in the
+      Editor's own Play mode, connect the standalone build as a second
+      client to localhost. A real open question flagged, not checked:
+      whether a remote player's `PlayerAnimatorDriver` actually
+      animates correctly off network-synced position now that its
+      local `CharacterController.velocity` isn't being driven by a
+      locally-running `FirstPersonController.Move()` anymore — could
+      render as a sliding/non-animating replica even with correct
+      position sync. Needs an actual look, not something compile
+      alone can confirm.
    6. **Real connectivity, before the live multi-connection test can
       happen at all** — Ben and traskmi test from genuinely different
       physical locations, both with real public IPs (no CGNAT, both

@@ -17,22 +17,40 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.198-dev is merged to origin/main. v0.3.199-dev
-(chunk 5b) is compiled AND live-confirmed, ready to commit/push.**
-Multiplayer Phase 3 is fully complete (all 5 sub-phases). "NPCs move
-server-side" is substantially done (see `MULTIPLAYER_PLANNING.md`
-section 3 item 4).
+**Everything through v0.3.199-dev is merged to origin/main. v0.3.200-dev
+(per-connection spawning + local-input gating, below) is compiled,
+ready to commit/push, but NOT yet live-tested.** Multiplayer Phase 3 is
+fully complete (all 5 sub-phases). "NPCs move server-side" is
+substantially done (see `MULTIPLAYER_PLANNING.md` section 3 item 4).
 
 **Persistence restructure — chunks 1-5 done, 2026-08-23/25** (see
 `MULTIPLAYER_PLANNING.md` section 3 item 5 for full chunk-by-chunk
-detail). Chunk 5b (2026-08-25, v0.3.199-dev): `PlayerAutosave` gained an
-`isServer` guard; `GridlessNetworkManager` gained `OnServerDisconnect`
-(save the disconnecting player before Mirror's own default destroys the
-connection-player link) and `OnStopServer` (save everyone on shutdown).
-**Live-confirmed**: hired a Woodworking NPC, autosave fired on its own
-10-minute timer and `save.json` correctly picked up the hire; closing
-the Editor afterward advanced the save again with the same data intact.
-Chunk 5 (server-authoritative saving) is fully closed out.
+detail). Chunk 5 (server-authoritative saving) is fully closed out and
+live-confirmed (hired a Woodworking NPC, autosave picked it up on
+schedule, a shutdown-save afterward kept the same data intact).
+
+**2026-08-25 — real per-connection Player spawning built, v0.3.200-dev,
+NOT yet live-tested.** Found while building chunk 5b:
+`GridlessNetworkManager.OnServerReady` only ever handed the one
+pre-existing scene Player to whichever connection asked first, refusing
+a second connection anything at all. Fixed: `playerPrefab` wired in the
+scene, second-and-later connections get a fresh `Instantiate`d Player.
+That surfaced a much bigger gap on inspection — none of the 48
+`PlayerXXX.cs` scripts gated local input/`OnGUI()` by `isLocalPlayer`,
+invisible until a second real Player object could exist at all. Fixed
+across `FirstPersonController` (the root input pump every `*Screen.cs`
+sibling routes through) plus the 12 other scripts that read local input
+directly, and `FirstPersonController` now disables Camera/AudioListener
+on non-local instances. Also built: a nearby-player-joined toast
+(1000m radius, fog of war still hides the Map marker). **Still needs a
+real live test** — per this project's "Compiled Game" testing
+convention, build a standalone Player exe, host in the Editor's Play
+mode, connect the standalone as a second client to localhost. One
+real open question flagged, not checked: whether a remote player's
+animation actually looks right off network-synced position now that
+local `CharacterController.velocity` isn't locally driven for them
+anymore. Full detail in `BUGS_AND_ENHANCEMENTS.md` and
+`MULTIPLAYER_PLANNING.md` section 3 item 6.
 
 **Real gap found while building 5b, not yet solved — likely blocks
 chunk 6/7**: `GridlessNetworkManager.OnServerReady` only ever hands out

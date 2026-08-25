@@ -5,10 +5,59 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.199-dev` — must always match `GameVersion` in
+**Current version:** `0.3.200-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-25 (2)
+
+### v0.3.200-dev — Real per-connection Player spawning + the local-input-gating pass it actually required
+
+Closes the gap found while building chunk 5b: `GridlessNetworkManager
+.OnServerReady` used to hand the one pre-existing scene Player to
+whichever connection asked first and explicitly refuse a second
+connection anything at all. Fixed: the first connection still claims
+the scene Player (unchanged solo/host behavior); every connection
+after that gets a fresh `Instantiate(playerPrefab)` (now wired in the
+scene — was `NULL`) spawned beside it and handed to
+`NetworkServer.AddPlayerForConnection`.
+
+Investigating that surfaced a much bigger, previously invisible gap:
+none of the 48 `PlayerXXX.cs` scripts gated local input
+(`Keyboard.current`/`Mouse.current`) or `OnGUI()` by `isLocalPlayer` —
+harmless until now since there was only ever one Player object per
+client. The moment a second Player object exists on a machine (even
+just a remote replica), every ungated script fires for both: duplicate
+input, duplicate menus, two active Cameras, two active AudioListeners
+(a real Unity error). Fixed the same session: `FirstPersonController`
+(the root input pump — every `*Screen.cs` sibling only ever opens as a
+downstream reaction to it, so gating it transitively covers all of
+them) plus the 12 other scripts that read local input directly
+(`PlayerInteraction`, `PlayerRangedCombat`, `PlayerCombat`,
+`PlayerBuilding`, `PlayerPieceUpgrade`, `GameMenuScreen`,
+`PlayerMenuScreen`, `MapScreen`, `NPCRosterScreen`, `PlayerRenaming`,
+`PlayerNPCDeposit`, `PlayerCameraMode`) — each guarded by
+`isLocalPlayer` directly (already `NetworkBehaviour`) or a sibling
+`NetworkIdentity.isLocalPlayer` lookup (still plain `MonoBehaviour`, to
+avoid a broader inheritance change). `FirstPersonController` also
+disables its own Camera/AudioListener on a non-local instance.
+
+Also built alongside this (Ben's ask): a nearby-player-joined toast —
+when a new connection spawns within 1000m of an existing player,
+`PlayerIdentity.TargetNotifyNearbyPlayerJoined` (a `[TargetRpc]`) shows
+that existing player an 8-second toast. Fog of war still hides the
+arrival on the Map — this is announcement only.
+
+**Compile-verified only — not yet live-tested with a real second
+connection.** A real open question, not yet checked: whether a remote
+player's `PlayerAnimatorDriver` actually animates correctly off
+network-synced position now that its local `CharacterController
+.velocity` isn't being locally driven anymore — could render as a
+sliding/non-animating replica even with correct position sync. Full
+detail, including how to test solo (standalone build + Editor host),
+in `MULTIPLAYER_PLANNING.md` section 3 item 6 and
+`BUGS_AND_ENHANCEMENTS.md`.
 
 ## 2026-08-25
 

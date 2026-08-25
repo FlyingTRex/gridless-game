@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -29,14 +30,20 @@ public class PlayerCameraMode : MonoBehaviour
     private ViewMode mode = ViewMode.FirstPerson;
     private int firstPersonCullingMask;
     private static readonly Vector3 EyeOffset = new Vector3(0f, 1.6f, 0f);
+    // Multiplayer per-connection spawning (2026-08-25) -- see
+    // FirstPersonController's own field comment for why every sibling on
+    // the Player root needs this same gate.
+    private NetworkIdentity netIdentity;
 
     private void Awake()
     {
         if (playerCamera != null) firstPersonCullingMask = playerCamera.cullingMask;
+        netIdentity = GetComponent<NetworkIdentity>();
     }
 
     private void Update()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (Cursor.lockState != CursorLockMode.Locked || Keyboard.current == null) return;
         if (Keyboard.current.vKey.wasPressedThisFrame) Toggle();
     }
@@ -60,6 +67,7 @@ public class PlayerCameraMode : MonoBehaviour
 
     private void LateUpdate()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (mode != ViewMode.ThirdPerson || playerCamera == null || controller == null) return;
 
         Vector3 pivot = transform.TransformPoint(EyeOffset);

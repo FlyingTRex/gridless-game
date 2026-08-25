@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -30,12 +31,17 @@ public class PlayerNPCDeposit : MonoBehaviour
     private System.Action<StorageBox> onSelected;
     private bool isTargeting;
     private StorageBox hovered;
+    // Multiplayer per-connection spawning (2026-08-25) -- see
+    // FirstPersonController's own field comment for why every sibling on
+    // the Player root needs this same gate.
+    private NetworkIdentity netIdentity;
 
     public bool IsTargeting => isTargeting;
 
     private void Awake()
     {
         interaction = GetComponent<PlayerInteraction>();
+        netIdentity = GetComponent<NetworkIdentity>();
     }
 
     public void BeginTargeting(System.Action<StorageBox> onBoxSelected)
@@ -60,6 +66,7 @@ public class PlayerNPCDeposit : MonoBehaviour
 
     private void Update()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (!isTargeting) return;
 
         hovered = null;
@@ -81,6 +88,7 @@ public class PlayerNPCDeposit : MonoBehaviour
 
     private void OnGUI()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (!isTargeting) return;
 
         string text = hovered != null

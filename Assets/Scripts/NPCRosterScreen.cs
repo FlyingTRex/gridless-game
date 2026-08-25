@@ -1,4 +1,5 @@
 using System.Linq;
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -24,6 +25,10 @@ public class NPCRosterScreen : MonoBehaviour
     private Camera playerCamera;
     private NPCHiring tracked;
     private VillageFlagSpawner villageFlagSpawner;
+    // Multiplayer per-connection spawning (2026-08-25) -- see
+    // FirstPersonController's own field comment for why every sibling on
+    // the Player root needs this same gate.
+    private NetworkIdentity netIdentity;
 
     public bool IsOpen => isOpen;
 
@@ -34,10 +39,12 @@ public class NPCRosterScreen : MonoBehaviour
         playerTransform = transform;
         playerCamera = GetComponent<PlayerInteraction>().PlayerCamera;
         villageFlagSpawner = GetComponent<VillageFlagSpawner>();
+        netIdentity = GetComponent<NetworkIdentity>();
     }
 
     private void Update()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         var keyboard = Keyboard.current;
         if (keyboard == null || !keyboard.nKey.wasPressedThisFrame) return;
 
@@ -60,6 +67,8 @@ public class NPCRosterScreen : MonoBehaviour
 
     private void OnGUI()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
+
         // Drawn regardless of whether the Roster itself is open (2026-08-17,
         // "NPC management" -- a waypoint compass toward a Roster-tracked
         // NPC needs to work during normal gameplay, not just while this

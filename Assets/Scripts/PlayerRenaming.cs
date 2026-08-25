@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -14,16 +15,22 @@ public class PlayerRenaming : MonoBehaviour
     private PlayerInteraction interaction;
     private IRenameable target;
     private string editingName;
+    // Multiplayer per-connection spawning (2026-08-25) -- see
+    // FirstPersonController's own field comment for why every sibling on
+    // the Player root needs this same gate.
+    private NetworkIdentity netIdentity;
 
     public bool IsOpen => target != null;
 
     private void Awake()
     {
         interaction = GetComponent<PlayerInteraction>();
+        netIdentity = GetComponent<NetworkIdentity>();
     }
 
     private void Update()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (IsOpen) return;
         // Only open from normal gameplay — not while some other screen
         // already has the cursor unlocked.
@@ -74,6 +81,7 @@ public class PlayerRenaming : MonoBehaviour
 
     private void OnGUI()
     {
+        if (netIdentity != null && !netIdentity.isLocalPlayer) return;
         if (!IsOpen) return;
 
         const float width = 260f;

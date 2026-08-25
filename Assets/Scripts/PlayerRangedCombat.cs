@@ -83,6 +83,11 @@ public class PlayerRangedCombat : NetworkBehaviour
 
     private void Update()
     {
+        // Multiplayer per-connection spawning (2026-08-25) -- a non-local
+        // replica must never read this machine's own mouse/keyboard for
+        // aim/draw/fire input on someone else's behalf.
+        if (!isLocalPlayer) return;
+
         if (cooldownRemaining > 0f)
             cooldownRemaining -= Time.deltaTime;
 
@@ -96,15 +101,18 @@ public class PlayerRangedCombat : NetworkBehaviour
 
         if (bow == null || arrow == null)
         {
+            if (isDrawing) Debug.Log($"[RangedDebug] isDrawing->false (bow/arrow gone) canOperate={canOperate}");
             isDrawing = false;
         }
         else if (!isDrawing && mouse.leftButton.wasPressedThisFrame && cooldownRemaining <= 0f)
         {
             isDrawing = true;
             drawStartTime = Time.time;
+            Debug.Log($"[RangedDebug] isDrawing->true at Time.time={Time.time:F2}");
         }
         else if (isDrawing && mouse.leftButton.wasReleasedThisFrame)
         {
+            Debug.Log($"[RangedDebug] isDrawing->false (fired) heldTime={Time.time - drawStartTime:F2}");
             Fire(bow, arrow, arrowHand);
             isDrawing = false;
         }

@@ -5,6 +5,31 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## Multiplayer: test world needs to be much bigger, to fit multiple villages (found 2026-08-25, not started)
+
+Ben's note while per-connection spawning was being built: once real
+multiplayer is testable with traskmi, `TestScene.unity`'s current
+200x200 world (`WorldBounds.cs`, confirmed exact size 2026-08-16) is
+too small to test multiple simultaneous villages/settlements —
+`VillageFlagSpawner`/City founding has real spacing rules (a minimum-
+clearance check against other Flags, same shape as scatter placement's
+Tree/Boulder clearance) that would collide with each other in a world
+this small if two players each try to grow their own settlement.
+Needs a real Terrain resize (see the existing "Terrain/hills
+conversion" flagged elsewhere in this file) before a genuine two-
+village live test is possible.
+
+## Multiplayer: should there be a per-player limit on how many villages/cities they can found? (found 2026-08-25, open question)
+
+Ben's question, not yet decided: once multiple real players exist,
+should `PlayerBuilding.MeetsCityFoundingConditions`-style founding
+(Village Flag → City Statue) be capped per player, or is unlimited
+founding fine? No mechanism currently tracks "who founded this" at
+all (see the existing "no placed/built structure tracks who owns it"
+entry in this file) — a per-player cap can't be enforced until
+ownership tracking exists regardless, so this is blocked on that same
+prerequisite. Logged as an open design question, not a decision.
+
 ## Piece Destroy was never actually moved to X — still bound to hold-E, contradicting its own code comment (found 2026-08-25, not started)
 
 `PlayerPieceUpgrade.cs`'s header comment (added 2026-08-21, v0.3.155-dev)
@@ -33,27 +58,78 @@ on-screen hint" framing was about *not signaling this is possible* on a
 per-object popup, not about omitting it from the Controls tab, which
 this project's own convention says must reflect every real binding.
 
-## Multiplayer: only one Player object exists — a second connection gets none (found 2026-08-24, not started)
+## Multiplayer: per-connection spawning built, needs a real live two-connection test (found 2026-08-24, built 2026-08-25, not live-tested)
 
-`GridlessNetworkManager.OnServerReady` assigns connection authority to a
-single pre-existing scene `Player` object (`autoCreatePlayer` is off,
-by design — see the class's own header comment). It explicitly checks
-`identity.connectionToClient != null` and early-returns if the one
-Player is already owned by a connection, so a second connecting client
-today gets no player object at all — not an error, just silently no
-avatar, no camera control, nothing.
+**Built, compile-verified only, 2026-08-25.** `GridlessNetworkManager
+.OnServerReady` used to assign connection authority to a single
+pre-existing scene `Player` object and explicitly refuse a second
+connection anything at all — see this entry's original description
+below. Fixed: the first connection still claims the pre-existing scene
+Player (unchanged behavior for solo/host testing); any connection after
+that gets a fresh `Instantiate(playerPrefab)` (now wired in the scene's
+`GridlessNetworkManager`, was `NULL` before) spawned beside the first
+and handed to `NetworkServer.AddPlayerForConnection`.
 
-Found while building persistence restructure chunk 5b
-(`MULTIPLAYER_PLANNING.md` section 3 item 5) — `OnStopServer`/
+**A second, much bigger gap surfaced investigating this**: none of the
+48 `PlayerXXX.cs` scripts gated local input (`Keyboard.current`/
+`Mouse.current`) or `OnGUI()` rendering by `isLocalPlayer`/
+`hasAuthority` — invisible until now since there was only ever one
+Player object per client. The moment a second Player object exists on
+a machine (even as a remote replica), every script would fire for
+both — duplicate input, duplicate menus, two active Cameras, two active
+AudioListeners (a real Unity error). Fixed the same session:
+`FirstPersonController` (the root input pump every `*Screen.cs` sibling
+is only ever opened through) plus 12 other scripts that read local
+input directly (`PlayerInteraction`, `PlayerRangedCombat`,
+`PlayerCombat`, `PlayerBuilding`, `PlayerPieceUpgrade`, `GameMenuScreen`,
+`PlayerMenuScreen`, `MapScreen`, `NPCRosterScreen`, `PlayerRenaming`,
+`PlayerNPCDeposit`, `PlayerCameraMode`) all gated by a
+`NetworkIdentity.isLocalPlayer` check (or `isLocalPlayer` directly on
+the ones already `NetworkBehaviour`). `FirstPersonController` also now
+disables its own `Camera`/`AudioListener` for any non-local instance.
+Every other `OnGUI()` screen (NPCHiringScreen, FurnaceScreen, etc.) is
+only ever opened as a downstream reaction to one of those 13 gated
+input readers, so it doesn't need its own separate gate.
+
+**Not touched, a real known gap**: remote-player animation/visual
+fidelity. `PlayerAnimatorDriver` wasn't gated (correctly — it needs to
+keep running so other players see a remote character animate), but
+nothing was checked/fixed regarding whether it actually derives correct
+animation state from network-synced position rather than local
+`CharacterController.velocity` (which only updates via local
+`FirstPersonController.Move()` calls, now correctly not running on a
+non-local instance). A remote player might render as a sliding/
+non-animating replica even though their position syncs correctly —
+needs a real live two-connection look, not something a solo compile
+check can confirm either way.
+
+**How to test solo without traskmi**: per this project's own "Compiled
+Game" testing convention, build a standalone Player executable, host in
+the Editor's own Play mode, and connect the standalone build as a
+second client to localhost — two genuinely separate processes/
+connections on one machine. Not yet done.
+
+Also built alongside this: a nearby-player-joined toast
+(`PlayerIdentity.TargetNotifyNearbyPlayerJoined`, a `[TargetRpc]`) —
+when a new connection spawns within 1000m (`GridlessNetworkManager
+.nearbyPlayerAnnounceRadius`) of an existing player, that existing
+player gets an 8-second toast. Fog of war still hides the arrival on
+the Map — this is announcement only, Ben's explicit ask.
+
+---
+
+**Original finding (2026-08-24), before the fix above**:
+`GridlessNetworkManager.OnServerReady` assigned connection authority to
+a single pre-existing scene `Player` object (`autoCreatePlayer` is off,
+by design — see the class's own header comment). It explicitly checked
+`identity.connectionToClient != null` and early-returned if the one
+Player was already owned by a connection, so a second connecting client
+got no player object at all — not an error, just silently no avatar, no
+camera control, nothing. Found while building persistence restructure
+chunk 5b (`MULTIPLAYER_PLANNING.md` section 3 item 5) — `OnStopServer`/
 `OnServerDisconnect`'s per-`SaveManager` loop was written to be
 forward-compatible with real per-connection spawning, which surfaced
-that it doesn't exist yet.
-
-**Real prerequisite for chunk 7** (the live two-player test with
-traskmi), separate from chunk 6 (the Connect-screen UI). Needs a real
-design pass: `autoCreatePlayer` + a `playerPrefab`-based spawn per
-connection, each with their own `PlayerIdentity`/`SaveManager`/camera,
-rather than the current single baked-in scene Player. Not started.
+that it didn't exist yet.
 
 ## Tool tier gives no real functional benefit within its own class — only weight savings (found 2026-08-24, not started)
 
