@@ -5,6 +5,85 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## ReachableInventories only checks the Backpack, not Belt/Shirt/Jeans — duplicated across 4 systems (found 2026-08-24, not started)
+
+Found live: Ben had 9 Plank sitting in a worn Settler's Shirt, but the
+Storage Box build tile showed "Plank: 4 (have 0)" — the build couldn't
+see them at all, while a Copper Nail stack in the *main* inventory
+counted correctly.
+
+**Confirmed directly**: `PlayerBuilding.ReachableInventories()` only
+checks the main inventory, the equipped **Backpack specifically**
+(hardcoded via `backpackCarrier.Equipped`), and nearby StorageBoxes —
+never Belt/Shirt/Jeans, despite all three implementing
+`IInventoryHolder` the same way Backpack does. This exact bug class was
+already found and fixed once before, elsewhere: `PlayerCarriedItems.cs`
+(2026-08-18, "found live by Ben") exists specifically because
+`NPCJob.TryGiveTool` had the identical Backpack-only gap for handing an
+NPC a tool. That fix generalized correctly (a real `ContainerSlots =
+{ "Back", "Waist", "Chest", "Leg" }` loop, checked against every worn
+`IInventoryHolder`) — but `PlayerBuilding` never got the same
+treatment, and neither did 3 other independent copies of the identical
+"ReachableInventories" pattern:
+
+- `PlayerCrafting.ReachableInventories` (`PlayerBuilding`'s own comment
+  literally says "same reach as" this one)
+- `PlayerPieceUpgrade.ReachableInventories` (its own comment says "same
+  reach as `PlayerBuilding`'s")
+- `VendorStallScreen.ReachableInventories` (its own comment says "same
+  reach `PlayerCrafting.ReachableInventories` already established")
+
+So this isn't just a Building bug — Crafting recipes, piece upgrades,
+and vendor selling almost certainly have the identical gap, all
+independently duplicated rather than sharing one implementation.
+
+**Ben's call**: log for a follow-up pass, not fixed tonight. When it is
+built, the right fix is a single shared helper (mirroring
+`PlayerCarriedItems`' own `ContainerSlots` pattern) that all 4 call
+sites use, rather than patching each duplicated copy separately —
+otherwise this exact bug just recurs a 5th time the next time someone
+adds a similar "how much do I have" check.
+
+## Nail/Copper Nail appear capped at 10 in a stack, code says the cap should be 20 (found 2026-08-24, not confirmed as a real bug)
+
+Ben reported both `Nail` and `Copper Nail` stacks capping at 10 — in
+the main inventory, and moving into a Backpack also refused to combine
+past 10. Checked the actual code, and it doesn't support this:
+`Inventory.EffectiveMaxStack` computes `Mathf.Min(item.maxStack,
+MaxStackCap)`, and both `Nail.asset`/`CopperNail.asset` have
+`maxStack: 20` on disk, with `Inventory.MaxStackCap` also `20` — the
+calculated cap should be 20, not 10, for both items, in every
+container (the same `Inventory` class backs main/Backpack/every
+container).
+
+No duplicate `Nail.asset`/`CopperNail.asset` exists anywhere in the
+project (checked), and no hardcoded `10` cap exists in any script.
+Current best guess, not confirmed: a stale Play-session artifact (the
+session was live-testing continuously through several unrelated batch-
+mode asset edits tonight) rather than a real code bug — asked Ben to
+retest after a full exit-Play/re-enter-Play domain reload, but the
+conversation moved on to the Plank/`ReachableInventories` bug before
+that retest was confirmed either way. **Needs a real retest from a
+fresh domain reload before assuming this is fixed, stale, or a genuine
+separate bug** — don't close this out on the "probably stale" guess
+alone.
+
+## Nail's icon actually looks like a Hammer (found 2026-08-24, pre-existing, not started)
+
+Ben spotted this on the new Copper Nail's inventory tile — it renders
+as a hammer, not a nail. Confirmed directly: **not a bug introduced by
+tonight's Copper Nail work** — `CopperNail.asset`'s `icon` field is an
+exact copy of the regular (iron) `Nail.asset`'s own `icon` guid,
+copied deliberately to match. The iron Nail has had this same wrong
+icon the whole time; nobody had looked closely at it before. Not the
+same file as any actual Hammer's icon either (checked
+`NormalHammer.asset`/`CrudeHammer.asset` — different guids) — looks
+like Nail's own icon was baked from the wrong source model at some
+point, not a simple wrong-reference mixup. Needs a real icon re-bake
+for `Nail` (and now `CopperNail`, which will need the same fix applied
+once Nail's is corrected, or a real distinct Copper Nail icon of its
+own). Not started.
+
 ## Mining Face Shield's recipe is a placeholder — should require real Glass, not Rock+Stick (found 2026-08-24, not started)
 
 `MiningFaceShieldRecipe.asset` currently costs 2 Rock + 1 Stick — the
@@ -33,26 +112,80 @@ playtesting, 2026-08-24) but not needed for what that testing pass was
 actually checking (whether ingots are reachable early), so explicitly
 deferred rather than scope-creeped into that fix.
 
-## High Mining skill should also reveal disguised ore boulders, not just the Mining Face Shield (found 2026-08-24, not started)
+**Same-day flag, Ben's explicit ask to log**: the Shield's visual
+appearance (`MiningFaceShield.mat`) is also currently placeholder and
+will change — don't treat the current look as final any more than the
+current recipe.
 
-`ResourceNode.IsRevealed` today only checks one path: `shieldWearer !=
-null && shieldWearer.IsWorn` (the Mining Face Shield, `MiningFaceShield
-.cs`). Confirmed directly — zero skill-based reveal path exists
-anywhere in `ResourceNode.cs`. Ben's stated intent: a high enough
-Mining skill level should *also* let a player see the difference in
-disguised boulders (i.e. a second, independent way to reveal Iron and
-similar hidden ore nodes, alongside wearing the Face Shield) — "we just
-never built that."
+## Metal Detecting — a trained attribute-style skill gating precious metals to long-term play (designed 2026-08-24, not started)
 
-Only `Mining` exists as a skill today (checked — no separate
-"Stonecrafting" skill exists), so this would presumably hook off
-`Mining`'s own level via `PlayerSkills.GetLevel`, at some real
-threshold (not yet decided — needs its own design pass, same as every
-other skill-gated visibility/quality threshold in this project uses
-`CraftTierScale.SkillRequirement` or a dedicated curve, not an
-arbitrary number). Not started — logged alongside the same reveal-
-mechanism area as the Face Shield's placeholder recipe above, surfaced
-in the same 2026-08-24 bootstrap-chain playtest.
+Started as "high Mining skill should also reveal ore," worked through
+conversationally with Ben into a real, self-consistent design — this
+entry supersedes that earlier framing entirely, not an addition to it.
+
+**Confirmed directly**: `ResourceNode.IsRevealed` today only checks one
+path — `shieldWearer != null && shieldWearer.IsWorn` (the Mining Face
+Shield). Zero skill-based reveal path exists anywhere in
+`ResourceNode.cs`.
+
+**The design, fully resolved:**
+
+- **A new trainable skill, "Metal Detecting"** — same attribute-style
+  shape as Strength/Dexterity/Constitution/Intelligence (a 0-100
+  `PlayerSkills` track remapped to a 0.25-10 display value), trained by
+  the act of mining itself (same "the physical action trains the
+  stat" pattern Dexterity/Constitution already use — sprinting trains
+  Dexterity, mining would train Metal Detecting). Not a separate grind;
+  it grows as a side effect of normal mining.
+- **Tier ladder gates precious metals specifically**: reaching Metal
+  Detecting at all reveals Silver; Rudimentary tier reveals Gold;
+  Normal tier reveals Platinum. Maps onto the existing `CraftTierScale`
+  tier curve, same as every other skill-gated threshold in this
+  project, rather than inventing new numbers.
+- **Rock, Copper, and Iron are baseline-visible regardless of Metal
+  Detecting** — confirmed explicitly by Ben. Metal Detecting only ever
+  gates the three precious metals above it.
+- **The Mining Face Shield's reveal power needs to be scoped down to
+  match, or this doesn't actually gate anything.** As currently built,
+  the Shield is trivially craftable (2 Rock + 1 Stick, zero gate — see
+  the placeholder-recipe entry above) and reveals *any* disguised node
+  regardless of metal type. Left as-is, a fresh character could see
+  Silver/Gold/Platinum in the first five minutes just by wearing one,
+  making the whole Metal Detecting ladder pointless. **Resolution**:
+  the Shield should only ever reveal common ore (Iron currently); it
+  should have no effect on precious-metal nodes at all. That's a real
+  code change `ResourceNode.cs` doesn't have today — it would need a
+  per-node way to know which reveal mechanism actually applies to it
+  (Shield vs. Metal Detecting tier), not just a single `IsDisguised`/
+  `IsRevealed` toggle.
+- **NPCs progress this too** — reaching precious metals means either
+  personally mining enough to raise your own Metal Detecting, or
+  keeping a Mining NPC employed long enough for *theirs* to grow (same
+  skill-training mechanism NPCs already use elsewhere). Both are real,
+  valid long-term-play paths, matching the stated goal directly.
+- **A future upgraded Mining Face Shield** (once better materials are
+  unlocked — presumably downstream of the real Glass-from-Sand chain
+  the placeholder-recipe entry above already flags) could extend the
+  Shield's own reveal power to cover precious metals too — a genuine
+  item-based shortcut for a freshly-hired, untrained NPC to access
+  better resources immediately, complementary to (not replacing) the
+  slower skill-based path. Not designed in detail, just the intended
+  shape.
+
+**A real, separate bug found and already fixed the same day**:
+`MineOreJob.asset` listed the Mining Face Shield as a *mandatory*
+`toolRequirement`, on equal footing with Pickaxe/Backpack —
+`NPCJob.IsReady` requires every listed tool before an NPC will work at
+all, so a Mining NPC literally could never start, even to mine
+ordinary non-disguised rock. Fixed by removing it from the job's tool
+list entirely (verified: `MineOreJob` now requires only Pickaxe +
+Backpack) — the Shield should only ever be a situational benefit, never
+a hard blocker on the job itself.
+
+Not started (the Metal Detecting skill/ladder itself, and scoping the
+Shield's reveal power down) — logged alongside the Face Shield's
+placeholder recipe above, both surfaced in the same 2026-08-24
+bootstrap-chain playtest.
 
 ## No placed/built structure tracks who owns it (found 2026-08-23, not started)
 
