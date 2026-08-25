@@ -17,13 +17,32 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.200-dev is merged to origin/main. v0.3.201-dev
-(chunk 6, Connect screen, below) is compiled, ready to commit/push, but
-NOT yet live-tested — same as chunk 5's per-connection spawning
-underneath it, neither has had a real two-connection test yet.**
+**Everything through v0.3.201-dev is merged to origin/main. v0.3.202-dev
+(remote-player body visibility fix, below) is compiled, ready to
+commit/push, but its own fix hasn't been retested live yet.**
 Multiplayer Phase 3 is fully complete (all 5 sub-phases). "NPCs move
 server-side" is substantially done (see `MULTIPLAYER_PLANNING.md`
 section 3 item 4).
+
+**2026-08-25 — THE FIRST REAL LIVE TWO-CONNECTION TEST HAPPENED AND
+MOSTLY WORKED.** Editor host + standalone exe client, localhost.
+Per-connection spawning (v0.3.200-dev) and the Connect screen
+(v0.3.201-dev) are both now genuinely live-confirmed, not just
+compiled — `Player(Clone)` spawned correctly for the exe's connection,
+independent character state, correct non-local ownership from the
+host's side. One real bug found and fixed live, same session,
+v0.3.202-dev: neither side could see the other's character at all —
+root-caused via the V-key third-person toggle (no code needed to
+diagnose it) to `WornEquipmentLayer`'s camera-cullingMask exclusion
+being global-per-camera rather than "hide my own body" — a player's
+own camera hides ALL layer-8 objects, including someone else's body,
+which nobody had ever hit before since there was never a second player
+to be hidden by it. Fixed via `PlayerBodyModel.ActiveVisualObject` +
+`FirstPersonController.ApplyBodyLayer`. **This specific fix itself
+still needs a live retest** — everything else about tonight's test is
+confirmed, this one part isn't yet. Known follow-up gap, not solved
+here: worn equipment on a remote player may still be invisible via the
+same root cause (`BUGS_AND_ENHANCEMENTS.md`).
 
 **2026-08-25 — chunk 6, real Host/Join Connect screen, v0.3.201-dev,
 NOT yet live-tested.** `NetworkAutoHost.cs` repurposed in place (silent

@@ -72,6 +72,17 @@ public class PlayerBodyModel : MonoBehaviour
         ApplyGender(isMale);
     }
 
+    // Multiplayer remote-player visibility (2026-08-25) -- FirstPersonController
+    // needs this to force a NON-local instance's body off WornEquipmentLayer.
+    // See PlayerCameraMode's own comment on why that layer exists (hide your
+    // own first-person body from your own camera) and why that's a problem
+    // for a REMOTE player specifically: the layer exclusion is a property of
+    // the camera, not "hide MY body" -- it hides every layer-8 object from
+    // that camera, including someone else's, which is exactly why a second
+    // real player's body rendered invisible during the first live
+    // two-connection test.
+    public GameObject ActiveVisualObject => isMale ? maleVisual : femaleVisual;
+
     // Read by PlayerTool/PlayerBackpack (2026-08-13, equipment visual
     // attachment) — the currently active gendered Visual's own Animator,
     // not a fixed scene reference, since which gender is active can

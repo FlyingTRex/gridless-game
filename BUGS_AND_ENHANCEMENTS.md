@@ -58,9 +58,73 @@ on-screen hint" framing was about *not signaling this is possible* on a
 per-object popup, not about omitting it from the Controls tab, which
 this project's own convention says must reflect every real binding.
 
-## Multiplayer: per-connection spawning built, needs a real live two-connection test (found 2026-08-24, built 2026-08-25, not live-tested)
+## Multiplayer: a remote player's body was fully invisible — root-caused and fixed same session (found + fixed 2026-08-25)
 
-**Built, compile-verified only, 2026-08-25.** `GridlessNetworkManager
+Found during the first-ever live two-connection test (Editor host +
+standalone exe client, localhost): the host couldn't see the exe
+client's character at all (a white humanoid initially spotted on
+screen turned out to be an unrelated NPC, not the other player —
+correcting an earlier misdiagnosis in this same session). `Player
+(Clone)` was confirmed present via Inspector (real second instance,
+correct position, `Is Local Player: No`, hierarchy intact — `Visual_Male`
+present with nothing missing structurally) but rendered nothing
+visible at all, on either side (bidirectional — the exe couldn't see
+the host's character either).
+
+**Root cause, confirmed live without any code changes**: pressing V
+(third-person toggle) on the host made the HOST'S OWN body suddenly
+appear. `PlayerCameraMode.cs`'s own existing comment explained why:
+the body's renderers permanently sit on `WornEquipmentLayer` (8), and
+every player's own camera `cullingMask` excludes layer 8 project-wide
+— by design, so a player doesn't see their own first-person body
+filling the screen. That exclusion is a property of the *camera*, not
+"hide MY body specifically" — it hides every layer-8 object from that
+camera, including a completely different player's body. This was
+invisible for the entire project's history because there was never a
+second player to be hidden by it until tonight.
+
+**Fixed same session**: `PlayerBodyModel.ActiveVisualObject` (new
+public property) exposes the currently active gendered Visual;
+`FirstPersonController.ApplyBodyLayer` (called from the same
+`ApplyLocalOwnershipVisuals` hook that already handles Camera/
+AudioListener) keeps a LOCAL player's own body on layer 8 (unchanged
+behavior) but forces a NON-local instance's body onto the normal
+Default layer — `isLocalPlayer` is already per-client, so this
+resolves correctly and independently on every machine ("my own body
+hidden from me, everyone else's visible to me"). Compile-verified only
+— needs a live retest to confirm the fix actually works, not yet done.
+
+**Known real gap, deliberately not solved by this fix**: currently
+*worn equipment* (Backpack, Boot, Belt, Canteen, etc.) independently
+manages its own `WornEquipmentLayer` assignment via each item's own
+`SetCarried()` call, which this fix doesn't touch. A remote player's
+body should now be visible, but their worn equipment may still render
+invisible (same root cause, different code path) until that's
+addressed too — logged here rather than solved blind, since it's not
+confirmed to actually reproduce yet and touches several more files
+(the same 11-carrier list `PlayerBodyModel.ApplyGender` already walks).
+
+## Multiplayer: per-connection spawning — live-confirmed working (found 2026-08-24, built + live-tested 2026-08-25)
+
+**Live-confirmed via a real two-connection test, 2026-08-25** (Editor
+host + standalone exe client, localhost): `Player(Clone)` genuinely
+spawned for the exe's connection, at the correct position, with
+`Is Local Player: No`/`Is Owned: No` from the host's own perspective —
+real per-connection ownership, not a shared/duplicated object. Each
+side's own vitals were independent (host's real character state vs.
+the exe's fresh Health 100/Body Temp 10 defaults), confirming the two
+connections are genuinely separate characters, not one state mirrored
+twice. The camera/audio-listener disable-on-non-local logic also
+confirmed working — a transient "no audio listener"/no-camera moment
+right at Host-click self-corrected within the same session (traced via
+`Editor.log`, warning stopped 73 lines before the log's end) exactly as
+designed, not a persistent failure. The one real bug this test did
+find — a remote player's body rendering fully invisible — was
+root-caused and fixed the same session; see this file's own entry on
+it. Below is the original build-time writeup, kept for the full
+mechanism detail.
+
+`GridlessNetworkManager
 .OnServerReady` used to assign connection authority to a single
 pre-existing scene `Player` object and explicitly refuse a second
 connection anything at all — see this entry's original description

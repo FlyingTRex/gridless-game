@@ -5,10 +5,61 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.201-dev` — must always match `GameVersion` in
+**Current version:** `0.3.202-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-25 (4)
+
+### v0.3.202-dev — First real live two-connection test: per-connection spawning confirmed working, one real bug found and fixed same session
+
+The actual milestone this whole session's multiplayer work was building
+toward: a genuine two-connection test (Editor host + a standalone exe
+client, both on localhost). Confirmed working, not just compiling —
+`Player(Clone)` spawned for the exe's connection at the correct
+position, correctly NOT locally-owned from the host's perspective, with
+its own independent character state (fresh Health 100/Body Temp 10
+defaults vs. the host's real in-progress vitals). The isLocalPlayer
+gating pass from earlier tonight also held up — a brief "no audio
+listener"/no-camera moment right at Host-click self-corrected within
+the same session exactly as designed.
+
+**One real bug found and fixed live**: neither side could see the
+other's character at all. Root-caused *without any code changes*, live
+— pressing V (third-person toggle) on the host revealed the host's own
+body, which pointed straight at the actual mechanism:
+`PlayerCameraMode.cs`'s own existing comment already explained it — a
+player's body sits permanently on `WornEquipmentLayer` (8), and every
+player's own camera excludes layer 8 project-wide so they don't see
+their own first-person body. That's a property of the *camera*, not
+"hide MY body" — it hides every layer-8 object from that camera,
+including a completely different player's body. Invisible for the
+project's entire history because there was never a second player to be
+hidden by it until tonight.
+
+Fixed: `PlayerBodyModel.ActiveVisualObject` (new public property)
+exposes the active gendered Visual; `FirstPersonController
+.ApplyBodyLayer` (hooked into the same local-ownership check that
+already handles Camera/AudioListener) keeps a local player's own body
+on layer 8 unchanged, but forces a non-local instance's body onto the
+normal Default layer — resolves correctly per-client since
+`isLocalPlayer` already is. Compile-verified only — the actual fix
+itself hasn't been retested live yet.
+
+**Known real gap, deliberately not solved by this fix**: worn
+equipment (Backpack, Boot, Belt, Canteen, etc.) manages its own
+`WornEquipmentLayer` assignment independently via each item's own
+`SetCarried()`, untouched by this fix — a remote player's body should
+now render, but their worn equipment may still be invisible via the
+same root cause. Logged in `BUGS_AND_ENHANCEMENTS.md` rather than
+guessed at blind.
+
+An earlier live misdiagnosis mid-session is worth recording as a
+lesson, not just quietly corrected: a white humanoid figure spotted on
+the host's screen was initially assumed to be the missing second
+player — it was actually an unrelated hired NPC. The real second
+player was, at that point, still genuinely fully invisible.
 
 ## 2026-08-25 (3)
 

@@ -1268,6 +1268,41 @@ needs authority over. What remains is the next phase down:
       confirm it comes back correctly while the other stayed live and
       unaffected. The real proof, not just "compiles and doesn't error
       solo."
+
+      **A real solo version of this ran 2026-08-25 (Editor host +
+      standalone exe client, localhost) — mostly successful, one real
+      bug found and fixed live.** Confirmed: `Player(Clone)` spawned
+      correctly for the exe's connection at the right position, with
+      independently-tracked vitals (fresh defaults vs. the host's real
+      state) and correct non-local ownership from the host's own side —
+      per-connection spawning and the Connect screen are both now
+      genuinely proven, not just compiled. The isLocalPlayer gating
+      pass also held: a transient camera/audio-listener disable right
+      at Host-click self-corrected within the same session as designed.
+
+      **One real bug found and root-caused live, zero code needed to
+      diagnose it**: neither side could see the other's character.
+      Pressing V (third-person toggle) on the host revealed the host's
+      own body, which pointed straight at `PlayerCameraMode.cs`'s own
+      documented mechanism — `WornEquipmentLayer` (8) is excluded from
+      every player's own camera project-wide (so nobody sees their own
+      first-person body), but that exclusion is a property of the
+      *camera*, not "hide MY body" — it hides every layer-8 object from
+      that camera, including someone else's. Fixed same session
+      (v0.3.202-dev): `PlayerBodyModel.ActiveVisualObject` +
+      `FirstPersonController.ApplyBodyLayer` force a non-local
+      instance's body onto the Default layer instead, resolved
+      correctly per-client since `isLocalPlayer` already is.
+      Compile-verified only — **the fix itself hasn't been retested
+      live yet**, that's the immediate next step, not a full solo
+      multi-connection test needed. Known follow-up gap: worn equipment
+      on a remote player likely has the identical invisibility problem,
+      not addressed by this fix (`BUGS_AND_ENHANCEMENTS.md`).
+
+      Still remaining before the REAL cross-machine test with traskmi:
+      confirm the body-layer fix live, then the genuine two-location
+      test itself (save/disconnect/reconnect while the other player
+      stays live, real port forwarding).
 6. **Everything design-brief item 6 implies beyond core sync** — IP-
    geolocated spawn points, settlement/city growth as shared macro-layer
    state, Warfare/PvP (`docs/design-brief.md`'s Settlement Warfare

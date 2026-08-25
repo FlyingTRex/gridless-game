@@ -69,6 +69,25 @@ public class FirstPersonController : MonoBehaviour
     private NetworkIdentity netIdentity;
     private bool cursorInitialized;
 
+    // Remote-player body visibility (2026-08-25, found in the first-ever
+    // live two-connection test): the body Visual permanently sits on
+    // WornEquipmentLayer (8, see PlayerCameraMode's own comment on why --
+    // it's how a player's own camera hides their own first-person body).
+    // That exclusion is a property of the CAMERA, not "hide MY body" --
+    // it hides every layer-8 object from that camera, so a non-local
+    // Player's body was invisible to every other camera too, not just its
+    // own. Fixed by keeping the LOCAL player's own body on layer 8
+    // (unchanged, still correctly hidden from its own camera) but forcing
+    // a NON-local instance's body onto the normal Default layer, per
+    // client -- isLocalPlayer is already per-client, so this naturally
+    // resolves to "my own body hidden from me, everyone else's visible to
+    // me" independently on every machine.
+    private const int WornEquipmentLayer = 8;
+    private const int DefaultLayer = 0;
+    private PlayerBodyModel bodyModel;
+    private bool lastAppliedBodyLayerLocal = true;
+    private GameObject lastAppliedBodyLayerTarget;
+
     private CharacterController controller;
     private PlayerVitals vitals;
     private PlayerEncumbrance encumbrance;
@@ -114,6 +133,7 @@ public class FirstPersonController : MonoBehaviour
     private void Awake()
     {
         netIdentity = GetComponent<NetworkIdentity>();
+        bodyModel = GetComponent<PlayerBodyModel>();
         controller = GetComponent<CharacterController>();
         vitals = GetComponent<PlayerVitals>();
         encumbrance = GetComponent<PlayerEncumbrance>();
@@ -153,6 +173,31 @@ public class FirstPersonController : MonoBehaviour
         var listener = playerCamera != null ? playerCamera.GetComponent<AudioListener>() : null;
         if (listener != null && listener.enabled != local)
             listener.enabled = local;
+
+        ApplyBodyLayer(local);
+    }
+
+    // Only re-walks the hierarchy when the local/remote state or the
+    // active gendered Visual actually changed (gender toggle, or
+    // isLocalPlayer settling shortly after spawn) -- cheap steady-state
+    // instead of a recursive layer assignment every single frame forever.
+    private void ApplyBodyLayer(bool local)
+    {
+        var visual = bodyModel != null ? bodyModel.ActiveVisualObject : null;
+        if (visual == lastAppliedBodyLayerTarget && local == lastAppliedBodyLayerLocal) return;
+
+        lastAppliedBodyLayerTarget = visual;
+        lastAppliedBodyLayerLocal = local;
+        if (visual == null) return;
+
+        SetLayerRecursively(visual.transform, local ? WornEquipmentLayer : DefaultLayer);
+    }
+
+    private static void SetLayerRecursively(Transform root, int layer)
+    {
+        root.gameObject.layer = layer;
+        for (int i = 0; i < root.childCount; i++)
+            SetLayerRecursively(root.GetChild(i), layer);
     }
 
     private void OnEnable()
@@ -366,7 +411,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.201-dev";
+    private const string GameVersion = "0.3.202-dev";
 
     private float lastSpeed;
     private bool lastSprinting;
