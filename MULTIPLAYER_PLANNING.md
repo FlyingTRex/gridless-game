@@ -1154,6 +1154,21 @@ needs authority over. What remains is the next phase down:
       autosave on an interval, save-on-disconnect (that one character),
       save-on-shutdown (everything). Genuinely new logic, not an
       adaptation of the manual-button flow.
+
+      **Sub-chunk 5a done, 2026-08-24 (v0.3.198-dev).** `SaveManager`
+      converted to `NetworkBehaviour`, plus a real `RequestSave`/
+      `CmdSave` Command routing the manual Save button through it —
+      file I/O has to happen on the server's own disk, not whichever
+      client's machine clicked the button (invisible in host-alone
+      testing, real once a genuine remote client exists).
+      `GameMenuScreen`'s Save button now calls `RequestSave()`. Every
+      other `SaveManager` method unchanged — `Save()` is still correct
+      to call directly from anything already running server-side.
+      Live-confirmed: saved through the Command, verified the real
+      `save.json` on disk had correct data under the right `PlayerId`
+      key, zero errors. Autosave/disconnect/shutdown (5b) not started
+      — `PlayerAutosave.cs` (already exists, 10-minute interval) still
+      calls `Save()` directly, unguarded by `isServer`.
    6. **Real connectivity, before the live multi-connection test can
       happen at all** — Ben and traskmi test from genuinely different
       physical locations, both with real public IPs (no CGNAT, both

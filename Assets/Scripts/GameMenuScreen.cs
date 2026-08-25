@@ -157,7 +157,7 @@ public class GameMenuScreen : MonoBehaviour
         GUILayout.Label("Save Game", DebugGUI.Label);
         if (saveManager != null && GUILayout.Button("Save", GUILayout.Width(TabWidth), GUILayout.Height(TabHeight)))
         {
-            saveManager.Save();
+            saveManager.RequestSave();
             saveStatusMessage = "Saved.";
             saveStatusExpireTime = Time.time + 3f;
         }

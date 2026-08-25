@@ -5,10 +5,31 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.197-dev` — must always match `GameVersion` in
+**Current version:** `0.3.198-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-24 (2)
+
+### v0.3.198-dev — Persistence restructure chunk 5a: real Save Command
+
+`SaveManager` converted to `NetworkBehaviour`, plus a real
+`RequestSave`/`CmdSave` Command routing the manual Save button through
+it. File I/O has to happen on the server's own disk (the actual source
+of truth for a dedicated server), not whichever client's machine
+clicked the button — invisible in host-alone testing (client and
+server are the same process there), but a genuine remote client's
+local `Save()` call would write to that client's own disk, not the
+server's. Every other `SaveManager` method is unchanged — calling
+`Save()` directly is still correct for anything already running
+server-side (autosave, disconnect, shutdown — chunk 5b, not built
+yet). `GameMenuScreen`'s Save button now calls `RequestSave()` instead
+of `Save()` directly.
+
+Live-confirmed: saved through the real Command, verified the actual
+`save.json` file on disk had the correct character data under the
+right `PlayerId` key, zero errors.
 
 ## 2026-08-24 (1)
 

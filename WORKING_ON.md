@@ -17,72 +17,81 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.196-dev is merged to origin/main.** Multiplayer
+**Everything through v0.3.198-dev is merged to origin/main.** Multiplayer
 Phase 3 is fully complete (all 5 sub-phases). "NPCs move server-side" is
-substantially done: the 5 job-driven NPC scripts, roaming wildlife (Wolf/
-Rabbit/Pig), and a follow-up audit that found and fixed 4 more missed
-Update() loops (NPCWander — the actual foundational idle movement,
-NPCFlee, NPCVitals, NPCHiring's work timer) are all server-guarded and
-live-confirmed. See MULTIPLAYER_PLANNING.md section 3 item 4 for the full
-detail.
+substantially done (see `MULTIPLAYER_PLANNING.md` section 3 item 4).
 
-**2026-08-23 — uncommitted local work, not yet tested or pushed — pick
-this up first next session:**
-- `NPCHiringScreen.cs` — added `RequestTalk`/`RequestSetFrozen` Commands,
-  closing the last flagged low-priority gap (Talk/Freeze were still
-  calling `NPCDialogue`/`NPCFreeze` directly instead of through a
-  Command). Compiles clean, **not yet live-tested** — verify Talk still
-  opens dialogue and the Frozen checkbox still holds an NPC in place
-  before committing.
+**Persistence restructure — chunks 1-4 done + chunk 5a done, 2026-08-23/24**
+(see `MULTIPLAYER_PLANNING.md` section 3 item 5 for full chunk-by-chunk
+detail). Chunk 5's remaining sub-chunk (5b: autosave/save-on-disconnect/
+save-on-shutdown, all server-guarded) not started —
+`PlayerAutosave.cs` still calls `Save()` directly, unguarded by
+`isServer`. Chunk 6 (a real Connect screen + port forwarding) is a
+confirmed prerequisite for the eventual live test with traskmi (both
+have real public IPs, no CGNAT, router access — port forwarding will
+work) — zero Connect UI exists anywhere today, not even Mirror's stock
+`NetworkManagerHUD`.
+
+**2026-08-24 — a genuinely functional playtest (Ben deliberately
+avoiding Admin Spawn) found and fixed a real early-game bootstrap
+deadlock**, live-confirmed end-to-end (crafted Copper Nail from raw
+Copper, gathered Plank, built a Storage Box):
+- Added `CopperNail`/`CopperNailRecipe` (1 raw Copper → 5 Copper Nail,
+  no Furnace needed), swapped `StorageBoxPiece` from iron Nail to
+  Copper Nail, registered in `Player.prefab`'s recipe list, databases
+  repopulated. Iron Nail recipe itself untouched.
+- Confirmed every scattered Boulder having `AnvilSurface` is
+  *intentional* ("Hammer + Boulder → Nail" was the original design,
+  already correctly implemented) — not a bug, don't "fix" it.
+- Fixed a real NPC bug: `MineOreJob.asset` had the Mining Face Shield
+  as a *mandatory* tool, so a Mining NPC could never start working at
+  all. Removed — Shield is now correctly just a situational benefit.
+- Removed the dev-convenience Anvil, Furnace, and a placed Mining Face
+  Shield pickup from `TestScene.unity` (near spawn) for a genuine
+  from-zero test.
+- Designed (not built) a full **Metal Detecting** system with Ben —
+  a trained attribute-style skill (grown by mining, same pattern as
+  Str/Dex/Con/Int) gating Silver/Gold/Platinum visibility specifically
+  (Rock/Copper/Iron stay baseline-visible regardless). The Mining Face
+  Shield's own reveal power needs scoping down to common ore only, or
+  it undercuts the whole gate — logged in `BUGS_AND_ENHANCEMENTS.md`.
+
+**Real bugs found live tonight, logged but not fixed — pick these up
+next:**
+- `ReachableInventories` (the "how much of X do I have" check) only
+  looks at main inventory + the equipped Backpack specifically —
+  independently duplicated with the identical gap across 4 systems
+  (`PlayerBuilding`, `PlayerCrafting`, `PlayerPieceUpgrade`,
+  `VendorStallScreen`), none of them checking Belt/Shirt/Jeans. Found
+  live: 9 Plank in a worn Shirt didn't count toward a Storage Box
+  build. `PlayerCarriedItems.cs` already has the correct generalized
+  pattern (`ContainerSlots = { "Back", "Waist", "Chest", "Leg" }`) from
+  fixing this identical bug once before for NPC tool-giving — the real
+  fix is one shared helper all 4 call sites use, not 4 separate patches.
+- Nail's icon renders as a Hammer — confirmed pre-existing (not
+  introduced by tonight's Copper Nail work, which faithfully copied
+  Nail's own already-wrong icon reference).
+- Nail/Copper Nail appeared capped at 10 in a stack (both in main
+  inventory and moving into a Backpack), but the code says the cap
+  should be 20 (`Inventory.MaxStackCap = 20`, `Mathf.Min(20, 20) = 20`,
+  no duplicate asset, no hardcoded 10 anywhere found). Best guess is a
+  stale Play session, **not confirmed** — needs a real retest from a
+  fresh domain reload before assuming anything.
+
+**2026-08-23 — uncommitted local work from earlier, still not tested or
+pushed — pick this up too:**
+- `NPCHiringScreen.cs` — added `RequestTalk`/`RequestSetFrozen`
+  Commands, closing the last flagged low-priority gap. Compiles clean,
+  **not yet live-tested** — verify Talk still opens dialogue and the
+  Frozen checkbox still holds an NPC in place before committing.
 - `PlayerInteraction.cs` / `PlayerRangedCombat.cs` — **temporary debug
   logging only, not meant to ship as-is.** Added to chase the stuck
-  empty hold-progress-bar bug (`BUGS_AND_ENHANCEMENTS.md`) — Ben's
-  latest report ties it to Bow/arrow usage specifically ("something I'm
-  trying to do and then click the mouse"), seen a few times since the
-  original Heal Self report. `PlayerRangedCombat` logs every `isDrawing`
-  state transition; `PlayerInteraction.OnGUI` logs (throttled, once/sec)
-  whenever the E-hold bar is actually drawing, printing which
-  `IInteractable` and its progress/duration. Next session: reproduce
-  with the bow (draw/fire, including odd timing like clicking right as
-  something else happens), read the log for `[RangedDebug]`/
-  `[HoldBarDebug]` lines, root-cause it, then **remove this logging**
-  before committing the real fix — don't ship the instrumentation.
-
-The persistence restructure for a real dedicated server is now underway
-(chunked, 2026-08-23, see `MULTIPLAYER_PLANNING.md` section 3 item 5 for
-the full 7-chunk breakdown: data-shape split -> real player identity ->
-per-player load/save -> new-vs-returning logic -> real save triggers ->
-real connectivity -> live multi-connection test). **Chunks 1-4 done,
-2026-08-23 (v0.3.193-dev through v0.3.196-dev, all pushed).** Chunk 1
-split `"player"` vs. `"world"`. Chunk 2 gave `PlayerIdentity` a real
-stable `PlayerId`. Chunk 3 turned `"player"` into `"characters"`, a
-dictionary keyed by `PlayerId`, with a read-modify-write `Save()` and a
-`PlayerIdReady`-driven timing fix. Chunk 4 found and fixed a real
-multiplayer bug: `PlayerMagic.Awake()` decided "give this player their
-free starting Magic lineage" off the old global `SaveExists` (fired
-before `PlayerId` even resolves) — a second player joining a world
-someone else had saved would silently skip their own free lineage.
-Moved into a new `SaveManager.ResolveFreshStart()`, the one place that
-now correctly determines "is this a genuinely new character" per-
-player. Live-confirmed: a fresh character got a random starting
-lineage *and* correctly kept a second one restored from an earlier
-session's skill-book read, zero errors. Next up: chunk 5 (real save
-triggers — autosave, save-on-disconnect, save-on-shutdown; today it's
-still a manual button + auto-Load-on-Start).
-
-One real decision already made during planning: single JSON file with
-a per-player dictionary, not real separate files (confirmed by Ben
-before chunk 3 started). One real, concrete prerequisite surfaced during
-planning: Ben and traskmi test from genuinely different physical
-locations (both confirmed real public IPs, no CGNAT, both have router
-access) — so chunk 6 (a real Connect screen + port forwarding on
-whichever side hosts) is a genuine blocker for the final live test, not
-later polish. Confirmed directly (not assumed): zero Connect UI exists
-anywhere today, not even Mirror's own stock `NetworkManagerHUD` wired
-into `TestScene.unity`.
-
-Still to do after the persistence restructure: whether the design-brief's
-other Phase 2/3 items need anything.
+  empty hold-progress-bar bug — Ben's report ties it to Bow/arrow usage
+  specifically. `PlayerRangedCombat` logs every `isDrawing` state
+  transition; `PlayerInteraction.OnGUI` logs (throttled, once/sec)
+  whenever the E-hold bar is drawing. Reproduce, read the
+  `[RangedDebug]`/`[HoldBarDebug]` log lines, root-cause it, then
+  **remove this logging** before committing the real fix.
 
 Also cleaned up this session: an unrelated Discord bot project (`pom.xml`/
 `src/`/`config.json`, using JDA) had somehow been scaffolded directly into

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Mirror;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -13,6 +14,21 @@ using UnityEngine;
 // SaveId-tagged StorageBox/ResourceNode/NPCHiring in the scene. Explicitly
 // deferred, per the plan: loose world pickups, built structures, Lockbox/
 // Bank contents.
+//
+// Persistence restructure chunk 5a (MULTIPLAYER_PLANNING.md section 3
+// item 5), 2026-08-23: converted to NetworkBehaviour, plus a real
+// RequestSave/CmdSave Command. File I/O has to happen on the server's
+// own disk (the actual source of truth for a dedicated server), not
+// whichever client's machine clicked the button -- today that's
+// invisible in host-alone testing (client and server are the same
+// process), but a genuine remote client's local Save() call would
+// write to that client's own disk, not the server's. Every OTHER
+// SaveManager method (Save/Load/CapturePlayer/RestorePlayer/
+// ResolveFreshStart/...) stays exactly as it was -- calling Save()
+// directly is now only correct when isServer is already true (the
+// Command, or a server-only trigger like autosave/disconnect/shutdown
+// in chunk 5b); a client calling it directly would still write to its
+// own local disk harmlessly, just not to the real save location.
 [RequireComponent(typeof(FirstPersonController))]
 [RequireComponent(typeof(PlayerVitals))]
 [RequireComponent(typeof(PlayerSkills))]
@@ -22,7 +38,7 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerFame))]
 [RequireComponent(typeof(PlayerMagic))]
 [RequireComponent(typeof(PlayerIdentity))]
-public class SaveManager : MonoBehaviour
+public class SaveManager : NetworkBehaviour
 {
     private const string FileName = "save.json";
 
@@ -142,6 +158,16 @@ public class SaveManager : MonoBehaviour
     // an older shape won't load correctly under this Load() -- delete any
     // old save.json before testing this, there's no migration path and
     // none is planned for a pre-restructure dev save.
+
+    // Chunk 5a: the real trigger for a client-initiated save (the manual
+    // Save button). Save() itself is unchanged and still callable
+    // directly by anything already running server-side (autosave,
+    // disconnect, shutdown -- chunk 5b).
+    public void RequestSave() => CmdSave();
+
+    [Command]
+    private void CmdSave() => Save();
+
     public void Save()
     {
         string playerId = identity != null ? identity.PlayerId : null;
