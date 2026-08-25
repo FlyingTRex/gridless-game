@@ -5,6 +5,31 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## Tool tier gives no real functional benefit within its own class — only weight savings (found 2026-08-24, not started)
+
+Ben's observation, confirmed directly against the code: a Fine Axe does
+nothing better than a Crude Axe except weigh less. Checked both angles
+that could give a higher tier a real edge — neither exists:
+
+- `ChoppableTree.GetHoldDuration` is driven entirely by the player's
+  Woodworking *skill* level (`PlayerSkills.GetHoldDuration`), with zero
+  reference to which axe tier is actually equipped. Chop speed doesn't
+  care if you're swinging a Crude or Masterwork axe.
+- No Axe `ItemDefinition` asset (`CrudeAxe` through `MasterworkAxe`)
+  has `isMeleeWeapon` set, so axes don't even get the tier-based combat
+  damage bonus Knives already do (`CraftTierScale.WeaponDamageBonus`).
+
+So today, tier only ever shows up as a lighter number on the
+Encumbrance screen (`CraftTierScale.WeightModifier`) — genuinely no
+in-class functional benefit at all. Surfaced the same night as the
+`damageClass`/tool-category design conversation (this session,
+2026-08-24) — a real concrete example of the gap that conversation was
+circling: tier should mean something functional within its own class
+(faster chop time, better yield, something), not just less carry
+weight. Likely affects other non-weapon tool types too (Pickaxe?) —
+worth auditing broadly, not just fixing Axe in isolation, once this
+gets picked up. Not started.
+
 ## ReachableInventories only checks the Backpack, not Belt/Shirt/Jeans — duplicated across 4 systems (found 2026-08-24, not started)
 
 Found live: Ben had 9 Plank sitting in a worn Settler's Shirt, but the
