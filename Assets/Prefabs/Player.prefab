@@ -178,6 +178,8 @@ GameObject:
   - component: {fileID: 4560971266561657496}
   - component: {fileID: 782129189794862934}
   - component: {fileID: 7967023064736441264}
+  - component: {fileID: 3405476570264271705}
+  - component: {fileID: 8272174797568411135}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -448,6 +450,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f16c4aebe1989263a6515e77bdcd5a27, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerDropping
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   droppedItemPrefab: {fileID: 1931988532258926014, guid: c8732281c83045432f0d2a717de0b4c0, type: 3}
   dropDistance: 1.2
   dropHeight: 1
@@ -613,6 +618,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 997806f7656fbbf4292bd8642024fb67, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerRenaming
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   interactRange: 3
 --- !u!114 &2018769474673183334
 MonoBehaviour:
@@ -875,6 +883,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 277d3099d121fc44694e234b359a0456, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AdminSpawnScreen
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!114 &6324735122816903449
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1525,6 +1536,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0514b27a5b8c5d34ea2fd450a54c9b6d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAutosave
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
 --- !u!114 &2860347561954786465
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1630,6 +1644,33 @@ MonoBehaviour:
   rotationSensitivity: 0.01
   positionPrecision: 0.01
   scalePrecision: 0.01
+--- !u!114 &3405476570264271705
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5828924365102798453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb69784a87448dc49b1b54c4e3842f26, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerTeam
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
+--- !u!114 &8272174797568411135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5828924365102798453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e97d26b6b3a9d134d95cacdc4aed1c12, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TeamScreen
 --- !u!1 &7389703769327552663
 GameObject:
   m_ObjectHideFlags: 0

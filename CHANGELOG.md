@@ -5,10 +5,61 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.205-dev` — must always match `GameVersion` in
+**Current version:** `0.3.206-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-28 (1)
+
+### v0.3.206-dev — Team built: roster, roles, invite/kick/promote, cosmetic territory
+
+MVP4's Team half, per `MVP4_PLANNING.md`/`TEAMS_AND_GUILDS_PLANNING.md`'s
+fully-resolved design (planned 2026-08-26, built 2026-08-28 once both of
+Team's stated blockers — player-authoritative gameplay and player
+identity — were confirmed already shipped). New `PlayerTeam.cs`
+(`NetworkBehaviour`, one per player, three `[SyncVar]`s — `teamId`/
+`teamName`/`role` — no separate global registry; a roster is built by
+scanning every other player's own `PlayerTeam` via `FindObjectsByType`
+and filtering by `teamId`, same live-scan pattern `MapScreen
+.DrawFlagMarkers` already established for Village Flags) with real
+Commands for the whole lifecycle: create (pure UI action, no physical
+object — Team's territory has no single founding location the way
+Guild's Sign does), disband, leave (Owner must explicitly hand off first
+— no auto-succession; a solo Owner leaving just disbands), invite/accept/
+decline (one pending invite at a time, a `[SyncVar]` on the recipient so
+it persists until acted on, not a one-shot toast), kick, and promote-to-
+Officer/promote-to-Owner. Cap 6, Owner/Officer/Member roles, Officer
+permission set is invite+kick-Members-only (itemized in the planning doc).
+
+New `TeamScreen.cs` (**T** to open, added to `GameMenuScreen.ControlsList`)
+— team info + 6-row roster with per-row Kick/Promote (hidden entirely for
+a viewer who isn't authorized to use them, not shown-and-rejected) when in
+a team, or a Create-Team button + any pending invite when not. Bottom
+section is a simple nearby-player radius scan with an Invite button —
+deliberately NOT scoped to team territory, since a freshly created team
+has zero territory until a Flag is placed, and gating invites on that
+would leave it with nobody to invite. Every state-changing button routes
+through a local `LeftClickButton` helper (`Event.current.button == 0`)
+rather than a raw `GUILayout.Button` — this project's own established
+gotcha, `GUILayout.Button` fires on any mouse button.
+
+Deliberately NOT built: any object-level access control. A real codebase
+survey during planning found there's no ownership/permission plumbing
+anywhere in this project (`StorageBox`'s single crude `isPlayerOwned`
+flag is the closest thing, and `Furnace` has none at all) — Team stays a
+roster + cosmetic map territory (not yet drawn — the outline itself is
+still to build) + vendor-split (not yet built) only, matching what was
+actually asked for (two trusted collaborators) rather than the original
+design doc's much bigger "public dedicated servers, real strangers" scope.
+
+Added to both `Assets/Prefabs/Player.prefab` and `TestScene.unity`'s own
+scene-placed Player object (the first/host connection uses the scene
+object directly, not the prefab — confirmed both got the new components
+via a genuinely separate batch-mode verification process, not just
+trusting the adding script's own log, per this project's Force-Binary-
+serialization gotcha). Compile-verified only — **not yet live-tested**,
+including with a real second connection.
 
 ## 2026-08-26 (1)
 

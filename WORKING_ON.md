@@ -17,7 +17,7 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.204-dev is merged to origin/main.**
+**Everything through v0.3.206-dev is merged to origin/main.**
 
 ## Multiplayer roadmap — mostly closed out, one real gap found 2026-08-26
 

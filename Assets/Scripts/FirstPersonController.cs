@@ -103,6 +103,7 @@ public class FirstPersonController : MonoBehaviour
     private NPCCraftingScreen npcCraftingScreen;
     private NPCTrainingScreen npcTrainingScreen;
     private MapScreen mapScreen;
+    private TeamScreen teamScreen;
     private NPCRosterScreen npcRosterScreen;
     private PlayerNPCDeposit npcDeposit;
     private Vector3 velocity;
@@ -148,6 +149,7 @@ public class FirstPersonController : MonoBehaviour
         npcCraftingScreen = GetComponent<NPCCraftingScreen>();
         npcTrainingScreen = GetComponent<NPCTrainingScreen>();
         mapScreen = GetComponent<MapScreen>();
+        teamScreen = GetComponent<TeamScreen>();
         npcRosterScreen = GetComponent<NPCRosterScreen>();
         npcDeposit = GetComponent<PlayerNPCDeposit>();
     }
@@ -273,6 +275,7 @@ public class FirstPersonController : MonoBehaviour
                 npcCraftingScreen?.Close();
                 npcTrainingScreen?.Close();
                 mapScreen?.Close();
+                teamScreen?.Close();
                 npcRosterScreen?.Close();
             }
         }
@@ -415,7 +418,7 @@ public class FirstPersonController : MonoBehaviour
             ball.TryKick(gameObject);
     }
 
-    private const string GameVersion = "0.3.205-dev";
+    private const string GameVersion = "0.3.206-dev";
 
     private float lastSpeed;
     private bool lastSprinting;

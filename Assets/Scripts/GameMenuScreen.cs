@@ -29,6 +29,7 @@ public class GameMenuScreen : MonoBehaviour
         ("N", "Open the NPC Roster"),
         ("Right Mouse Button", "Rename a world object"),
         ("Space", "Jump"),
+        ("T", "Open Team management"),
         ("Tab", "Open the player menu (Inventory / Skills / Crafting)"),
         ("V", "Toggle first-person / third-person view"),
         ("W A S D", "Move"),
