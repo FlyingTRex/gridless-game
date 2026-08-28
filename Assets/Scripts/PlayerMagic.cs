@@ -20,18 +20,21 @@ using UnityEngine;
 // it. Converted to NetworkBehaviour and added a syncedKnownLineageIds
 // SyncList, same server-Update-poll + client-Callback-reconciliation
 // shape PlayerInventory/PlayerSkills' own fixes already established.
-// NOT extended tonight to TryWish/LearnLineage/GrantWish/SelectWish
-// themselves -- those are all still called directly (PlayerInteraction,
-// PlayerReading, MagicScreen), never through a Command, which is a
-// separate and much bigger gap: a real remote client's OWN wish-casting
-// (and by the same shape, most other skill-training actions that don't
-// happen to run inside a Command) never reaches the server at all today,
-// so it's invisible to other players and would be lost on disconnect
-// before a save captures it. Flagged prominently in
-// BUGS_AND_ENHANCEMENTS.md as its own, larger, still-open finding --
-// not attempted here, since fixing it means converting every such call
-// site to a Command, the same "unestimated" scope MULTIPLAYER_PLANNING.md
-// already flags for the full PlayerXXX.cs conversion.
+// UPDATE (2026-08-28, fixing PlayerReading): LearnLineage/GrantWish are
+// now correctly reached via a Command when triggered from PlayerReading
+// .RequestRead -- bookGrantedWishes also gained its own
+// syncedBookGrantedWishIds SyncList (same shape as knownLineages' own
+// fix), since it had the identical unsynced gap. TryWish/SelectWish
+// (MagicScreen, PlayerInteraction's wish-casting) are NOT fixed by this
+// -- those are still called directly, never through a Command, the
+// same separate and much bigger gap: a real remote client's OWN
+// wish-casting never reaches the server at all today, so it's invisible
+// to other players and would be lost on disconnect before a save
+// captures it. Still flagged in BUGS_AND_ENHANCEMENTS.md as its own,
+// larger, still-open finding -- fixing it means converting every such
+// call site to a Command, the same "unestimated" scope
+// MULTIPLAYER_PLANNING.md already flags for the full PlayerXXX.cs
+// conversion.
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerVitals))]
@@ -75,6 +78,12 @@ public class PlayerMagic : NetworkBehaviour
     // never a blanket unlock of every wish in the lineage).
     private readonly HashSet<WishRecipe> bookGrantedWishes = new HashSet<WishRecipe>();
 
+    // FIXED (2026-08-28, MULTIPLAYER_INTERACTION_AUDIT.md, fixing
+    // PlayerReading): same unsynced gap knownLineages had before its own
+    // fix above -- reuses this class's own existing IdForWish/FindWish
+    // (already built for save/load) rather than a new lookup.
+    public readonly SyncList<string> syncedBookGrantedWishIds = new SyncList<string>();
+
     // Server-owned, broadcast to every observer -- what lineages this
     // character knows, by stable string ID (SkillDatabase.IdFor, same
     // lookup PlayerSkills.syncedLevels already uses). knownLineages only
@@ -110,6 +119,7 @@ public class PlayerMagic : NetworkBehaviour
         skills = GetComponent<PlayerSkills>();
         vitals = GetComponent<PlayerVitals>();
         syncedKnownLineageIds.Callback += OnSyncedLineagesChanged;
+        syncedBookGrantedWishIds.Callback += OnSyncedBookGrantedWishesChanged;
 
         // Only a genuinely new character gets the free random lineage
         // (design-brief.md's "no lineage-less players") -- deciding that
@@ -136,6 +146,18 @@ public class PlayerMagic : NetworkBehaviour
     private void OnDestroy()
     {
         syncedKnownLineageIds.Callback -= OnSyncedLineagesChanged;
+        syncedBookGrantedWishIds.Callback -= OnSyncedBookGrantedWishesChanged;
+    }
+
+    private void OnSyncedBookGrantedWishesChanged(SyncList<string>.Operation op, int index, string oldItem, string newItem)
+    {
+        if (isServer) return;
+
+        foreach (var id in syncedBookGrantedWishIds)
+        {
+            var wish = FindWish(id);
+            if (wish != null) bookGrantedWishes.Add(wish);
+        }
     }
 
     private void Update()
@@ -270,7 +292,13 @@ public class PlayerMagic : NetworkBehaviour
     // calls only LearnLineage, never this).
     public void GrantWish(WishRecipe wish)
     {
-        if (wish != null) bookGrantedWishes.Add(wish);
+        if (wish == null || !bookGrantedWishes.Add(wish)) return;
+
+        if (isServer)
+        {
+            string id = IdForWish(wish);
+            if (id != null) syncedBookGrantedWishIds.Add(id);
+        }
     }
 
     // Called by a wish target (e.g. Campfire) from its own Complete() once

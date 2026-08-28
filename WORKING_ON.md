@@ -17,12 +17,13 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**v0.3.211-dev is built and compile-verified, not yet committed** —
-Piece Destroy's hold key actually fixed (Upgrade=E click, Destroy=G
-hold; X was already taken by Kneel Stance), plus a new standing project
-rule in `CLAUDE.md` to consider multiplayer implications for everything
-built from now on. Everything through v0.3.210-dev is merged to
-`origin/main`.
+**v0.3.213-dev is built and compile-verified, not yet committed** —
+`PlayerReading` and `PlayerWriting` both fixed (real permanent-unlock
+loss risk for a remote client — writing was worse, since it also spawns
+a brand-new physical object that never network-spawned at all), plus
+the identical unsynced-`HashSet` gap found and fixed in both
+`PlayerCrafting.bookGrantedRecipes` and `PlayerMagic.bookGrantedWishes`.
+Everything through v0.3.212-dev is merged to `origin/main`.
 
 ## Multiplayer roadmap — mostly closed out, one real gap found 2026-08-26
 

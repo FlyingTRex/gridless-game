@@ -516,7 +516,7 @@ public class InventoryScreen : MonoBehaviour
         {
             if (reading != null && GUILayout.Button("Read"))
             {
-                reading.TryRead(pendingActionSource, book);
+                reading.RequestRead(ContainerKeyFor(pendingActionSource), book);
                 return true;
             }
         }

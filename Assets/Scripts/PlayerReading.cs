@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 // Reading half of the skill-books mechanic (SKILL_BOOKS_PLANNING.md
@@ -7,10 +8,23 @@ using UnityEngine;
 // InventoryScreen's pendingActionEquipment branch, same shape Canteen's
 // Drink/Fill buttons already use there — not FindEdible-style item
 // lookup, which only works for plain ItemDefinition-only consumables.
+//
+// FIXED (2026-08-28, MULTIPLAYER_INTERACTION_AUDIT.md): converted to
+// NetworkBehaviour. TryRead used to run entirely client-local -- for a
+// real remote client, the granted recipe/wish (a PERMANENT unlock) never
+// reached the server at all, meaning it would be silently lost on
+// disconnect (SaveManager only ever captures the server's own copy),
+// same risk already flagged for PlayerMagic.TryWish. RequestRead routes
+// through a Command the same way PlayerInventory's own Commands resolve
+// a container: by string key (ResolveContainerByKey, not a raw Inventory
+// reference, which can't cross the wire) plus the book's own
+// NetworkIdentity. TryRead itself is unchanged below except for the
+// network-aware destroy at the end.
 [RequireComponent(typeof(PlayerCrafting))]
 [RequireComponent(typeof(PlayerMagic))]
 [RequireComponent(typeof(PlayerSkills))]
-public class PlayerReading : MonoBehaviour
+[RequireComponent(typeof(PlayerInventory))]
+public class PlayerReading : NetworkBehaviour
 {
     [SerializeField] private SkillDefinition intelligenceSkill;
 
@@ -27,12 +41,39 @@ public class PlayerReading : MonoBehaviour
     private PlayerCrafting crafting;
     private PlayerMagic magic;
     private PlayerSkills skills;
+    private PlayerInventory playerInventory;
 
     private void Awake()
     {
         crafting = GetComponent<PlayerCrafting>();
         magic = GetComponent<PlayerMagic>();
         skills = GetComponent<PlayerSkills>();
+        playerInventory = GetComponent<PlayerInventory>();
+    }
+
+    // Called by InventoryScreen's Read button — containerKey is the same
+    // string scheme PlayerInventory.ResolveContainerByKey already
+    // understands ("main", a PlayerEquipment slot name, or "worn:<slot>"),
+    // since a raw Inventory reference can't cross the network.
+    public void RequestRead(string containerKey, SkillBook book)
+    {
+        if (book == null) return;
+
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            if (!book.TryGetComponent(out NetworkIdentity bookIdentity)) return;
+            CmdRead(containerKey, bookIdentity);
+            return;
+        }
+
+        TryRead(playerInventory.ResolveContainerByKey(containerKey), book);
+    }
+
+    [Command]
+    private void CmdRead(string containerKey, NetworkIdentity bookIdentity)
+    {
+        var book = bookIdentity != null ? bookIdentity.GetComponent<SkillBook>() : null;
+        TryRead(playerInventory.ResolveContainerByKey(containerKey), book);
     }
 
     // source is whichever Inventory the book is actually sitting in (main
@@ -71,7 +112,12 @@ public class PlayerReading : MonoBehaviour
             skills.GainExperience(intelligenceSkill, ReadIntelligenceGain);
 
         source.RemoveEquipmentItem(book.ItemDefinition);
-        Destroy(book.gameObject);
+
+        if (book.TryGetComponent<NetworkIdentity>(out _) && NetworkServer.active)
+            NetworkServer.Destroy(book.gameObject);
+        else
+            Destroy(book.gameObject);
+
         return true;
     }
 }

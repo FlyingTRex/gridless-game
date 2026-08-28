@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 
 // Writing half of the skill-books mechanic (SKILL_BOOKS_PLANNING.md
@@ -7,12 +8,26 @@ using UnityEngine;
 // subject skill and the book's own subject tier standing in for the
 // crafted item's tier. Consumes Paper + Ink on every attempt regardless
 // of outcome; only a BadFailure/SpectacularFailure produces no book.
+//
+// FIXED (2026-08-28, MULTIPLAYER_INTERACTION_AUDIT.md, mirror-image of
+// PlayerReading's own fix): converted to NetworkBehaviour. Both Try*
+// methods used to run entirely client-local -- worse than PlayerReading's
+// own gap, since this one also spawns a brand-new physical object (the
+// book), which for a real remote client never actually network-spawns
+// (NetworkSpawnHelper.SpawnIfNetworked checks NetworkServer.active,
+// false on a client) on top of the same permanent-unlock-lost-on-
+// disconnect risk. RequestWriteRecipeBook/RequestWriteWishBook route
+// through Commands, identifying the target recipe/wish by stable string
+// ID the same way PlayerReading's own fix does (a raw CraftingRecipe/
+// WishRecipe reference can't cross the network) -- recipe via its output
+// item's ItemDatabase id + RecipeDatabase's existing reverse lookup,
+// wish via PlayerMagic's own IdForWish/FindWish.
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerVitals))]
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerCrafting))]
 [RequireComponent(typeof(PlayerMagic))]
-public class PlayerWriting : MonoBehaviour
+public class PlayerWriting : NetworkBehaviour
 {
     [SerializeField] private SkillDefinition intelligenceSkill;
     [SerializeField] private ItemDefinition paperItem;
@@ -72,6 +87,29 @@ public class PlayerWriting : MonoBehaviour
     // Every wish in a lineage the author currently knows.
     public IEnumerable<WishRecipe> WritableWishes => magic.KnownWishes;
 
+    public void RequestWriteRecipeBook(CraftingRecipe recipe)
+    {
+        if (recipe == null || recipe.outputItem == null) return;
+
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            string itemId = ItemDatabase.Instance != null ? ItemDatabase.Instance.IdFor(recipe.outputItem) : null;
+            if (itemId == null) return;
+            CmdWriteRecipeBook(itemId);
+            return;
+        }
+
+        TryWriteRecipeBook(recipe);
+    }
+
+    [Command]
+    private void CmdWriteRecipeBook(string outputItemId)
+    {
+        var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(outputItemId) : null;
+        var recipe = item != null && RecipeDatabase.Instance != null ? RecipeDatabase.Instance.FindCraftingRecipe(item) : null;
+        TryWriteRecipeBook(recipe);
+    }
+
     public bool TryWriteRecipeBook(CraftingRecipe recipe)
     {
         if (recipe == null || recipe.outputItem == null || !HasMaterials) return false;
@@ -84,6 +122,28 @@ public class PlayerWriting : MonoBehaviour
         if (book != null) book.SetTargetRecipe(recipe);
         else ShowMessage("The book was written, but you had nowhere to put it.");
         return true;
+    }
+
+    public void RequestWriteWishBook(WishRecipe wish)
+    {
+        if (wish == null) return;
+
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            string wishId = magic.IdForWish(wish);
+            if (wishId == null) return;
+            CmdWriteWishBook(wishId);
+            return;
+        }
+
+        TryWriteWishBook(wish);
+    }
+
+    [Command]
+    private void CmdWriteWishBook(string wishId)
+    {
+        var wish = magic.FindWish(wishId);
+        TryWriteWishBook(wish);
     }
 
     public bool TryWriteWishBook(WishRecipe wish)
@@ -155,7 +215,10 @@ public class PlayerWriting : MonoBehaviour
             return book;
         }
 
-        Destroy(instance);
+        if (instance.TryGetComponent<NetworkIdentity>(out _) && NetworkServer.active)
+            NetworkServer.Destroy(instance);
+        else
+            Destroy(instance);
         return null;
     }
 

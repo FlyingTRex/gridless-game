@@ -206,11 +206,16 @@ reading each interaction method's actual body:
 - **`PlayerBank.cs`** — `Deposit`/`Withdraw`/`Exchange`, zero Commands,
   presumably called directly from `BankScreen`'s UI. Same shape as
   `PlayerCurrency`, same real-money stakes.
-- **`PlayerReading.cs`/`PlayerWriting.cs`** — `TryRead`/`TryWriteRecipeBook`/
-  `TryWriteWishBook`, zero Commands. These grant *permanent* recipe/wish
-  unlocks — a remote client's own successful read/write not reaching the
-  server would be a real, disappointing loss (spent the book, kept none of
-  the benefit), not just a display glitch.
+- **`PlayerReading.cs`** — ✅ **fixed, `v0.3.212-dev`**. `TryRead` now
+  routes through `RequestRead`/`CmdRead`; also found and fixed the
+  identical unsynced-`HashSet` gap in both `PlayerCrafting
+  .bookGrantedRecipes` and `PlayerMagic.bookGrantedWishes`, directly in
+  `TryRead`'s own call path.
+- **`PlayerWriting.cs`** — ✅ **fixed, `v0.3.213-dev`**, the mirror-image
+  action (writing a book, not reading one). Worse gap than reading's own:
+  writing also spawns a brand-new physical object that never actually
+  network-spawned for a real remote client on top of the same
+  permanent-unlock risk. Same stable-string-ID Command pattern reused.
 - **`PlayerMagic.TryWish`** — already flagged in the existing
   `BUGS_AND_ENHANCEMENTS.md` entry as the single confirmed instance of a much
   bigger, still-unscoped finding (see below). Not re-detailed here.
@@ -256,9 +261,13 @@ direct (non-Command) gameplay actions for a genuine remote client don't
 reach the server at all.** `PlayerMagic.TryWish` was the first confirmed
 instance (Will spent, skill trained, wish success/failure — all invisible to
 the server, lost entirely on disconnect since `SaveManager` only ever
-captures the server's own copy). This audit's survey of `PlayerBank`,
-`PlayerReading`, `PlayerWriting`, `Furnace`, `Campfire`, `GardenPlot`, `Door`,
-`VendorStall` all independently reproduce the identical shape. This is the
+captures the server's own copy). This audit's survey found the identical
+shape independently in `PlayerBank`, `PlayerReading`, `PlayerWriting`,
+`Furnace`, `Campfire`, `GardenPlot`, `Door`, `VendorStall` — `PlayerBank`,
+`PlayerReading`, `PlayerWriting`, `Furnace`'s worst half, `GardenPlot`, and
+`Door` are now fixed (see the build-order section above); `TryWish` itself,
+`Furnace`/`Campfire`'s remaining screen-driven half, and `VendorStall` are
+still open. This is the
 same "unestimated" scope `MULTIPLAYER_PLANNING.md` already flags for the full
 48-script `PlayerXXX.cs` conversion — not something to attempt in one sitting,
 but this audit at least turns "unestimated" into a concrete, prioritized list
@@ -297,8 +306,10 @@ in normal play), not strictly the order found. Status as of `v0.3.210-dev`:
    fresh client how to visually reconstruct one. State-sync is fixed;
    genuine cross-client visibility of a newly-purchased Lockbox or a
    newly-dropped Coin still needs that prefab work, flagged not attempted.
-6. **`PlayerReading`/`PlayerWriting`** — still open, not attempted this
-   round.
+6. **`PlayerReading`** — ✅ **fixed, `v0.3.212-dev`**, along with the two
+   unsynced `bookGrantedRecipes`/`bookGrantedWishes` `HashSet`s directly
+   in its path. **`PlayerWriting`** — ✅ **fixed, `v0.3.213-dev`**, the
+   mirror-image action, same Command pattern reused.
 7. **The big unscoped finding** — still open. Also newly confirmed as
    the actual blocker behind `VendorStall`/`VillageVendor` (zero Commands
    each) and `Furnace`/`Campfire`'s remaining screen-driven half.

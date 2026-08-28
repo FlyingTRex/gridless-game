@@ -52,6 +52,18 @@ public class PlayerCrafting : NetworkBehaviour
     // anything else at that recipe's tier.
     private readonly HashSet<CraftingRecipe> bookGrantedRecipes = new HashSet<CraftingRecipe>();
 
+    // FIXED (2026-08-28, MULTIPLAYER_INTERACTION_AUDIT.md, fixing
+    // PlayerReading): bookGrantedRecipes wasn't networked at all -- a
+    // book-granted recipe only ever reached the server if PlayerReading
+    // .TryRead happened to run there already, which it didn't (see that
+    // file's own fix). Server-owned, broadcast to every observer, add-only
+    // (no "forget a recipe" mechanic) -- identified by the recipe's own
+    // output item's stable ItemDatabase id, reusing RecipeDatabase
+    // .FindCraftingRecipe's existing reverse lookup to resolve back to
+    // the real CraftingRecipe client-side, rather than building a new
+    // dedicated CraftingRecipe->id database for just this one field.
+    public readonly SyncList<string> syncedBookGrantedRecipeIds = new SyncList<string>();
+
     private string message;
     private float messageExpireTime;
 
@@ -87,6 +99,24 @@ public class PlayerCrafting : NetworkBehaviour
         vitals = GetComponent<PlayerVitals>();
         dexterity = GetComponent<PlayerDexterity>();
         belt = GetComponent<PlayerBelt>();
+        syncedBookGrantedRecipeIds.Callback += OnSyncedBookGrantedRecipesChanged;
+    }
+
+    private void OnDestroy()
+    {
+        syncedBookGrantedRecipeIds.Callback -= OnSyncedBookGrantedRecipesChanged;
+    }
+
+    private void OnSyncedBookGrantedRecipesChanged(SyncList<string>.Operation op, int index, string oldItem, string newItem)
+    {
+        if (isServer) return;
+
+        foreach (var id in syncedBookGrantedRecipeIds)
+        {
+            var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(id) : null;
+            var recipe = item != null && RecipeDatabase.Instance != null ? RecipeDatabase.Instance.FindCraftingRecipe(item) : null;
+            if (recipe != null) bookGrantedRecipes.Add(recipe);
+        }
     }
 
     // Every Inventory a recipe is allowed to draw materials from: the main
@@ -166,7 +196,13 @@ public class PlayerCrafting : NetworkBehaviour
     // one specific recipe regardless of the discipline's actual level.
     public void GrantRecipe(CraftingRecipe recipe)
     {
-        if (recipe != null) bookGrantedRecipes.Add(recipe);
+        if (recipe == null || !bookGrantedRecipes.Add(recipe)) return;
+
+        if (isServer && recipe.outputItem != null)
+        {
+            string id = ItemDatabase.Instance != null ? ItemDatabase.Instance.IdFor(recipe.outputItem) : null;
+            if (id != null) syncedBookGrantedRecipeIds.Add(id);
+        }
     }
 
     // True if the recipe has no requiresAnvilSurface flag set, or an

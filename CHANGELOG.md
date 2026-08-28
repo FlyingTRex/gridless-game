@@ -5,10 +5,63 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.211-dev` — must always match `GameVersion` in
+**Current version:** `0.3.213-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-28 (8)
+
+### v0.3.213-dev — PlayerWriting fixed (mirror-image of PlayerReading's fix)
+
+`PlayerWriting.cs` converted to `NetworkBehaviour` — `TryWriteRecipeBook`/
+`TryWriteWishBook` used to run entirely client-local, worse than
+`PlayerReading`'s own gap since this one also spawns a brand-new
+physical object (the written book itself), which for a real remote
+client never actually network-spawns at all (`NetworkSpawnHelper
+.SpawnIfNetworked` checks `NetworkServer.active`, false on a client) —
+on top of the same permanent-unlock-lost-on-disconnect risk `PlayerReading`
+had. New `RequestWriteRecipeBook`/`RequestWriteWishBook` Commands,
+identifying the target recipe/wish by the exact same stable-string-ID
+scheme `PlayerReading`'s own fix established (recipe via its output
+item's `ItemDatabase` id + `RecipeDatabase`'s existing reverse lookup,
+wish via `PlayerMagic.IdForWish`/`FindWish`) — a raw `CraftingRecipe`/
+`WishRecipe` reference can't cross the network either way.
+
+Compile-verified; `SkillBookPickup.prefab` already has a `NetworkIdentity`
+(same one `PlayerReading`'s fix already confirmed), so the newly-written
+book actually network-spawns correctly with no further prefab work
+needed. Still needs a real live re-test with traskmi.
+
+## 2026-08-28 (7)
+
+### v0.3.212-dev — PlayerReading fixed (real permanent-unlock loss risk closed)
+
+`PlayerReading.cs` converted to `NetworkBehaviour` — `TryRead` used to
+run entirely client-local, so a real remote client's granted recipe/wish
+(a **permanent** unlock) never reached the server at all, meaning it
+would be silently lost the moment they disconnected (`SaveManager` only
+ever captures the server's own copy) — the exact risk already flagged
+for `PlayerMagic.TryWish`, just for the reading half of the same
+mechanic. New `RequestRead`/`CmdRead` pair, resolving the book's source
+container by the same string-key scheme `PlayerInventory
+.ResolveContainerByKey` already understands (a raw `Inventory` reference
+can't cross the network) and the book itself by `NetworkIdentity`.
+
+**Two more of the same unsynced-HashSet gap found and fixed along the
+way, both directly in `TryRead`'s own path**: `PlayerCrafting
+.bookGrantedRecipes` and `PlayerMagic.bookGrantedWishes` were both
+plain local `HashSet`s, never synced — same shape `PlayerMagic
+.knownLineages` had before its own earlier fix tonight. Both fixed with
+a `SyncList<string>`, reusing existing lookups rather than building new
+databases: `bookGrantedRecipes` resolves via the recipe's own output
+item's `ItemDatabase` id + `RecipeDatabase.FindCraftingRecipe`'s
+existing reverse lookup; `bookGrantedWishes` reuses `PlayerMagic`'s own
+`IdForWish`/`FindWish` (already built for save/load).
+
+Compile-verified; `SkillBook`'s prefab already has a `NetworkIdentity`
+(confirmed directly — the dispatch works immediately, no scene/prefab
+fix needed this time). Still needs a real live re-test with traskmi.
 
 ## 2026-08-28 (6)
 

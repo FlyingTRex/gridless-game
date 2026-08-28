@@ -66,7 +66,7 @@ public class WritingScreen : MonoBehaviour
         GUILayout.BeginHorizontal();
         GUILayout.Label(recipe.outputItem.itemName, DebugGUI.TierNameCentered(recipe.outputItem.tier), GUILayout.Width(240));
         if (GUILayout.Button("Write", GUILayout.Width(80)))
-            writing.TryWriteRecipeBook(recipe);
+            writing.RequestWriteRecipeBook(recipe);
         GUILayout.EndHorizontal();
     }
 
@@ -75,7 +75,7 @@ public class WritingScreen : MonoBehaviour
         GUILayout.BeginHorizontal();
         GUILayout.Label(wish.wishName, DebugGUI.Label, GUILayout.Width(240));
         if (GUILayout.Button("Write", GUILayout.Width(80)))
-            writing.TryWriteWishBook(wish);
+            writing.RequestWriteWishBook(wish);
         GUILayout.EndHorizontal();
     }
 }
