@@ -5,7 +5,54 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
-## Real live two-machine session, 2026-08-27/28: a recurring class of bug — server-authoritative state that was never converted to sync back to the owning client (found live across v0.3.207/208/209-dev; Currency deliberately deferred, everything else found so far is fixed)
+## Furnace/Campfire's screen-driven mutation still isn't Command-routed (found 2026-08-28, `isServer` guard fixed v0.3.210-dev, this half still open)
+
+`MULTIPLAYER_INTERACTION_AUDIT.md`'s highest-severity finding — Furnace/
+Campfire's `Update()` had no `isServer` guard, so the real-time smelt/
+fuel/cook simulation ran independently and uncoordinated on every
+machine. That's fixed. Still open: `FurnaceScreen`/`CampfireScreen`'s
+own button actions (`ToggleQueue`, `SetAutoRun`, fuel/materials/output
+box assignment) still mutate `Furnace`/`Campfire` state directly,
+client-local, no Command anywhere — a real remote client's own queue/
+autorun changes still won't reach the server, and the full state (lit,
+fuel timer, queue, active recipe, linked boxes) isn't synced back to
+observers. Genuinely bigger scope than every other fix from this same
+night — many buttons across two screens, not one `Complete()` dispatch —
+deliberately not rushed. See `MULTIPLAYER_INTERACTION_AUDIT.md`'s own
+build-order entry for the recommended approach.
+
+## Lockbox and Coin have never been real prefabs — blocks true cross-client visibility even after their state-sync fixes (found 2026-08-28, v0.3.210-dev)
+
+Both `Lockbox` (purchased via `BankScreen`) and `Coin` (dropped via
+`PlayerCoinDrop`) are built at runtime via `GameObject.CreatePrimitive`/
+`new GameObject` + `AddComponent` — never `Instantiate(prefab)`. Their
+own state (balances, coin type/amount) is now correctly `[SyncVar]`/
+`SyncList`-backed (`v0.3.210-dev`), but Mirror has no registered prefab
+asset to tell a fresh client how to visually reconstruct one of these
+objects at all — a genuinely new Lockbox purchase or a newly-dropped
+Coin still won't actually appear for a real remote client, regardless of
+the sync fix. Needs real prefab assets built (matching the current
+placeholder cube/cylinder visuals) and both creation call sites migrated
+to `Instantiate` + `NetworkSpawnHelper.SpawnIfNetworked`, plus routing
+the purchase/drop actions themselves through Commands. Not attempted —
+flagged as its own follow-up, separate from the state-sync work that did
+land.
+
+## VendorStall/VillageVendor — confirmed zero Commands, still fully un-networked (found 2026-08-24, re-confirmed 2026-08-28)
+
+`MULTIPLAYER_INTERACTION_AUDIT.md`'s survey re-confirmed this directly:
+`VendorStall.cs`/`VillageVendor.cs` have zero `[Command]`s between them.
+Buy/sell transactions (real money, real goods) run entirely client-local
+for whoever's interacting with a stall. Also the reason
+`PlayerBank.SpendDirect`/`DepositDirect` (used by VendorStall's Pay-
+from-Bank fallback) couldn't be fully closed out during the
+`PlayerCurrency`/`PlayerBank` fix pass — those two methods now correctly
+sync `PlayerBank`'s own balance when called, but VendorStall itself
+never routes its own call through a Command, so this remains broken for
+a real remote client the same as before. Not part of the originally
+prioritized 5-item list — logged as its own follow-up.
+
+## Real live two-machine session, 2026-08-27/28: a recurring class of bug — server-authoritative state that was never converted to sync back to the owning client (found live across v0.3.207/208/209-dev; PlayerCurrency itself fixed v0.3.210-dev alongside the wider audit pass, see below)
 
 Found across several unrelated systems during actual live play with
 traskmi, the night after v0.3.205-dev/v0.3.206-dev shipped (the Spawn/
@@ -86,18 +133,12 @@ code-read guess.
 than a quick copy of tonight's fix pattern, or a real regression risk if
 done carelessly):**
 
-- **`PlayerCurrency` isn't networked at all — and naively adding sync
-  here would make things WORSE, not better.** Surfaced while fixing the
-  rename Command (`TryRename`'s wallet-spend check still runs
-  client-side, unchanged). Unlike Skills/Magic, EVERY mutation site (16
-  files — Vendor buy/sell, Bank, NPC wages, rename cost, Coin pickups,
-  Lockbox, ...) calls `Add`/`Spend` directly with zero Command routing
-  anywhere. Broadcasting the server's copy down to clients without also
-  converting all 16 call sites would mean a remote client's own correct
-  local balance gets overwritten by the server's permanently-stale copy
-  (since the server's copy of a remote player's currency would never
-  actually receive their spending/earning). Needs the mutation-routing
-  half done first, or not at all — not a sync-only fix like the others.
+- ~~`PlayerCurrency` isn't networked at all~~ — **fixed, `v0.3.210-dev`**,
+  together with every remaining direct caller that made it safe to turn
+  on (`PlayerIdentity`'s rename cost, `PlayerBank`, `Coin`). `NPCHiring`'s
+  own wallet spends were already correctly `isServer`-guarded.
+  `VendorStall`'s own use of `PlayerBank.SpendDirect`/`DepositDirect`
+  remains open — see this file's own dedicated entry above.
 - **A much bigger, separate finding, surfaced while fixing `PlayerMagic`
   above: most gameplay actions for a genuine remote client don't reach
   the server at all, not just the ones checked tonight.** Wish casting

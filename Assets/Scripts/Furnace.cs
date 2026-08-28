@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -36,8 +37,23 @@ using UnityEngine;
 // both a scene-baked fixture and a player-built one (FurnaceBuildPiece
 // exists; the "not player-buildable" framing this comment used to have
 // is stale, corrected 2026-08-21).
+// PARTIALLY FIXED (2026-08-28, MULTIPLAYER_INTERACTION_AUDIT.md): the
+// worst part of this class's multiplayer gap -- Update() had no isServer
+// guard at all, so the real-time smelt simulation ran independently and
+// uncoordinated on EVERY machine that has this object loaded, not just
+// "doesn't sync" like the other Class A fixes tonight, a genuine risk of
+// actively inconsistent results between machines. That's fixed below.
+// NOT fixed in this pass: FurnaceScreen's own button actions (ToggleQueue,
+// SetAutoRun, box assignment) still mutate this object's state directly,
+// client-local, no Command -- a real remote client's own queue/autorun
+// changes still won't reach the server. Full state (isLit, fuel timer,
+// queue, active recipe, linked boxes) also isn't synced back to observers
+// yet. This is real, larger, separately-scoped follow-up work -- see
+// MULTIPLAYER_INTERACTION_AUDIT.md's own note that Furnace/Campfire are
+// bigger than the standard Class A recipe (screen-driven mutation, not a
+// single Complete() dispatch).
 [RequireComponent(typeof(SaveId))]
-public class Furnace : MonoBehaviour, IInteractable
+public class Furnace : NetworkBehaviour, IInteractable
 {
     // Matches the current 5-ore roster (Copper/Iron/Silver/Gold/Platinum) so
     // every smeltable recipe can be queued and run at once, not just 4 of 5
@@ -146,6 +162,14 @@ public class Furnace : MonoBehaviour, IInteractable
 
     private void Update()
     {
+        // FIXED (2026-08-28): the entire simulation below is now
+        // server-only -- see this class's own header comment. A remote
+        // client's own FurnaceScreen can still read this object's fields
+        // directly (host-only correctness for now, same as before this
+        // fix), it just no longer independently re-simulates its own
+        // divergent copy of the smelt/fuel/queue state.
+        if (!isServer) return;
+
         if (DebugEnabled && Time.time >= nextDebugLogTime)
         {
             nextDebugLogTime = Time.time + DebugLogInterval;

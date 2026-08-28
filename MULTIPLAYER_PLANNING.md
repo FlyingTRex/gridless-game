@@ -7,6 +7,15 @@ audit of the current codebase plus a map of what Mirror-ifying it would
 actually involve, written so whoever picks this up (human or Claude session)
 doesn't have to re-derive the shape of the problem from scratch.
 
+**A full follow-up audit lives in `MULTIPLAYER_INTERACTION_AUDIT.md`
+(2026-08-28)**, written after two real live two-machine test nights with
+traskmi found and fixed 15+ multiplayer bugs one at a time as they were hit by
+accident. Phase 3 below was marked "fully complete" as of 2026-08-23 — true
+only for player-authoritative movement/input gating, not for the much larger
+surface (world interactables, per-player economic/gameplay actions) that
+audit maps out. That doc has the real current state of the world-interaction
+conversion; treat Phase 3's "complete" status below as narrower than it reads.
+
 Mirror was picked over PurrNet (the other option evaluated the same session)
 primarily on one concrete point: Mirror's stated Unity compatibility range
 (2019/2020/2021/2022 LTS and 6000.1+) safely covers Gridless's pinned

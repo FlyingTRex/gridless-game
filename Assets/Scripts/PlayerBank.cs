@@ -1,11 +1,21 @@
+using Mirror;
 using UnityEngine;
 
+// FIXED (2026-08-28, MULTIPLAYER_INTERACTION_AUDIT.md): converted to
+// NetworkBehaviour, balances now broadcast via a SyncList (same pattern
+// Lockbox.cs/PlayerCurrency.cs's own fixes use). Deposit/Withdraw/
+// Exchange -- the ones BankScreen's UI calls directly -- now route
+// through Request/Command wrappers; SpendDirect/DepositDirect (used by
+// VendorStall, itself still a separate un-fixed system per
+// MULTIPLAYER_INTERACTION_AUDIT.md) are left as direct methods for now
+// -- that's a pre-existing gap this fix doesn't make any worse.
+//
 // The player's bank account — separate from PlayerCurrency's carried
 // wallet, and global: any BankBox reads/writes this same account, there's
 // no per-branch ledger. No balance cap here, unlike the wallet's 250 —
 // part of the incentive to bank coins instead of carrying them all.
 [RequireComponent(typeof(PlayerCurrency))]
-public class PlayerBank : MonoBehaviour
+public class PlayerBank : NetworkBehaviour
 {
     public const float FeeRate = 0.03f;
     public const int MinFee = 1;
@@ -15,9 +25,35 @@ public class PlayerBank : MonoBehaviour
     private readonly int[] balances = new int[CoinTypeCount];
     private PlayerCurrency wallet;
 
+    public readonly SyncList<int> syncedBalances = new SyncList<int>();
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        if (syncedBalances.Count == 0)
+            for (int i = 0; i < CoinTypeCount; i++) syncedBalances.Add(balances[i]);
+    }
+
+    private void OnDestroy()
+    {
+        syncedBalances.Callback -= OnSyncedBalancesChanged;
+    }
+
+    private void OnSyncedBalancesChanged(SyncList<int>.Operation op, int index, int oldItem, int newItem)
+    {
+        if (isServer || index < 0 || index >= CoinTypeCount) return;
+        balances[index] = newItem;
+    }
+
+    private void SyncBalance(int index)
+    {
+        if (isServer && index < syncedBalances.Count) syncedBalances[index] = balances[index];
+    }
+
     private void Awake()
     {
         wallet = GetComponent<PlayerCurrency>();
+        syncedBalances.Callback += OnSyncedBalancesChanged;
 
         // Starting bank balance — separate from the wallet's own starting
         // purse (PlayerCurrency.Awake).
@@ -40,6 +76,7 @@ public class PlayerBank : MonoBehaviour
         if (balances[index] < amount) return false;
 
         balances[index] -= amount;
+        SyncBalance(index);
         return true;
     }
 
@@ -57,7 +94,9 @@ public class PlayerBank : MonoBehaviour
 
         int fee = FeeFor(amount);
         int credited = Mathf.Max(0, amount - fee);
-        balances[(int)type] += credited;
+        int index = (int)type;
+        balances[index] += credited;
+        SyncBalance(index);
     }
 
     public static int FeeFor(int amount) => Mathf.Max(MinFee, Mathf.CeilToInt(amount * FeeRate));
@@ -79,6 +118,15 @@ public class PlayerBank : MonoBehaviour
     // an extra cost on the source side rather than skimmed off the
     // transferred total, so every transaction type lands as a clean,
     // predictable amount on the receiving side.
+    public void RequestDeposit(CoinType type, int amount)
+    {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active) { CmdDeposit(type, amount); return; }
+        Deposit(type, amount);
+    }
+
+    [Command]
+    private void CmdDeposit(CoinType type, int amount) => Deposit(type, amount);
+
     public bool Deposit(CoinType type, int amount)
     {
         if (amount <= 0) return false;
@@ -86,9 +134,20 @@ public class PlayerBank : MonoBehaviour
         int fee = FeeFor(amount);
         if (!wallet.Spend(type, amount + fee)) return false;
 
-        balances[(int)type] += amount;
+        int index = (int)type;
+        balances[index] += amount;
+        SyncBalance(index);
         return true;
     }
+
+    public void RequestWithdraw(CoinType type, int amount)
+    {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active) { CmdWithdraw(type, amount); return; }
+        Withdraw(type, amount);
+    }
+
+    [Command]
+    private void CmdWithdraw(CoinType type, int amount) => Withdraw(type, amount);
 
     public bool Withdraw(CoinType type, int amount)
     {
@@ -100,6 +159,7 @@ public class PlayerBank : MonoBehaviour
         if (wallet.GetBalance(type) + amount > PlayerCurrency.MaxBalance) return false;
 
         balances[index] -= amount + fee;
+        SyncBalance(index);
         wallet.Add(type, amount);
         return true;
     }
@@ -112,6 +172,15 @@ public class PlayerBank : MonoBehaviour
     // pools. spendAmount is how much of `from` to spend; when upgrading to
     // a higher tier only the largest clean multiple of 10 is actually
     // spent, so this never produces a fractional result.
+    public void RequestExchange(CoinType from, CoinType to, int spendAmount)
+    {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active) { CmdExchange(from, to, spendAmount); return; }
+        Exchange(from, to, spendAmount);
+    }
+
+    [Command]
+    private void CmdExchange(CoinType from, CoinType to, int spendAmount) => Exchange(from, to, spendAmount);
+
     public bool Exchange(CoinType from, CoinType to, int spendAmount)
     {
         if (spendAmount <= 0) return false;

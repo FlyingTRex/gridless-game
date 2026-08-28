@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using Newtonsoft.Json.Linq;
 using UnityEngine;
 
@@ -51,7 +52,14 @@ using UnityEngine;
 // Health hit on the worst outcome. Recipes with no trainedSkill (the
 // original RawMeatToCookedMeatCookable) are untouched — always succeed,
 // same as before this system existed.
-public class Campfire : MonoBehaviour, IInteractable, IWishTarget
+// PARTIALLY FIXED (2026-08-28, MULTIPLAYER_INTERACTION_AUDIT.md): same
+// isServer guard fix as Furnace.cs -- see its own header comment for the
+// full story (worst part of the gap: the real-time fuel/cook simulation
+// ran independently on every machine, not just "doesn't sync"). Screen-
+// driven mutation (CampfireScreen's own button actions) and full state
+// sync back to observers are NOT fixed in this pass -- same larger,
+// separately-scoped follow-up as Furnace.
+public class Campfire : NetworkBehaviour, IInteractable, IWishTarget
 {
     // Mild — half PlayerCrafting.SpectacularFailureDamage (10), per Ben's
     // "mild Health hit" framing for a cooking disaster vs. crafting's full
@@ -239,6 +247,12 @@ public class Campfire : MonoBehaviour, IInteractable, IWishTarget
     private void Update()
     {
         if (player == null) ResolvePlayerTarget();
+
+        // FIXED (2026-08-28): the fuel/cook simulation below is now
+        // server-only -- see this class's own header comment.
+        // ResolvePlayerTarget above stays running on every machine (a
+        // cheap local proximity lookup, not real shared state).
+        if (!isServer) return;
 
         if (DebugEnabled && Time.time >= nextDebugLogTime)
         {

@@ -156,23 +156,24 @@ public class PlayerIdentity : NetworkBehaviour
             return false;
         }
 
-        if (!hasBeenNamed)
+        // FIXED (2026-08-28): the real cost/wallet check now runs
+        // server-side, inside CmdApplyRename, now that PlayerCurrency is
+        // properly networked -- this is just an optimistic client-side
+        // pre-check for immediate UI feedback (a stale local balance here
+        // only means a slightly-wrong "can I afford this" hint, never an
+        // actual exploit, since the server re-checks for real).
+        if (hasBeenNamed)
         {
-            Debug.Log($"[PlayerIdentity] TryRename('{clean}') -- first free rename, sending CmdApplyRename.");
-            CmdApplyRename(clean);
-            return true;
+            int cost = fame != null ? fame.RenameCostGold : 1;
+            if (wallet == null || wallet.GetBalance(CoinType.Gold) < cost)
+            {
+                Debug.Log($"[PlayerIdentity] TryRename('{clean}') rejected client-side -- can't afford {cost} Gold (wallet null: {wallet == null}).");
+                return false;
+            }
         }
 
-        int cost = fame != null ? fame.RenameCostGold : 1;
-        if (wallet == null || !wallet.Spend(CoinType.Gold, cost))
-        {
-            Debug.Log($"[PlayerIdentity] TryRename('{clean}') rejected -- couldn't afford {cost} Gold (wallet null: {wallet == null}).");
-            return false;
-        }
-
-        Debug.Log($"[PlayerIdentity] TryRename('{clean}') -- paid {cost} Gold, sending CmdApplyRename.");
+        Debug.Log($"[PlayerIdentity] TryRename('{clean}') -- sending CmdApplyRename.");
         CmdApplyRename(clean);
-        fame?.ApplyRenamePenalty();
         return true;
     }
 
@@ -181,9 +182,9 @@ public class PlayerIdentity : NetworkBehaviour
     // and have it replicate. Re-sanitizes rather than trusting the
     // caller's already-clean string, same "the component enforces its
     // own rules" discipline TryRename's own header comment already
-    // states -- cost/wallet stay a client-side check for now (PlayerCurrency
-    // isn't networked yet, a separate, larger gap logged in
-    // BUGS_AND_ENHANCEMENTS.md, not fixed here).
+    // states. The real cost/wallet check and Fame penalty now happen
+    // here too (2026-08-28, now that PlayerCurrency is networked) --
+    // this is the one and only authoritative gate.
     [Command]
     private void CmdApplyRename(string newName)
     {
@@ -192,6 +193,17 @@ public class PlayerIdentity : NetworkBehaviour
         {
             Debug.Log($"[PlayerIdentity] CmdApplyRename('{newName}') rejected server-side -- failed re-sanitization.");
             return;
+        }
+
+        if (hasBeenNamed)
+        {
+            int cost = fame != null ? fame.RenameCostGold : 1;
+            if (wallet == null || !wallet.Spend(CoinType.Gold, cost))
+            {
+                Debug.Log($"[PlayerIdentity] CmdApplyRename('{clean}') rejected server-side -- can't afford {cost} Gold.");
+                return;
+            }
+            fame?.ApplyRenamePenalty();
         }
 
         playerName = clean;

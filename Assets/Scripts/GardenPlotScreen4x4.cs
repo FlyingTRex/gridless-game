@@ -145,7 +145,7 @@ public class GardenPlotScreen4x4 : MonoBehaviour
                 string readyName = readyCrop != null ? readyCrop.cropName : "Crop";
                 GUILayout.Label($"Seeds remaining in this cell (after this plant): {current.GetSeedCount(selectedCell) - 1}", DebugGUI.Label);
                 if (GUILayout.Button($"Harvest {readyName}"))
-                    current.TryHarvest(selectedCell, playerInventory, backpackCarrier);
+                    current.RequestHarvest(gameObject, selectedCell);
                 break;
         }
     }
@@ -169,7 +169,7 @@ public class GardenPlotScreen4x4 : MonoBehaviour
 
             anyOffered = true;
             if (GUILayout.Button($"Plant {crop.cropName} ({have} seed{(have > 1 ? "s" : "")})"))
-                current.TryPlant(selectedCell, crop.seedItem, playerInventory, backpackCarrier);
+                current.RequestPlant(gameObject, selectedCell, crop.seedItem);
         }
 
         if (!anyOffered)

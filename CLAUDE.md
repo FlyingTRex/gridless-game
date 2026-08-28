@@ -238,6 +238,32 @@ actual two-process live test is still a manual step, not yet run. Mirror
 was picked over PurrNet mainly because PurrNet's stated minimum Unity
 version is newer than this project's pinned one.
 
+**A full world-interaction multiplayer audit lives in
+`MULTIPLAYER_INTERACTION_AUDIT.md` (2026-08-28).** Ben's ask, after two real
+live two-machine test nights with traskmi found and fixed 15+ real
+multiplayer bugs one at a time as they were hit by accident during play
+(v0.3.207-dev through v0.3.209-dev) — scan the whole codebase and compare
+against what real multiplayer actually needs, instead of continuing to find
+these live, one at a time. Every bug found across both nights collapses into
+exactly two shapes: **Class A** ("runs entirely client-local, the server
+never finds out" — a plain `MonoBehaviour` `IInteractable` mutating state and
+spawning loot directly from `Complete()`, invisible on a host, broken for a
+real remote client) and **Class B** ("runs server-side correctly, but the
+result never syncs back to the owning client" — a `NetworkBehaviour`'s real
+state living in a plain field instead of a `[SyncVar]`/`SyncList`). Both have
+a proven, mechanical fix recipe now (5 Class A fixes, 6 Class B fixes,
+documented in full). The audit surveyed all 195 scripts and found real,
+not-yet-fixed instances of both classes still remaining — highest-priority:
+`Furnace`/`Campfire` (worse than the others — their `Update()` has no
+`isServer` guard at all, so the real-time smelt/cook simulation runs
+independently and uncoordinated on every machine, not just "doesn't sync"),
+`GardenPlot`/`GardenPlot4x4`, `PlayerCurrency` (blocks Vendor/Bank/Coin/rename
+all at once), `Door`, `BankBox`/`Lockbox`, `PlayerReading`/`PlayerWriting`
+(permanent recipe/wish unlocks, real loss risk). Full prioritized build order
+and the complete reusable fix recipe (including the sceneId-regeneration
+lesson learned the hard way — see the tree/`ChoppableTree` gotcha above) are
+in the doc itself, not duplicated here.
+
 **Teams & Guilds — the social/economic layer multiplayer needs — are
 planned in `TEAMS_AND_GUILDS_PLANNING.md`.** Grew directly out of the
 2026-08-19 re-audit above. Two deliberately orthogonal systems: **Team**

@@ -5,10 +5,87 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.209-dev` — must always match `GameVersion` in
+**Current version:** `0.3.210-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-28 (5)
+
+### v0.3.210-dev — Working the MULTIPLAYER_INTERACTION_AUDIT.md build order: GardenPlot/GardenPlot4x4, Door, Lockbox, PlayerCurrency/PlayerBank/PlayerIdentity/Coin, Furnace/Campfire
+
+Ben's ask after the audit: fix the priority list. Worked through it in
+order, one real design decision at a time.
+
+**`GardenPlot.cs`/`GardenPlot4x4.cs` converted to `NetworkBehaviour`** —
+standard Class A dual-path `Complete()` dispatch for the single-cell
+version; the 16-cell version's `Complete()` only opens
+`GardenPlotScreen4x4` (a screen-driven mutation shape, not a direct
+dispatch), so `TryPlant`/`TryHarvest` gained `RequestPlant`/
+`RequestHarvest` Commands instead, with a new `syncedCells` `SyncList`
+(crop identified by its seed item's stable `ItemDatabase` id). Both
+keep exact precision growth-progress timing for the server/host; a real
+remote client gets a good-enough local approximation for the purely
+cosmetic 3-stage-scale visual — the actual Ready/harvestable transition
+is always the real synced state, never the approximation. 8 scene
+instances, deterministic `sceneId` regeneration, independently
+re-verified.
+
+**`Door.cs` converted** — the prefab already had a `NetworkIdentity`
+(from `PlayerBuilding`'s generic placed-piece spawn) but no
+`NetworkTransform`, so the swing itself never synced. Fixed by syncing
+`isOpen` and which side to swing away from (`openSign`) instead of
+adding a `NetworkTransform` for a swing this simple — every machine
+derives the identical `targetRotation` independently from those two
+synced values.
+
+**`Lockbox.cs` converted** — balances now sync via a `SyncList<int>`
+(5 coin types); `LockboxScreen`'s Deposit/Withdraw buttons now call a
+single new `RequestTransaction` Command that atomically touches both
+the box's own balance and the calling player's `PlayerCurrency` wallet
+server-side. **Real complication found along the way**: neither
+`Lockbox` nor `Coin` (see below) has ever been a real prefab — both are
+built at runtime via `CreatePrimitive`/`new GameObject` +
+`AddComponent`, so Mirror has no registered asset to tell a fresh
+client how to visually reconstruct one. That's real, separate, bigger
+scope (building actual prefab assets) than the state-sync fix here —
+flagged, not attempted blind.
+
+**`PlayerCurrency.cs` converted** — balances now sync via a
+`SyncList<int>`, same pattern as `Lockbox`. This was only safe to turn
+on after finding and fixing the remaining direct (non-Command) callers:
+`PlayerIdentity`'s rename-cost check moved fully server-side into
+`CmdApplyRename` (the client-side check is now just an optimistic UI
+hint); `PlayerBank.cs` converted the same way (`RequestDeposit`/
+`RequestWithdraw`/`RequestExchange` Commands, its own balances synced
+via `SyncList<int>` too); `Coin.cs` converted to the standard dual-path
+`Complete()` dispatch. `NPCHiring.cs`'s own wallet spends were already
+correctly `isServer`-guarded, no change needed. `VendorStall`'s use of
+`PlayerBank.SpendDirect`/`DepositDirect` remains a separate, pre-existing,
+still-open gap (VendorStall itself has zero Commands) — not made any
+worse by this fix, just not fixed by it either.
+
+**`Furnace.cs`/`Campfire.cs` — the highest-priority, most severe
+finding, partially fixed.** Converted both to `NetworkBehaviour` and
+added the `isServer` guard their `Update()` loops were completely
+missing — this was the audit's own highest-severity call-out: without
+it, the real-time smelt/fuel/cook simulation ran independently and
+*uncoordinated* on every machine that had the object loaded, not just
+"doesn't sync" like every other Class A case tonight — a real risk of
+actively inconsistent results between machines, now closed. **Not fixed
+in this pass**: `FurnaceScreen`/`CampfireScreen`'s own button actions
+(`ToggleQueue`, `SetAutoRun`, fuel/materials/output box assignment)
+still mutate state directly, client-local, no Command — a real remote
+client's own queue/autorun changes still won't reach the server, and
+the full state (lit, fuel timer, queue, active recipe, linked boxes)
+isn't synced back to observers yet. This is genuinely bigger scope than
+tonight's other fixes (screen-driven mutation across many buttons, not
+one `Complete()` dispatch) — flagged clearly rather than rushed.
+
+All compile-verified; every scene/prefab sceneId fix independently
+re-verified in a second Unity process, following the exact deterministic-
+regeneration discipline established after the tree regression. Still
+needs a real live re-test with traskmi.
 
 ## 2026-08-28 (4)
 

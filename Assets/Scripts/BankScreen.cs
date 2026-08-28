@@ -279,8 +279,8 @@ public class BankScreen : MonoBehaviour
         GUI.enabled = valid;
         if (GUILayout.Button(pendingIsDeposit ? "Deposit" : "Withdraw"))
         {
-            if (pendingIsDeposit) bank.Deposit(type, pendingAmount);
-            else bank.Withdraw(type, pendingAmount);
+            if (pendingIsDeposit) bank.RequestDeposit(type, pendingAmount);
+            else bank.RequestWithdraw(type, pendingAmount);
             resolved = true;
         }
         GUI.enabled = true;
@@ -344,7 +344,7 @@ public class BankScreen : MonoBehaviour
         GUI.enabled = valid;
         if (GUILayout.Button("Exchange"))
         {
-            bank.Exchange(from, to, pendingExchangeAmount);
+            bank.RequestExchange(from, to, pendingExchangeAmount);
             resolved = true;
         }
         GUI.enabled = true;

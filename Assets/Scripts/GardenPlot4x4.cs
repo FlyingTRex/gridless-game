@@ -1,5 +1,20 @@
+using Mirror;
 using UnityEngine;
 
+// FIXED (2026-08-28, MULTIPLAYER_INTERACTION_AUDIT.md): converted to
+// NetworkBehaviour. Complete() only ever opened GardenPlotScreen4x4 (a
+// local UI action, fine as-is) -- the REAL mutations (TryPlant/
+// TryHarvest) were called directly from that screen's own button
+// handlers, same "screen-driven mutation, no Command anywhere" shape
+// Furnace/Campfire have. Each cell's crop/count/state is now broadcast
+// via a syncedCells SyncList (crop identified by its seedItem's stable
+// ItemDatabase id, same by-string-id pattern used everywhere else);
+// growStartedAt/visualInstance/visualStageIndex stay local-only --
+// server keeps exact timing, a real remote client approximates its own
+// local growStartedAt from the moment it observed a cell start Growing
+// (same cosmetic-only tradeoff GardenPlot.cs's own fix uses; the
+// Ready/Growing/Empty state itself is always the real synced value).
+//
 // Full 4x4 (16-cell) Garden Plot (COOKING_AND_GARDENING_PLANNING.md section
 // 3) — the scaled-up version of GardenPlot.cs's single-plant proof of
 // concept, generalized to any number of registered CropDefinitions instead
@@ -18,7 +33,7 @@ using UnityEngine;
 // mismatch entirely rather than working around it.
 [RequireComponent(typeof(Collider))]
 [RequireComponent(typeof(SaveId))]
-public class GardenPlot4x4 : MonoBehaviour, IInteractable
+public class GardenPlot4x4 : NetworkBehaviour, IInteractable
 {
     public const int GridSize = 4;
     public const int CellCount = GridSize * GridSize;
@@ -60,6 +75,86 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
     }
     [SerializeField] private PreplantedCell[] preplantedCells;
 
+    [System.Serializable]
+    public struct SyncedCell
+    {
+        public string cropSeedItemId; // empty = no crop planted
+        public int count;
+        public CellState state;
+    }
+
+    // Server-owned, broadcast to every observer -- see this file's own
+    // header comment for why growStartedAt/visuals stay local-only.
+    public readonly SyncList<SyncedCell> syncedCells = new SyncList<SyncedCell>();
+
+    public override void OnStartServer()
+    {
+        base.OnStartServer();
+        if (syncedCells.Count == 0)
+            for (int i = 0; i < CellCount; i++)
+                syncedCells.Add(new SyncedCell { cropSeedItemId = "", count = 0, state = CellState.Empty });
+    }
+
+    private void Awake()
+    {
+        syncedCells.Callback += OnSyncedCellsChanged;
+    }
+
+    private void OnDestroy()
+    {
+        syncedCells.Callback -= OnSyncedCellsChanged;
+    }
+
+    // Client-side reconciliation -- pushes the server's confirmed crop/
+    // count/state into this client's own local `cells[]`, and (only on a
+    // real state change) resets/creates the cosmetic visual + starts this
+    // client's own local approximate growth timer.
+    private void OnSyncedCellsChanged(SyncList<SyncedCell>.Operation op, int index, SyncedCell oldItem, SyncedCell newItem)
+    {
+        if (isServer) return;
+        if (index < 0 || index >= CellCount) return;
+
+        var crop = FindCrop(ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(newItem.cropSeedItemId) : null);
+        cells[index].crop = crop;
+        cells[index].count = newItem.count;
+
+        bool stateChanged = cells[index].state != newItem.state;
+        cells[index].state = newItem.state;
+        if (!stateChanged) return;
+
+        switch (newItem.state)
+        {
+            case CellState.Growing:
+                cells[index].growStartedAt = Time.time;
+                cells[index].visualStageIndex = -1;
+                UpdateVisualStage(index, 0f);
+                break;
+            case CellState.Ready:
+                UpdateVisualStage(index, 1f);
+                break;
+            case CellState.Empty:
+                if (cells[index].visualInstance != null) Destroy(cells[index].visualInstance);
+                cells[index].visualInstance = null;
+                cells[index].visualStageIndex = -1;
+                break;
+        }
+    }
+
+    // Server-only -- writes the current cell's crop/count/state into
+    // syncedCells, broadcasting it to every observer. Called right after
+    // any server-side mutation of cells[index] below, rather than a
+    // polled signature check (the mutation points are already small and
+    // well-known here, unlike PlayerInventory's untracked direct-mutation
+    // problem).
+    private void PushSyncedCell(int index)
+    {
+        if (!isServer) return;
+        string seedId = cells[index].crop != null && cells[index].crop.seedItem != null && ItemDatabase.Instance != null
+            ? ItemDatabase.Instance.IdFor(cells[index].crop.seedItem)
+            : null;
+        syncedCells[index] = new SyncedCell { cropSeedItemId = seedId ?? "", count = cells[index].count, state = cells[index].state };
+    }
+
     private void Start()
     {
         if (SaveManager.SaveExists || preplantedCells == null) return;
@@ -93,8 +188,11 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
             float elapsed = Time.time - cells[i].growStartedAt;
             UpdateVisualStage(i, Mathf.Clamp01(elapsed / duration));
 
-            if (elapsed >= duration)
+            if (isServer && elapsed >= duration)
+            {
                 cells[i].state = CellState.Ready;
+                PushSyncedCell(i);
+            }
         }
     }
 
@@ -131,14 +229,17 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
         cells[index].state = state;
         cells[index].visualStageIndex = -1;
 
-        if (state == CellState.Empty || crop == null) return;
+        if (state != CellState.Empty && crop != null)
+        {
+            cells[index].growStartedAt = state == CellState.Ready
+                ? Time.time - crop.growDurationSeconds
+                : Time.time - elapsedSeconds;
 
-        cells[index].growStartedAt = state == CellState.Ready
-            ? Time.time - crop.growDurationSeconds
-            : Time.time - elapsedSeconds;
+            float progress = state == CellState.Ready ? 1f : Mathf.Clamp01(elapsedSeconds / crop.growDurationSeconds);
+            UpdateVisualStage(index, progress);
+        }
 
-        float progress = state == CellState.Ready ? 1f : Mathf.Clamp01(elapsedSeconds / crop.growDurationSeconds);
-        UpdateVisualStage(index, progress);
+        PushSyncedCell(index);
     }
 
     private CropDefinition FindCrop(ItemDefinition seed)
@@ -155,14 +256,41 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
     // structure. Checks the main inventory AND a worn Backpack's own
     // nested inventory (seeds route into a worn Backpack first on pickup,
     // same reason GardenPlot.TryPlant already checks both).
-    public bool TryPlant(int index, ItemDefinition seed, PlayerInventory playerInventory, PlayerBackpack backpackCarrier)
+    // FIXED (2026-08-28): dual-path dispatch, same shape as ChoppableTree/
+    // ResourceNode -- called from GardenPlotScreen4x4's own button
+    // handler, which used to call TryPlant/TryHarvest (below) directly.
+    public void RequestPlant(GameObject player, int index, ItemDefinition seed)
+    {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            string seedId = ItemDatabase.Instance != null ? ItemDatabase.Instance.IdFor(seed) : null;
+            if (seedId == null) return;
+            CmdPlant(index, seedId);
+            return;
+        }
+
+        TryPlant(index, seed, player);
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdPlant(int index, string seedId, NetworkConnectionToClient sender = null)
+    {
+        if (sender == null || sender.identity == null) return;
+        var seed = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(seedId) : null;
+        if (seed == null) return;
+        TryPlant(index, seed, sender.identity.gameObject);
+    }
+
+    public bool TryPlant(int index, ItemDefinition seed, GameObject player)
     {
         if (index < 0 || index >= CellCount) return false;
         if (cells[index].state != CellState.Empty) return false;
 
         var crop = FindCrop(seed);
+        var playerInventory = player != null ? player.GetComponent<PlayerInventory>() : null;
         if (crop == null || playerInventory == null) return false;
 
+        var backpackCarrier = player.GetComponent<PlayerBackpack>();
         var backpackInventory = backpackCarrier != null && backpackCarrier.Equipped != null
             ? backpackCarrier.Equipped.Inventory
             : null;
@@ -184,14 +312,34 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
     // Deposits into a worn Backpack first if there's room, falling back to
     // the main inventory for whatever didn't fit — same priority
     // GardenPlot.Harvest/PlayerLoot already use.
-    public bool TryHarvest(int index, PlayerInventory playerInventory, PlayerBackpack backpackCarrier)
+    public void RequestHarvest(GameObject player, int index)
+    {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            CmdHarvest(index);
+            return;
+        }
+
+        TryHarvest(index, player);
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdHarvest(int index, NetworkConnectionToClient sender = null)
+    {
+        if (sender == null || sender.identity == null) return;
+        TryHarvest(index, sender.identity.gameObject);
+    }
+
+    public bool TryHarvest(int index, GameObject player)
     {
         if (index < 0 || index >= CellCount) return false;
         if (cells[index].state != CellState.Ready) return false;
 
         var crop = cells[index].crop;
+        var playerInventory = player != null ? player.GetComponent<PlayerInventory>() : null;
         if (crop == null || crop.cropItem == null || playerInventory == null) return false;
 
+        var backpackCarrier = player.GetComponent<PlayerBackpack>();
         var backpackInventory = backpackCarrier != null && backpackCarrier.Equipped != null
             ? backpackCarrier.Equipped.Inventory
             : null;
@@ -221,6 +369,7 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
         cells[index].visualStageIndex = -1; // forces UpdateVisualStage to instantiate stage 0 below
 
         UpdateVisualStage(index, 0f);
+        PushSyncedCell(index);
     }
 
     // Swaps the cell's visual to whichever growth-stage prefab the given
@@ -266,5 +415,6 @@ public class GardenPlot4x4 : MonoBehaviour, IInteractable
         if (cells[index].visualInstance != null) Destroy(cells[index].visualInstance);
         cells[index].visualInstance = null;
         cells[index].visualStageIndex = -1;
+        PushSyncedCell(index);
     }
 }

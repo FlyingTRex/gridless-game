@@ -168,17 +168,7 @@ public class LockboxScreen : MonoBehaviour
         GUI.enabled = pendingAmount > 0;
         if (GUILayout.Button(pendingIsDeposit ? "Deposit" : "Withdraw"))
         {
-            if (pendingIsDeposit)
-            {
-                wallet.Spend(type, pendingAmount);
-                int leftover = current.Add(type, pendingAmount);
-                if (leftover > 0) wallet.Add(type, leftover); // shouldn't happen given the clamp above, but never lose coins
-            }
-            else
-            {
-                current.Remove(type, pendingAmount);
-                wallet.Add(type, pendingAmount);
-            }
+            current.RequestTransaction(gameObject, type, pendingAmount, pendingIsDeposit);
             resolved = true;
         }
         GUI.enabled = true;
