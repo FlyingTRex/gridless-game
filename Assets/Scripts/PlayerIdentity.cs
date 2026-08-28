@@ -31,8 +31,16 @@ public class PlayerIdentity : NetworkBehaviour
     private const int MaxNameLength = 30;
     private const string PlayerIdPrefKey = "GridlessPlayerId";
 
-    [SerializeField] private string playerName = DefaultName;
-    [SerializeField] private bool hasBeenNamed;
+    // FIXED (2026-08-28, found live during the real two-machine session):
+    // these used to be plain [SerializeField] fields, and TryRename below
+    // set them directly with no Command involved -- a rename only ever
+    // updated the renaming player's own local copy of this component,
+    // never the server's, so it never replicated to anyone else's view
+    // of that player (Team roster showed a renamed player as "Traveler"
+    // forever). Now real [SyncVar]s, written only from CmdApplyRename
+    // (server-side) below.
+    [SyncVar] private string playerName = DefaultName;
+    [SyncVar] private bool hasBeenNamed;
 
     private PlayerCurrency wallet;
     private PlayerFame fame;
@@ -146,17 +154,34 @@ public class PlayerIdentity : NetworkBehaviour
 
         if (!hasBeenNamed)
         {
-            playerName = clean;
-            hasBeenNamed = true;
+            CmdApplyRename(clean);
             return true;
         }
 
         int cost = fame != null ? fame.RenameCostGold : 1;
         if (wallet == null || !wallet.Spend(CoinType.Gold, cost)) return false;
 
-        playerName = clean;
+        CmdApplyRename(clean);
         fame?.ApplyRenamePenalty();
         return true;
+    }
+
+    // The actual [SyncVar] write, split out so it always runs server-side
+    // -- a client can't legally set a [SyncVar]'s backing field itself
+    // and have it replicate. Re-sanitizes rather than trusting the
+    // caller's already-clean string, same "the component enforces its
+    // own rules" discipline TryRename's own header comment already
+    // states -- cost/wallet stay a client-side check for now (PlayerCurrency
+    // isn't networked yet, a separate, larger gap logged in
+    // BUGS_AND_ENHANCEMENTS.md, not fixed here).
+    [Command]
+    private void CmdApplyRename(string newName)
+    {
+        string clean = Sanitize(newName);
+        if (clean == null) return;
+
+        playerName = clean;
+        hasBeenNamed = true;
     }
 
     // Called by SaveManager on load -- sets the name/flag directly,

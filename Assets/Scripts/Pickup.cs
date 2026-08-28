@@ -79,12 +79,29 @@ public class Pickup : MonoBehaviour, IInteractable
     {
         if (despawnAt >= 0f && Time.time >= despawnAt)
         {
-            Destroy(gameObject);
+            DestroySelf();
             return;
         }
 
         if (respawnAt < 0f || Time.time < respawnAt) return;
         Respawn();
+    }
+
+    // Networked-aware despawn, shared by every place this script deletes
+    // itself outright (as opposed to the canRespawn hide-and-reappear
+    // path, which never destroys the object at all). Found live,
+    // 2026-08-27/28: 3 of 4 call sites used a plain local Destroy() —
+    // correct for the ~49 still-unconverted prefabs with no
+    // NetworkIdentity, but for one of the 78 that DO have one, a plain
+    // Destroy() only removes it on whichever machine called it, leaving
+    // it visibly stuck in the world for every other observer (matches
+    // the "box stayed visible after traskmi picked it up" report).
+    private void DestroySelf()
+    {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkServer.active)
+            NetworkServer.Destroy(gameObject);
+        else
+            Destroy(gameObject);
     }
 
     public void Complete(GameObject player)
@@ -134,13 +151,9 @@ public class Pickup : MonoBehaviour, IInteractable
             SetVisible(false);
             respawnAt = Time.time + respawnDelay;
         }
-        else if (TryGetComponent<NetworkIdentity>(out _) && NetworkServer.active)
-        {
-            NetworkServer.Destroy(gameObject);
-        }
         else
         {
-            Destroy(gameObject);
+            DestroySelf();
         }
     }
 
@@ -166,7 +179,7 @@ public class Pickup : MonoBehaviour, IInteractable
         }
         else
         {
-            Destroy(gameObject);
+            DestroySelf();
         }
 
         return true;

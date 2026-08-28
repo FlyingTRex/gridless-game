@@ -1,9 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
+using Mirror;
 using UnityEngine;
 
+// FIXED (2026-08-28, found live -- real remote client's own Skills tab
+// showed stale/missing levels for anything trained via a Command-routed
+// action, e.g. Pickup.ServerComplete's skill-gain call). Same root cause
+// as PlayerInventory before its own 2026-08-28 fix: `levels` was a plain
+// local Dictionary, never networked, so a gain rolled server-side (inside
+// a Command) only ever updated the server's own copy of this component --
+// a genuine remote client's own copy (what SkillsScreen/MagicScreen read)
+// never heard about it. Converted to NetworkBehaviour and added a
+// syncedLevels SyncList, same server-Update-poll + client-Callback-
+// reconciliation shape PlayerInventory's own fix already established.
 [DisallowMultipleComponent]
-public class PlayerSkills : MonoBehaviour
+public class PlayerSkills : NetworkBehaviour
 {
     private const float MaxLevel = 100f;
 
@@ -86,15 +98,95 @@ public class PlayerSkills : MonoBehaviour
 
     private readonly Dictionary<SkillDefinition, float> levels = new Dictionary<SkillDefinition, float>();
 
+    [System.Serializable]
+    public struct SyncedSkillLevel
+    {
+        public string skillId;
+        public float level;
+    }
+
+    // Server-owned, broadcast to every observer -- same by-string-ID/
+    // poll-a-signature-in-Update shape PlayerInventory.syncedSlots
+    // already established, since `levels` (a plain Dictionary keyed by
+    // ScriptableObject reference) can't be synced directly either.
+    public readonly SyncList<SyncedSkillLevel> syncedLevels = new SyncList<SyncedSkillLevel>();
+    private string lastSyncedLevelsSignature = string.Empty;
+
     private string message;
     private float messageExpireTime;
 
     private void Awake()
     {
+        syncedLevels.Callback += OnSyncedLevelsChanged;
+
         if (startingLevels == null) return;
         foreach (var entry in startingLevels)
             if (entry.skill != null)
                 levels[entry.skill] = entry.level;
+    }
+
+    private void OnDestroy()
+    {
+        syncedLevels.Callback -= OnSyncedLevelsChanged;
+    }
+
+    private void Update()
+    {
+        if (!isServer) return;
+
+        string signature = ComputeLevelsSignature();
+        if (signature == lastSyncedLevelsSignature) return;
+
+        lastSyncedLevelsSignature = signature;
+        RefreshSyncedLevels();
+    }
+
+    private string ComputeLevelsSignature()
+    {
+        var sb = new StringBuilder();
+        foreach (var kvp in levels)
+            sb.Append(kvp.Key != null ? kvp.Key.name : "null").Append(':').Append(kvp.Value.ToString("F3")).Append('|');
+        return sb.ToString();
+    }
+
+    private void RefreshSyncedLevels()
+    {
+        syncedLevels.Clear();
+        foreach (var kvp in levels)
+        {
+            string id = SkillDatabase.Instance != null ? SkillDatabase.Instance.IdFor(kvp.Key) : null;
+            if (id == null) continue;
+            syncedLevels.Add(new SyncedSkillLevel { skillId = id, level = kvp.Value });
+        }
+    }
+
+    // Client-side reconciliation. Upsert-only (never removes a locally-
+    // known skill) rather than a full clear-and-rebuild -- `levels` only
+    // ever grows (no "unlearn a skill" mechanic exists), so there's no
+    // real entry to prune, and upserting avoids a startup race where
+    // Awake()'s own startingLevels seed could otherwise flash-clear
+    // before the first real syncedLevels payload arrives. Also re-shows
+    // the "skill increased" banner for a level bump that arrived this
+    // way (e.g. a Command-routed gain, Pickup.ServerComplete and
+    // similar) -- deliberately does NOT re-fire TierUnlocked, since
+    // PlayerFame already reacted to that exact milestone once, server-
+    // side, when GainExperience originally rolled it; firing it again
+    // here would be a second, client-only trigger for an un-networked
+    // (PlayerFame isn't synced either -- see BUGS_AND_ENHANCEMENTS.md)
+    // system that was never meant to be asked twice.
+    private void OnSyncedLevelsChanged(SyncList<SyncedSkillLevel>.Operation op, int index, SyncedSkillLevel oldItem, SyncedSkillLevel newItem)
+    {
+        if (isServer) return;
+
+        foreach (var entry in syncedLevels)
+        {
+            var skill = SkillDatabase.Instance != null ? SkillDatabase.Instance.Find(entry.skillId) : null;
+            if (skill == null) continue;
+
+            float previous = GetLevel(skill);
+            levels[skill] = entry.level;
+            if (entry.level > previous) ShowGainMessage(skill, previous, entry.level);
+        }
     }
 
     // Read by SkillsScreen (the Skills tab of PlayerMenuScreen, Tab key) to
@@ -156,11 +248,7 @@ public class PlayerSkills : MonoBehaviour
         {
             bool tierUnlocked = TierJustUnlocked(current, newLevel, out var unlockedTier);
             if (tierUnlocked) TierUnlocked?.Invoke(unlockedTier);
-
-            string[] pool = tierUnlocked ? TierUnlockTemplates[unlockedTier] : MessageTemplates;
-            string template = pool[UnityEngine.Random.Range(0, pool.Length)];
-            message = string.Format(template, skill.skillName, newLevel.ToString("F1"));
-            messageExpireTime = Time.time + MessageDuration;
+            ShowGainMessage(skill, current, newLevel);
 
             // Every skill/stat gain in the game flows through this one
             // method — logging here (2026-08-16) covers all of them with a
@@ -171,6 +259,21 @@ public class PlayerSkills : MonoBehaviour
             Debug.Log($"[Skill] {skill.skillName} +{(newLevel - current):F3} -> {newLevel:F3}"
                 + (tierUnlocked ? $" (TIER UNLOCKED: {unlockedTier})" : ""));
         }
+    }
+
+    // The on-screen banner half of a gain, split out from GainExperience
+    // so OnSyncedLevelsChanged (a real client catching up on a gain that
+    // was rolled server-side, e.g. inside a Command) can show the same
+    // banner for the player who actually earned it, without re-rolling
+    // GainExperience's own diminishing-returns math or re-firing
+    // TierUnlocked (see that call site's own comment for why not).
+    private void ShowGainMessage(SkillDefinition skill, float current, float newLevel)
+    {
+        bool tierUnlocked = TierJustUnlocked(current, newLevel, out var unlockedTier);
+        string[] pool = tierUnlocked ? TierUnlockTemplates[unlockedTier] : MessageTemplates;
+        string template = pool[UnityEngine.Random.Range(0, pool.Length)];
+        message = string.Format(template, skill.skillName, newLevel.ToString("F1"));
+        messageExpireTime = Time.time + MessageDuration;
     }
 
     // True if this gain (current -> newLevel) crossed at least one tier's
@@ -200,8 +303,19 @@ public class PlayerSkills : MonoBehaviour
     // Top-center, just below where PlayerNavComputer's compass sits
     // (y=10 to y=62 when worn) so the two never overlap regardless of
     // whether a Navigation Computer happens to be equipped.
+    // FIXED (2026-08-28, found live -- "why did traskmi see MY skill
+    // improvements"): Mirror spawns a copy of every connected player's
+    // object on every other client too, so they can see each other, and
+    // OnGUI has no built-in ownership concept -- it used to fire
+    // unconditionally on whichever machine was running it, so the HOST
+    // (server + their own client in one process) saw this banner pop up
+    // for every connected player's gain, not just their own. Gated the
+    // same way every other per-player OnGUI screen in this project
+    // already does (GameMenuScreen, TeamScreen, ...) -- isLocalPlayer is
+    // inherited for free now that this is a NetworkBehaviour.
     private void OnGUI()
     {
+        if (!isLocalPlayer) return;
         if (message == null || Time.time >= messageExpireTime) return;
 
         const float width = 340f;

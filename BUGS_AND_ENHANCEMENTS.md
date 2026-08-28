@@ -5,6 +5,101 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## Real live two-machine session, 2026-08-27/28: a recurring class of bug — server-authoritative state that was never converted to sync back to the owning client (found live; inventory/Team-name/box instance/skill-levels/Magic-lineage/tree-chop/creature-death/equipment fixed same night v0.3.207-dev, Currency deliberately deferred)
+
+Found across several unrelated systems during actual live play with
+traskmi, the night after v0.3.205-dev/v0.3.206-dev shipped (the Spawn/
+Drop/Rename fix + Team). All share the identical shape: some earlier
+part of the persistence/multiplayer restructure moved a piece of
+state-changing logic onto the server (a `[Command]`, or code that only
+ever runs where `NetworkServer.active`/`isServer` is true) — correctly,
+for authority — but the `PlayerXXX.cs` component holding the *result*
+of that logic was never itself converted to a `[SyncVar]`/synced field.
+The server's own copy of that component gets updated correctly; the
+actual owning client's copy (what their own screen reads from) never
+hears about it. This reads very differently depending on which machine
+you're testing from — the host can accidentally look fine (its own
+client and the server are the same process), while a genuine remote
+client sees the bug consistently.
+
+**Fixed same night, v0.3.207-dev — full detail in `CHANGELOG.md`:**
+`PlayerInventory`'s `syncedSlots` broadcast was never read back into the
+local `Inventory` object the UI draws from (the real cause of "traskmi
+could pick up a Skill Book but not a Stick"); Team roster showing a
+renamed player as "Traveler" (`PlayerIdentity.playerName` wasn't a
+`[SyncVar]` and rename never went through a `[Command]`); "StorageBox on
+Small Storage Box requires a NetworkIdentity" (a pre-existing scene
+instance predating the `StorageBox` → `NetworkBehaviour` conversion);
+`Pickup.cs`'s 3 plain `Destroy()` calls vs. 1 `NetworkServer.Destroy()`;
+`PlayerSkills.OnGUI()` had no `isLocalPlayer` gate at all ("why did
+traskmi see MY skill improvements"); `PlayerSkills.levels` itself wasn't
+networked either; `PlayerMagic`'s free starting lineage never reached a
+real client ("should have spawned with a Magic lineage"); `ChoppableTree
+.cs` was plain `MonoBehaviour` with zero Mirror integration at all (the
+real root cause of "couldn't pick up sticks" — chopping ran entirely
+local, the Log never really spawned for anyone else); and
+`SkinnableCreature`'s `isDead`/hidden-while-respawning state wasn't
+synced, plus its skin action (`Complete()`) had no Command routing at
+all — a real double-loot risk for a remote client, not just a visual
+gap; and `PlayerEquipment`'s own `syncedSlots` had the identical
+unread-broadcast gap `PlayerInventory` had, now resolved via
+`NetworkClient.spawned` (an equip slot's occupant is a live object, not
+just a count) and `Inventory`'s existing non-destructive
+`RemoveEquipmentItem`/`AddEquipmentItem`. Compile-verified, the
+StorageBox and `Tree.prefab` fixes
+independently re-verified in a second Unity process (all 30 already-
+placed tree instances inherited the prefab's new `NetworkIdentity`
+automatically, unlike the StorageBox scene instance) — **still needs a
+real live re-test with traskmi** to confirm the client side now actually
+reflects a pickup/rename/skill-gain/Magic-lineage/tree-chop/creature-
+kill-and-skin correctly.
+
+**Still open, deliberately deferred (real design work needed, more
+than a quick copy of tonight's fix pattern, or a real regression risk if
+done carelessly):**
+
+- **`PlayerCurrency` isn't networked at all — and naively adding sync
+  here would make things WORSE, not better.** Surfaced while fixing the
+  rename Command (`TryRename`'s wallet-spend check still runs
+  client-side, unchanged). Unlike Skills/Magic, EVERY mutation site (16
+  files — Vendor buy/sell, Bank, NPC wages, rename cost, Coin pickups,
+  Lockbox, ...) calls `Add`/`Spend` directly with zero Command routing
+  anywhere. Broadcasting the server's copy down to clients without also
+  converting all 16 call sites would mean a remote client's own correct
+  local balance gets overwritten by the server's permanently-stale copy
+  (since the server's copy of a remote player's currency would never
+  actually receive their spending/earning). Needs the mutation-routing
+  half done first, or not at all — not a sync-only fix like the others.
+- **A much bigger, separate finding, surfaced while fixing `PlayerMagic`
+  above: most gameplay actions for a genuine remote client don't reach
+  the server at all, not just the ones checked tonight.** Wish casting
+  (`PlayerInteraction.HandleWish` → `PlayerMagic.TryWish`) is called
+  directly, with no Command — a real remote client's own wish-casting
+  (Will spent, skill trained, wish success/failure) only ever mutates
+  their own local, unsynced copy, invisible to the server and every
+  other player, and would be **lost entirely on disconnect**, since
+  `SaveManager` only ever captures the server's own copy. The same shape
+  very plausibly affects most other direct (non-Command) gameplay
+  actions across this project's ~48 `PlayerXXX.cs` scripts — crafting,
+  combat, and more weren't individually re-checked tonight. This is the
+  same "unestimated" scope `MULTIPLAYER_PLANNING.md` already flags for
+  the full conversion — not something to attempt piecemeal off a single
+  night's bug reports. Worth a real, deliberate audit pass (which direct
+  gameplay-action call sites need a Command, prioritized by which ones
+  risk actual data loss vs. just a display glitch) rather than continuing
+  to patch instances found by accident during play.
+
+**Not a code fix in itself, but the practical framing:** across both
+sessions, the narrower "server updated, client's own copy never told"
+shape has now been found and fixed 11 times (Spawn/Drop/Rename from
+night one; Inventory, Team name, the StorageBox instance, Skill levels,
+Magic lineage, tree-chop, creature-death/skin, and Equipment from night
+two), with 1 more confirmed instance deliberately deferred (Currency,
+and only because naive sync-only would be actively harmful there — see
+above). The broader "client action never reaches the server at all"
+shape (wish-casting and likely others) is a separate, larger, still-
+unscoped finding — see above.
+
 ## Host silently stops processing while the Editor window is unfocused — `runInBackground: 0` (found 2026-08-27, not started)
 
 Found live during the real Host/Join test with Ben (chunk 7 of the

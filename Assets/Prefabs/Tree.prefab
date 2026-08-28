@@ -74,6 +74,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -3342485433100193269, guid: 52114ccfa6496ad42ad46e0f450cbf53, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1075455428454826074}
+    - targetCorrespondingSourceObject: {fileID: -3342485433100193269, guid: 52114ccfa6496ad42ad46e0f450cbf53, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5578602510845534523}
   m_SourcePrefab: {fileID: 3150474306388093854, guid: 52114ccfa6496ad42ad46e0f450cbf53, type: 3}
 --- !u!1 &3470149135741338607 stripped
 GameObject:
@@ -115,6 +118,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d124392257bdde4894eef32c360a173, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ChoppableTree
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   logPrefab: {fileID: 100000, guid: 35caf777577e41fe9cf07bd97be822bb, type: 3}
   logCount: 3
   scatterForce: 1.2
@@ -129,3 +135,20 @@ MonoBehaviour:
   - {fileID: 11400000, guid: d23a920e514305a429b71e5cf408bbac, type: 2}
   - {fileID: 11400000, guid: ad37f941de4827448a05b96776878bde, type: 2}
   requiredToolLabel: Axe
+--- !u!114 &5578602510845534523
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3470149135741338607}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 1679045353
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0

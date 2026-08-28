@@ -200,4 +200,31 @@ public class Inventory
 
         return true;
     }
+
+    // Client-side reconciliation only (PlayerInventory.syncedSlots' own
+    // callback) -- replaces every plain stackable slot with the given
+    // (item, count) pairs, resolved server-side and broadcast down.
+    // Equipment-carrying slots are left completely untouched, since
+    // they're excluded from the sync in the first place (a physical worn
+    // object's own state isn't part of this broadcast at all).
+    //
+    // Found live, 2026-08-28: PlayerInventory's syncedSlots SyncList was
+    // built (2026-08-23) to broadcast server-owned inventory state to
+    // observers, but nothing ever read it back into the local Inventory
+    // object InventoryScreen actually draws from -- so a real remote
+    // client's own screen never reflected an item added via a Command
+    // (e.g. Pickup.RequestCompletePickup), even though the server's own
+    // copy was correct the whole time. Explains "traskmi could pick up a
+    // Skill Book but not a Stick": the Skill Book's world-pickup prefab
+    // has no NetworkIdentity yet, so it took the original fully-local
+    // path (which was never broken); Stick/Cloth's prefabs do have one,
+    // so they went through the Command and the client never found out.
+    public void ReplaceStackableSlots(IEnumerable<(ItemDefinition item, int count)> newSlots)
+    {
+        for (int i = slots.Count - 1; i >= 0; i--)
+            if (slots[i].equipment == null) slots.RemoveAt(i);
+
+        foreach (var (item, count) in newSlots)
+            if (item != null && count > 0) slots.Add(new Slot { item = item, count = count });
+    }
 }

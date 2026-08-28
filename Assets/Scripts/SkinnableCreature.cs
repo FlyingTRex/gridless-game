@@ -17,6 +17,19 @@ using UnityEngine;
 // move. TakeDamage itself needs no isServer guard — it's only ever
 // called from a Command already (PlayerCombat/PlayerRangedCombat), so
 // it already runs server-side regardless.
+//
+// FIXED (2026-08-28, found live — "I killed a chicken, didn't see it
+// die, but traskmi did"): TakeDamage/Die already ran server-side
+// correctly (see above), but `isDead` was a plain field, not a
+// [SyncVar] — the server's own copy updated fine, the actual killer's
+// own client (if not the host) never heard about it, same shape as
+// every other fix tonight. Also found the same "runs entirely local,
+// never reaches the server" gap Pickup/ChoppableTree just had: Complete()
+// (the skin action) had no Command routing at all — for a real remote
+// client, skinning a corpse would spawn loot correctly (PlayerDropping's
+// own Command already covers that) but never actually despawn the
+// corpse for anyone else, a real double-loot risk, not just a visual
+// one. Both fixed with the same patterns already established tonight.
 [RequireComponent(typeof(Collider))]
 public abstract class SkinnableCreature : NetworkBehaviour, IDamageable, IInteractable
 {
@@ -35,7 +48,20 @@ public abstract class SkinnableCreature : NetworkBehaviour, IDamageable, IIntera
     [SerializeField] private float respawnDelay = 180f;
 
     protected float health;
+
+    [SyncVar(hook = nameof(OnDeadChanged))]
     protected bool isDead;
+
+    private void OnDeadChanged(bool oldValue, bool newValue)
+    {
+        // Mirrors exactly what Die()/Respawn() already set directly on
+        // whichever machine calls them (the server) -- this is what makes
+        // every OTHER observer's own copy show the same fallen-over pose
+        // or upright respawn. Fires there too, redundantly but harmlessly
+        // (same values, just set twice).
+        transform.rotation = newValue ? spawnRotation * Quaternion.Euler(0f, 0f, 90f) : spawnRotation;
+    }
+
     protected Vector3 spawnPosition;
     protected Quaternion spawnRotation;
     protected Collider col;
@@ -75,16 +101,47 @@ public abstract class SkinnableCreature : NetworkBehaviour, IDamageable, IIntera
 
     protected virtual void Die()
     {
+        // The actual "fallen over" visual is applied by OnDeadChanged
+        // (fired locally the moment this SyncVar assignment lands, same
+        // as everywhere else it's set) -- no animation system driving a
+        // real death pose yet.
         isDead = true;
-        // Crude "fallen over" visual — no animation system driving a death
-        // pose yet.
-        transform.rotation = spawnRotation * Quaternion.Euler(0f, 0f, 90f);
     }
 
     // Called by PlayerInteraction once the skin hold completes — only
     // meaningful while dead (Prompt/GetHoldDuration already gate the UI
     // side, but Complete() itself also no-ops defensively).
+    //
+    // FIXED (2026-08-28): same dual-path dispatch Pickup.Complete()/
+    // ChoppableTree.Complete() already established -- this used to run
+    // entirely local-only, meaning a real remote client's own skin
+    // action would drop loot correctly (PlayerDropping's own Command
+    // already covers that) but never actually despawn the corpse for
+    // any other observer, a real double-loot risk. requiresAuthority is
+    // false since a creature has no client authority the way a Player
+    // object does -- the caller's own identity comes through Mirror's
+    // sender parameter instead.
     public void Complete(GameObject playerObj)
+    {
+        if (!isDead) return;
+
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            CmdComplete();
+            return;
+        }
+
+        ServerComplete(playerObj);
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdComplete(NetworkConnectionToClient sender = null)
+    {
+        if (sender == null || sender.identity == null) return;
+        ServerComplete(sender.identity.gameObject);
+    }
+
+    public void ServerComplete(GameObject playerObj)
     {
         if (!isDead) return;
 
@@ -110,11 +167,14 @@ public abstract class SkinnableCreature : NetworkBehaviour, IDamageable, IIntera
 
         if (respawnDelay <= 0f)
         {
-            Destroy(gameObject);
+            if (NetworkServer.active)
+                NetworkServer.Destroy(gameObject);
+            else
+                Destroy(gameObject);
             return;
         }
 
-        SetVisible(false);
+        isHidden = true;
         Invoke(nameof(Respawn), respawnDelay);
     }
 
@@ -137,13 +197,28 @@ public abstract class SkinnableCreature : NetworkBehaviour, IDamageable, IIntera
         isDead = false;
         transform.position = spawnPosition;
         transform.rotation = spawnRotation;
-        SetVisible(true);
+        isHidden = false;
+        if (col != null) col.enabled = true;
     }
 
-    protected void SetVisible(bool visible)
+    // FIXED (2026-08-28): was a plain method call, only ever applying on
+    // whichever machine ran it -- for a networked instance, only the
+    // server (ServerComplete now always runs there) ever hid/reshowed
+    // the corpse, so every OTHER client kept seeing a "skinned" corpse
+    // sitting there fully visible until Respawn's own isDead SyncVar
+    // eventually stood it back up. Now backed by a SyncVar so every
+    // observer's own renderers toggle together. The collider itself
+    // stays a direct local set (not synced) -- physics/interaction
+    // reach is already server-authoritative (ServerComplete/TakeDamage
+    // both only ever run server-side), so a client's own collider state
+    // is cosmetic only here, same reasoning col.enabled's own disable
+    // above (inside ServerComplete) already relied on.
+    [SyncVar(hook = nameof(OnHiddenChanged))]
+    private bool isHidden;
+
+    private void OnHiddenChanged(bool oldValue, bool newValue)
     {
-        if (col != null) col.enabled = visible;
         foreach (var r in GetComponentsInChildren<Renderer>())
-            r.enabled = visible;
+            r.enabled = !newValue;
     }
 }

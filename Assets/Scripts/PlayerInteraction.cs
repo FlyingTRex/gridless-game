@@ -322,6 +322,27 @@ public class PlayerInteraction : NetworkBehaviour
         // here, same as Heal Self just did.
     }
 
+    // FIXED (2026-08-28, found live -- "couldn't pick up sticks", root-
+    // caused to ChoppableTree.Complete() running entirely local-only with
+    // zero Mirror integration). Same client-resolves-target/server-
+    // decides-outcome split as RequestWish/CmdWish above, and the exact
+    // same shape PlayerInventory.RequestCompletePickup/CmdCompletePickup
+    // already established for Pickup -- the tree is identified by its own
+    // NetworkIdentity (added via a scene batch-fix, mirroring the
+    // "Small Storage Box" fix earlier tonight), never trusted beyond that.
+    public void RequestChopTree(ChoppableTree tree)
+    {
+        if (tree == null || !tree.TryGetComponent(out NetworkIdentity identity)) return;
+        CmdChopTree(identity);
+    }
+
+    [Command]
+    private void CmdChopTree(NetworkIdentity treeIdentity)
+    {
+        var tree = treeIdentity != null ? treeIdentity.GetComponent<ChoppableTree>() : null;
+        tree?.ServerComplete(gameObject);
+    }
+
     private const float BarWidth = 200f;
     private const float BarHeight = 10f;
 

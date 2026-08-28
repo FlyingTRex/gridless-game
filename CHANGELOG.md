@@ -5,10 +5,195 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.206-dev` — must always match `GameVersion` in
+**Current version:** `0.3.207-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-28 (2)
+
+### v0.3.207-dev — Real live session (2) fixes: inventory-sync gap, Team-name sync, box despawn, pickup despawn consistency, skill-banner leak
+
+Found live playing with traskmi the same night Team shipped — see
+`BUGS_AND_ENHANCEMENTS.md`'s "server-authoritative state that was never
+converted to sync back to the owning client" entry for the full writeup.
+All five findings trace to the identical shape: some part of the
+multiplayer restructure moved state-changing logic onto the server
+correctly, but the `PlayerXXX.cs` component holding the *result* was
+never converted to actually sync that result back to the owning
+client — so the host (server and client are the same process) could
+look fine while a genuine remote client saw the bug every time.
+
+**The real prize — `PlayerInventory`'s `syncedSlots` SyncList was built
+2026-08-23 to broadcast server-owned inventory state to observers, but
+nothing ever read it back into the local `Inventory` object
+`InventoryScreen` actually draws from.** Explains "traskmi could pick up
+a Skill Book but not a Stick": the Skill Book's world-pickup prefab has
+no `NetworkIdentity` yet, so `Pickup.Complete()` took the original
+fully-local path (never broken, since it never left the picking-up
+client's own machine); Stick/Cloth's prefabs do have one, so they went
+through `PlayerInventory.RequestCompletePickup`'s Command — updating the
+*server's* copy of that player's inventory, with the client's own copy
+(and screen) never finding out. Fixed with a new `Inventory
+.ReplaceStackableSlots(...)` plus a `syncedSlots.Callback` hook in
+`PlayerInventory` that rebuilds the local `Inventory`'s plain stackable
+slots from the synced data on every non-server observer — equipment-
+carrying slots (a worn Backpack, etc.) are left untouched, since
+they're excluded from the sync in the first place.
+
+**Team roster showed a renamed player as "Traveler" forever.**
+`PlayerIdentity.playerName`/`hasBeenNamed` were plain fields, and
+`PlayerMenuScreen`'s rename button called `TryRename` directly with no
+`[Command]` involved — a rename only ever updated the renaming player's
+own local copy. Now real `[SyncVar]`s, written only from a new
+`CmdApplyRename` (server-side) — `TryRename` still does its existing
+client-side wallet-spend/sanitization check for the immediate UI
+response (`PlayerCurrency` isn't networked yet, a separate, larger gap
+now logged in `BUGS_AND_ENHANCEMENTS.md`, not fixed here), then fires
+the Command to make the actual name change replicate.
+
+**"StorageBox on Small Storage Box requires a NetworkIdentity" runtime
+error.** A pre-existing `TestScene.unity` instance predating `StorageBox
+.cs`'s `NetworkBehaviour` conversion (v0.3.206-dev) never got the
+now-required component — the same "changed default doesn't apply to
+existing instances" trap CLAUDE.md already documents for
+`[SerializeField]` defaults, just hitting a required component this
+time. Fixed via a throwaway batch script (`AddComponent<NetworkIdentity>`
+on the one instance missing it), independently re-verified in a second
+Unity process per the project's Force-Binary-serialization rule.
+Very likely the same root cause as the separate "picked-up box stayed
+visible for the other player" report from the first live-test night.
+
+**`Pickup.cs` had 3 plain `Destroy()` calls against 1
+`NetworkServer.Destroy()`** — inconsistent within the same file.
+Extracted a shared `DestroySelf()` helper (network-aware when the
+prefab has a `NetworkIdentity` and `NetworkServer.active`, plain
+`Destroy()` otherwise) and applied it to the despawn-timer path and the
+NPC-pickup path, matching the one call site that was already correct.
+
+**"Why did traskmi see MY skill improvements" — `PlayerSkills.OnGUI()`
+had no `isLocalPlayer` gate at all.** `PlayerSkills` isn't itself a
+`NetworkBehaviour`, but the Player GameObject it rides on is — Mirror
+spawns a copy of every connected player's object (and every plain
+`MonoBehaviour` on it) on every other client too, so they're visible to
+each other. `OnGUI` has no ownership concept built in, so it fired
+unconditionally on whichever machine was running it — the HOST (server
++ their own client in the same process while hosting) saw the "skill
+increased" banner pop up for *every* connected player's gain, not just
+their own. Fixed the same way every other per-player `OnGUI` screen in
+this project already gates itself (`GameMenuScreen`, `TeamScreen`, ...):
+cache a sibling `NetworkIdentity` in `Awake()`, bail in `OnGUI()` if
+`!isLocalPlayer`.
+
+**`PlayerSkills.levels` itself wasn't networked either — fixed the same
+night.** The `OnGUI` gate above only stopped the WRONG player's banner
+from showing; it didn't make a Command-routed skill gain (increasingly
+common as more actions get converted — `Pickup.ServerComplete`, etc.)
+reach a real remote client's own Skills tab, the identical root cause
+`PlayerInventory` had before its own fix above. `PlayerSkills` converted
+from `MonoBehaviour` to `NetworkBehaviour`, gained a `syncedLevels`
+SyncList (server-Update-poll + client-side reconciliation, same shape
+as `PlayerInventory.syncedSlots`), and the "skill increased" banner
+logic was split out into a shared `ShowGainMessage` so a client catching
+up on a server-rolled gain shows the same banner the acting player
+would have gotten locally — deliberately does NOT re-fire the
+`TierUnlocked` event during reconciliation, since `PlayerFame` (not
+networked either) already reacted to that milestone once, server-side,
+when the gain originally rolled; firing it again client-side would be a
+second, spurious trigger. Reconciliation is upsert-only (never removes
+a locally-known skill), since levels only ever grow and there's no
+"unlearn a skill" mechanic to reconcile away.
+
+**`PlayerMagic`'s free starting lineage now reaches a real client too.**
+`knownLineages` was a plain local `HashSet`; converted `PlayerMagic` to
+`NetworkBehaviour` and added a `syncedKnownLineageIds` `SyncList<string>`
+(server-Update-poll + add-only client reconciliation, same shape as the
+fixes above). A real remote client's own reconciliation also now calls
+`SelectDefaultWishIfNone()` once their lineage arrives, since nothing
+client-side used to trigger that either. Deliberately NOT extended to
+`TryWish`/`LearnLineage`/`GrantWish`/`SelectWish` themselves — see the
+new `BUGS_AND_ENHANCEMENTS.md` entry on why those are a separate, much
+bigger finding.
+
+**`ChoppableTree.cs` converted from plain `MonoBehaviour` to
+`NetworkBehaviour` — the real root cause of "couldn't pick up sticks."**
+Chopping a tree (the Log spawn, and the stump/regrow visual state) used
+to run entirely on whichever machine's `PlayerInteraction` called
+`Complete()`, the same "fully local, never reaches the server" shape
+Pickup/AdminSpawnScreen/PlayerDropping all had before their own
+2026-08-26 fixes. `Complete()` now takes the same dual-path dispatch
+(`RequestChopTree`/`CmdChopTree`, added to `PlayerInteraction.cs`,
+mirroring `RequestCompletePickup`/`CmdCompletePickup`'s exact shape);
+the stump/full-tree visual is now a `[SyncVar(hook=...)]` bool
+(`Time.time`-based `regrowAt` stays server-only, since a raw timestamp
+isn't meaningful to broadcast across processes). `Tree.prefab` didn't
+have a `NetworkIdentity` at all — added via a throwaway batch script;
+unlike the StorageBox scene instance, all 30 already-placed tree
+instances in `TestScene.unity` inherited it automatically once the
+prefab had one, no per-instance scene fix needed.
+
+**`SkinnableCreature`'s death state and skin action, fixed the same
+way.** It was already `NetworkBehaviour` (2026-08-23), and
+`TakeDamage`/`Die` already ran server-side correctly (always called from
+inside a Command) — but `isDead` was a plain field, not a `[SyncVar]`,
+so the server's own copy updated fine while the actual killer's own
+client (if not the host) never found out ("I killed a chicken, didn't
+see it die, but traskmi did"). Now `[SyncVar(hook=OnDeadChanged)]`, plus
+a second new `isHidden` `[SyncVar]` covering the separate "corpse is
+hidden while waiting to respawn" visual state that plain `SetVisible()`
+calls never synced either. `Complete()` (the skin action itself) had no
+Command routing at all — worse than a visual gap, since a real remote
+client skinning a corpse would spawn loot correctly (`PlayerDropping`'s
+own Command already covers that) but never actually despawn the corpse
+for anyone else, a real double-loot risk. Fixed with the same dual-path
+dispatch as `ChoppableTree`, just declared directly on
+`SkinnableCreature` itself (already a `NetworkBehaviour`) using Mirror's
+`sender` connection parameter rather than routing through a Player
+component, since a creature has no client authority the way a Player
+object does.
+
+**`PlayerEquipment`'s own `syncedSlots` had the identical unread-broadcast
+gap `PlayerInventory`/`PlayerSkills` just had — fixed the same night.**
+Harder than a plain stackable count: an equip slot's occupant is a live
+`IEquippable` GameObject, not just data (a worn Backpack, Canteen, Tool,
+...), so `SyncedEquipmentSlot` gained a `netId` field (the equipped
+object's own `NetworkIdentity.netId`) alongside its existing `itemId`.
+Client-side reconciliation resolves the real spawned instance via
+`NetworkClient.spawned` and registers it into the local
+`slotInventories` through `Inventory`'s existing `RemoveEquipmentItem`/
+`AddEquipmentItem` — deliberately NOT `Inventory.Clear()`, which
+destroys the equipment's GameObject outright (correct for a real save/
+restore discarding stale data, but would delete a live networked object
+out from under the server if called during a live reconciliation).
+Also runs once per `Update()` tick client-side, not just from the
+`SyncList` callback — the equipped object's own spawn message can arrive
+*after* this component's own slot broadcast (most likely right after
+connecting while another player is already wearing gear), so a
+resolution attempted only once could permanently miss it; re-checking
+each tick is cheap once everything already matches (14 slots, capacity
+1-2 each).
+
+**Deliberately not attempted tonight, flagged instead** (see
+`BUGS_AND_ENHANCEMENTS.md` for full detail): `PlayerCurrency` isn't
+networked at all, and unlike Skills/Magic/Equipment, EVERY
+mutation site (16 files — Vendor buy/sell, Bank, wages, rename cost, Coin
+pickups, ...) calls `Add`/`Spend` directly with no Command routing
+anywhere — adding sync-only here wouldn't just leave the gap unfixed, it
+would actively make things worse (a remote client's own correct local
+balance would get overwritten by the server's permanently-stale copy,
+since the server's own balance for that client would never actually
+receive their spending/earning at all). A much bigger, separate finding
+surfaced while fixing `PlayerMagic` above: most skill-training/gameplay
+actions for a genuine remote client (wish casting, likely most
+crafting/combat too) run entirely client-local with no Command routing
+at all, meaning their effects don't reach the server and would be lost
+on disconnect before a save captures them — this is the same
+"unestimated," much larger scope `MULTIPLAYER_PLANNING.md` already flags
+for the full 48-script `PlayerXXX.cs` conversion, not something to
+attempt piecemeal. Compile-verified only — still needs a real live
+re-test with traskmi to confirm the client side now actually reflects a
+Stick/Cloth pickup, a rename, a skill gain, a Magic lineage, a tree
+chop, and a creature kill/skin correctly.
 
 ## 2026-08-28 (1)
 

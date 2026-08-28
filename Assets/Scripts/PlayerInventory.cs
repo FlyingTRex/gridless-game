@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Mirror;
 using UnityEngine;
 
@@ -48,6 +49,12 @@ public class PlayerInventory : NetworkBehaviour
     private void Awake()
     {
         inventory = new Inventory(capacity);
+        syncedSlots.Callback += OnSyncedSlotsChanged;
+    }
+
+    private void OnDestroy()
+    {
+        syncedSlots.Callback -= OnSyncedSlotsChanged;
     }
 
     private void Update()
@@ -59,6 +66,29 @@ public class PlayerInventory : NetworkBehaviour
 
         lastSyncedSignature = signature;
         RefreshSyncedSlots();
+    }
+
+    // Client-side reconciliation (found live, 2026-08-28 -- see
+    // Inventory.ReplaceStackableSlots' own comment for the full story).
+    // Fires on every observer, including the server's own local copy of
+    // this SyncList -- skip there, since the server's `inventory` is
+    // already the authoritative source RefreshSyncedSlots just read
+    // FROM, not something to overwrite from its own broadcast.
+    private void OnSyncedSlotsChanged(SyncList<SyncedInventorySlot>.Operation op, int index, SyncedInventorySlot oldItem, SyncedInventorySlot newItem)
+    {
+        if (isServer) return;
+        ApplySyncedSlotsToLocalInventory();
+    }
+
+    private void ApplySyncedSlotsToLocalInventory()
+    {
+        var resolved = new List<(ItemDefinition item, int count)>();
+        foreach (var slot in syncedSlots)
+        {
+            var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(slot.itemId) : null;
+            if (item != null) resolved.Add((item, slot.count));
+        }
+        inventory.ReplaceStackableSlots(resolved);
     }
 
     private string ComputeSignature()

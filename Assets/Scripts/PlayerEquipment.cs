@@ -57,6 +57,16 @@ public class PlayerEquipment : NetworkBehaviour
         // configured slot (not omitted when empty) so observers can tell
         // "no data yet" apart from "confirmed empty."
         public string itemId;
+        // FIXED (2026-08-28): itemId alone was only ever enough to know
+        // WHAT'S worn, never enough to actually resolve the live physical
+        // object -- every real equip slot occupant is an IEquippable
+        // (Backpack, Canteen, Tool, ...), a real spawned GameObject, not
+        // just data. netId is that object's own NetworkIdentity.netId (0
+        // = no live object), resolved client-side via
+        // NetworkClient.spawned so a real remote client's own
+        // slotInventories can register the SAME live instance everyone
+        // else sees, not a stand-in.
+        public uint netId;
     }
 
     // Server-owned, broadcast to every observer -- what item (if any)
@@ -74,17 +84,92 @@ public class PlayerEquipment : NetworkBehaviour
     {
         foreach (var slot in slots)
             slotInventories[slot.slotName] = new Inventory(slot.capacity);
+
+        syncedSlots.Callback += OnSyncedSlotsChanged;
+    }
+
+    private void OnDestroy()
+    {
+        syncedSlots.Callback -= OnSyncedSlotsChanged;
     }
 
     private void Update()
     {
-        if (!isServer) return;
+        if (isServer)
+        {
+            string signature = ComputeSignature();
+            if (signature == lastSyncedSignature) return;
 
-        string signature = ComputeSignature();
-        if (signature == lastSyncedSignature) return;
+            lastSyncedSignature = signature;
+            RefreshSyncedSlots();
+            return;
+        }
 
-        lastSyncedSignature = signature;
-        RefreshSyncedSlots();
+        // Client-side retry, not just the Callback below -- the equipped
+        // object's own NetworkIdentity spawn message can arrive AFTER
+        // this component's own syncedSlots update (most likely right
+        // after connecting while another player is already wearing
+        // gear), so a resolution attempted only once, at Callback time,
+        // could permanently miss it. Cheap enough to just re-run every
+        // tick (14 slots, capacity 1-2 each) -- once every slot already
+        // matches, ApplyAllSyncedSlotsToLocal's own per-slot check makes
+        // this a no-op scan, not real work.
+        ApplyAllSyncedSlotsToLocal();
+    }
+
+    // FIXED (2026-08-28, same shape as PlayerInventory/PlayerSkills'
+    // own fixes): syncedSlots was built (2026-08-23) to broadcast which
+    // item occupies each slot, but nothing ever read it back into
+    // slotInventories client-side -- a real remote client's own copy of
+    // e.g. another player's worn Backpack never reflected reality.
+    // Harder than a plain stackable count: an equip slot's occupant is a
+    // live IEquippable GameObject, not just data, so this resolves the
+    // real spawned instance via NetworkClient.spawned (see NetIdFor
+    // above) rather than fabricating a stand-in. Uses Inventory's
+    // existing RemoveEquipmentItem/AddEquipmentItem -- both non-
+    // destructive (unlike Inventory.Clear(), which destroys the
+    // equipment's GameObject; that's correct for a real save/restore
+    // discarding stale data, but would be catastrophic here, destroying
+    // a live networked object client-side out from under the server).
+    private void OnSyncedSlotsChanged(SyncList<SyncedEquipmentSlot>.Operation op, int index, SyncedEquipmentSlot oldItem, SyncedEquipmentSlot newItem)
+    {
+        if (isServer) return;
+        ApplyAllSyncedSlotsToLocal();
+    }
+
+    private void ApplyAllSyncedSlotsToLocal()
+    {
+        foreach (var entry in syncedSlots)
+            ApplySyncedSlotToLocal(entry);
+    }
+
+    private void ApplySyncedSlotToLocal(SyncedEquipmentSlot entry)
+    {
+        var localSlot = GetSlot(entry.slotName);
+        if (localSlot == null) return;
+
+        IEquippable targetEquipment = null;
+        if (entry.netId != 0 && NetworkClient.spawned.TryGetValue(entry.netId, out var identity))
+            targetEquipment = identity.GetComponent(typeof(IEquippable)) as IEquippable;
+
+        bool alreadyCorrect = false;
+        // Snapshot first -- RemoveEquipmentItem mutates the same list
+        // Slots exposes, can't safely foreach-and-remove in one pass.
+        var currentEquipmentEntries = new List<(ItemDefinition item, IEquippable equipment)>();
+        foreach (var s in localSlot.Slots)
+            if (s.equipment != null) currentEquipmentEntries.Add((s.item, s.equipment));
+
+        foreach (var (item, equipment) in currentEquipmentEntries)
+        {
+            if (ReferenceEquals(equipment, targetEquipment)) { alreadyCorrect = true; continue; }
+            localSlot.RemoveEquipmentItem(item);
+        }
+
+        if (targetEquipment != null && !alreadyCorrect)
+        {
+            var targetItem = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(entry.itemId) : null;
+            if (targetItem != null) localSlot.AddEquipmentItem(targetItem, targetEquipment);
+        }
     }
 
     private string ComputeSignature()
@@ -93,7 +178,8 @@ public class PlayerEquipment : NetworkBehaviour
         foreach (var slot in slots)
         {
             var item = FirstItemIn(slot.slotName);
-            sb.Append(slot.slotName).Append(':').Append(item != null ? item.name : "").Append('|');
+            uint netId = NetIdFor(GetEquipped(slot.slotName));
+            sb.Append(slot.slotName).Append(':').Append(item != null ? item.name : "").Append(':').Append(netId).Append('|');
         }
         return sb.ToString();
     }
@@ -105,8 +191,16 @@ public class PlayerEquipment : NetworkBehaviour
         {
             var item = FirstItemIn(slot.slotName);
             string id = item != null ? ItemDatabase.Instance.IdFor(item) : "";
-            syncedSlots.Add(new SyncedEquipmentSlot { slotName = slot.slotName, itemId = id ?? "" });
+            uint netId = NetIdFor(GetEquipped(slot.slotName));
+            syncedSlots.Add(new SyncedEquipmentSlot { slotName = slot.slotName, itemId = id ?? "", netId = netId });
         }
+    }
+
+    private static uint NetIdFor(IEquippable equipment)
+    {
+        if (equipment is Component component && component != null && component.TryGetComponent(out NetworkIdentity identity))
+            return identity.netId;
+        return 0;
     }
 
     // First item in a slot regardless of whether it's equipment-carrying

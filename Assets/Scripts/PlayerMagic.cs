@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 
 // Lineage/wish gatekeeper — see design-brief.md's Magic System section
@@ -8,10 +9,33 @@ using UnityEngine;
 // mechanic (SKILL_BOOKS_PLANNING.md, 2026-08-13) — a magic wish book
 // calls LearnLineage if the reader doesn't already know its lineage.
 // No cap: a player can eventually know all four lineages.
+//
+// FIXED (2026-08-28, found live -- "should have spawned with a Magic
+// lineage, Magic tab shows 'No skills trained yet'"): the free starting
+// lineage is assigned via SaveManager.ResolveFreshStart, itself only
+// ever fired from PlayerIdentity.OnPlayerIdReady inside a [Command] --
+// server-side only. `knownLineages` was a plain local HashSet, so the
+// server's own copy got the free lineage correctly, but a real remote
+// client's own copy (what MagicScreen actually reads) never heard about
+// it. Converted to NetworkBehaviour and added a syncedKnownLineageIds
+// SyncList, same server-Update-poll + client-Callback-reconciliation
+// shape PlayerInventory/PlayerSkills' own fixes already established.
+// NOT extended tonight to TryWish/LearnLineage/GrantWish/SelectWish
+// themselves -- those are all still called directly (PlayerInteraction,
+// PlayerReading, MagicScreen), never through a Command, which is a
+// separate and much bigger gap: a real remote client's OWN wish-casting
+// (and by the same shape, most other skill-training actions that don't
+// happen to run inside a Command) never reaches the server at all today,
+// so it's invisible to other players and would be lost on disconnect
+// before a save captures it. Flagged prominently in
+// BUGS_AND_ENHANCEMENTS.md as its own, larger, still-open finding --
+// not attempted here, since fixing it means converting every such call
+// site to a Command, the same "unestimated" scope MULTIPLAYER_PLANNING.md
+// already flags for the full PlayerXXX.cs conversion.
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerSkills))]
 [RequireComponent(typeof(PlayerVitals))]
-public class PlayerMagic : MonoBehaviour
+public class PlayerMagic : NetworkBehaviour
 {
     [SerializeField] private SkillDefinition[] allLineages;
     // Every wish in the game, regardless of lineage — the single source of
@@ -51,6 +75,14 @@ public class PlayerMagic : MonoBehaviour
     // never a blanket unlock of every wish in the lineage).
     private readonly HashSet<WishRecipe> bookGrantedWishes = new HashSet<WishRecipe>();
 
+    // Server-owned, broadcast to every observer -- what lineages this
+    // character knows, by stable string ID (SkillDatabase.IdFor, same
+    // lookup PlayerSkills.syncedLevels already uses). knownLineages only
+    // ever grows (no "forget a lineage" mechanic), so a plain count
+    // check is enough to detect a real change worth re-broadcasting.
+    public readonly SyncList<string> syncedKnownLineageIds = new SyncList<string>();
+    private int lastSyncedLineageCount = -1;
+
     public SkillDefinition StartingLineage { get; private set; }
     public IReadOnlyCollection<SkillDefinition> KnownLineages => knownLineages;
 
@@ -77,6 +109,7 @@ public class PlayerMagic : MonoBehaviour
     {
         skills = GetComponent<PlayerSkills>();
         vitals = GetComponent<PlayerVitals>();
+        syncedKnownLineageIds.Callback += OnSyncedLineagesChanged;
 
         // Only a genuinely new character gets the free random lineage
         // (design-brief.md's "no lineage-less players") -- deciding that
@@ -98,6 +131,45 @@ public class PlayerMagic : MonoBehaviour
         // SelectDefaultWishIfNone() itself, using the one signal that's
         // actually correct per-player: whether *this* player's own
         // character record was found and restored.
+    }
+
+    private void OnDestroy()
+    {
+        syncedKnownLineageIds.Callback -= OnSyncedLineagesChanged;
+    }
+
+    private void Update()
+    {
+        if (!isServer) return;
+        if (knownLineages.Count == lastSyncedLineageCount) return;
+
+        lastSyncedLineageCount = knownLineages.Count;
+        syncedKnownLineageIds.Clear();
+        foreach (var lineage in knownLineages)
+        {
+            string id = SkillDatabase.Instance != null ? SkillDatabase.Instance.IdFor(lineage) : null;
+            if (id != null) syncedKnownLineageIds.Add(id);
+        }
+    }
+
+    // Client-side reconciliation. Add-only, matching knownLineages' own
+    // add-only semantics (no "forget a lineage" mechanic to reconcile
+    // away).
+    private void OnSyncedLineagesChanged(SyncList<string>.Operation op, int index, string oldItem, string newItem)
+    {
+        if (isServer) return;
+
+        foreach (var id in syncedKnownLineageIds)
+        {
+            var lineage = SkillDatabase.Instance != null ? SkillDatabase.Instance.Find(id) : null;
+            if (lineage != null) knownLineages.Add(lineage);
+        }
+
+        // The server already ran this for its own copy (ResolveFreshStart/
+        // RestoreCharacterData) -- a real remote client's own copy never
+        // got the chance to, since nothing client-side triggered it until
+        // the lineage itself just arrived here. No-ops if already picked.
+        SelectDefaultWishIfNone();
     }
 
     // Backward-compat fallback for a save file written before this fix
