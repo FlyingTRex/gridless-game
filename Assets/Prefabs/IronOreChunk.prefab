@@ -98,6 +98,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ddc2667a1bc01c444aa1c79e5ae9e708, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   chunkPrefab: {fileID: 7143839254278872167, guid: 294eee09e97bc0244a322efc3561a62f, type: 3}
   chunkCount: 2
   scatterForce: 1.2

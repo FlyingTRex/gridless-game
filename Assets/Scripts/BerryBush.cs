@@ -1,5 +1,14 @@
+using Mirror;
 using UnityEngine;
 
+// FIXED (2026-08-28, found live -- "can search a berry bush, can't pick
+// up a berry"): this was plain MonoBehaviour, zero Mirror integration
+// at all, the same shape ChoppableTree/ResourceNode were in before
+// their own same-night fixes -- both the chop and search actions ran
+// entirely on whichever machine's PlayerInteraction called Complete()/
+// CompleteSecondary(), so the scattered pickups never got properly
+// network-spawned for a real remote client.
+//
 // Berry Bush's two independent gather actions (2026-08-09, Ben's call),
 // replacing the old single instant-E-grabs-a-berry model:
 // - E: hold to chop (requires a Knife or Axe in hand, same tool-gating
@@ -14,7 +23,7 @@ using UnityEngine;
 // than the bush itself ever disappearing — chopping and searching are
 // two separate resources on the same plant, not one depleting object.
 [DisallowMultipleComponent]
-public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable, INPCSearchable
+public class BerryBush : NetworkBehaviour, IInteractable, ISecondaryInteractable, INPCSearchable
 {
     [SerializeField] private ItemDefinition[] chopTools;
     [SerializeField] private string chopToolLabel = "Knife or Axe";
@@ -39,11 +48,17 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable, I
     [SerializeField] private GameObject berrySeedPrefab;
     [SerializeField] [Range(0f, 1f)] private float berrySeedChance = 0.02f;
 
+    // Server-only -- Time.time is per-process, not meaningful to
+    // broadcast. The synced bools below are what every observer
+    // (including the server itself) actually checks availability from.
     private float chopRespawnAt = -1f;
     private float searchRespawnAt = -1f;
 
-    private bool IsChopOnCooldown => chopRespawnAt >= 0f;
-    private bool IsSearchOnCooldown => searchRespawnAt >= 0f;
+    [SyncVar] private bool chopOnCooldown;
+    [SyncVar] private bool searchOnCooldown;
+
+    private bool IsChopOnCooldown => chopOnCooldown;
+    private bool IsSearchOnCooldown => searchOnCooldown;
 
     // E's prompt always shows (same convention as ChoppableTree/
     // ResourceNode) — the tool requirement is stated up front, not hidden
@@ -70,11 +85,33 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable, I
 
     private void Update()
     {
-        if (chopRespawnAt >= 0f && Time.time >= chopRespawnAt) chopRespawnAt = -1f;
-        if (searchRespawnAt >= 0f && Time.time >= searchRespawnAt) searchRespawnAt = -1f;
+        if (!isServer) return;
+        if (chopRespawnAt >= 0f && Time.time >= chopRespawnAt) { chopRespawnAt = -1f; chopOnCooldown = false; }
+        if (searchRespawnAt >= 0f && Time.time >= searchRespawnAt) { searchRespawnAt = -1f; searchOnCooldown = false; }
     }
 
+    // FIXED (2026-08-28): same dual-path dispatch ChoppableTree/
+    // ResourceNode already established -- a networked instance routes
+    // through a Command so the real chop always happens server-side.
     public void Complete(GameObject player)
+    {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            CmdComplete();
+            return;
+        }
+
+        ServerComplete(player);
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdComplete(NetworkConnectionToClient sender = null)
+    {
+        if (sender == null || sender.identity == null) return;
+        ServerComplete(sender.identity.gameObject);
+    }
+
+    public void ServerComplete(GameObject player)
     {
         if (IsChopOnCooldown) return;
 
@@ -90,10 +127,30 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable, I
             SpawnScattered(trimmedStickPrefab, chopScatterForce);
 
         if (chopRespawnDelay > 0f)
+        {
             chopRespawnAt = Time.time + chopRespawnDelay;
+            chopOnCooldown = true;
+        }
     }
 
-    public void CompleteSecondary(GameObject player) => TriggerSearchForNPC();
+    // FIXED (2026-08-28): same dual-path dispatch -- TriggerSearchForNPC
+    // itself stays directly callable (NPCGathering already runs
+    // server-side per this project's own established convention, so it
+    // needs no Command of its own), only the PLAYER-triggered path needs
+    // routing through one.
+    public void CompleteSecondary(GameObject player)
+    {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            CmdCompleteSecondary();
+            return;
+        }
+
+        TriggerSearchForNPC();
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdCompleteSecondary() => TriggerSearchForNPC();
 
     // Same search logic the player's F action always ran — renamed/shared
     // so NPCGathering can trigger it directly without a GameObject player
@@ -110,7 +167,10 @@ public class BerryBush : MonoBehaviour, IInteractable, ISecondaryInteractable, I
             SpawnScattered(berrySeedPrefab, searchScatterForce);
 
         if (searchRespawnDelay > 0f)
+        {
             searchRespawnAt = Time.time + searchRespawnDelay;
+            searchOnCooldown = true;
+        }
 
         return true;
     }

@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 // Reputation system — see FAME_PLANNING.md (2026-08-14) for the full
@@ -6,9 +7,25 @@ using UnityEngine;
 // Kill NPC, Player death, Start/Close a guild, and business-reach Fame
 // are all designed but blocked on systems that don't exist yet — see
 // BUGS_AND_ENHANCEMENTS.md for each as a standalone follow-up.
+//
+// FIXED (2026-08-28, found live -- "fame isn't increasing either"):
+// converted to NetworkBehaviour with `fame` as a real [SyncVar]. Every
+// Grant* method (GrantHire, GrantFire, ...) is called directly from UI/
+// gameplay code on whichever machine performs the action -- none are
+// Command-routed, unlike PlayerSkills' own gains which increasingly are.
+// A naive [SyncVar] conversion alone would have introduced the exact
+// same regression the Inventory sync fix just had to undo: a client's
+// own direct Fame grant would only ever touch their local copy, then
+// get silently reverted the next time the server's (never-updated) copy
+// synced down. Fixed by making Grant() itself dispatch through a
+// Command whenever it's not already running server-side -- every
+// existing call site (all ~9 of them, plus OnTierUnlocked below, which
+// can fire server-side for a Command-routed skill gain or client-side
+// for one that isn't yet) keeps calling Grant(amount) completely
+// unchanged; the routing decision lives in one place.
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerSkills))]
-public class PlayerFame : MonoBehaviour
+public class PlayerFame : NetworkBehaviour
 {
     private const float MinFame = -1000f;
     private const float MaxFame = 1000f;
@@ -40,7 +57,7 @@ public class PlayerFame : MonoBehaviour
     private const float VendorStallAmount = 10f;
     private const float BankBoxAmount = 10f;
 
-    [SerializeField] private float fame = 0f;
+    [SyncVar] private float fame = 0f;
 
     private PlayerSkills skills;
 
@@ -148,7 +165,16 @@ public class PlayerFame : MonoBehaviour
     // watching the Player tab continuously.
     private void Grant(float amount)
     {
+        if (!isServer)
+        {
+            CmdGrant(amount);
+            return;
+        }
+
         fame = Mathf.Clamp(fame + amount, MinFame, MaxFame);
         Debug.Log($"[Fame] {(amount >= 0 ? "+" : "")}{amount:F2} -> {fame:F2} ({Band})");
     }
+
+    [Command]
+    private void CmdGrant(float amount) => Grant(amount);
 }

@@ -278,4 +278,18 @@ public class PlayerVitals : NetworkBehaviour
             case VitalType.Stamina: stamina = Mathf.Min(maxStamina, stamina + amount); break;
         }
     }
+
+    // FIXED (2026-08-28, found live -- "still can't ... drink from the
+    // water"): this class's own header comment claims every mutating
+    // method here is already only ever called from server-side (a
+    // Command elsewhere, e.g. Canteen.Drink via PlayerCanteen.CmdDrink,
+    // PlayerEating.CmdEatFrom) -- true everywhere except WaterSource
+    // .Complete(), which called Restore() directly from a plain
+    // client-side PlayerInteraction dispatch, no Command involved. Gives
+    // that one real exception (and any future direct-restore call site)
+    // a safe entry point instead of reaching for Restore() itself.
+    public void RequestRestore(VitalType vital, float amount) => CmdRestore(vital, amount);
+
+    [Command]
+    private void CmdRestore(VitalType vital, float amount) => Restore(vital, amount);
 }

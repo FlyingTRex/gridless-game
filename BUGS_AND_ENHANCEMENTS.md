@@ -5,7 +5,7 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
-## Real live two-machine session, 2026-08-27/28: a recurring class of bug — server-authoritative state that was never converted to sync back to the owning client (found live; inventory/Team-name/box instance/skill-levels/Magic-lineage/tree-chop/creature-death/equipment fixed same night v0.3.207-dev, Currency deliberately deferred)
+## Real live two-machine session, 2026-08-27/28: a recurring class of bug — server-authoritative state that was never converted to sync back to the owning client (found live across v0.3.207/208/209-dev; Currency deliberately deferred, everything else found so far is fixed)
 
 Found across several unrelated systems during actual live play with
 traskmi, the night after v0.3.205-dev/v0.3.206-dev shipped (the Spawn/
@@ -49,10 +49,38 @@ just a count) and `Inventory`'s existing non-destructive
 StorageBox and `Tree.prefab` fixes
 independently re-verified in a second Unity process (all 30 already-
 placed tree instances inherited the prefab's new `NetworkIdentity`
-automatically, unlike the StorageBox scene instance) — **still needs a
-real live re-test with traskmi** to confirm the client side now actually
-reflects a pickup/rename/skill-gain/Magic-lineage/tree-chop/creature-
-kill-and-skin correctly.
+automatically, unlike the StorageBox scene instance).
+
+**Fixed the following night of the same live-test push, v0.3.208/209-dev
+— found by continuing to test the same session, full detail in
+`CHANGELOG.md`:** a real regression in the tree fix itself (30 scene
+instances' `sceneId`s never deterministically baked, each real Editor
+self-healing with its own random value — root-caused by reading Mirror's
+own `NetworkIdentity.cs` source directly); Team persistence (never wired
+into `SaveManager` at all); `ResourceNode` (Boulder/ore/Log/Sand dig
+sites) was plain `MonoBehaviour`, same as `ChoppableTree` had been —
+"can't pick up a small rock after breaking a boulder"; `BerryBush`/
+`HerbBush` same gap — "can search a berry bush, can't pick up a berry";
+a real regression in the Inventory sync fix itself — a clear-and-rebuild
+reconciliation silently wiped any item added via the still-existing
+local-only Pickup path (Skill Books, Fiber), fixed to be delta-based;
+`PlayerFame` wasn't networked at all — "fame isn't increasing either" —
+fixed via a `Grant()`-dispatches-through-a-Command pattern, since (unlike
+Skills/Magic) none of its ~9 call sites were already Command-routed;
+`WaterSource.CompleteSecondary`/`Complete` both bypassed already-correct
+Command patterns elsewhere (`PlayerCanteen.RequestFill`, and a newly
+added `PlayerVitals.RequestRestore`) — "still can't fill a canteen or
+drink from the water." Every scene/prefab sceneId fix from this round
+used the lesson learned from the tree regression — explicit, deterministic
+regeneration, not left to chance — and was independently re-verified in
+a second Unity process. **Still needs a real live re-test with traskmi**
+to confirm all of this actually holds under real play.
+
+**Still open, unconfirmed:** scene-placed branch/Stick pickups — no
+scene-object spawn errors logged for them (unlike every case above),
+and the code reads correctly on inspection, so the root cause is still
+genuinely unknown. Needs live diagnostic logging next, not another
+code-read guess.
 
 **Still open, deliberately deferred (real design work needed, more
 than a quick copy of tonight's fix pattern, or a real regression risk if
@@ -100,34 +128,28 @@ above). The broader "client action never reaches the server at all"
 shape (wish-casting and likely others) is a separate, larger, still-
 unscoped finding — see above.
 
-## Player rename doesn't survive a save — not yet root-caused, diagnostic logging added (found 2026-08-28, v0.3.208-dev)
+## Player rename — CONFIRMED FIXED live, v0.3.208-dev
 
-Live report: "player name that was previously changed - was not saved."
-`save.json` confirmed both character records showed the un-renamed
-default (`"playerName": "Traveler"`, `"hasBeenNamed": false`) at the
-time of inspection. The rename mechanism itself (`PlayerIdentity
-.TryRename` → `CmdApplyRename`, fixed earlier the same night to
-actually be a `[SyncVar]`/`[Command]` pair) reads correctly on a direct
-code inspection — no obvious bug found. Genuinely unclear whether this
-is a real live bug or whether neither player actually re-attempted the
-rename under the fixed code during this specific test (the "previously
-changed" name may predate tonight's fix entirely). `Debug.Log` calls
-added at every branch of `TryRename` and inside `CmdApplyRename` so the
-next live test gives a definitive, immediate answer instead of more
-guessing. Next step: have both players try renaming again, then check
-the log for `[PlayerIdentity]` lines confirming the Command actually
-fired and landed server-side.
+Live report (v0.3.208-dev): "player name that was previously changed -
+was not saved," couldn't be conclusively root-caused from code or
+`save.json` alone at the time, so `Debug.Log` diagnostic calls were
+added to `PlayerIdentity.TryRename`/`CmdApplyRename` instead of guessing
+further. **Re-tested the same night, confirmed working**: "names were
+displayed to each other, created a team" — rename now correctly
+replicates and Team creation (which depends on `PlayerIdentity` being
+correct) works. Diagnostic logging left in place, harmless.
 
-**Related, same live session: "spawned Fiber, picked it up, still
-doesn't show up in my local inventory"** — the exact symptom the
-`PlayerInventory` sync fix (earlier the same night) was meant to close,
-reported as still happening. Not yet re-confirmed as a genuine surviving
-bug vs. a downstream symptom of the tree `sceneId` mismatch above — 30
-failed scene-object spawn resolutions during the connection handshake
-could plausibly destabilize other spawn/sync traffic in the same
-session, not just tree interactions specifically. Worth a clean re-test
-after the tree fix (v0.3.208-dev) before assuming the inventory fix
-itself is still broken.
+**Related "spawned Fiber, picked it up, still doesn't show up in my
+local inventory" report from the same session — since explained and
+fixed, v0.3.209-dev.** Not the tree `sceneId` issue after all: a real,
+separate regression in the `PlayerInventory` sync fix itself (Fiber's
+prefab has a `NetworkIdentity`, so it should have worked) — turned out
+to be the exact same shape as the later-reported "picked up a Skill
+Book, doesn't show up" bug. Full detail in the entry immediately above
+this file's top section and in `CHANGELOG.md`'s v0.3.209-dev entry: the
+reconciliation used to clear-and-rebuild from server-known state only,
+silently wiping any item added via the (still-existing) local-only
+Pickup path. Fixed to be delta-based instead.
 
 ## Host silently stops processing while the Editor window is unfocused — `runInBackground: 0` (found 2026-08-27, not started)
 

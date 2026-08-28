@@ -17,9 +17,10 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**v0.3.208-dev is built and compile-verified, not yet committed** (tree
-`sceneId` regression fix + Team persistence + rename diagnostic logging
-— see `CHANGELOG.md`). Everything through v0.3.207-dev is merged to
+**v0.3.209-dev is built and compile-verified, not yet committed**
+(`ResourceNode`/`BerryBush`/`HerbBush` networked, a real Inventory-sync
+regression fixed, `PlayerFame`/`WaterSource`/`PlayerVitals` fixes — see
+`CHANGELOG.md`). Everything through v0.3.208-dev is merged to
 `origin/main`.
 
 ## Multiplayer roadmap — mostly closed out, one real gap found 2026-08-26

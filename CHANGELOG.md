@@ -5,10 +5,99 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.208-dev` — must always match `GameVersion` in
+**Current version:** `0.3.209-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-28 (4)
+
+### v0.3.209-dev — ResourceNode/BerryBush/HerbBush networked, real inventory-wipe regression fixed, PlayerFame/WaterSource/PlayerVitals fixes
+
+Continued live-testing the same night (v0.3.208-dev's tree fix held —
+names displayed correctly, Team creation worked), found four more real
+gaps, all fixed:
+
+**`ResourceNode` (Boulder/ore chunks/Log/Sand dig sites) converted from
+plain `MonoBehaviour` to `NetworkBehaviour`** — the real cause of "can't
+pick up a small rock after breaking a boulder." Same shape as
+`ChoppableTree`'s own fix: breaking a node (`Complete()`) or picking one
+up whole (`CompleteSecondary()`, e.g. a Log) now routes through a
+`[Command(requiresAuthority = false)]` using Mirror's `sender` connection
+parameter (a scene object, no client authority to lean on the way a
+Player-owned Command can). Visibility is now a `[SyncVar(hook=...)]`
+`broken` bool — `respawnAt` stays server-only (`Time.time` is
+per-process). 9 prefabs use this component (Boulder, 4 ore chunk types,
+Log, MediumRockChunk, SandDigSite); 6 needed `NetworkIdentity` added.
+**Learned from the tree sceneId regression** — didn't leave scene-instance
+sceneId assignment to chance this time: every one of the 79 scene
+instances got an explicit, deterministic regeneration (force to `0`,
+invoke the real `OnValidate` via reflection, record the instance
+override) in the same pass, independently re-verified: 79 instances, 79
+unique non-zero sceneIds, zero duplicates.
+
+**`BerryBush`/`HerbBush` converted the same way** — the cause of "can
+search a berry bush, can't pick up a berry." Simpler than `ResourceNode`
+(no visibility toggle at all — these bushes stay interactable
+throughout by design), just two independent cooldown `[SyncVar]` bools
+(`chopOnCooldown`/`searchOnCooldown` for Berry Bush, one `onCooldown`
+for Herb Bush) replacing the server-only `Time.time`-based timers as the
+client-visible availability source. `TriggerSearchForNPC()` stays
+directly callable for `NPCGathering` (already server-side); only the
+player-triggered path needed the Command dispatch. 23 scene instances,
+same deterministic sceneId treatment, independently re-verified.
+
+**A real regression in v0.3.207-dev's own Inventory sync fix, found
+live: "I can pick up a Skill Book, but it doesn't show up in
+inventory."** The original fix cleared every plain stackable slot and
+rebuilt it purely from `syncedSlots` on every reconciliation — correct
+for a Command-routed pickup, but not all `Pickup` prefabs have a
+`NetworkIdentity` yet (Skill Books included), so those still take the
+original fully-local path, adding directly to the client's own
+`inventory` with the server never finding out. The very next time
+*anything else* changed this player's `syncedSlots`, the clear-and-
+rebuild would silently delete that local-only item, since the server's
+broadcast never included it in the first place. Fixed by making the
+reconciliation additive instead: `PlayerInventory` now tracks the last
+known synced totals per item and applies only the signed *delta*
+between old and new broadcasts via a new `Inventory.ApplyStackableDelta`
+— an item added locally (never part of any synced snapshot, so its
+delta is always `0`) is never touched, while a genuine server-side
+change (a real pickup, a drop, a trade) still propagates correctly.
+
+**`PlayerFame` converted from plain `MonoBehaviour` to
+`NetworkBehaviour`** — "fame isn't increasing either." Unlike
+`PlayerSkills`, every `Grant*` method here is called directly from UI/
+gameplay code (hiring, firing, guild-join, building) with zero Command
+routing anywhere — a naive `[SyncVar]` conversion alone would have
+reintroduced the exact same regression the inventory fix above just
+undid. Fixed by making the private `Grant()` method itself dispatch
+through a new `[Command] CmdGrant` whenever it's not already running
+server-side — every one of its ~9 existing callers (`GrantHire`,
+`GrantFire`, `OnTierUnlocked`, ...) keeps calling `Grant(amount)`
+completely unchanged.
+
+**`WaterSource.CompleteSecondary()` fixed** — "still can't fill a
+canteen." Called `PlayerCanteen.Equipped.Fill(...)` directly, bypassing
+the already-correct `RequestFill()`/`CmdFill()` Command that exists
+elsewhere (the Inventory screen's manual Fill button) — a leftover from
+before that Command existed, never migrated. Now calls `RequestFill()`.
+
+**`WaterSource.Complete()` (drinking directly from the source) also
+fixed** — `PlayerVitals.cs`'s own header comment states an invariant
+("every mutating method here is already only ever called from
+server-side") that this one call site actually violated. Gave
+`PlayerVitals` a proper `RequestRestore()`/`CmdRestore()` pair (mirroring
+`Canteen`/`PlayerEating`'s existing pattern) and pointed `WaterSource
+.Complete()` at it instead of calling `Restore()` directly.
+
+**Still open, not attempted this round:** scene-placed branch/Stick
+pickups remain unexplained (no scene-object spawn errors logged for
+them, unlike the fixed cases above — needs live diagnostic logging, not
+a confident code-read fix); `PlayerCurrency` still isn't networked
+(deliberately, see the earlier entry on why sync-only would be
+harmful); the broader "many direct gameplay actions never reach the
+server for a real client" finding is still open and unscoped.
 
 ## 2026-08-28 (3)
 

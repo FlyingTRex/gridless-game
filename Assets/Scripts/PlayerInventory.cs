@@ -68,27 +68,72 @@ public class PlayerInventory : NetworkBehaviour
         RefreshSyncedSlots();
     }
 
-    // Client-side reconciliation (found live, 2026-08-28 -- see
-    // Inventory.ReplaceStackableSlots' own comment for the full story).
-    // Fires on every observer, including the server's own local copy of
-    // this SyncList -- skip there, since the server's `inventory` is
-    // already the authoritative source RefreshSyncedSlots just read
-    // FROM, not something to overwrite from its own broadcast.
+    // Client-side reconciliation (found live, 2026-08-28). Fires on every
+    // observer, including the server's own local copy of this SyncList --
+    // skip there, since the server's `inventory` is already the
+    // authoritative source RefreshSyncedSlots just read FROM, not
+    // something to overwrite from its own broadcast.
     private void OnSyncedSlotsChanged(SyncList<SyncedInventorySlot>.Operation op, int index, SyncedInventorySlot oldItem, SyncedInventorySlot newItem)
     {
         if (isServer) return;
         ApplySyncedSlotsToLocalInventory();
     }
 
+    // Snapshot of syncedSlots as of the last reconciliation -- lets this
+    // apply only the DELTA between old and new server-known state,
+    // rather than a destructive full rebuild.
+    private readonly Dictionary<string, int> lastSyncedCounts = new Dictionary<string, int>();
+
+    // FIXED (2026-08-28, found live: "I can pick up a Skill Book, but it
+    // doesn't show up in inventory" -- picked up correctly, then silently
+    // WIPED). The original version of this method cleared every plain
+    // stackable slot and rebuilt it purely from syncedSlots -- correct
+    // for items added via a Command (the server genuinely knows about
+    // them), but not all Pickup prefabs have a NetworkIdentity yet (see
+    // Pickup.cs's own header comment: ~49 still don't) -- those still
+    // take the original fully-local path, adding directly to this
+    // client's own `inventory` with the server never finding out. A
+    // clear-and-rebuild-from-server-truth reconciliation would silently
+    // delete that local-only item the very next time ANYTHING else
+    // changed this player's syncedSlots (any other pickup, drop, etc.),
+    // since the server's broadcast never included it in the first place.
+    //
+    // Fixed to be additive instead: track the last known synced totals
+    // per item, diff against the current broadcast, and apply only the
+    // signed DELTA to the local inventory via Inventory.ApplyStackableDelta
+    // (an AddItem for a gain, a RemoveItem for a loss). An item this
+    // client added locally (never part of any synced snapshot, so its
+    // delta is always 0) is never touched. This remains a real
+    // reconciliation, not a blind trust-the-client scheme -- a genuine
+    // server-side removal (traded, dropped via another path, etc.) still
+    // correctly propagates as a negative delta.
     private void ApplySyncedSlotsToLocalInventory()
     {
-        var resolved = new List<(ItemDefinition item, int count)>();
+        var newCounts = new Dictionary<string, int>();
         foreach (var slot in syncedSlots)
         {
-            var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(slot.itemId) : null;
-            if (item != null) resolved.Add((item, slot.count));
+            if (string.IsNullOrEmpty(slot.itemId)) continue;
+            newCounts[slot.itemId] = newCounts.TryGetValue(slot.itemId, out var c) ? c + slot.count : slot.count;
         }
-        inventory.ReplaceStackableSlots(resolved);
+
+        var allItemIds = new HashSet<string>(lastSyncedCounts.Keys);
+        allItemIds.UnionWith(newCounts.Keys);
+
+        foreach (var itemId in allItemIds)
+        {
+            int oldCount = lastSyncedCounts.TryGetValue(itemId, out var oc) ? oc : 0;
+            int newCount = newCounts.TryGetValue(itemId, out var nc) ? nc : 0;
+            int delta = newCount - oldCount;
+            if (delta == 0) continue;
+
+            var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
+            if (item == null) continue;
+
+            inventory.ApplyStackableDelta(item, delta);
+        }
+
+        lastSyncedCounts.Clear();
+        foreach (var kvp in newCounts) lastSyncedCounts[kvp.Key] = kvp.Value;
     }
 
     private string ComputeSignature()

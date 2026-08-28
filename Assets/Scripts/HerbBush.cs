@@ -1,5 +1,11 @@
+using Mirror;
 using UnityEngine;
 
+// FIXED (2026-08-28, same class of bug as BerryBush/ResourceNode/
+// ChoppableTree, fixed the same night): converted to NetworkBehaviour,
+// search routed through a Command for the player path -- see
+// BerryBush.cs's own header comment for the full story.
+//
 // Duplicated from BerryBush (2026-08-10, Ben's explicit call: "we don't
 // want to use the existing berrybush... we need to duplicate and rename
 // it") rather than reusing/repurposing it — a separate, independent
@@ -24,7 +30,7 @@ using UnityEngine;
 // PlayerInteraction's secondary-prompt line ("[F] ...") shows correctly
 // on its own with no primary text alongside it.
 [DisallowMultipleComponent]
-public class HerbBush : MonoBehaviour, ISecondaryInteractable, INPCSearchable
+public class HerbBush : NetworkBehaviour, ISecondaryInteractable, INPCSearchable
 {
     [SerializeField] private GameObject herbPrefab;
     [SerializeField] private int minHerbs = 1;
@@ -34,9 +40,11 @@ public class HerbBush : MonoBehaviour, ISecondaryInteractable, INPCSearchable
     // ResourceNode.respawnDelay/BerryBush.searchRespawnDelay.
     [SerializeField] private float respawnDelay = 180f;
 
+    // Server-only -- see BerryBush's own comment on the identical split.
     private float respawnAt = -1f;
+    [SyncVar] private bool onCooldown;
 
-    private bool IsOnCooldown => respawnAt >= 0f;
+    private bool IsOnCooldown => onCooldown;
 
     // Hides entirely while on cooldown, same convention
     // ISecondaryInteractable documents (return null/empty to hide) —
@@ -51,10 +59,23 @@ public class HerbBush : MonoBehaviour, ISecondaryInteractable, INPCSearchable
 
     private void Update()
     {
-        if (respawnAt >= 0f && Time.time >= respawnAt) respawnAt = -1f;
+        if (!isServer) return;
+        if (respawnAt >= 0f && Time.time >= respawnAt) { respawnAt = -1f; onCooldown = false; }
     }
 
-    public void CompleteSecondary(GameObject player) => TriggerSearchForNPC();
+    public void CompleteSecondary(GameObject player)
+    {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            CmdCompleteSecondary();
+            return;
+        }
+
+        TriggerSearchForNPC();
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdCompleteSecondary() => TriggerSearchForNPC();
 
     public bool TriggerSearchForNPC()
     {
@@ -65,7 +86,10 @@ public class HerbBush : MonoBehaviour, ISecondaryInteractable, INPCSearchable
             SpawnScattered(herbPrefab, scatterForce);
 
         if (respawnDelay > 0f)
+        {
             respawnAt = Time.time + respawnDelay;
+            onCooldown = true;
+        }
 
         return true;
     }

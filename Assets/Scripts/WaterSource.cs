@@ -14,9 +14,14 @@ public class WaterSource : MonoBehaviour, IWaterSource, IInteractable, ISecondar
     public bool IsInstant => true;
     public float GetHoldDuration(GameObject player) => 0f;
 
+    // FIXED (2026-08-28, found live -- "still can't ... drink from the
+    // water"): called Restore() directly, violating PlayerVitals' own
+    // stated invariant that every mutating call comes from server-side
+    // already. Worked by coincidence for a host; silently did nothing
+    // for a real remote client.
     public void Complete(GameObject player)
     {
-        player.GetComponent<PlayerVitals>()?.Restore(VitalType.Thirst, drinkAmount);
+        player.GetComponent<PlayerVitals>()?.RequestRestore(VitalType.Thirst, drinkAmount);
     }
 
     public string GetSecondaryPrompt(GameObject player)
@@ -26,8 +31,15 @@ public class WaterSource : MonoBehaviour, IWaterSource, IInteractable, ISecondar
         return $"Fill {carrier.DisplayName}";
     }
 
+    // FIXED (2026-08-28, found live -- "still can't fill a canteen"):
+    // this called Equipped.Fill(...) directly, bypassing PlayerCanteen's
+    // own RequestFill()/CmdFill() Command entirely -- a leftover from
+    // before that Command existed, never migrated when it was added.
+    // Worked by coincidence for a host (same process as the server);
+    // silently did nothing for a real remote client, since a direct
+    // field write on a non-authoritative machine doesn't replicate.
     public void CompleteSecondary(GameObject player)
     {
-        player.GetComponent<PlayerCanteen>()?.Equipped?.Fill(LiquidType.Water);
+        player.GetComponent<PlayerCanteen>()?.RequestFill();
     }
 }

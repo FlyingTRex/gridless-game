@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 8533641952241254542}
   - component: {fileID: 7474742792332513984}
   - component: {fileID: 7395605336244337140}
+  - component: {fileID: 4530451258000869856}
+  - component: {fileID: 8485817570871575045}
   m_Layer: 0
   m_Name: Boulder
   m_TagString: Untagged
@@ -68,6 +70,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ddc2667a1bc01c444aa1c79e5ae9e708, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ResourceNode
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0
   chunkPrefab: {fileID: 8584421546452813150, guid: 72c9bb4e4474fa14e807339e95730ef8, type: 3}
   chunkCount: 3
   scatterForce: 1.2
@@ -82,6 +87,9 @@ MonoBehaviour:
   hiddenMaterial: {fileID: 0}
   revealedMaterial: {fileID: 0}
   hiddenChunkPrefab: {fileID: 0}
+  pickupItem: {fileID: 0}
+  pickupCount: 1
+  holeVisualPrefab: {fileID: 0}
 --- !u!114 &7395605336244337140
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -94,6 +102,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cb95ee35353b2864ab4509ec83f31898, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AnvilSurface
+--- !u!114 &4530451258000869856
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6076273570767392289}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 148e7344a6a52c3408ebc5718f22336b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SaveId
+  id: f4970a77a2014bd7913df97e541f6547
+--- !u!114 &8485817570871575045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6076273570767392289}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9b91ecbcc199f4492b9a91e820070131, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Mirror::Mirror.NetworkIdentity
+  sceneId: 0
+  _assetId: 0
+  serverOnly: 0
+  visibility: 0
+  hasSpawned: 0
 --- !u!1001 &5221230257400354232
 PrefabInstance:
   m_ObjectHideFlags: 0

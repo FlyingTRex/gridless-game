@@ -1,7 +1,16 @@
+using Mirror;
 using UnityEngine;
 
+// FIXED (2026-08-28, found live -- "can't pick up a small rock after
+// breaking a boulder"): this was plain MonoBehaviour, zero Mirror
+// integration at all, the same shape ChoppableTree was in before its
+// own same-night fix -- breaking a node (or picking one up whole via
+// the secondary action, e.g. Log) ran entirely on whichever machine's
+// PlayerInteraction called Complete()/CompleteSecondary(), so the
+// resulting chunks never got properly network-spawned for a real
+// remote client, and the server never learned the node broke at all.
 [RequireComponent(typeof(SaveId))]
-public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable, INPCHarvestable
+public class ResourceNode : NetworkBehaviour, IInteractable, ISecondaryInteractable, INPCHarvestable
 {
     [SerializeField] private GameObject chunkPrefab;
     [SerializeField] private int chunkCount = 3;
@@ -80,7 +89,15 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
     private Renderer[] renderers;
     // -1 means "not counting down" — the node is either still standing
     // (the timer is held until it's actually broken) or mid-repositioning.
+    // Server-only now (Time.time is per-process, not meaningful to
+    // broadcast) -- `broken` below is the real synced visibility source
+    // of truth every observer (including the server itself) reads from.
     private float respawnAt = -1f;
+
+    [SyncVar(hook = nameof(OnBrokenChanged))]
+    private bool broken;
+
+    private void OnBrokenChanged(bool oldValue, bool newValue) => SetVisible(!newValue);
 
     // Looked up once rather than per-frame — this node isn't parented under
     // Player, so there's no cheap direct reference.
@@ -95,7 +112,7 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
     // Read by NPCMining (2026-08-10, Chunk 4 of the Hireable NPCs build)
     // to find/filter targets and check its own equipped tools without
     // needing PlayerEquipment, which it doesn't have.
-    public bool IsAvailable => respawnAt < 0f;
+    public bool IsAvailable => !broken;
     public ItemDefinition[] RequiredTools => requiredTools;
     public float SkillGain => skillGain;
 
@@ -112,12 +129,12 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
         if (secondsRemaining < 0f)
         {
             respawnAt = -1f;
-            SetVisible(true);
+            broken = false;
         }
         else
         {
             respawnAt = Time.time + secondsRemaining;
-            SetVisible(false);
+            broken = true;
         }
     }
 
@@ -166,6 +183,7 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
                 r.sharedMaterial = material;
         }
 
+        if (!isServer) return;
         if (respawnAt < 0f || Time.time < respawnAt) return;
         Respawn();
     }
@@ -173,8 +191,33 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
     // Called once the hold completes (see PlayerInteraction) — replaces the
     // old repeated-OnPunch/hitsToBreak counter entirely, single-shot now
     // that the wait itself is the skill/tool gate.
+    //
+    // FIXED (2026-08-28): same dual-path dispatch ChoppableTree/Pickup
+    // already established -- a networked instance routes through a
+    // Command so the real break (chunk spawn + broken state) always
+    // happens server-side, regardless of who broke it.
     public void Complete(GameObject player)
     {
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            CmdComplete();
+            return;
+        }
+
+        ServerComplete(player);
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdComplete(NetworkConnectionToClient sender = null)
+    {
+        if (sender == null || sender.identity == null) return;
+        ServerComplete(sender.identity.gameObject);
+    }
+
+    public void ServerComplete(GameObject player)
+    {
+        if (!IsAvailable) return;
+
         if (HasToolRequirement)
         {
             var equipment = player.GetComponent<PlayerEquipment>();
@@ -197,11 +240,11 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
 
         if (respawnDelay <= 0f)
         {
-            Destroy(gameObject);
+            DestroySelf();
             return;
         }
 
-        SetVisible(false);
+        broken = true;
         respawnAt = Time.time + respawnDelay;
     }
 
@@ -227,11 +270,11 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
 
         if (respawnDelay <= 0f)
         {
-            Destroy(gameObject);
+            DestroySelf();
             return true;
         }
 
-        SetVisible(false);
+        broken = true;
         respawnAt = Time.time + respawnDelay;
         return true;
     }
@@ -303,9 +346,31 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
     // PlayerInventory fallback, leave the node in place if there's nowhere
     // to put it) so a full inventory behaves identically whether the wood
     // came from a loose Pickup or this secondary action.
+    //
+    // FIXED (2026-08-28): same dual-path dispatch as Complete() above --
+    // this whole-node pickup (e.g. a Log) ran entirely local-only before,
+    // same gap.
     public void CompleteSecondary(GameObject player)
     {
-        if (pickupItem == null) return;
+        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        {
+            CmdCompleteSecondary();
+            return;
+        }
+
+        ServerCompleteSecondary(player);
+    }
+
+    [Command(requiresAuthority = false)]
+    private void CmdCompleteSecondary(NetworkConnectionToClient sender = null)
+    {
+        if (sender == null || sender.identity == null) return;
+        ServerCompleteSecondary(sender.identity.gameObject);
+    }
+
+    public void ServerCompleteSecondary(GameObject player)
+    {
+        if (pickupItem == null || !IsAvailable) return;
 
         var loot = player.GetComponent<PlayerLoot>();
         int leftover;
@@ -323,11 +388,11 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
 
         if (respawnDelay <= 0f)
         {
-            Destroy(gameObject);
+            DestroySelf();
             return;
         }
 
-        SetVisible(false);
+        broken = true;
         respawnAt = Time.time + respawnDelay;
     }
 
@@ -346,8 +411,14 @@ public class ResourceNode : MonoBehaviour, IInteractable, ISecondaryInteractable
     {
         Vector2 offset = Random.insideUnitCircle * respawnScatter;
         transform.position = spawnPosition + new Vector3(offset.x, 0f, offset.y);
-        SetVisible(true);
+        broken = false;
         respawnAt = -1f;
+    }
+
+    private void DestroySelf()
+    {
+        if (NetworkServer.active) NetworkServer.Destroy(gameObject);
+        else Destroy(gameObject);
     }
 
     // Inverted here rather than at each of this method's call sites
