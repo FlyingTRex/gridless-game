@@ -5,10 +5,20 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.207-dev` — must always match `GameVersion` in
+**Current version:** `0.3.208-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-28 (3)
+
+### v0.3.208-dev — Real regression found and fixed same night: tree sceneId mismatch broke stick-picking-up; Team persistence added; rename diagnostic logging
+
+**A real regression from v0.3.207-dev's own `ChoppableTree` fix, found live minutes after re-testing**: "neither of us can pick up a stick on the ground." The 30 tree scene instances had inherited `Tree.prefab`'s new `NetworkIdentity` structurally, but Mirror's own `NetworkIdentity.AssignSceneID()` (which runs inside the Editor-only `OnValidate`) only *generates* a new persistent `sceneId` when the current value is `0` or a detected duplicate — it doesn't otherwise force one canonical value. The original batch-mode prefab fix apparently didn't deterministically trigger that generation for all 30 inherited instances, so each real interactive Editor session (Ben's, traskmi's) could have independently self-healed with its *own* random value the first time it opened the scene — permanently mismatching between machines and producing exactly the `"Spawn scene object not found ... Make sure that client and server use exactly the same project"` errors seen in the log (30 of them, one per tree, confirmed by grepping `Editor.log`). **Root-caused by reading Mirror's own `NetworkIdentity.cs` source directly** rather than guessing. Fixed via a throwaway batch script: force every tree's `sceneId` back to `0`, then invoke the real (private, called via reflection) `OnValidate` so exactly one canonical value gets generated and baked into the committed scene file — both machines now load the same already-valid value instead of each generating their own. Independently re-verified in a second Unity process: 30 trees, 30 unique non-zero `sceneId`s, zero duplicates.
+
+**Team persistence added** — Ben's ask, after finding Team membership didn't survive a reconnect (it was never wired into `SaveManager` at all, the same gap most new features start with in this project). `PlayerTeam.RestoreTeam(teamId, teamName, role)` added, called from `SaveManager.RestorePlayer`; `CapturePlayer` now writes `teamId`/`teamName`/`teamRole`. Deliberately per-player, not a new global "teams" table — `PlayerTeam.MembersOf`'s existing live-scan (no central registry to begin with) naturally re-groups reconnecting teammates once each member's own record is restored. Pending invites are NOT persisted — reasonable to just expire on disconnect.
+
+**Diagnostic logging added to the player-rename path** (`PlayerIdentity.TryRename`/`CmdApplyRename`) — a second live report, "player name that was previously changed - was not saved," couldn't be conclusively root-caused from the code alone (the Command/SyncVar mechanism reads correctly on inspection) or from `save.json` (both character records showed the un-renamed default, but it's unclear whether either player actually re-attempted the rename under tonight's fixed code at all). Added `Debug.Log` calls at every branch of `TryRename` and inside `CmdApplyRename` so the next test run gives a definitive answer instead of more guessing, matching this project's own established "add visibility instead of guessing" discipline (see `DebugLog.cs`'s own precedent in `CLAUDE.md`). Not yet confirmed as fixed or even root-caused — flagged in `BUGS_AND_ENHANCEMENTS.md` as needing a live re-test with the new logging in place.
 
 ## 2026-08-28 (2)
 

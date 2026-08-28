@@ -38,6 +38,7 @@ using UnityEngine;
 [RequireComponent(typeof(PlayerFame))]
 [RequireComponent(typeof(PlayerMagic))]
 [RequireComponent(typeof(PlayerIdentity))]
+[RequireComponent(typeof(PlayerTeam))]
 public class SaveManager : NetworkBehaviour
 {
     private const string FileName = "save.json";
@@ -58,6 +59,7 @@ public class SaveManager : NetworkBehaviour
     private VillageFlagSpawner villageFlagSpawner;
     private PlayerMagic magic;
     private PlayerIdentity identity;
+    private PlayerTeam team;
 
     // Set by Load() so a fresh scene's starting-gear auto-equip (Shirt/
     // Jeans/Belt/Canteen, each guarded on "nothing equipped yet") doesn't
@@ -83,6 +85,7 @@ public class SaveManager : NetworkBehaviour
         villageFlagSpawner = GetComponent<VillageFlagSpawner>();
         magic = GetComponent<PlayerMagic>();
         identity = GetComponent<PlayerIdentity>();
+        team = GetComponent<PlayerTeam>();
     }
 
     // Chunk 3 (see Save()/Load() below): can't call Load() from Start()
@@ -325,6 +328,12 @@ public class SaveManager : NetworkBehaviour
             // doesn't hand out a second free one.
             ["playerName"] = identity != null ? identity.DisplayName : null,
             ["hasBeenNamed"] = identity != null && identity.HasBeenNamed,
+            // Team (2026-08-28) -- per-player, not a separate registry;
+            // see PlayerTeam.RestoreTeam's own comment for why this is
+            // enough to make reconnecting teammates re-group correctly.
+            ["teamId"] = team != null ? team.TeamId : null,
+            ["teamName"] = team != null ? team.TeamName : null,
+            ["teamRole"] = team != null ? team.Role.ToString() : null,
         };
     }
 
@@ -355,6 +364,10 @@ public class SaveManager : NetworkBehaviour
 
         if (identity != null && data["playerName"] != null)
             identity.RestoreIdentity((string)data["playerName"], (bool)(data["hasBeenNamed"] ?? false));
+
+        if (team != null && data["teamId"] != null
+            && Enum.TryParse((string)(data["teamRole"] ?? "Member"), out TeamRole savedRole))
+            team.RestoreTeam((string)data["teamId"], (string)data["teamName"], savedRole);
 
         if (data["currency"] is JObject currencyObj)
             foreach (CoinType type in Enum.GetValues(typeof(CoinType)))

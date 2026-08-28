@@ -150,17 +150,27 @@ public class PlayerIdentity : NetworkBehaviour
     public bool TryRename(string newName)
     {
         string clean = Sanitize(newName);
-        if (clean == null) return false;
+        if (clean == null)
+        {
+            Debug.Log($"[PlayerIdentity] TryRename('{newName}') rejected -- failed sanitization.");
+            return false;
+        }
 
         if (!hasBeenNamed)
         {
+            Debug.Log($"[PlayerIdentity] TryRename('{clean}') -- first free rename, sending CmdApplyRename.");
             CmdApplyRename(clean);
             return true;
         }
 
         int cost = fame != null ? fame.RenameCostGold : 1;
-        if (wallet == null || !wallet.Spend(CoinType.Gold, cost)) return false;
+        if (wallet == null || !wallet.Spend(CoinType.Gold, cost))
+        {
+            Debug.Log($"[PlayerIdentity] TryRename('{clean}') rejected -- couldn't afford {cost} Gold (wallet null: {wallet == null}).");
+            return false;
+        }
 
+        Debug.Log($"[PlayerIdentity] TryRename('{clean}') -- paid {cost} Gold, sending CmdApplyRename.");
         CmdApplyRename(clean);
         fame?.ApplyRenamePenalty();
         return true;
@@ -178,10 +188,15 @@ public class PlayerIdentity : NetworkBehaviour
     private void CmdApplyRename(string newName)
     {
         string clean = Sanitize(newName);
-        if (clean == null) return;
+        if (clean == null)
+        {
+            Debug.Log($"[PlayerIdentity] CmdApplyRename('{newName}') rejected server-side -- failed re-sanitization.");
+            return;
+        }
 
         playerName = clean;
         hasBeenNamed = true;
+        Debug.Log($"[PlayerIdentity] CmdApplyRename applied server-side: playerName is now '{playerName}', hasBeenNamed={hasBeenNamed}.");
     }
 
     // Called by SaveManager on load -- sets the name/flag directly,

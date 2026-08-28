@@ -100,6 +100,35 @@ above). The broader "client action never reaches the server at all"
 shape (wish-casting and likely others) is a separate, larger, still-
 unscoped finding — see above.
 
+## Player rename doesn't survive a save — not yet root-caused, diagnostic logging added (found 2026-08-28, v0.3.208-dev)
+
+Live report: "player name that was previously changed - was not saved."
+`save.json` confirmed both character records showed the un-renamed
+default (`"playerName": "Traveler"`, `"hasBeenNamed": false`) at the
+time of inspection. The rename mechanism itself (`PlayerIdentity
+.TryRename` → `CmdApplyRename`, fixed earlier the same night to
+actually be a `[SyncVar]`/`[Command]` pair) reads correctly on a direct
+code inspection — no obvious bug found. Genuinely unclear whether this
+is a real live bug or whether neither player actually re-attempted the
+rename under the fixed code during this specific test (the "previously
+changed" name may predate tonight's fix entirely). `Debug.Log` calls
+added at every branch of `TryRename` and inside `CmdApplyRename` so the
+next live test gives a definitive, immediate answer instead of more
+guessing. Next step: have both players try renaming again, then check
+the log for `[PlayerIdentity]` lines confirming the Command actually
+fired and landed server-side.
+
+**Related, same live session: "spawned Fiber, picked it up, still
+doesn't show up in my local inventory"** — the exact symptom the
+`PlayerInventory` sync fix (earlier the same night) was meant to close,
+reported as still happening. Not yet re-confirmed as a genuine surviving
+bug vs. a downstream symptom of the tree `sceneId` mismatch above — 30
+failed scene-object spawn resolutions during the connection handshake
+could plausibly destabilize other spawn/sync traffic in the same
+session, not just tree interactions specifically. Worth a clean re-test
+after the tree fix (v0.3.208-dev) before assuming the inventory fix
+itself is still broken.
+
 ## Host silently stops processing while the Editor window is unfocused — `runInBackground: 0` (found 2026-08-27, not started)
 
 Found live during the real Host/Join test with Ben (chunk 7 of the

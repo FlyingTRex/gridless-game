@@ -62,19 +62,26 @@ Build order — no remaining prerequisite, both are already shipped
 (`PlayerIdentity.cs`/`PlayerMenuScreen.cs` for naming, Multiplayer's Phase 3
 for player-authoritative gameplay):
 
-- [ ] **Team**, per `TEAMS_AND_GUILDS_PLANNING.md`'s now-fully-resolved
+- [x] **Team**, per `TEAMS_AND_GUILDS_PLANNING.md`'s now-fully-resolved
   design: cap 6, Owner/Officer/Member roles, a new Team tab (create/invite/
   kick/promote/leave/disband), territory as the federated union of the
   Owner's and any Officer's own Village Flags (reusing
   `CraftTierScale.VillageFlagRevealRadius` as-is, live-recomputed off each
   member's current rank) drawn as a cosmetic map shape only — no shared
-  Bank, no object-level access control of any kind.
+  Bank, no object-level access control of any kind. **Built 2026-08-28,
+  v0.3.206-dev** — `PlayerTeam.cs` (roster/lifecycle Commands) +
+  `TeamScreen.cs` (the `T`-key UI), wired into the Player prefab/scene.
+  Confirmed working live the same night ("teams work" — Ben). One real
+  live-play bug found and fixed the same session (v0.3.207-dev): a
+  renamed player showed as "Traveler" in the roster, since
+  `PlayerIdentity.playerName` wasn't a `[SyncVar]` and rename never went
+  through a `[Command]` — see `CHANGELOG.md`'s v0.3.207-dev entry.
 - [ ] **Team-mate map markers** — distinct shape from NPC markers, per the
   same doc's Map presentation section. `MapScreen.cs` currently draws Flag
   markers only (checked directly — no `PlayerIdentity` reference in it at
   all), so this marker-drawing itself is genuinely still to build; the
   naming half it labels off of (`PlayerIdentity.DisplayName`) is the part
-  that's already done.
+  that's already done. Not started.
 - [ ] **Crosshair name display** — Ben's ask (2026-08-25): show a player's
   name when your crosshair is aimed at them, not just on the map.
   `PlayerInteraction.cs` already has exactly this shape for world objects
@@ -83,11 +90,26 @@ for player-authoritative gameplay):
   `IInteractable` (returning `PlayerIdentity.DisplayName` as its `Prompt`,
   `IsInstant` presumably irrelevant since there's nothing to hold-interact
   with) or a lighter parallel raycast check reuses this existing prompt
-  rendering directly — not a new UI element.
+  rendering directly — not a new UI element. Not started.
 - Team Vendor (the `VendorStall` driver `MVP3_PLANNING.md` deferred out of
-  its own Commerce build) is a natural next step once Team exists, but not
-  committed to this tier's initial scope — pick it up once the above lands
-  and there's a real second player to test against.
+  its own Commerce build) is a natural next step now that Team exists and
+  has a real second player (traskmi) to test against, but still not
+  committed to this tier's initial scope.
+
+**Real-money side effect of Team shipping, found live 2026-08-27/28, not
+part of the original design:** the same live two-machine session that
+confirmed Team working also surfaced a much broader class of bug —
+several `PlayerXXX.cs` components hold real per-player state (inventory,
+skill levels, Magic lineage, worn equipment, ...) that server-authoritative
+logic updates correctly but never actually syncs back to the owning
+client's own copy. 11 instances found and fixed same night (v0.3.207-dev,
+full detail in `CHANGELOG.md`/`BUGS_AND_ENHANCEMENTS.md`) — not part of
+Team's own scope, but directly surfaced by Team's live two-player test
+being the first real sustained multi-hour two-machine session this
+project has had. `PlayerCurrency` (not networked at all, all 16 mutation
+sites un-Command-routed) and a bigger open finding (most direct gameplay
+actions, e.g. wish-casting, never reach the server for a real remote
+client at all) are both still open, logged in `BUGS_AND_ENHANCEMENTS.md`.
 
 ## Half 2 — Custom player model + clothing pipeline
 

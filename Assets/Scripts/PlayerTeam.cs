@@ -83,6 +83,34 @@ public class PlayerTeam : NetworkBehaviour
         return trimmed.Length > MaxNameLength ? trimmed.Substring(0, MaxNameLength) : trimmed;
     }
 
+    // --- Save/load (2026-08-28, found live -- "team information was not
+    // saved") -----------------------------------------------------------
+    //
+    // Team was built (2026-08-28) with no persistence at all -- the same
+    // gap most new features start with in this project (StorageBox,
+    // Furnace, ...). Deliberately per-player, not a separate global
+    // "teams" registry: each member's own save record just remembers
+    // which teamId/teamName/role they last had, and MembersOf(teamId)'s
+    // existing live-scan (no central registry to begin with) naturally
+    // re-groups reconnecting teammates once their own records are
+    // restored -- no new save-side plumbing needed beyond these three
+    // fields. Pending invites are deliberately NOT persisted -- an
+    // invite outstanding at disconnect is reasonable to just expire;
+    // whoever invited can invite again.
+    //
+    // Called by SaveManager on load -- sets fields directly, bypassing
+    // CmdCreateTeam/CmdInvite's own validation (already-saved data is
+    // already valid), same convention as every other RestoreXxx method
+    // in this project (PlayerIdentity.RestoreIdentity, PlayerSkills
+    // .RestoreLevel, ...).
+    public void RestoreTeam(string savedTeamId, string savedTeamName, TeamRole savedRole)
+    {
+        if (string.IsNullOrEmpty(savedTeamId)) return;
+        teamId = savedTeamId;
+        teamName = savedTeamName ?? "";
+        role = savedRole;
+    }
+
     // --- Lifecycle -----------------------------------------------------
 
     [Command]

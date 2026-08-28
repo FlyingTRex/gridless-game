@@ -17,7 +17,10 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**Everything through v0.3.207-dev is merged to origin/main.**
+**v0.3.208-dev is built and compile-verified, not yet committed** (tree
+`sceneId` regression fix + Team persistence + rename diagnostic logging
+— see `CHANGELOG.md`). Everything through v0.3.207-dev is merged to
+`origin/main`.
 
 ## Multiplayer roadmap — mostly closed out, one real gap found 2026-08-26
 
@@ -57,11 +60,26 @@ before chasing router/firewall/CGNAT theories). Once connected, the test
 did exactly what it was for: **found a real gap Phase 3 had missed,
 same night fixed** (v0.3.205-dev). Admin-spawning, dropping, and
 renaming all ran as plain local method calls with no `[Command]`/
-`[SyncVar]` — full root-cause detail and the fix that shipped are in
-`CHANGELOG.md`'s v0.3.205-dev entry. Compile+weave verified via batch
-mode only — **still needs a real live re-test with traskmi** to
-confirm the client side now actually replicates correctly, the same
-two-machine scenario that found the bug in the first place.
+`[SyncVar]` — full root-cause detail is in `CHANGELOG.md`'s v0.3.205-dev
+entry.
+
+**A second live session the following night (2026-08-27/28) found 11
+more instances of the same root shape** (server-authoritative state
+never converted to sync back to the owning client) across Inventory,
+Team-name, Skills, Magic, Equipment, tree-chopping, and creature death/
+skinning — all fixed same night, `CHANGELOG.md`'s v0.3.207-dev entry has
+full detail. Compile-verified only — **still needs a real live re-test
+with traskmi** to confirm the client side now actually replicates
+correctly, the same two-machine scenario that found every one of these
+bugs in the first place.
+
+**Next up, once that re-test confirms tonight's fixes hold:** Piece
+Destroy's hold-X control — see `BUGS_AND_ENHANCEMENTS.md`'s own entry
+("Piece Destroy was never actually moved to X") for full detail. Its own
+code comment claims Destroy was deliberately moved off E onto its own
+key because several `PlacedPiece` types have a competing E-driven action
+that fires first and kills the hold before it completes — but the key
+binding itself was apparently never actually wired up to match.
 
 ## Open backlog, not currently being worked
 
@@ -69,6 +87,5 @@ See `BUGS_AND_ENHANCEMENTS.md` for full detail on each. Highlights as
 of 2026-08-25: `ReachableInventories`' Belt/Shirt/Jeans gap (4 systems),
 Nail's icon rendering as a Hammer, an unconfirmed Nail/Copper Nail
 stack-cap-at-10 report, a stuck hold-progress-bar bug from 2026-08-23
-(still unreproduced), tool tiers giving no functional benefit within
-their own class, and Piece Destroy's hold-X control never actually
-having been wired up despite its own code comment claiming otherwise.
+(still unreproduced), and tool tiers giving no functional benefit within
+their own class.
