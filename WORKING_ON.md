@@ -17,13 +17,12 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**v0.3.210-dev is built and compile-verified, not yet committed** —
-worked through `MULTIPLAYER_INTERACTION_AUDIT.md`'s build order:
-`GardenPlot`/`GardenPlot4x4`/`Door`/`Lockbox`/`PlayerCurrency`/
-`PlayerBank`/`Coin`/`PlayerIdentity`'s rename cost all fixed;
-`Furnace`/`Campfire` partially (the `isServer` guard landed, the bigger
-screen-driven-Command-routing half didn't — see `CHANGELOG.md`). Everything
-through v0.3.209-dev is merged to `origin/main`.
+**v0.3.211-dev is built and compile-verified, not yet committed** —
+Piece Destroy's hold key actually fixed (Upgrade=E click, Destroy=G
+hold; X was already taken by Kneel Stance), plus a new standing project
+rule in `CLAUDE.md` to consider multiplayer implications for everything
+built from now on. Everything through v0.3.210-dev is merged to
+`origin/main`.
 
 ## Multiplayer roadmap — mostly closed out, one real gap found 2026-08-26
 
@@ -76,13 +75,14 @@ with traskmi** to confirm the client side now actually replicates
 correctly, the same two-machine scenario that found every one of these
 bugs in the first place.
 
-**Next up, once that re-test confirms tonight's fixes hold:** Piece
-Destroy's hold-X control — see `BUGS_AND_ENHANCEMENTS.md`'s own entry
-("Piece Destroy was never actually moved to X") for full detail. Its own
-code comment claims Destroy was deliberately moved off E onto its own
-key because several `PlacedPiece` types have a competing E-driven action
-that fires first and kills the hold before it completes — but the key
-binding itself was apparently never actually wired up to match.
+**Next up:** a real live two-machine re-test with traskmi to confirm
+everything from v0.3.207-dev through v0.3.211-dev actually holds —
+nothing since v0.3.207-dev has been tested live yet. See
+`BUGS_AND_ENHANCEMENTS.md`/`MULTIPLAYER_INTERACTION_AUDIT.md` for the
+full list of what's fixed vs. still open (`Furnace`/`Campfire`'s
+screen-driven half, `VendorStall`/`VillageVendor`, `Lockbox`/`Coin`
+prefabs, `PlayerReading`/`PlayerWriting`, the broader "direct actions
+never reach the server" finding).
 
 ## Open backlog, not currently being worked
 

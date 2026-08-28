@@ -274,33 +274,25 @@ entry in this file) — a per-player cap can't be enforced until
 ownership tracking exists regardless, so this is blocked on that same
 prerequisite. Logged as an open design question, not a decision.
 
-## Piece Destroy was never actually moved to X — still bound to hold-E, contradicting its own code comment (found 2026-08-25, not started)
+## Piece Destroy was never actually moved to X — FIXED, v0.3.211-dev (found 2026-08-25)
 
 `PlayerPieceUpgrade.cs`'s header comment (added 2026-08-21, v0.3.155-dev)
-says "Click-to-upgrade (E) / hold-to-destroy (X)" and explains in detail
-why Destroy was moved off E onto its own key: several `PlacedPiece`
-types (Furnace, StorageBox, Anvil) have their own competing E-driven
-`PlayerInteraction` action (open, pick up, ...) that fires the same
-frame a hold begins and kills it before `destroyDuration` is ever
-reached — the comment claims this is why destroy "only ever seemed to
-work on walls."
+said "Click-to-upgrade (E) / hold-to-destroy (X)" but `HandleInput()`
+was never actually updated to match — it still read `eKey` for both
+halves, so Destroy stayed on E and kept losing the race against
+`PlayerInteraction`'s own competing E action on Furnace/StorageBox/Anvil
+(the original bug the comment described fixing). Fixed: Upgrade is now
+a plain E click (`wasPressedThisFrame`, no hold needed — nothing left to
+disambiguate now that destroy has its own key), Destroy is a real
+separate hold.
 
-The actual `HandleInput()` code was never updated to match: it still
-reads `keyboard.eKey.isPressed` for the destroy-hold and
-`keyboard.eKey.wasReleasedThisFrame` for upgrade — there is no
-`xKey` reference anywhere in the file. The comment describes an
-intended fix that never landed in code; the original E-collision bug
-it describes is presumably still live on Furnace/StorageBox/Anvil today.
-
-**Fix**: change `HandleInput()`'s destroy branch to read
-`keyboard.xKey.isPressed` instead of `eKey`, independent of the
-upgrade branch's `eKey.wasReleasedThisFrame` check (so holding X
-doesn't also require E to be involved at all). Update the header
-comment's already-correct description to now actually be true, and add
-X to `GameMenuScreen.ControlsList` — the comment's "deliberately no
-on-screen hint" framing was about *not signaling this is possible* on a
-per-object popup, not about omitting it from the Controls tab, which
-this project's own convention says must reflect every real binding.
+**Real collision found while fixing it**: X turned out to already be
+bound to "Toggle Kneel stance" (`FirstPersonController`, fires on press
+via `wasPressedThisFrame`) — the original bug entry's claim that "X has
+no competing use anywhere in the game" was wrong by the time this got
+fixed. Asked Ben; picked **G** instead (confirmed genuinely uncontested
+via a full grep of every `keyboard.xKey`-style reference in the
+codebase). Added to `GameMenuScreen.ControlsList`.
 
 ## Multiplayer: a remote player's body AND worn equipment were fully invisible — root-caused and fixed live in two rounds, both confirmed working (found + fixed + confirmed 2026-08-25)
 

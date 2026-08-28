@@ -3,7 +3,7 @@ using Mirror;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Click-to-upgrade (E) / hold-to-destroy (X) on an already-placed building
+// Click-to-upgrade (E) / hold-to-destroy (G) on an already-placed building
 // piece — see design-brief.md's Building System section (2026-08-08).
 // Deliberately NOT built on IInteractable's hold-and-release model for
 // Upgrade: every other hold in the game treats releasing early as
@@ -19,11 +19,15 @@ using UnityEngine.InputSystem;
 // unlocks the cursor, killing the hold before it could ever reach
 // destroyDuration. Walls/Foundation/Doors have no competing interactable
 // so this never showed up there, which is why destroy only ever seemed
-// to work on walls. X has no competing use anywhere in the game, so
-// destroy now works uncontested regardless of what's being aimed at.
-// Deliberately no on-screen hint for it either (Ben's own framing:
-// destroying furniture should be deliberate, not something stumbled
-// into via a prompt) — Upgrade keeps its label, Destroy doesn't.
+// to work on walls. FIXED (2026-08-28, BUGS_AND_ENHANCEMENTS.md): this
+// was written as the intended fix back on 2026-08-21 but HandleInput()
+// below was never actually updated to match -- it still read eKey for
+// both halves the whole time. Originally planned for X, but X turned out
+// to already be bound to Toggle Kneel stance (fires on press, independent
+// of this hold check) -- picked G instead, genuinely uncontested. Deliberately
+// no on-screen hint for it either (Ben's own framing: destroying furniture
+// should be deliberate, not something stumbled into via a prompt) —
+// Upgrade keeps its label, Destroy doesn't.
 [DisallowMultipleComponent]
 [RequireComponent(typeof(PlayerInventory))]
 [RequireComponent(typeof(PlayerSkills))]
@@ -132,7 +136,11 @@ public class PlayerPieceUpgrade : MonoBehaviour
             lastTarget = currentTarget;
         }
 
-        if (keyboard.eKey.isPressed)
+        // See this class's own header comment -- Destroy is now genuinely
+        // on its own key (G); Upgrade is a plain E click, no hold needed
+        // (nothing to disambiguate from anymore now that destroy has its
+        // own key).
+        if (keyboard.gKey.isPressed)
         {
             holdTime += Time.deltaTime;
             if (holdTime >= destroyDuration)
@@ -140,12 +148,13 @@ public class PlayerPieceUpgrade : MonoBehaviour
                 DestroyPiece(currentTarget);
                 holdTime = 0f;
             }
+            return;
         }
-        else if (keyboard.eKey.wasReleasedThisFrame && holdTime > 0f)
-        {
+
+        holdTime = 0f;
+
+        if (keyboard.eKey.wasPressedThisFrame)
             Upgrade(currentTarget);
-            holdTime = 0f;
-        }
     }
 
     private void Upgrade(PlacedPiece target)
@@ -271,7 +280,7 @@ public class PlayerPieceUpgrade : MonoBehaviour
         if (currentTarget != null && HammerInHand)
         {
             string text;
-            if (Keyboard.current != null && Keyboard.current.eKey.isPressed)
+            if (Keyboard.current != null && Keyboard.current.gKey.isPressed)
             {
                 text = $"Hold to destroy ({Mathf.CeilToInt(destroyDuration - holdTime)}s)";
             }

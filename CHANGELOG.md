@@ -5,10 +5,35 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.210-dev` — must always match `GameVersion` in
+**Current version:** `0.3.211-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-28 (6)
+
+### v0.3.211-dev — Piece Destroy hold key actually fixed; new standing rule: consider multiplayer for everything going forward
+
+`PlayerPieceUpgrade.cs`'s `HandleInput()` was fixed to actually match its
+own header comment (written 2026-08-21, never implemented): Upgrade is
+now a plain E click, Destroy is a real separate hold key — no longer
+sharing E with `PlayerInteraction`'s own competing action on Furnace/
+StorageBox/Anvil, which is why destroy previously only ever seemed to
+work on walls. **Real collision found while fixing it**: the doc's
+original plan was X, but X turned out to already be bound to Toggle
+Kneel Stance (`FirstPersonController`, fires on press independently of
+the hold check) — asked Ben, picked **G** instead after confirming via a
+full grep that it's genuinely uncontested. Added to `GameMenuScreen
+.ControlsList`.
+
+**New standing project rule, added to `CLAUDE.md`'s Project Conventions
+(Ben's ask, prompted by the same-night `MULTIPLAYER_INTERACTION_AUDIT.md`
+work)**: consider multiplayer implications for anything implemented from
+now on — not that every feature must ship fully multiplayer-safe
+immediately, but that whether it needs `NetworkBehaviour`/`[SyncVar]`/
+`[Command]` treatment (or is genuinely fine local-only) should be a
+deliberate, stated decision, not a silent gap found weeks later during a
+live two-machine test the way most of tonight's fixes were.
 
 ## 2026-08-28 (5)
 

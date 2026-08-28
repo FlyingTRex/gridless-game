@@ -23,6 +23,7 @@ public class GameMenuScreen : MonoBehaviour
         ("E", "Interact (pick up / open / use) — hold to gather/chop, release to cancel"),
         ("Escape", "Close the open screen / toggle cursor lock"),
         ("F", "Secondary interact (e.g. Fill Canteen at a water source)"),
+        ("G (hold, aiming at a placed piece with a Hammer out)", "Destroy the piece"),
         ("Left Shift (hold)", "Sprint"),
         ("M", "Open the Player Map"),
         ("Mouse Movement", "Look around"),

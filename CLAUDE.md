@@ -850,6 +850,18 @@ Read these directly rather than trusting a summary — they're actively evolving
 
 ## Project conventions
 
+- **Consider multiplayer implications for anything you implement, from now on
+  (2026-08-28, Ben's rule, prompted by `MULTIPLAYER_INTERACTION_AUDIT.md`'s
+  findings).** Before/while building any new interactable, structure, or
+  per-player system: does it need a `NetworkBehaviour` conversion, `[SyncVar]`/
+  `SyncList`-backed state, and a `[Command]`-routed mutation path, or is it
+  genuinely fine as local-only (a screen/UI class, a purely cosmetic per-client
+  effect)? This doesn't mean every new feature must ship fully multiplayer-safe
+  on day one — but the decision should be a deliberate, stated one, not a
+  silent gap discovered three weeks later during a live two-machine test. See
+  `MULTIPLAYER_INTERACTION_AUDIT.md`'s "two failure classes" section for the
+  concrete pattern to check against, and its "proven fix recipe" sections for
+  what the fix looks like once a gap is found.
 - **Unity version is pinned** — check `ProjectSettings/ProjectVersion.txt` before
   assuming a version; don't silently bump it.
 - **New Input System only** (`activeInputHandler: 1`), no `.inputactions` asset yet —
