@@ -17,15 +17,14 @@ live test is still pending.
 
 Format: `- YYYY-MM-DD — who — one-sentence description`
 
-**v0.3.213-dev is built and compile-verified, not yet committed** —
+**Everything through v0.3.213-dev is merged to `origin/main`** —
 `PlayerReading` and `PlayerWriting` both fixed (real permanent-unlock
 loss risk for a remote client — writing was worse, since it also spawns
 a brand-new physical object that never network-spawned at all), plus
 the identical unsynced-`HashSet` gap found and fixed in both
 `PlayerCrafting.bookGrantedRecipes` and `PlayerMagic.bookGrantedWishes`.
-Everything through v0.3.212-dev is merged to `origin/main`.
 
-## Multiplayer roadmap — mostly closed out, one real gap found 2026-08-26
+## Multiplayer roadmap — Phase 3 done, a much bigger world-interaction gap found and mostly closed since
 
 `MULTIPLAYER_PLANNING.md`'s entire phased plan (Phase 3 player-
 authoritative conversion, NPCs server-side, the persistence restructure,
@@ -77,12 +76,12 @@ correctly, the same two-machine scenario that found every one of these
 bugs in the first place.
 
 **Next up:** a real live two-machine re-test with traskmi to confirm
-everything from v0.3.207-dev through v0.3.211-dev actually holds —
+everything from v0.3.207-dev through v0.3.213-dev actually holds —
 nothing since v0.3.207-dev has been tested live yet. See
 `BUGS_AND_ENHANCEMENTS.md`/`MULTIPLAYER_INTERACTION_AUDIT.md` for the
 full list of what's fixed vs. still open (`Furnace`/`Campfire`'s
 screen-driven half, `VendorStall`/`VillageVendor`, `Lockbox`/`Coin`
-prefabs, `PlayerReading`/`PlayerWriting`, the broader "direct actions
+prefabs, `PlayerMagic.TryWish` itself, the broader "direct actions
 never reach the server" finding).
 
 ## Open backlog, not currently being worked

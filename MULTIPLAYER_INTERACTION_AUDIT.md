@@ -20,6 +20,12 @@ alone without fixing its remaining direct callers would have been actively
 harmful, per this doc's own original warning), `Furnace`/`Campfire` partially
 fixed (the `isServer` guard — the single highest-severity finding in this whole
 doc — landed; the larger screen-driven-Command-routing half did not, see below).
+**`PlayerReading`/`PlayerWriting` (build-order item 6) fixed in two more
+follow-up passes the same night, `v0.3.212-dev`/`v0.3.213-dev`** — see
+`CHANGELOG.md` for full detail; both closed a real permanent-unlock-lost-
+on-disconnect risk, plus two more instances of the unsynced-`HashSet` gap
+found directly in their own call paths (`PlayerCrafting.bookGrantedRecipes`,
+`PlayerMagic.bookGrantedWishes`).
 
 ## Two failure classes, not one
 

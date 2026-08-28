@@ -251,18 +251,25 @@ spawning loot directly from `Complete()`, invisible on a host, broken for a
 real remote client) and **Class B** ("runs server-side correctly, but the
 result never syncs back to the owning client" — a `NetworkBehaviour`'s real
 state living in a plain field instead of a `[SyncVar]`/`SyncList`). Both have
-a proven, mechanical fix recipe now (5 Class A fixes, 6 Class B fixes,
-documented in full). The audit surveyed all 195 scripts and found real,
-not-yet-fixed instances of both classes still remaining — highest-priority:
-`Furnace`/`Campfire` (worse than the others — their `Update()` has no
-`isServer` guard at all, so the real-time smelt/cook simulation runs
-independently and uncoordinated on every machine, not just "doesn't sync"),
-`GardenPlot`/`GardenPlot4x4`, `PlayerCurrency` (blocks Vendor/Bank/Coin/rename
-all at once), `Door`, `BankBox`/`Lockbox`, `PlayerReading`/`PlayerWriting`
-(permanent recipe/wish unlocks, real loss risk). Full prioritized build order
-and the complete reusable fix recipe (including the sceneId-regeneration
-lesson learned the hard way — see the tree/`ChoppableTree` gotcha above) are
-in the doc itself, not duplicated here.
+a proven, mechanical fix recipe (documented in full in the doc itself,
+including the sceneId-regeneration lesson learned the hard way — see the
+tree/`ChoppableTree` gotcha above). **Follow-up sessions the same night
+(v0.3.210-dev through v0.3.213-dev) worked through most of the doc's own
+"Recommended build order"**: `GardenPlot`/`GardenPlot4x4`, `Door`, `Lockbox`,
+`PlayerCurrency`/`PlayerBank`/`Coin`/`PlayerIdentity`'s rename cost,
+`PlayerReading`/`PlayerWriting` (plus two more instances of the unsynced-
+`HashSet` gap found directly in their own call paths — `PlayerCrafting
+.bookGrantedRecipes`, `PlayerMagic.bookGrantedWishes`) are all fixed; `Furnace`/
+`Campfire` are partially fixed (the `isServer` guard — the single highest-
+severity finding in the whole doc, an uncoordinated per-machine simulation,
+not just "doesn't sync" — landed; their screen-driven Command-routing half
+did not). **Still open**: `Furnace`/`Campfire`'s remaining half,
+`VendorStall`/`VillageVendor` (zero Commands, real money), `Lockbox`/`Coin`
+never having been real prefabs (blocks true cross-client visibility even with
+their state now synced), and `PlayerMagic.TryWish` itself (the original
+instance of the still-unscoped "most direct gameplay actions never reach the
+server" finding). Status per item is tracked in the doc itself, not
+duplicated here — check there before assuming any item's state.
 
 **Teams & Guilds — the social/economic layer multiplayer needs — are
 planned in `TEAMS_AND_GUILDS_PLANNING.md`.** Grew directly out of the
