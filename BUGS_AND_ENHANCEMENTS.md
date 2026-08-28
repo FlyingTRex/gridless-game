@@ -5,6 +5,63 @@ for `WORKING_ON.md` (that's for active work) or `CHANGELOG.md` (that's for shipp
 work) — this is the backlog between the two. Check off and move the entry to
 `CHANGELOG.md` once it's actually fixed/built.
 
+## Host silently stops processing while the Editor window is unfocused — `runInBackground: 0` (found 2026-08-27, not started)
+
+Found live during the real Host/Join test with Ben (chunk 7 of the
+multiplayer roadmap): the host's Editor log went completely dead —
+zero new lines, including the usual per-frame "no audio listeners"
+spam — the moment traskmi tabbed away to check something else, and
+resumed the instant focus came back. `ProjectSettings/ProjectSettings
+.asset` has `runInBackground: 0`, which throttles/pauses the Editor's
+own update loop while unfocused. A connection attempt from a joining
+player during that window would very plausibly go unprocessed, not
+because of anything wrong on their end. A host tabbing away mid-session
+(checking Discord, chat, anything) is completely normal, so a
+multiplayer host silently going deaf while unfocused is a real gap for
+actual play, not just this test. Fix is a one-line flip to `1` in
+`ProjectSettings.asset` — flagged, not made yet, since it wasn't
+confirmed to be the actual cause of that specific test's failure (a
+re-test focused the whole time still failed for an unrelated reason —
+see the CGNAT entry immediately below).
+
+## Ben cannot host on his current connection — Verizon FWA uses CGNAT (found 2026-08-27, not fixable on our end)
+
+Confirmed during the same live test, after an extended round of
+troubleshooting (Windows Firewall inbound rules on both machines, eero
+port-forwarding TCP+UDP 7777 → correct LAN IP, no double-NAT, no local
+packet drops per `pfirewall.log`) found nothing wrong on either
+person's own equipment — every attempt to connect to Ben while he
+hosted produced a full, silent 10-second KCP timeout with zero
+response, the classic signature of a carrier dropping unsolicited
+inbound traffic before it reaches the customer's own router. Ben's
+connection is Verizon Fixed Wireless Access (5G/LTE Home Internet),
+which commonly puts customers behind CGNAT — the "public IP" his
+router shows is shared across many customers at Verizon's own network
+layer, not actually his, so no port-forwarding rule or firewall change
+on his side can fix it; the block happens a hop earlier than his own
+equipment. **Workaround that worked**: flip roles so traskmi hosts
+(his ISP does support real forwarding, fully verified working
+end-to-end) and Ben connects outward instead — CGNAT only blocks
+*inbound* connections to Ben, not outbound ones he initiates. If Ben
+ever needs to host in the future, a mesh VPN (Tailscale/ZeroTier) would
+sidestep this entirely since it doesn't rely on inbound port
+forwarding — not set up, just identified as the real fix if needed.
+
+## Host/Join screen's on-screen status message doesn't reliably display (found 2026-08-27, not started)
+
+Also found during the same live test. `NetworkAutoHost.OnGUI` sets
+`statusMessage` synchronously the moment Connect is clicked (`
+"Connecting to {address}..."`) and `GridlessNetworkManager.OnClientError`/
+`OnClientDisconnect` both route real failure reasons through the same
+label — but across several real attempts (both traskmi's and Ben's
+side), the label showed nothing at all, even though the Editor log
+consistently had the real Mirror/KCP error underneath it at the same
+moment. Console/log output proved reliable throughout this whole
+troubleshooting session; the on-screen label did not. Root cause not
+investigated — worth a look next time this screen gets touched, since
+right now it's not a trustworthy way to tell a player why a connection
+failed.
+
 ## Multiplayer: test world needs to be much bigger, to fit multiple villages (found 2026-08-25, not started)
 
 Ben's note while per-connection spawning was being built: once real
