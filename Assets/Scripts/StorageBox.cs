@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 
 // A stationary world container (a chest/box placed in the level). Doesn't
@@ -22,7 +23,7 @@ using UnityEngine;
 // timer or need a Rigidbody just to physically settle on landing.
 [RequireComponent(typeof(SaveId))]
 [RequireComponent(typeof(Collider))]
-public class StorageBox : MonoBehaviour, IRenameable, IInteractable, IEquippable
+public class StorageBox : NetworkBehaviour, IRenameable, IInteractable, IEquippable
 {
     // Matches Backpack/other equippables' WornEquipment-layer convention —
     // excluded from the player's own camera while carried so it doesn't
@@ -36,7 +37,11 @@ public class StorageBox : MonoBehaviour, IRenameable, IInteractable, IEquippable
     // ones with a simple distance check instead of a physics query.
     public static readonly List<StorageBox> Active = new List<StorageBox>();
 
-    [SerializeField] private string boxName = "Storage Box";
+    // FIXED (2026-08-26, found live with traskmi): was a plain field --
+    // a rename never replicated to anyone but whoever performed it. See
+    // BUGS_AND_ENHANCEMENTS.md. SyncVar + NetworkBehaviour is the whole
+    // fix; PlayerRenaming now routes the actual write through a Command.
+    [SyncVar] private string boxName = "Storage Box";
     [SerializeField] private int capacity = 20;
 
     // The portable ItemDefinition this box becomes when picked up (see

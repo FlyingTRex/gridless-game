@@ -2,7 +2,7 @@ using Mirror;
 using UnityEngine;
 
 [RequireComponent(typeof(PlayerInventory))]
-public class PlayerDropping : MonoBehaviour
+public class PlayerDropping : NetworkBehaviour
 {
     [SerializeField] private GameObject droppedItemPrefab;
     [SerializeField] private float dropDistance = 1.2f;
@@ -116,21 +116,36 @@ public class PlayerDropping : MonoBehaviour
     // Shared by DropFrom above (removing from an inventory first) and
     // AdminSpawnScreen's dev/test spawn tool (no inventory involved at
     // all — conjures the item from nothing).
+    //
+    // FIXED (2026-08-26, found live during the real two-machine test with
+    // traskmi): this used to Instantiate directly on whichever machine
+    // called it. NetworkSpawnHelper.SpawnIfNetworked only actually spawns
+    // on the network when NetworkServer.active is true, which is only
+    // ever true on the HOST's own machine -- so a drop/admin-spawn
+    // performed by the CLIENT silently stayed local-only, invisible to
+    // everyone else (see BUGS_AND_ENHANCEMENTS.md's full writeup). Fix:
+    // route the actual spawn through a Command so it always runs
+    // server-side regardless of who triggered it. Item is passed by its
+    // stable string id (ItemDatabase.Find), not the ScriptableObject
+    // reference itself -- Mirror can't serialize an arbitrary asset
+    // reference across a Command.
     public void SpawnPickup(ItemDefinition item, int count = 1)
     {
+        if (item == null) return;
+        Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        CmdSpawnPickup(item.name, count, position);
+    }
+
+    [Command]
+    private void CmdSpawnPickup(string itemId, int count, Vector3 position)
+    {
+        var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
+        if (item == null) return;
+
         var prefab = item.worldPickupPrefab != null ? item.worldPickupPrefab : droppedItemPrefab;
         if (prefab == null) return;
 
-        Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
         var spawned = Instantiate(prefab, position, Quaternion.identity);
-
-        // Multiplayer Phase 3 sub-phase 2 (2026-08-23) -- a prefab
-        // carrying a NetworkIdentity needs to be spawned through the
-        // network, not just locally Instantiate'd, or it never gets a
-        // valid netId and can't be referenced by any Command. See
-        // NetworkSpawnHelper.cs -- every other Instantiate-a-real-item
-        // call site (crafting output, save/load restore, a written skill
-        // book) needs this same treatment, not just world drops.
         NetworkSpawnHelper.SpawnIfNetworked(spawned);
 
         if (spawned.TryGetComponent(out Pickup pickup))

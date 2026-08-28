@@ -8,12 +8,13 @@ using UnityEngine.InputSystem;
 // mouse button and opening a small text-entry window instead of acting
 // immediately.
 [RequireComponent(typeof(PlayerInteraction))]
-public class PlayerRenaming : MonoBehaviour
+public class PlayerRenaming : NetworkBehaviour
 {
     [SerializeField] private float interactRange = 3f;
 
     private PlayerInteraction interaction;
     private IRenameable target;
+    private NetworkIdentity targetIdentity;
     private string editingName;
     // Multiplayer per-connection spawning (2026-08-25) -- see
     // FirstPersonController's own field comment for why every sibling on
@@ -53,6 +54,14 @@ public class PlayerRenaming : MonoBehaviour
     private void Open(IRenameable renameable)
     {
         target = renameable;
+        // FIXED (2026-08-26, found live with traskmi): a rename used to
+        // just call target.Rename() directly on whichever machine
+        // triggered it -- no networking at all, so it never replicated
+        // to anyone else. The actual write now happens server-side via
+        // CmdRename, referencing the target by its NetworkIdentity since
+        // that's the only way to point at a specific networked object
+        // across a Command. See BUGS_AND_ENHANCEMENTS.md.
+        targetIdentity = (renameable as Component)?.GetComponent<NetworkIdentity>();
         editingName = renameable.DisplayName;
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
@@ -73,6 +82,7 @@ public class PlayerRenaming : MonoBehaviour
     public void Close()
     {
         target = null;
+        targetIdentity = null;
         editingName = null;
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -107,12 +117,21 @@ public class PlayerRenaming : MonoBehaviour
 
         if (save && !string.IsNullOrWhiteSpace(editingName))
         {
-            target.Rename(editingName);
+            if (targetIdentity != null)
+                CmdRename(targetIdentity, editingName);
             Close();
         }
         else if (cancel)
         {
             Close();
         }
+    }
+
+    [Command]
+    private void CmdRename(NetworkIdentity identity, string newName)
+    {
+        if (identity == null) return;
+        var renameable = identity.GetComponent<IRenameable>();
+        renameable?.Rename(newName);
     }
 }

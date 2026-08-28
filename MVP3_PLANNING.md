@@ -102,37 +102,16 @@ designed). Recommended build order from that doc, unchanged:
   They're MVP4 items (see below), tracked here only so the driver list stays
   complete.
 
-## MVP4 — Teams & Guilds + Team/Guild Vendor + TBD
+## MVP4 — see `MVP4_PLANNING.md`
 
-**Ben confirmed, 2026-08-25 (while per-connection spawning was being
-built): Teams specifically should be in scope for MVP4 "at least"** —
-not left as pure "whatever else." Still blocked on the same
-prerequisite as everything else here (MVP3's multiplayer half, real
-player identity), so this doesn't pull Teams forward into MVP3 — it's
-a confirmation of priority *within* MVP4's own already-open scope, not
-a re-sequencing.
-
-Deliberately not scoped further yet — genuinely can't be, since it's
-downstream of MVP3's multiplayer half actually landing, and there's no value
-in pre-ordering work against a foundation that doesn't exist. What's already
-designed and ready to pick up once MVP3 clears:
-
-- **Team** (cap 6, Owner/Officer/Member, shared physical access, federated
-  Village-Flag territory) and **Guild** (cap 64, player-founded via Guild
-  Sign, Owner/Officer/Member, Guild Bank as a pure Perk-funding sink,
-  revocable specialty recipe/wish grants, 15m Sign/Marker territory,
-  disband/succession lifecycle) — both fully designed in
-  `TEAMS_AND_GUILDS_PLANNING.md`, nothing built.
-- **Team Vendor / Guild Vendor** — the two `VendorStall` drivers deferred out
-  of MVP3 above.
-- General player-to-player trade (atomic two-sided window, reset-on-offer-
-  change anti-scam behavior) — also blocked on the same player-identity
-  prerequisite as MVP3's Phase 2.
-- Map presentation for both (distinct player-marker shape, Team-color-over-
-  Guild-color priority, Guild Sign/Marker visibility toggle, a corner
-  legend) — designed, not built.
-- **"Whatever else to add at that point"** — Ben's own framing; deliberately
-  left open rather than guessed at now.
+**Superseded, 2026-08-25** — MVP4 got its own curated planning doc the same
+night this section's "Teams specifically should be in scope" note was
+written, once Ben added a second half (custom player model/clothing,
+prompted by a same-night SL clothing-pipeline session) and player-
+authoritative gameplay's completion changed Team's real blocker status.
+See `MVP4_PLANNING.md` for the current scope, build order, and cross-
+references — this section is kept only for the historical note that Team
+was confirmed in scope while per-connection spawning was still being built.
 
 ## Cross-references
 

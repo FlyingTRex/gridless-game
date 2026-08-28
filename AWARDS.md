@@ -23,9 +23,42 @@ ledger of good nights.
 | 🎓 Scholar Cap Sticker | 1 |
 | 🏪 Vendor Stall Sticker | 1 |
 | 🔌 Plug and Outlet Sticker | 1 |
+| 🧵 Sewing Machine Sticker | 1 |
 
 ## Log
 
+- **2026-08-25 — 🧵 Sewing Machine Sticker.** A whole-night side tangent
+  ("let's get wild") that turned into a genuinely reusable technique: a
+  fully scripted, headless Blender pipeline for rigged SL avatar clothing,
+  confirmed working live — real deforming shorts on the Ruth2 body, correct
+  weights, correct fit. Three primitive-based approaches to the base
+  garment (a flat placeholder cone, a torus-and-cylinder "diaper," a
+  boolean cylinder/cone build) each fought the body's real curvature and
+  needed constant re-measuring before landing on the technique that
+  actually worked: duplicate real body geometry, `bisect_plane` for clean
+  edges (fixing a genuinely "crenulated" waist edge Ben caught live),
+  push outward, Solidify for thickness — which also turned out to inherit
+  the body's own real vertex-group weights for free, no Data Transfer
+  needed. The pockets took three real failed attempts of their own (rigid
+  flat plane, Shrinkwrap `NEAREST_SURFACEPOINT` — badly distorted a 6×7.5cm
+  patch down to 6×3.4cm on the convex glute, then `PROJECT` mode — clean on
+  an isolated test sphere, warped on the real irregular mesh) before Ben's
+  own suggestion to just reuse the body-cutting technique on the pockets
+  too, which is what finally worked. Also found and fixed a nasty silent-
+  failure class along the way: `shade_auto_smooth`/`transform_apply`
+  returning `{'FINISHED'}` while doing nothing when the target object was
+  active but not selected — no return-value check catches that, only
+  checking the actual resulting state does. Closed out by writing the
+  whole thing up as a real lessons-learned doc
+  (`D:\Ben\SL\LESSONS_LEARNED.md`) and connecting it back to
+  `CUSTOM_AVATAR_PLANNING.md` — this technique is directly reusable for
+  Gridless's own player clothing once its custom body mesh exists, folded
+  into `MVP4_PLANNING.md` same night. **Not claiming this perfect**: the
+  material/texture didn't actually carry through to SL (rendered plain
+  white despite a correctly-configured Blender material), there are still
+  slight visible gaps at the seams between separately-built pieces, and
+  the rear "Y" seam still isn't quite right by Ben's own live check —
+  logged as open follow-ups, not pretended away.
 - **2026-08-22 — 🔌 Plug and Outlet Sticker.** Recharge break. Same
   session that shipped the Vendor Stall/Bank Box till+timer UI polish
   and the full player naming system (v0.3.157-dev), then walked through

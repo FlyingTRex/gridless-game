@@ -989,11 +989,30 @@ Mapped onto Gridless's actual systems:
       `AdminSpawnScreen` is entirely `#if UNITY_EDITOR`-gated and never
       ships in a real build, so there's no multiplayer-correctness
       concern to solve there.
-**Phase 3 is fully complete as of 2026-08-23 — all 5 sub-phases above
-(Bootstrap; Inventory + Equipment; Crafting + Building; Magic + Combat;
-everything else) shipped and live-confirmed.** Real Commands now cover
-every player-input mutation this project's design surface actually
-needs authority over. What remains is the next phase down:
+
+      **CORRECTED, 2026-08-26 — that call was wrong.** "Editor-only"
+      does not mean "no multiplayer-correctness concern" — both sides
+      of the real chunk-7 live test with traskmi were Editor-hosted,
+      which is exactly the normal way this project's two collaborators
+      actually co-test. `AdminSpawnScreen` skipping the Command
+      conversion meant a *client's* admin-spawn silently stayed local-
+      only, invisible to the host. Worse, the same live test found
+      `PlayerDropping` (a real, ships-in-every-build gameplay path, not
+      admin-only) has the identical gap, and `PlayerRenaming` has no
+      networking at all. Full root-cause detail and the ready-to-
+      implement fix now live in `BUGS_AND_ENHANCEMENTS.md`. See below —
+      Phase 3 was NOT actually fully complete.
+**Phase 3 was believed fully complete as of 2026-08-23 (all 5 sub-phases
+above shipped and live-confirmed against a *solo* session), but the real
+chunk-7 two-machine live test (2026-08-26) found three real gaps —
+Spawn/Drop/Rename never got the Command conversion (see
+`BUGS_AND_ENHANCEMENTS.md`'s new entry).** Real lesson, not just a bug:
+a solo Editor-host session cannot prove "every client's actions
+replicate correctly" — only a genuine second machine, acting as the
+*non-host* side, can exercise that path. Fix is logged and scoped, not
+yet started. What remains is the next phase down (also blocked on
+nothing from this gap — NPCs-server-side doesn't touch any of the three
+affected scripts):
 
 4. **NPCs move server-side — started 2026-08-23.** The 5 `Update()`-
    driven NPC scripts stop running client-side entirely; results

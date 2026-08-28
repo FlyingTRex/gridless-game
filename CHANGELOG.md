@@ -5,10 +5,47 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.204-dev` — must always match `GameVersion` in
+**Current version:** `0.3.205-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-26 (1)
+
+### v0.3.205-dev — Spawn/Drop/Rename actually networked, found by the real chunk-7 live test with traskmi
+
+The real two-machine test (`WORKING_ON.md`'s chunk 7) found what a solo
+session never could: `PlayerDropping`, `AdminSpawnScreen`, and
+`PlayerRenaming` were never actually converted to Mirror's Command/
+validate/replicate pattern during Phase 3, despite that phase being
+marked fully complete. Whatever the *non-host* side did through any of
+these three paths only ever happened on their own machine — invisible to
+everyone else. Confirmed live: traskmi's admin-spawn showed up correctly
+(he was hosting); the same action from the client side never reached him.
+Root-caused via direct code read (zero `[Command]`/`[SyncVar]` in any of
+the three files), not inferred — full writeup in `BUGS_AND_ENHANCEMENTS.md`.
+
+Fixed all three the same night: `PlayerDropping.SpawnPickup` and
+`AdminSpawnScreen.SpawnPiece` now route their actual `Instantiate`+
+`NetworkServer.Spawn` through a `[Command]`, always running server-side
+regardless of who triggered it (item/piece passed by stable string id via
+`ItemDatabase`/`BuildPieceDatabase`, since Mirror can't serialize an
+arbitrary `ScriptableObject` reference across a Command). `StorageBox`
+and `VillageFlag` converted from plain `MonoBehaviour` to
+`NetworkBehaviour` with their name field as a real `[SyncVar]`;
+`PlayerRenaming` now routes the actual write through a new `CmdRename`
+targeting the object by its `NetworkIdentity`. All 6 affected prefabs
+(`StorageBox` + the 5 `VillageFlag` tiers) already carried a
+`NetworkIdentity` from earlier multiplayer work, so no prefab changes were
+needed — compile+weave verified via batch mode only; not yet re-confirmed
+live against a real second connection.
+
+Also corrected `MULTIPLAYER_PLANNING.md`'s "Phase 3 fully complete"
+claim and the specific wrong call inside it that waved off
+`AdminSpawnScreen` as "no multiplayer concern" for being Editor-only —
+exactly backwards, since both sides of tonight's test were Editor-hosted,
+which is the normal way this project's two collaborators actually
+co-test.
 
 ## 2026-08-25 (6)
 

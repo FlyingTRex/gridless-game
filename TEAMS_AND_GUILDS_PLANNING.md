@@ -13,11 +13,17 @@ design-brief vision (public dedicated servers, "anyone can host or rent," real
 strangers, not just a trusted friend group) — with IP-geolocated spawn explicitly
 deferred, since the current 200×200 unit world is too small for it to add value yet.
 
-Depends on `MULTIPLAYER_PLANNING.md`'s own prerequisites landing first —
-specifically Phase 2 (player-authoritative gameplay conversion) and a real player
-identity/naming system (still unbuilt; flagged there as a shared prerequisite for
-several features, and flagged again below for the same reason). Nothing here can
-be built before those exist.
+Originally depended on `MULTIPLAYER_PLANNING.md`'s own prerequisites landing
+first — player-authoritative gameplay conversion and a real player identity/
+naming system. **Both are now done** (confirmed directly against the code
+2026-08-26, not assumed from this doc's own possibly-stale framing):
+player-authoritative gameplay's Phase 3 completed 2026-08-23, and
+`PlayerIdentity.cs` (`DisplayName`, stable `PlayerId`, a real rename flow)
+shipped 2026-08-22/23. **Team specifically has no remaining blocker** — see
+its own "resolved for MVP4" section below for the real scope Ben actually
+confirmed (narrower than this doc's original Plan B framing; see
+`MVP4_PLANNING.md`). Guild is unaffected by this update and still not
+scoped into any tier yet.
 
 ## The core split: Team vs. Guild
 
@@ -77,20 +83,105 @@ roles" generally in this project, not a coincidence to fight.
     pattern `MapScreen`'s `DrawFlagMarkers`/`DrawNpcMarkers` already use (a
     fresh scan every frame, no stored/stale state), not a new mechanism.
 
-### Team — still open, not resolved here
+### Team — resolved for MVP4, 2026-08-26
 
-- **Team's own lifecycle/disband rules were never defined.** Guild got a
-  thorough one (see below); Team didn't. Can a team disband? What happens to
-  team-owned structures if it does, or if it just dwindles to one remaining
-  member?
-- **Kicked/leaving members' personal items stranded in shared storage.** If a
-  member stores personal items in a team-accessible StorageBox (the whole
-  point of shared access) and then leaves or is kicked, do they lose access to
-  their own items sitting in there? Real loss vector, not addressed.
-- **Team Officer's exact permission set** — assumed to mirror the "trusted
-  enough to expand shared territory" spirit of Guild's Officer (trusted enough
-  to spend the shared Bank), but not explicitly itemized beyond the
-  territory-contribution behavior above.
+Worked through conversationally with Ben, confirmed via `AskUserQuestion` at
+each real fork, once `MVP4_PLANNING.md` had already established that
+player-authoritative gameplay and player identity (`PlayerIdentity.cs`) are
+both actually done — Team has no remaining hard blocker. A codebase survey
+done in the same pass found the real gap this doc's original "shared
+physical access" language assumed: **there is no ownership/permission
+plumbing anywhere in the game today.** `VillageFlag.cs` has zero owner
+concept, `PlayerBuilding.cs`'s `PlacedPiece` tracks no per-placement owner
+at all, `StorageBox.cs` has only a single crude `isPlayerOwned` boolean (not
+a real per-player check, and not even enforced at the `InventoryScreen`
+layer), and `Furnace.cs` has no access gating whatsoever — it's open to
+anyone today. Building real per-object ownership + enforced access control
+everywhere (the actual prerequisite for "Plan B — public dedicated servers,
+real strangers" to mean anything) is a substantially bigger build than the
+original design implied, and doesn't match what MVP4 actually needs — Ben's
+own stated motivation was narrower: "allow traskmi and I to work
+collaboratively," a small trusted pair, not defending shared storage from
+public strangers.
+
+**Resolved, MVP4 scope:**
+
+- **No object-level access control at all.** Every structure/StorageBox
+  stays exactly as open as it is today, to anyone who can physically reach
+  it — team membership doesn't change that. This means the earlier
+  "kicked/leaving members' items stranded in shared storage" concern
+  dissolves on its own: storage access was never going to be team-gated in
+  the first place, so there's nothing to strand. Real per-object
+  ownership/access control, if ever needed for a genuine public-server
+  scenario, is a separate future build, not part of this tier.
+- **Team creation is a pure UI action, no physical object.** A "Create
+  Team" button on a new Team tab — free, instant. Unlike Guild, Team has no
+  single founding location its territory needs to anchor to (its territory
+  is the *union* of members' own separately-placed Flags), so there's
+  nothing physical to require.
+- **Territory is cosmetic only** — a shape drawn on `MapScreen` (reusing
+  `DrawFlagMarkers`'s live fresh-scan-every-frame pattern) showing the
+  union of Village Flags owned by the Owner/any current Officer. No fog-
+  of-war sharing, no build-permission gating — purely informational, since
+  there's no access control to gate in the first place.
+- **Lifecycle**: the Owner must explicitly promote someone else to Owner
+  before leaving — no automatic succession on disconnect/departure. A sole-
+  member Owner leaving disbands the team (nothing to hand off to). The
+  Owner also has a direct **Disband** action that destroys the team
+  outright without requiring a handoff first.
+- **Officer permission set, itemized**: invite new members, and kick
+  Members (not other Officers or the Owner). An Officer's own Village Flags
+  count toward federated territory (already established above) — no other
+  special permissions, since there's no shared Bank or access control to
+  gate. Promotion to Officer stays an Owner-only action, not delegated.
+
+### Team — UI (`TeamScreen`), resolved 2026-08-26
+
+Ben's own concrete screen design, confirmed via `AskUserQuestion` on the two
+real forks it raised. **`T`** opens it — checked directly against
+`GameMenuScreen.ControlsList`, genuinely unbound (no existing `tKey`/`KeyCode.T`
+usage anywhere in the project). New entry needed in that list once built, per
+this project's own "every new key mapping" convention.
+`NPCHiringScreen.cs` (a `NetworkBehaviour` with per-row action buttons —
+Hire/Fire/Pay/Assign Job) is the closest existing precedent for the roster
+half, worth copying the shape of rather than designing fresh.
+
+Two states, depending on whether the local player currently belongs to a
+team:
+
+- **In a team**:
+  - **Top**: team info — name, the local player's own role (Owner/Officer/
+    Member).
+  - **Middle — roster, 6 rows** (cap 6; empty rows for unfilled slots).
+    Each filled row shows the member's `PlayerIdentity.DisplayName` + role,
+    with Kick/Promote-to-Officer buttons **only shown to the viewer if
+    they're actually authorized to use them** (Owner sees full actions on
+    every row but their own; an Officer sees Kick only, only on Member
+    rows, per the itemized permission set above; a plain Member sees the
+    roster with no action buttons at all) — not shown-but-disabled, not
+    shown-and-server-rejected. Keeps the screen honest about what a given
+    viewer can actually do, and avoids a click that was always going to
+    fail server-side.
+  - **Bottom — nearby-player scan with Invite**. A simple radius scan
+    around the local player's own current position (same shape as the
+    existing Village Flag/spawn-announcement proximity checks) — NOT
+    scoped to team territory, since a freshly created team has zero
+    territory until someone places a Flag, and gating invites on territory
+    would leave it with nobody to invite. Each nearby non-team-member gets
+    an Invite button, shown only to Owner/Officers (same
+    hide-if-unauthorized rule as the roster actions).
+- **Not in a team**: a **Create Team** button (the pure-UI creation flow
+  resolved above) plus a list of any pending invites addressed to this
+  player, each with a **Join Team** button.
+
+**Invite delivery — needs a real design decision when this gets built, not
+resolved here**: a pending invite has to persist until the recipient acts on
+it, so it can't be a one-shot toast like `PlayerIdentity
+.TargetNotifyNearbyPlayerJoined`. Likely shape: a small synced list of
+pending invites (team id + inviter name) either on the recipient's own
+identity component or tracked server-side and queried when they open
+`TeamScreen` — not designed in detail yet, flagged for the actual
+implementation pass.
 
 ## Guild
 

@@ -1,4 +1,5 @@
 using UnityEngine;
+using Mirror;
 #if UNITY_EDITOR
 using UnityEditor;
 using System;
@@ -19,7 +20,7 @@ using System;
 // recipes array.
 [RequireComponent(typeof(PlayerDropping))]
 [RequireComponent(typeof(PlayerGuilds))]
-public class AdminSpawnScreen : MonoBehaviour
+public class AdminSpawnScreen : NetworkBehaviour
 {
 #if UNITY_EDITOR
     private PlayerDropping dropping;
@@ -239,6 +240,16 @@ public class AdminSpawnScreen : MonoBehaviour
     // too, not just papered over.
     private const float SpawnForwardDistance = 4f;
 
+    // FIXED (2026-08-26, found live during the real two-machine test with
+    // traskmi): same root cause as PlayerDropping.SpawnPickup -- this used
+    // to Instantiate directly on whichever machine clicked the button,
+    // and NetworkSpawnHelper.SpawnIfNetworked only actually replicates
+    // when NetworkServer.active is true (host only). A client's admin
+    // spawn stayed local-only, invisible to the host and everyone else.
+    // Fixed the same way: the actual Instantiate now runs inside a
+    // Command, always server-side. piece is passed by its stable string
+    // id (BuildPieceDatabase.Find) since Mirror can't serialize an
+    // arbitrary ScriptableObject reference across a Command.
     private void SpawnPiece(BuildPiece piece)
     {
         if (piece == null || piece.prefab == null) return;
@@ -246,6 +257,18 @@ public class AdminSpawnScreen : MonoBehaviour
         Vector3 position = transform.position + transform.forward * SpawnForwardDistance;
         if (Physics.Raycast(position + Vector3.up * 2f, Vector3.down, out var hit, 10f))
             position = hit.point;
+
+        string pieceId = BuildPieceDatabase.Instance != null ? BuildPieceDatabase.Instance.IdFor(piece) : null;
+        if (pieceId == null) return;
+
+        CmdSpawnPiece(pieceId, position);
+    }
+
+    [Command]
+    private void CmdSpawnPiece(string pieceId, Vector3 position)
+    {
+        var piece = BuildPieceDatabase.Instance != null ? BuildPieceDatabase.Instance.Find(pieceId) : null;
+        if (piece == null || piece.prefab == null) return;
 
         var instance = Instantiate(piece.prefab, position, Quaternion.identity);
         NetworkSpawnHelper.SpawnIfNetworked(instance);

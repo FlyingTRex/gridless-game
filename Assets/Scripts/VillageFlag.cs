@@ -1,3 +1,4 @@
+using Mirror;
 using UnityEngine;
 
 // Marker for a placed Village Flag (2026-08-16, VILLAGE_FLAG_PLANNING.md
@@ -13,10 +14,14 @@ using UnityEngine;
 // (raycast -> GetComponentInParent<IRenameable>) picks this up for free
 // with no new interaction code. The chosen name is what MapScreen labels
 // this Flag's marker with on the Player Map.
-public class VillageFlag : MonoBehaviour, IRenameable
+public class VillageFlag : NetworkBehaviour, IRenameable
 {
     [SerializeField] private CraftTier tier;
-    [SerializeField] private string villageName = "Unnamed Village";
+    // FIXED (2026-08-26, found live with traskmi): was a plain field --
+    // a rename never replicated to anyone but whoever performed it. See
+    // BUGS_AND_ENHANCEMENTS.md. SyncVar + NetworkBehaviour is the whole
+    // fix; PlayerRenaming now routes the actual write through a Command.
+    [SyncVar] private string villageName = "Unnamed Village";
 
     public CraftTier Tier => tier;
     public string DisplayName => villageName;

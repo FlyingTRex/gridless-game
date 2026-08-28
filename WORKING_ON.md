@@ -19,7 +19,7 @@ Format: `- YYYY-MM-DD — who — one-sentence description`
 
 **Everything through v0.3.204-dev is merged to origin/main.**
 
-## Multiplayer roadmap — closed out, 2026-08-25
+## Multiplayer roadmap — mostly closed out, one real gap found 2026-08-26
 
 `MULTIPLAYER_PLANNING.md`'s entire phased plan (Phase 3 player-
 authoritative conversion, NPCs server-side, the persistence restructure,
@@ -48,13 +48,20 @@ chunk-by-chunk detail lives in that doc and in `CHANGELOG.md`'s
   `[SyncVar]`s so the fix actually displays correctly on the calling
   client, not just the server. Live-confirmed.
 
-**The only thing left in the whole roadmap is chunk 7**: the real live
-test with traskmi, from two separate physical locations. Not a build
-task — needs port forwarding on whoever hosts, and both of them
-actually connecting. The standalone client build
-(`Builds/GridlessClient/Gridless.exe`) is stale (predates the
-visibility fixes) and should be rebuilt before that real test, but
-isn't urgent before then.
+**Chunk 7 — the real live test with traskmi, from two separate physical
+locations — actually ran, 2026-08-26.** Connecting itself took real
+troubleshooting (a stray-text bug in the Connect screen's IP field, then
+a literal comma-vs-period typo in the address — neither one a networking
+problem at all, just worth remembering to check the exact error string
+before chasing router/firewall/CGNAT theories). Once connected, the test
+did exactly what it was for: **found a real gap Phase 3 had missed,
+same night fixed** (v0.3.205-dev). Admin-spawning, dropping, and
+renaming all ran as plain local method calls with no `[Command]`/
+`[SyncVar]` — full root-cause detail and the fix that shipped are in
+`CHANGELOG.md`'s v0.3.205-dev entry. Compile+weave verified via batch
+mode only — **still needs a real live re-test with traskmi** to
+confirm the client side now actually replicates correctly, the same
+two-machine scenario that found the bug in the first place.
 
 ## Open backlog, not currently being worked
 
