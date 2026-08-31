@@ -80,10 +80,64 @@ public class PlayerDropping : NetworkBehaviour
             return;
         }
 
+        // FIXED (2026-08-30, found live: dropping a plain item like a Stick
+        // removed it from the caller's own LOCAL Inventory only, never told
+        // the server -- so PlayerEquipment's per-frame client-side
+        // reconciliation (added the same session, see its own header
+        // comment) kept snapping the "removed" item right back the very
+        // next frame, since the server's broadcast truth never changed.
+        // Same shape as Pickup/ChopTree's own Request.../Cmd... pattern:
+        // resolve locally which slot this Inventory actually is (a
+        // Command can't serialize an arbitrary object reference), then let
+        // the server do the real removal + spawn.
+        int amount = Mathf.Min(quantity, source.GetCount(item));
+        if (amount <= 0) return;
+
+        // Three possible sources, resolved locally (a Command can't
+        // serialize an arbitrary Inventory reference): the main
+        // PlayerInventory (slotName/containerNetId both empty/0), one of
+        // PlayerEquipment's own named slots (a hand, mainly), or a worn
+        // Backpack's own nested Inventory -- identified by its
+        // NetworkIdentity, same as every other live-object reference this
+        // project's Commands already resolve things by (Pickup, tree, ...).
+        var equippedBackpack = GetComponent<PlayerBackpack>()?.Equipped;
+        uint containerNetId = 0;
+        if (equippedBackpack != null && ReferenceEquals(equippedBackpack.Inventory, source)
+            && equippedBackpack.TryGetComponent(out NetworkIdentity backpackIdentity))
+        {
+            containerNetId = backpackIdentity.netId;
+        }
+
+        string slotName = containerNetId == 0 ? GetComponent<PlayerEquipment>()?.SlotNameFor(source) : null;
+        CmdDropItem(slotName ?? "", containerNetId, item.name, amount);
+    }
+
+    [Command]
+    private void CmdDropItem(string slotName, uint containerNetId, string itemId, int quantity)
+    {
+        var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
+        if (item == null) return;
+
+        Inventory source;
+        if (containerNetId != 0)
+        {
+            source = NetworkServer.spawned.TryGetValue(containerNetId, out var identity)
+                ? (identity.GetComponent(typeof(IInventoryHolder)) as IInventoryHolder)?.Inventory
+                : null;
+        }
+        else
+        {
+            source = string.IsNullOrEmpty(slotName)
+                ? playerInventory.Inventory
+                : GetComponent<PlayerEquipment>()?.GetSlot(slotName);
+        }
+        if (source == null) return;
+
         int amount = Mathf.Min(quantity, source.GetCount(item));
         if (amount <= 0 || !source.RemoveItem(item, amount)) return;
 
-        SpawnPickup(item, amount);
+        Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        SpawnPickupServerSide(item, amount, position);
     }
 
     // Detaches and drops every physical equipment item still registered

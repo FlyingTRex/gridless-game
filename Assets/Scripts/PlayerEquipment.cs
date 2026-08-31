@@ -264,6 +264,20 @@ public class PlayerEquipment : NetworkBehaviour
 
     public IReadOnlyCollection<string> SlotNames => slotInventories.Keys;
 
+    // Reverse lookup for PlayerDropping.CmdDrop (2026-08-30) -- a Command
+    // can't serialize an arbitrary Inventory reference across the network,
+    // so a drop needs to identify its source by slot name instead. Given
+    // an Inventory instance a caller already has in hand (e.g. from
+    // InventoryScreen's own pendingDropItemSource), finds which named slot
+    // it actually is, or null if it isn't one of this component's slots at
+    // all (the main PlayerInventory, or a nested container).
+    public string SlotNameFor(Inventory inventory)
+    {
+        foreach (var kvp in slotInventories)
+            if (ReferenceEquals(kvp.Value, inventory)) return kvp.Key;
+        return null;
+    }
+
     public Inventory GetSlot(string slotName) =>
         slotInventories.TryGetValue(slotName, out var inv) ? inv : null;
 

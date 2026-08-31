@@ -5,10 +5,35 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.214-dev` — must always match `GameVersion` in
+**Current version:** `0.3.215-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-30 (2)
+
+### v0.3.215-dev — Dropping an item never reached the server; Backpack contents had zero sync at all
+
+Same live Ben/Tekim session as v0.3.214-dev, found right after that fix landed:
+
+- **Dropping a plain item (e.g. a Stick) removed it from the caller's own local
+  Inventory only, then it snapped right back.** `PlayerDropping.DropFrom`'s plain-item
+  branch called `source.RemoveItem(...)` directly — never told the server. Combined
+  with the just-shipped `PlayerEquipment` hand-slot reconciliation (which runs every
+  frame client-side), the server's still-unchanged broadcast truth kept overwriting
+  the "removed" item right back the very next frame. Fixed with the same
+  Request/Command shape `Pickup`/`ChopTree` already use: `PlayerDropping.CmdDropItem`
+  resolves the real source server-side (main inventory, a `PlayerEquipment` slot, or
+  a worn Backpack's own inventory via its `NetworkIdentity`) and does the actual
+  removal + spawn there.
+- **`Backpack.cs` had no Mirror networking of any kind — a plain `MonoBehaviour`
+  holding a purely local `Inventory`.** Anything added to a worn Backpack server-side
+  never reached the owning client's own view at all (not even a "fights back" bug,
+  just permanently invisible), and any local edit never reached the server either.
+  Converted to a real `NetworkBehaviour` with its own `SyncList`, same shape as
+  `PlayerInventory.syncedSlots` (reuses its `SyncedInventorySlot` struct directly).
+  Directly needed for tonight's test plan: gather sticks/rocks, trim for fiber, craft
+  a Backpack, actually use it.
 
 ## 2026-08-30
 
