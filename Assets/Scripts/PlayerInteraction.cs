@@ -102,7 +102,10 @@ public class PlayerInteraction : NetworkBehaviour
             if (current.IsInstant)
             {
                 if (keyboard.eKey.wasPressedThisFrame)
+                {
+                    DebugLog.Write("PlayerInteraction", $"E pressed on {gameObject.name}, target={(current as Component)?.name ?? current.GetType().Name}, calling Complete()");
                     current.Complete(gameObject);
+                }
             }
             else
             {

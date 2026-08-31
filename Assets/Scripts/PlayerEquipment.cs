@@ -110,6 +110,7 @@ public class PlayerEquipment : NetworkBehaviour
             if (signature == lastSyncedSignature) return;
 
             lastSyncedSignature = signature;
+            DebugLog.Write("PlayerEquipment", $"[SERVER] {gameObject.name} signature changed, pushing RefreshSyncedSlots -- new signature=\"{signature}\"");
             RefreshSyncedSlots();
             return;
         }
@@ -196,6 +197,10 @@ public class PlayerEquipment : NetworkBehaviour
 
             bool matches = currentPlain != null && currentPlain.item == targetItem && currentPlain.count == entry.count;
             if (matches) return;
+
+            DebugLog.Write("PlayerEquipment", $"[CLIENT] {gameObject.name} slot \"{entry.slotName}\" plain-item mismatch: " +
+                $"local={(currentPlain != null ? $"{currentPlain.item?.itemName} x{currentPlain.count}" : "empty")} " +
+                $"server={(targetItem != null ? $"{targetItem.itemName} x{entry.count}" : "empty")} -- reconciling to server truth");
 
             if (currentPlain != null)
                 localSlot.RemoveItem(currentPlain.item, currentPlain.count);

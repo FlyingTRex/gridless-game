@@ -98,7 +98,9 @@ public class Pickup : MonoBehaviour, IInteractable
     // the "box stayed visible after traskmi picked it up" report).
     private void DestroySelf()
     {
-        if (TryGetComponent<NetworkIdentity>(out _) && NetworkServer.active)
+        bool networked = TryGetComponent<NetworkIdentity>(out _);
+        DebugLog.Write("Pickup", $"DestroySelf {name}: networked={networked} NetworkServer.active={NetworkServer.active} -> {(networked && NetworkServer.active ? "NetworkServer.Destroy" : "local Destroy")}");
+        if (networked && NetworkServer.active)
             NetworkServer.Destroy(gameObject);
         else
             Destroy(gameObject);
@@ -106,12 +108,17 @@ public class Pickup : MonoBehaviour, IInteractable
 
     public void Complete(GameObject player)
     {
-        if (TryGetComponent<NetworkIdentity>(out _) && NetworkClient.active)
+        bool networked = TryGetComponent<NetworkIdentity>(out _);
+        DebugLog.Write("Pickup", $"Complete {name} item={item?.itemName} qty={quantity}: networked={networked} NetworkClient.active={NetworkClient.active}");
+        if (networked && NetworkClient.active)
         {
-            player.GetComponent<PlayerInventory>()?.RequestCompletePickup(this);
+            var inv = player.GetComponent<PlayerInventory>();
+            DebugLog.Write("Pickup", $"  -> routing via RequestCompletePickup, playerInventory found={inv != null}");
+            inv?.RequestCompletePickup(this);
             return;
         }
 
+        DebugLog.Write("Pickup", "  -> local-only path, calling ServerComplete directly");
         ServerComplete(player);
     }
 
@@ -123,16 +130,19 @@ public class Pickup : MonoBehaviour, IInteractable
     // pickup actually does, not duplicated logic.
     public void ServerComplete(GameObject player)
     {
+        DebugLog.Write("Pickup", $"ServerComplete {name} item={item?.itemName} qty={quantity} player={player.name} isServer-context-check: NetworkServer.active={NetworkServer.active}");
         var loot = player.GetComponent<PlayerLoot>();
         int leftover;
         if (loot != null)
         {
             leftover = loot.Receive(item, quantity);
+            DebugLog.Write("Pickup", $"  via PlayerLoot.Receive, leftover={leftover}");
         }
         else
         {
             var inventory = player.GetComponent<PlayerInventory>();
             leftover = inventory != null ? inventory.AddItem(item, quantity) : quantity;
+            DebugLog.Write("Pickup", $"  via PlayerInventory.AddItem (no PlayerLoot found), leftover={leftover}");
         }
 
         if (leftover > 0)
@@ -140,6 +150,7 @@ public class Pickup : MonoBehaviour, IInteractable
             // Nowhere to put it (backpack/hands full with PlayerLoot, or
             // inventory full without it) — leave the remainder on the
             // ground instead of deleting it.
+            DebugLog.Write("Pickup", $"  leftover > 0, NOT destroying, item stays on ground with qty={leftover}");
             quantity = leftover;
             return;
         }

@@ -5,10 +5,37 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.215-dev` — must always match `GameVersion` in
+**Current version:** `0.3.216-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-30 (3)
+
+### v0.3.216-dev — DebugLog instrumentation across the whole pickup/drop flow
+
+Ben/Tekim relaunched onto v0.3.215-dev and reported neither of them could pick up
+sticks anymore, worse than before that fix — a real regression, not yet
+root-caused. Rather than guess again, wired `DebugLog.Write` (this project's
+existing shared file-logger) into every stage of both flows so the actual
+sequence of events can be read directly from `debug_log.txt` after a live test,
+no copy-paste needed:
+
+- `PlayerInteraction`: E-key press on an instant interactable.
+- `Pickup.Complete`/`ServerComplete`/`DestroySelf`: networked-vs-local routing
+  decision, which receive path (`PlayerLoot` vs `PlayerInventory`), leftover
+  amount, actual destroy method used.
+- `PlayerInventory.RequestCompletePickup`/`CmdCompletePickup`: whether the
+  Command dispatch and server-side receipt actually happen.
+- `PlayerInventory`/`PlayerEquipment`'s sync loop: server-side signature-change
+  pushes, client-side delta application (including the plain-item hand-slot
+  reconciliation added in v0.3.214-dev).
+- `PlayerDropping.DropFrom`/`CmdDropItem`/`SpawnPickupServerSide`: source
+  resolution (main inventory / equip slot / Backpack), server-side removal
+  result, spawn confirmation.
+
+Purely diagnostic — no behavior changes, just visibility into what's actually
+happening before touching anything else.
 
 ## 2026-08-30 (2)
 

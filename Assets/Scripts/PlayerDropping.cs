@@ -35,6 +35,7 @@ public class PlayerDropping : NetworkBehaviour
     // Drop popup and PlayerLoot's hand-eviction path.
     public void DropFrom(Inventory source, ItemDefinition item, int quantity)
     {
+        DebugLog.Write("PlayerDropping", $"DropFrom CALLED on {gameObject.name}: item={item?.itemName} qty={quantity} sourceIsNull={source == null} NetworkClient.active={NetworkClient.active} isOwned={(netIdentity != null ? netIdentity.isOwned.ToString() : "n/a")}");
         if (item == null || source == null || quantity <= 0) return;
 
         // Equipment-backed slot (Canteen, Backpack, etc.) — release the
@@ -109,34 +110,48 @@ public class PlayerDropping : NetworkBehaviour
         }
 
         string slotName = containerNetId == 0 ? GetComponent<PlayerEquipment>()?.SlotNameFor(source) : null;
+        DebugLog.Write("PlayerDropping", $"  -> resolved slotName=\"{slotName}\" containerNetId={containerNetId}, calling CmdDropItem");
         CmdDropItem(slotName ?? "", containerNetId, item.name, amount);
     }
 
     [Command]
     private void CmdDropItem(string slotName, uint containerNetId, string itemId, int quantity)
     {
+        DebugLog.Write("PlayerDropping", $"CmdDropItem RECEIVED server-side on {gameObject.name}: slotName=\"{slotName}\" containerNetId={containerNetId} itemId={itemId} qty={quantity}");
         var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
-        if (item == null) return;
+        if (item == null)
+        {
+            DebugLog.Write("PlayerDropping", $"  -> item lookup FAILED for itemId=\"{itemId}\", aborting");
+            return;
+        }
 
         Inventory source;
         if (containerNetId != 0)
         {
-            source = NetworkServer.spawned.TryGetValue(containerNetId, out var identity)
-                ? (identity.GetComponent(typeof(IInventoryHolder)) as IInventoryHolder)?.Inventory
-                : null;
+            bool found = NetworkServer.spawned.TryGetValue(containerNetId, out var identity);
+            source = found ? (identity.GetComponent(typeof(IInventoryHolder)) as IInventoryHolder)?.Inventory : null;
+            DebugLog.Write("PlayerDropping", $"  -> resolving via containerNetId: found={found} source-resolved={source != null}");
         }
         else
         {
             source = string.IsNullOrEmpty(slotName)
                 ? playerInventory.Inventory
                 : GetComponent<PlayerEquipment>()?.GetSlot(slotName);
+            DebugLog.Write("PlayerDropping", $"  -> resolving via slotName=\"{slotName}\" (empty=main inventory): source-resolved={source != null}");
         }
-        if (source == null) return;
+        if (source == null)
+        {
+            DebugLog.Write("PlayerDropping", "  -> source resolution FAILED, aborting");
+            return;
+        }
 
         int amount = Mathf.Min(quantity, source.GetCount(item));
-        if (amount <= 0 || !source.RemoveItem(item, amount)) return;
+        bool removed = amount > 0 && source.RemoveItem(item, amount);
+        DebugLog.Write("PlayerDropping", $"  -> amount={amount} (server-side actual count={source.GetCount(item)} before removal) removed={removed}");
+        if (!removed) return;
 
         Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        DebugLog.Write("PlayerDropping", $"  -> spawning pickup at {position}");
         SpawnPickupServerSide(item, amount, position);
     }
 
@@ -223,6 +238,7 @@ public class PlayerDropping : NetworkBehaviour
     private void SpawnPickupServerSide(ItemDefinition item, int count, Vector3 position)
     {
         var prefab = item.worldPickupPrefab != null ? item.worldPickupPrefab : droppedItemPrefab;
+        DebugLog.Write("PlayerDropping", $"SpawnPickupServerSide: item={item.itemName} count={count} pos={position} prefab={(prefab != null ? prefab.name : "NULL")} NetworkServer.active={NetworkServer.active}");
         if (prefab == null) return;
 
         var spawned = Instantiate(prefab, position, Quaternion.identity);
@@ -231,6 +247,7 @@ public class PlayerDropping : NetworkBehaviour
         if (spawned.TryGetComponent(out Pickup pickup))
         {
             pickup.Configure(item, count);
+            DebugLog.Write("PlayerDropping", $"  -> spawned {spawned.name} as a real Pickup, configured item={item.itemName} count={count}");
             return;
         }
 

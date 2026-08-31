@@ -65,6 +65,7 @@ public class PlayerInventory : NetworkBehaviour
         if (signature == lastSyncedSignature) return;
 
         lastSyncedSignature = signature;
+        DebugLog.Write("PlayerInventory", $"[SERVER] {gameObject.name} signature changed, pushing RefreshSyncedSlots -- new signature=\"{signature}\"");
         RefreshSyncedSlots();
     }
 
@@ -127,8 +128,13 @@ public class PlayerInventory : NetworkBehaviour
             if (delta == 0) continue;
 
             var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
-            if (item == null) continue;
+            if (item == null)
+            {
+                DebugLog.Write("PlayerInventory", $"[CLIENT] {gameObject.name} delta for itemId=\"{itemId}\" delta={delta} but ItemDatabase.Find returned NULL -- skipped");
+                continue;
+            }
 
+            DebugLog.Write("PlayerInventory", $"[CLIENT] {gameObject.name} applying delta: {item.itemName} delta={delta} (oldCount={oldCount} newCount={newCount})");
             inventory.ApplyStackableDelta(item, delta);
         }
 
@@ -265,13 +271,17 @@ public class PlayerInventory : NetworkBehaviour
     // pattern as PlayerBackpack's equip/unequip Commands.
     public void RequestCompletePickup(Pickup pickup)
     {
-        if (pickup == null || !pickup.TryGetComponent(out NetworkIdentity identity)) return;
+        NetworkIdentity identity = null;
+        bool hasIdentity = pickup != null && pickup.TryGetComponent(out identity);
+        DebugLog.Write("PlayerInventory", $"RequestCompletePickup on {gameObject.name}: pickup={pickup?.name} hasIdentity={hasIdentity} isOwned={(hasIdentity ? netIdentity.isOwned.ToString() : "n/a")}");
+        if (!hasIdentity) return;
         CmdCompletePickup(identity);
     }
 
     [Command]
     private void CmdCompletePickup(NetworkIdentity pickupIdentity)
     {
+        DebugLog.Write("PlayerInventory", $"CmdCompletePickup RECEIVED server-side on {gameObject.name}, pickupIdentity={pickupIdentity?.name}");
         var pickup = pickupIdentity != null ? pickupIdentity.GetComponent<Pickup>() : null;
         pickup?.ServerComplete(gameObject);
     }
