@@ -39,8 +39,22 @@ public class PlayerIdentity : NetworkBehaviour
     // of that player (Team roster showed a renamed player as "Traveler"
     // forever). Now real [SyncVar]s, written only from CmdApplyRename
     // (server-side) below.
-    [SyncVar] private string playerName = DefaultName;
+    // Hook added 2026-08-30 (Ben's ask, after a live debugging session
+    // spent real time untangling which "Player"/"Player(Clone)" log line
+    // belonged to which person) -- renames the actual GameObject to match,
+    // so the Hierarchy, DebugLog output, and anything else that reads
+    // gameObject.name reflects the real player instead of Mirror's generic
+    // spawn name. Mirror only invokes a SyncVar hook on clients receiving
+    // a change, never on the server that set it -- CmdApplyRename/
+    // RestoreIdentity below call ApplyGameObjectName directly too, so the
+    // server's own copy renames itself as well, not just observers'.
+    [SyncVar(hook = nameof(OnPlayerNameChanged))] private string playerName = DefaultName;
     [SyncVar] private bool hasBeenNamed;
+
+    private void OnPlayerNameChanged(string oldName, string newName) => ApplyGameObjectName(newName);
+
+    private void ApplyGameObjectName(string name) =>
+        gameObject.name = string.IsNullOrEmpty(name) ? DefaultName : name;
 
     private PlayerCurrency wallet;
     private PlayerFame fame;
@@ -86,6 +100,7 @@ public class PlayerIdentity : NetworkBehaviour
     {
         wallet = GetComponent<PlayerCurrency>();
         fame = GetComponent<PlayerFame>();
+        ApplyGameObjectName(playerName);
     }
 
     // Client-only setup -- reads (or creates) this machine's own stable
@@ -208,6 +223,7 @@ public class PlayerIdentity : NetworkBehaviour
 
         playerName = clean;
         hasBeenNamed = true;
+        ApplyGameObjectName(playerName);
         Debug.Log($"[PlayerIdentity] CmdApplyRename applied server-side: playerName is now '{playerName}', hasBeenNamed={hasBeenNamed}.");
     }
 
@@ -217,6 +233,7 @@ public class PlayerIdentity : NetworkBehaviour
     {
         if (!string.IsNullOrWhiteSpace(savedName)) playerName = savedName;
         hasBeenNamed = savedHasBeenNamed;
+        ApplyGameObjectName(playerName);
     }
 
     [TargetRpc]

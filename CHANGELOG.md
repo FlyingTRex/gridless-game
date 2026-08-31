@@ -5,10 +5,23 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.216-dev` — must always match `GameVersion` in
+**Current version:** `0.3.217-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-30 (4)
+
+### v0.3.217-dev — Player GameObjects rename themselves to the player's real name
+
+Ben's ask after a live debugging session spent real time untangling which
+"Player"/"Player(Clone)" log/Hierarchy entry belonged to which person.
+`PlayerIdentity.playerName` gained a `[SyncVar]` hook that renames
+`gameObject.name` to the player's real display name on every machine
+(server and every observer), applied at spawn, on rename, and on save
+restore. Mirror only fires a SyncVar hook on clients receiving a change,
+never on the server that set it, so the server-side write sites
+(`CmdApplyRename`, `RestoreIdentity`) call the rename directly too.
 
 ## 2026-08-30 (3)
 
