@@ -5,10 +5,47 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.217-dev` — must always match `GameVersion` in
+**Current version:** `0.3.218-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-30 (5)
+
+### v0.3.218-dev — Fixed the real cause of "can't pick up sticks" (confirmed via DebugLog trace), plus a scene cleanup
+
+Root-caused for real this time, using the v0.3.216-dev DebugLog instrumentation
+against a real live trace from both Ben's and Tekim's machines:
+
+- **`PlayerLoot.Receive`'s hand-eviction path was calling a `[Command]` from
+  server-side code** — the exact same bug class as the creature-loot fix
+  earlier tonight, in a new spot. `Receive()` only ever runs server-side
+  (both its callers, `Pickup.ServerComplete` and
+  `ResourceNode.ServerCompleteSecondary`, are Command-invoked), but its
+  eviction branch called the client-facing `DropFrom()` — which now (as of
+  v0.3.215-dev) dispatches through `CmdDropItem`. Invoking a Command from
+  code already running on the server fails the ownership check, silently
+  breaking the whole pickup when both hands were already full of the same
+  item and needed to evict one to make room. Fixed with
+  `PlayerDropping.ServerDropFrom()`, a server-safe entry point matching
+  `ServerSpawnPickup`'s precedent — `PlayerLoot`'s eviction now calls that
+  directly.
+- **Real, separate finding, not fixed tonight**: `PlayerLoot.ReceiveEquipment`
+  (used by Canteen/Tool/Boot/Belt/Backpack/Shirt/Jeans/etc.) is a
+  *completely different, unnetworked* pickup path — `Canteen.Complete()`
+  (and presumably every other equippable) calls its pickup logic directly
+  client-side, with no Command routing at all, unlike `Pickup.Complete`'s
+  networked/local branching. Its own `DropFrom` eviction call is correctly
+  Command-routed as-is (client-triggered, needs to reach the server) — left
+  untouched. This is a bigger, standing gap worth its own pass later, not
+  folded into tonight's fix.
+- **`TestScene.unity`'s two hand-placed ground Stick pickups replaced**
+  with fresh `Assets/Prefabs/StickPickup.prefab` instances at the same
+  positions — Ben's call, after the original hand-configured instances
+  ("Stick Pickup" qty 10, "Stick Pickup 2" qty 1, inconsistent with each
+  other and with Admin Spawn's own clean `quantity=1` default) had caused
+  real confusion multiple times. Now identical to what Admin Spawn already
+  spawns.
 
 ## 2026-08-30 (4)
 

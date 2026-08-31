@@ -94,7 +94,10 @@ public class PlayerLoot : MonoBehaviour
         if (evictHand == null) return quantity;
 
         if (evictHand.Slots.Count > 0 && evictHand.Slots[0].equipment == null)
-            dropping?.DropFrom(evictHand, evictHand.Slots[0].item);
+        {
+            var evictItem = evictHand.Slots[0].item;
+            dropping?.ServerDropFrom(evictHand, evictItem, evictHand.GetCount(evictItem));
+        }
 
         return evictHand.AddItem(item, quantity);
     }

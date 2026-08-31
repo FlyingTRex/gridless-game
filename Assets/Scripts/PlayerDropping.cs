@@ -145,13 +145,32 @@ public class PlayerDropping : NetworkBehaviour
             return;
         }
 
+        ServerDropFrom(source, item, quantity);
+    }
+
+    // Server-side entry point (2026-08-30, found live: the SAME
+    // Command-called-from-server bug as ServerSpawnPickup above, in a new
+    // spot). PlayerLoot.Receive's hand-eviction branch calls DropFrom to
+    // make room for a new pickup -- but Receive() only ever runs
+    // server-side itself (both its callers, Pickup.ServerComplete and
+    // ResourceNode.ServerCompleteSecondary, are Command-invoked), so its
+    // eviction call was invoking CmdDropItem (a [Command]) from code
+    // that's already running on the server, failing the exact same
+    // ownership check as the creature-loot bug. This is the real
+    // removal+spawn logic, already resolved to a concrete Inventory
+    // reference (the caller has that in hand directly, unlike CmdDropItem
+    // which has to resolve one from a slot descriptor) -- no Command
+    // dispatch at all.
+    public void ServerDropFrom(Inventory source, ItemDefinition item, int quantity)
+    {
+        if (source == null || item == null) return;
+
         int amount = Mathf.Min(quantity, source.GetCount(item));
         bool removed = amount > 0 && source.RemoveItem(item, amount);
-        DebugLog.Write("PlayerDropping", $"  -> amount={amount} (server-side actual count={source.GetCount(item)} before removal) removed={removed}");
+        DebugLog.Write("PlayerDropping", $"ServerDropFrom: item={item.itemName} requestedQty={quantity} amount={amount} removed={removed}");
         if (!removed) return;
 
         Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
-        DebugLog.Write("PlayerDropping", $"  -> spawning pickup at {position}");
         SpawnPickupServerSide(item, amount, position);
     }
 
