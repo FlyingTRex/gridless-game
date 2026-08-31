@@ -67,6 +67,15 @@ public class PlayerEquipment : NetworkBehaviour
         // slotInventories can register the SAME live instance everyone
         // else sees, not a stand-in.
         public uint netId;
+        // FIXED (2026-08-30, found live: "picked up a Stick, it doesn't
+        // show up in inventory"). A plain stackable item (no IEquippable --
+        // netId stays 0) can land in a hand slot via PlayerLoot.Receive
+        // just like an equipment item can, but until now nothing here
+        // carried or applied its *count* client-side -- only the
+        // equipment/netId branch below was ever reconciled. Needed
+        // alongside itemId specifically for the plain-item case (an
+        // equipment slot's own count is always 1 by construction).
+        public int count;
     }
 
     // Server-owned, broadcast to every observer -- what item (if any)
@@ -169,6 +178,29 @@ public class PlayerEquipment : NetworkBehaviour
         {
             var targetItem = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(entry.itemId) : null;
             if (targetItem != null) localSlot.AddEquipmentItem(targetItem, targetEquipment);
+            return;
+        }
+
+        // Plain stackable reconciliation (no live networked object) --
+        // mirrors the equipment branch above, but by item+count instead of
+        // by live-instance identity, same shape PlayerInventory.syncedSlots
+        // already uses for the main inventory.
+        if (targetEquipment == null)
+        {
+            Inventory.Slot currentPlain = null;
+            foreach (var s in localSlot.Slots)
+                if (s.equipment == null && s.item != null) { currentPlain = s; break; }
+
+            var targetItem = !string.IsNullOrEmpty(entry.itemId) && ItemDatabase.Instance != null
+                ? ItemDatabase.Instance.Find(entry.itemId) : null;
+
+            bool matches = currentPlain != null && currentPlain.item == targetItem && currentPlain.count == entry.count;
+            if (matches) return;
+
+            if (currentPlain != null)
+                localSlot.RemoveItem(currentPlain.item, currentPlain.count);
+            if (targetItem != null && entry.count > 0)
+                localSlot.AddItem(targetItem, entry.count);
         }
     }
 
@@ -178,8 +210,9 @@ public class PlayerEquipment : NetworkBehaviour
         foreach (var slot in slots)
         {
             var item = FirstItemIn(slot.slotName);
+            int count = FirstItemCountIn(slot.slotName);
             uint netId = NetIdFor(GetEquipped(slot.slotName));
-            sb.Append(slot.slotName).Append(':').Append(item != null ? item.name : "").Append(':').Append(netId).Append('|');
+            sb.Append(slot.slotName).Append(':').Append(item != null ? item.name : "").Append(':').Append(count).Append(':').Append(netId).Append('|');
         }
         return sb.ToString();
     }
@@ -190,9 +223,10 @@ public class PlayerEquipment : NetworkBehaviour
         foreach (var slot in slots)
         {
             var item = FirstItemIn(slot.slotName);
+            int count = FirstItemCountIn(slot.slotName);
             string id = item != null ? ItemDatabase.Instance.IdFor(item) : "";
             uint netId = NetIdFor(GetEquipped(slot.slotName));
-            syncedSlots.Add(new SyncedEquipmentSlot { slotName = slot.slotName, itemId = id ?? "", netId = netId });
+            syncedSlots.Add(new SyncedEquipmentSlot { slotName = slot.slotName, itemId = id ?? "", netId = netId, count = count });
         }
     }
 
@@ -214,6 +248,18 @@ public class PlayerEquipment : NetworkBehaviour
         foreach (var s in inv.Slots)
             if (s.item != null) return s.item;
         return null;
+    }
+
+    // Companion to FirstItemIn -- the same first-matching slot's stack
+    // count. Always 1 for an equipment-carrying slot (by construction);
+    // real for a plain stackable one (e.g. a Stick sitting in a hand).
+    private int FirstItemCountIn(string slotName)
+    {
+        var inv = GetSlot(slotName);
+        if (inv == null) return 0;
+        foreach (var s in inv.Slots)
+            if (s.item != null) return s.count;
+        return 0;
     }
 
     public IReadOnlyCollection<string> SlotNames => slotInventories.Keys;

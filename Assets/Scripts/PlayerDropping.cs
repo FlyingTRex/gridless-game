@@ -136,12 +136,38 @@ public class PlayerDropping : NetworkBehaviour
         CmdSpawnPickup(item.name, count, position);
     }
 
+    // Server-side entry point (2026-08-30, found live: traskmi's console
+    // showed "CmdSpawnPickup ... called ... without authority" whenever a
+    // creature was skinned). SkinnableCreature.ServerComplete already runs
+    // server-side (invoked via its own Command) and correctly resolves the
+    // actual killer's PlayerDropping -- but it was calling SpawnPickup()
+    // above, which dispatches through ANOTHER Command. A [Command] is a
+    // client-to-server call; invoking one directly from code that's
+    // already running on the server re-triggers Mirror's generated
+    // client-side ownership check wherever it happens to execute, which
+    // fails because the code isn't actually running on the loot-owning
+    // player's own client. Fix: server-side callers use this directly
+    // (the same real spawn logic, just not wrapped in a Command) instead
+    // of going through the client-facing SpawnPickup()/CmdSpawnPickup()
+    // pair, which stays as the entry point for genuinely client-triggered
+    // actions (AdminSpawnScreen's own button, clicked by the local player).
+    public void ServerSpawnPickup(ItemDefinition item, int count = 1)
+    {
+        if (item == null) return;
+        Vector3 position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+        SpawnPickupServerSide(item, count, position);
+    }
+
     [Command]
     private void CmdSpawnPickup(string itemId, int count, Vector3 position)
     {
         var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
         if (item == null) return;
+        SpawnPickupServerSide(item, count, position);
+    }
 
+    private void SpawnPickupServerSide(ItemDefinition item, int count, Vector3 position)
+    {
         var prefab = item.worldPickupPrefab != null ? item.worldPickupPrefab : droppedItemPrefab;
         if (prefab == null) return;
 

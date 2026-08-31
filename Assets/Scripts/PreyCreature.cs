@@ -40,10 +40,10 @@ public class PreyCreature : SkinnableCreature
     protected override void DropLoot(PlayerDropping dropping)
     {
         if (lootItemA != null && Random.value < lootADropChance)
-            dropping?.SpawnPickup(lootItemA, Random.Range(lootAMinCount, lootAMaxCount + 1));
+            dropping?.ServerSpawnPickup(lootItemA, Random.Range(lootAMinCount, lootAMaxCount + 1));
         if (lootItemB != null && Random.value < lootBDropChance)
-            dropping?.SpawnPickup(lootItemB, Random.Range(lootBMinCount, lootBMaxCount + 1));
+            dropping?.ServerSpawnPickup(lootItemB, Random.Range(lootBMinCount, lootBMaxCount + 1));
         if (lootItemC != null && Random.value < lootCDropChance)
-            dropping?.SpawnPickup(lootItemC, Random.Range(lootCMinCount, lootCMaxCount + 1));
+            dropping?.ServerSpawnPickup(lootItemC, Random.Range(lootCMinCount, lootCMaxCount + 1));
     }
 }

@@ -5,10 +5,39 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.213-dev` — must always match `GameVersion` in
+**Current version:** `0.3.214-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-30
+
+### v0.3.214-dev — creature loot drops and hand-slot item sync fixed (found live during a real Ben/Tekim session)
+
+Two real multiplayer bugs found during a live two-machine playtest tonight, both
+root-caused via actual code tracing (a Mirror console warning on Tekim's screen,
+not guessed):
+
+- **Creature loot drops silently failed.** `SkinnableCreature.ServerComplete` (a
+  `[Command]`, already running server-side) called `HostileCreature`/`PreyCreature`'s
+  `DropLoot`, which called `PlayerDropping.SpawnPickup()` — itself another
+  `[Command]`. Invoking a `[Command]` directly from server-side code re-triggers
+  Mirror's generated client-side ownership check wherever it executes, which fails
+  because that code isn't actually running on the loot-owning player's own client
+  ("`CmdSpawnPickup` ... called on Player(Clone) without authority", Tekim's
+  console). Fix: `PlayerDropping.ServerSpawnPickup()`, a new server-safe entry point
+  with the same real spawn logic but no Command dispatch — `HostileCreature`/
+  `PreyCreature` now call that instead. `AdminSpawnScreen`'s own button (a genuinely
+  client-triggered action) keeps using the original `SpawnPickup()`/`CmdSpawnPickup()`
+  pair unchanged.
+- **A picked-up plain stackable item (e.g. a Stick) never showed up for the picking-
+  up client.** `PlayerLoot.Receive()` puts a new pickup into a hand slot first
+  (`PlayerEquipment`), before falling back to the main inventory — but
+  `PlayerEquipment`'s client-side slot sync only ever reconciled *equipment*
+  occupants (resolved via `NetworkIdentity.netId`); a plain item with no
+  `IEquippable` (`netId` stays 0) was never applied back to a remote client. Fixed
+  by adding a `count` field to the synced slot struct and a parallel plain-item
+  reconciliation path alongside the existing equipment one.
 
 ## 2026-08-28 (8)
 
@@ -258,7 +287,7 @@ server for a real client" finding is still open and unscoped.
 
 ### v0.3.208-dev — Real regression found and fixed same night: tree sceneId mismatch broke stick-picking-up; Team persistence added; rename diagnostic logging
 
-**A real regression from v0.3.207-dev's own `ChoppableTree` fix, found live minutes after re-testing**: "neither of us can pick up a stick on the ground." The 30 tree scene instances had inherited `Tree.prefab`'s new `NetworkIdentity` structurally, but Mirror's own `NetworkIdentity.AssignSceneID()` (which runs inside the Editor-only `OnValidate`) only *generates* a new persistent `sceneId` when the current value is `0` or a detected duplicate — it doesn't otherwise force one canonical value. The original batch-mode prefab fix apparently didn't deterministically trigger that generation for all 30 inherited instances, so each real interactive Editor session (Ben's, traskmi's) could have independently self-healed with its *own* random value the first time it opened the scene — permanently mismatching between machines and producing exactly the `"Spawn scene object not found ... Make sure that client and server use exactly the same project"` errors seen in the log (30 of them, one per tree, confirmed by grepping `Editor.log`). **Root-caused by reading Mirror's own `NetworkIdentity.cs` source directly** rather than guessing. Fixed via a throwaway batch script: force every tree's `sceneId` back to `0`, then invoke the real (private, called via reflection) `OnValidate` so exactly one canonical value gets generated and baked into the committed scene file — both machines now load the same already-valid value instead of each generating their own. Independently re-verified in a second Unity process: 30 trees, 30 unique non-zero `sceneId`s, zero duplicates.
+**A real regression from v0.3.207-dev's own `ChoppableTree` fix, found live minutes after re-testing**: "neither of us can pick up a stick on the ground." The 30 tree scene instances had inherited `Tree.prefab`'s new `NetworkIdentity` structurally, but Mirror's own `NetworkIdentity.AssignSceneID()` (which runs inside the Editor-only `OnValidate`) only *generates* a new persistent `sceneId` when the current value is `0` or a detected duplicate — it doesn't otherwise force one canonical value. The original batch-mode prefab fix apparently didn't deterministically trigger that generation for all 30 inherited instances, so each real interactive Editor session (Ben's, Tekim's) could have independently self-healed with its *own* random value the first time it opened the scene — permanently mismatching between machines and producing exactly the `"Spawn scene object not found ... Make sure that client and server use exactly the same project"` errors seen in the log (30 of them, one per tree, confirmed by grepping `Editor.log`). **Root-caused by reading Mirror's own `NetworkIdentity.cs` source directly** rather than guessing. Fixed via a throwaway batch script: force every tree's `sceneId` back to `0`, then invoke the real (private, called via reflection) `OnValidate` so exactly one canonical value gets generated and baked into the committed scene file — both machines now load the same already-valid value instead of each generating their own. Independently re-verified in a second Unity process: 30 trees, 30 unique non-zero `sceneId`s, zero duplicates.
 
 **Team persistence added** — Ben's ask, after finding Team membership didn't survive a reconnect (it was never wired into `SaveManager` at all, the same gap most new features start with in this project). `PlayerTeam.RestoreTeam(teamId, teamName, role)` added, called from `SaveManager.RestorePlayer`; `CapturePlayer` now writes `teamId`/`teamName`/`teamRole`. Deliberately per-player, not a new global "teams" table — `PlayerTeam.MembersOf`'s existing live-scan (no central registry to begin with) naturally re-groups reconnecting teammates once each member's own record is restored. Pending invites are NOT persisted — reasonable to just expire on disconnect.
 
@@ -510,7 +539,7 @@ session never could: `PlayerDropping`, `AdminSpawnScreen`, and
 validate/replicate pattern during Phase 3, despite that phase being
 marked fully complete. Whatever the *non-host* side did through any of
 these three paths only ever happened on their own machine — invisible to
-everyone else. Confirmed live: traskmi's admin-spawn showed up correctly
+everyone else. Confirmed live: Tekim's admin-spawn showed up correctly
 (he was hosting); the same action from the client side never reached him.
 Root-caused via direct code read (zero `[Command]`/`[SyncVar]` in any of
 the three files), not inferred — full writeup in `BUGS_AND_ENHANCEMENTS.md`.
@@ -4198,7 +4227,7 @@ at a glance.
 
 ### VMS admin browser: a tabbed Editor Window for Items/Recipes/Cookables/Skills/NPC Jobs/Build Pieces (editor tool, no version bump)
 
-traskmi's ask, following up on the "central database" discussion earlier
+Tekim's ask, following up on the "central database" discussion earlier
 this session — build the actual browser the backlog note in `CLAUDE.md`
 promised, covering all 6 core data types in one pass.
 
@@ -4369,7 +4398,7 @@ live-tested in Play mode.
 
 ### v0.3.97-dev — Fried Egg: Frying Pan's second recipe
 
-traskmi's ask: 1 Egg in a Frying Pan, 30s, 5 Health + Hunger.
+Tekim's ask: 1 Egg in a Frying Pan, 30s, 5 Health + Hunger.
 
 - **New low-poly Blender model** (`Assets/Models/FriedEgg.glb`, 178 tris —
   two meshes, a squashed-oval white + an off-center dome yolk, separate
@@ -4381,7 +4410,7 @@ traskmi's ask: 1 Egg in a Frying Pan, 30s, 5 Health + Hunger.
   higher-effort ones.
 - **`FriedEggEdible.asset`**: 5 Health via `vital`/`restoreAmount`. Hunger
   is flagged, not an exact match — `EdibleItem` restores Hunger through a
-  fixed 5-rung `FoodTier` ladder (15/25/40/60/90), and traskmi's requested
+  fixed 5-rung `FoodTier` ladder (15/25/40/60/90), and Tekim's requested
   20 sits exactly between two rungs. Shipped on `FoodTier.LightMeal` (25)
   rather than `Snack` (15) — a genuine coin-flip, easy one-line change if
   the other rung is preferred.
@@ -7628,7 +7657,7 @@ on craft duration — `PlayerSkills.GetHoldDuration` derives hold time from
 the *player's own current skill level* (`TierForSkillLevel`), not the
 item's stored tier, so this is purely a gate-requirement change.
 
-Follow-up to v0.3.8-dev — traskmi's live look at the placed Furnace called it
+Follow-up to v0.3.8-dev — Tekim's live look at the placed Furnace called it
 "very small."
 
 - **Scaled 2x**: world bounds went from (0.65, 1.00, 0.44) to
@@ -7693,7 +7722,7 @@ Anvil — smelting needs real heat, not just a hard hammering surface.
   `m_Modifications`, not a direct field). Both the Furnace placement and the
   recipe registration were correct on the first try — my initial verification
   queries were just wrong, not the build.
-- **Admin Spawn Screen gets a search box** (traskmi's separate ask, same
+- **Admin Spawn Screen gets a search box** (Tekim's separate ask, same
   session) — the item list was getting long. Same
   `searchQuery`/`TextField`/Clear-button pattern `CraftingScreen` already
   uses, filtering by `itemName` substring. New items need zero extra wiring

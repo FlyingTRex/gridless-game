@@ -175,8 +175,8 @@ public class HostileCreature : SkinnableCreature
         // Lands near the player, who has to be standing at the corpse to
         // trigger this at all, so it reads as "at the kill" in practice.
         if (Random.value < peltDropChance)
-            dropping?.SpawnPickup(peltItem, peltCount);
-        dropping?.SpawnPickup(meatItem, Random.Range(meatMinCount, meatMaxCount + 1));
+            dropping?.ServerSpawnPickup(peltItem, peltCount);
+        dropping?.ServerSpawnPickup(meatItem, Random.Range(meatMinCount, meatMaxCount + 1));
     }
 
     protected override void Respawn()
