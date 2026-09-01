@@ -75,14 +75,36 @@ with traskmi** to confirm the client side now actually replicates
 correctly, the same two-machine scenario that found every one of these
 bugs in the first place.
 
-**Next up:** a real live two-machine re-test with traskmi to confirm
-everything from v0.3.207-dev through v0.3.213-dev actually holds —
-nothing since v0.3.207-dev has been tested live yet. See
-`BUGS_AND_ENHANCEMENTS.md`/`MULTIPLAYER_INTERACTION_AUDIT.md` for the
-full list of what's fixed vs. still open (`Furnace`/`Campfire`'s
-screen-driven half, `VendorStall`/`VillageVendor`, `Lockbox`/`Coin`
-prefabs, `PlayerMagic.TryWish` itself, the broader "direct actions
-never reach the server" finding).
+**Update, 2026-08-31 — the real live two-machine re-test happened
+(Editor host + a freshly rebuilt standalone `Gridless.exe`, not just
+host-alone).** Confirmed v0.3.207-dev through v0.3.213-dev holds, then
+found and fixed a full night's worth more, all merged to `origin/main`
+as of v0.3.225-dev: `MULTIPLAYER_INTERACTION_AUDIT.md`'s punch-list
+items 1/3/4/5 (CancelCraft refund, StorageBox re-placement, the whole
+equippable pickup/drop/equip-from-nested-container family,
+VendorStall/VillageVendor), plus three real bugs the standalone-client
+test surfaced that weren't on any prior list: 90 prefabs missing from
+`NetworkManager`'s spawnable-prefab registration (including `Boulder`/
+`BerryBush`/`HerbBush`/`Tree` themselves, not just their chunk chains),
+`PlayerInventory`/`Backpack`/`StorageBox` never syncing equipment-backed
+inventory slots to a remote client at all, and a same-night regression
+in that fix (fought local-only moves every frame instead of the proven
+additive-delta approach). Also escalated item 2 from MVP5-deferred to a
+narrow live fix (moving into/out of a `StorageBox` is now
+Command-routed) once testing showed it was actively desyncing state,
+not just staying invisible. All live-tested and confirmed working by
+Ben during the session, except the very last item-2 fix — not yet
+re-verified live before testing stopped for the night.
+
+**Next up:** live-confirm the item-2 StorageBox-move fix (last change
+of the night, unverified). Then: `InventoryTransfer.Move`'s other still-
+unrouted callers (`FurnaceScreen`/`CampfireScreen`/`NPCHiringScreen`,
+deferred to MVP5), and the bigger confirmed-but-unstarted gap: NPCs
+aren't real networked objects at all (`NPCFactoryWorkerFemale`/`Male`
+prefabs carry zero `NetworkIdentity`) — `MULTIPLAYER_PLANNING.md`'s own
+"NPCs move server-side" phase, never begun. See
+`MULTIPLAYER_INTERACTION_AUDIT.md` for full current status of every
+item.
 
 ## Open backlog, not currently being worked
 
