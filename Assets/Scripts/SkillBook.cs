@@ -81,14 +81,12 @@ public class SkillBook : MonoBehaviour, IInteractable, IEquippable
     // then a free hand) — falls back to stashing as a regular (hidden)
     // inventory item only if PlayerLoot found nowhere else for it. Same
     // shape as Backpack.PickUp/Canteen.PickUp.
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): routed
+    // through PlayerInventory.RequestPickUpEquipment (a real Command) --
+    // used to run this entirely client-side.
     public void Complete(GameObject player)
     {
-        var loot = player.GetComponent<PlayerLoot>();
-        if (loot != null && loot.ReceiveEquipment(itemDefinition, this)) return;
-
-        var inventory = player.GetComponent<PlayerInventory>();
-        if (inventory != null && inventory.Inventory.AddEquipmentItem(itemDefinition, this))
-            Stash();
+        player.GetComponent<PlayerInventory>()?.RequestPickUpEquipment(this);
     }
 
     // Fully hides the object while it's stashed in a regular inventory

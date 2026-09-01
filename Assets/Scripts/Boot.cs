@@ -59,10 +59,12 @@ public class Boot : MonoBehaviour, IInteractable, IEquippable
     public Inventory GetSlot(string label) =>
         slotInventories.TryGetValue(label, out var inv) ? inv : null;
 
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): routed
+    // through PlayerInventory.RequestPickUpEquipment (a real Command) --
+    // used to call PlayerBoot.PickUp directly, entirely client-side.
     public void Complete(GameObject player)
     {
-        var carrier = player.GetComponent<PlayerBoot>();
-        carrier?.PickUp(this);
+        player.GetComponent<PlayerInventory>()?.RequestPickUpEquipment(this);
     }
 
     public void Stash()

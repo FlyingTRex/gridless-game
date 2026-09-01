@@ -528,8 +528,7 @@ public class InventoryScreen : MonoBehaviour
         {
             if (building != null && storageBoxPiece != null && GUILayout.Button("Place"))
             {
-                pendingActionSource.RemoveEquipmentItem(pendingActionItem);
-                building.ArmExistingPiece(storageBoxPiece, box.gameObject);
+                building.RequestArmExistingPiece(storageBoxPiece, pendingActionSource, box);
                 menuScreen?.Close();
                 return true;
             }
@@ -614,20 +613,25 @@ public class InventoryScreen : MonoBehaviour
 
     // Multiplayer sub-phase 2 rollout (2026-08-23) -- shared by all four
     // TryEquipWithChoice overloads below. Routes through the networked
-    // Command when equipping from the main inventory and the item is
-    // networked; returns false (meaning "fall through to the local
-    // carrier call") otherwise -- same source-checked, defensive pattern
-    // as EquipToSlotDispatch/EquipWithChoice above, just reusable across
-    // both apply points a multi-destination item has (the immediate
-    // single-destination case, and the popup's chosen-destination
-    // callback).
+    // Command when the source resolves to a known container key and the
+    // item is networked; returns false (meaning "fall through to the
+    // local carrier call") otherwise -- same source-checked, defensive
+    // pattern as EquipToSlotDispatch/EquipWithChoice above, just reusable
+    // across both apply points a multi-destination item has (the
+    // immediate single-destination case, and the popup's chosen-
+    // destination callback). MULTIPLAYER_INTERACTION_AUDIT.md follow-up
+    // (2026-08-31): widened from "main inventory only" to any source
+    // ContainerKeyFor can resolve (main, a worn Backpack's cargo, or a
+    // plain PlayerEquipment slot) -- equipping from a nested container was
+    // the one real remaining gap once world-pickup/drop were fixed.
     private bool TryNetworkedEquip(IEquippable equipment, string slotName, Inventory source)
     {
-        if (source != playerInventory.Inventory) return false;
+        string sourceKey = ContainerKeyFor(source);
+        if (sourceKey == null) return false;
         if (equipment is not Component equipmentComponent) return false;
         if (!equipmentComponent.TryGetComponent<Mirror.NetworkIdentity>(out _)) return false;
 
-        playerInventory.RequestEquipInstance(equipment, slotName);
+        playerInventory.RequestEquipInstance(equipment, slotName, sourceKey);
         return true;
     }
 
@@ -720,24 +724,28 @@ public class InventoryScreen : MonoBehaviour
     // by runtime type instead of the 8-branch if/else chains this file used
     // to have three separate copies of (DrawInventorySection,
     // DrawEquipmentSection, and this dispatch itself, pre-2026-08-12).
-    // Multiplayer sub-phase 2 rollout (2026-08-23) -- routes through the
-    // networked Command when equipping FROM the main inventory AND the
-    // target has exactly one valid destination slot (a click has no
-    // known destination the way a drag does, so an ambiguous multi-slot
-    // item -- Canteen/NavComputer/HealthMonitor/Tool -- still needs the
-    // existing choice-popup flow below; only single-destination types get
-    // routed directly). Falls through to the original local switch for
-    // anything else (a non-main source like a worn Backpack's nested
-    // inventory, an item with no NetworkIdentity, or an ambiguous type).
+    // Multiplayer sub-phase 2 rollout (2026-08-23), widened 2026-08-31 --
+    // routes through the networked Command when the source resolves to a
+    // known container key (main inventory, a worn Backpack's cargo, or a
+    // plain PlayerEquipment slot) AND the target has exactly one valid
+    // destination slot (a click has no known destination the way a drag
+    // does, so an ambiguous multi-slot item -- Canteen/NavComputer/
+    // HealthMonitor/Tool -- still needs the existing choice-popup flow
+    // below; only single-destination types get routed directly). Falls
+    // through to the original local switch for anything else (a source
+    // ContainerKeyFor can't resolve -- e.g. a nearby StorageBox, same
+    // still-open limitation Eating/Medicine/Reading already have -- an
+    // item with no NetworkIdentity, or an ambiguous type).
     private void EquipWithChoice(IEquippable equipment, Inventory source)
     {
-        if (source == playerInventory.Inventory && equipment is Component equipmentComponent
+        string sourceKey = ContainerKeyFor(source);
+        if (sourceKey != null && equipment is Component equipmentComponent
             && equipmentComponent.TryGetComponent<Mirror.NetworkIdentity>(out _))
         {
             string singleSlot = FindSingleValidSlot(equipment);
             if (singleSlot != null)
             {
-                playerInventory.RequestEquipInstance(equipment, singleSlot);
+                playerInventory.RequestEquipInstance(equipment, singleSlot, sourceKey);
                 return;
             }
         }
@@ -780,16 +788,18 @@ public class InventoryScreen : MonoBehaviour
     // Same idea as EquipWithChoice, but for a drag drop onto a specific,
     // already-known slot (no ambiguity to resolve, unlike a click) — the
     // caller (TryDrop) has already confirmed equipment.CanEquipToSlot(slotName).
-    // Multiplayer sub-phase 2 rollout (2026-08-23): routes through the
-    // networked Command unconditionally when equipping from the main
-    // inventory, since the destination slot is already known here --
-    // no ambiguity to preserve the way EquipWithChoice's click path has.
+    // Multiplayer sub-phase 2 rollout (2026-08-23), widened 2026-08-31 --
+    // routes through the networked Command whenever the source resolves
+    // to a known container key, since the destination slot is already
+    // known here -- no ambiguity to preserve the way EquipWithChoice's
+    // click path has.
     private bool EquipToSlotDispatch(IEquippable equipment, string slotName, Inventory source)
     {
-        if (source == playerInventory.Inventory && equipment is Component equipmentComponent
+        string sourceKey = ContainerKeyFor(source);
+        if (sourceKey != null && equipment is Component equipmentComponent
             && equipmentComponent.TryGetComponent<Mirror.NetworkIdentity>(out _))
         {
-            playerInventory.RequestEquipInstance(equipment, slotName);
+            playerInventory.RequestEquipInstance(equipment, slotName, sourceKey);
             return true;
         }
 
@@ -1126,6 +1136,26 @@ public class InventoryScreen : MonoBehaviour
         return null;
     }
 
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31, found live: a
+    // Stone Knife dragged into a nearby StorageBox stayed put locally but
+    // never reached the server -- host's own view of the box never showed
+    // it, a real desync). ContainerKeyFor above only covers containers
+    // reachable from the Player's own NetworkBehaviours -- a StorageBox is
+    // a world object, resolved by its own NetworkIdentity instead (same
+    // "resolve by netId" pattern PlayerDropping/PlayerBuilding already use
+    // for exactly this class of container). Returns 0 for anything this
+    // doesn't cover (Furnace zones, NPC cargo, ...), same "fall through to
+    // local-only" contract ContainerKeyFor's own callers already expect.
+    private uint ContainerNetIdFor(Inventory inv)
+    {
+        foreach (var box in StorageBox.Active)
+        {
+            if (box != null && box.Inventory == inv && box.TryGetComponent(out Mirror.NetworkIdentity identity))
+                return identity.netId;
+        }
+        return 0;
+    }
+
     private void TryDrop(DropZone zone)
     {
         if (dragItem == null || dragSource == null || zone.Inventory == null) return;
@@ -1136,18 +1166,24 @@ public class InventoryScreen : MonoBehaviour
             bool wasEquipment = dragEquipment != null;
 
             // Route through the networked Move Command when both sides
-            // resolve to a known container key and (for an equipped
-            // instance specifically) the item is actually networked --
-            // falls through to the original local-only path for anything
-            // this scheme doesn't cover.
+            // resolve to a known container (a key, or -- 2026-08-31 -- a
+            // StorageBox's own netId) and (for an equipped instance
+            // specifically) the item is actually networked -- falls
+            // through to the original local-only path for anything this
+            // scheme doesn't cover (Furnace zones, NPC cargo, ...).
             bool networkedOk = !wasEquipment
                 || (dragEquipment is Component dragEquipmentComponent && dragEquipmentComponent.TryGetComponent<Mirror.NetworkIdentity>(out _));
             string fromKey = ContainerKeyFor(dragSource);
+            uint fromNetId = fromKey == null ? ContainerNetIdFor(dragSource) : 0;
             string toKey = ContainerKeyFor(zone.Inventory);
+            uint toNetId = toKey == null ? ContainerNetIdFor(zone.Inventory) : 0;
 
-            if (networkedOk && fromKey != null && toKey != null)
+            bool fromResolved = fromKey != null || fromNetId != 0;
+            bool toResolved = toKey != null || toNetId != 0;
+
+            if (networkedOk && fromResolved && toResolved)
             {
-                playerInventory.RequestMove(fromKey, toKey, dragItem, dragQuantity);
+                playerInventory.RequestMove(fromKey ?? "", fromNetId, toKey ?? "", toNetId, dragItem, dragQuantity);
                 if (wasEquipment) dragEquipment.Stash();
                 return;
             }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 
 // Opened by interacting (E) with a VendorStall -- same "world object owns
@@ -6,9 +7,19 @@ using UnityEngine;
 // FurnaceScreen already establishes. Transact mode only for this tier
 // (COMMERCE_PLANNING.md section 4's configure/owner mode is moot with one
 // local player, deferred with the same reasoning the design doc gives it).
+//
+// MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): converted from
+// MonoBehaviour to NetworkBehaviour -- this used to call
+// VendorStall.SellToVisitor/BuyFromVisitor directly from OnGUI's Buy/Sell
+// buttons, entirely client-side (real currency and item counts moved with
+// zero Commands, on a MonoBehaviour that had no way to route one even if
+// it wanted to). Already-networked pieces (StorageBox stock, Lockbox till,
+// PlayerCurrency wallet, PlayerBank) mean the actual state mutation just
+// needed to happen server-side -- no new sync plumbing, same shape as
+// PlayerCrafting.StartCraft reusing its own validation logic unchanged.
 [RequireComponent(typeof(PlayerCurrency))]
 [RequireComponent(typeof(PlayerInventory))]
-public class VendorStallScreen : MonoBehaviour
+public class VendorStallScreen : NetworkBehaviour
 {
     private const float MaxPanelWidth = 480f;
     private const float MaxPanelHeight = 560f;
@@ -262,12 +273,7 @@ public class VendorStallScreen : MonoBehaviour
         if (entry.canSell)
         {
             if (GUILayout.Button($"Buy {entry.sellPrice}c", GUILayout.Width(TileWidth - 20f)))
-            {
-                if (current.SellToVisitor(entry.item, 1, wallet, inventories, bank))
-                    ShowMessage($"Bought 1 {entry.item.itemName}.");
-                else
-                    ShowMessage("Can't buy that right now.");
-            }
+                RequestBuyFromStall(current, entry.item, 1);
         }
 
         // entry.canBuy means the STALL can buy FROM the visitor -- from
@@ -275,12 +281,7 @@ public class VendorStallScreen : MonoBehaviour
         if (entry.canBuy)
         {
             if (GUILayout.Button($"Sell {entry.buyPrice}c", GUILayout.Width(TileWidth - 20f)))
-            {
-                if (current.BuyFromVisitor(entry.item, 1, wallet, inventories, bank))
-                    ShowMessage($"Sold 1 {entry.item.itemName}.");
-                else
-                    ShowMessage("Can't sell that right now.");
-            }
+                RequestSellToStall(current, entry.item, 1);
         }
 
         GUILayout.EndVertical();
@@ -302,12 +303,7 @@ public class VendorStallScreen : MonoBehaviour
 
         int estimate = current.EstimateOffListBuyPrice(item);
         if (GUILayout.Button($"Sell ~{estimate}c", GUILayout.Width(TileWidth - 20f)))
-        {
-            if (current.BuyFromVisitor(item, 1, wallet, inventories, bank))
-                ShowMessage($"Sold 1 {item.itemName}.");
-            else
-                ShowMessage("Can't sell that right now.");
-        }
+            RequestSellToStall(current, item, 1);
 
         GUILayout.EndVertical();
     }
@@ -333,4 +329,58 @@ public class VendorStallScreen : MonoBehaviour
         message = text;
         messageExpireTime = Time.time + MessageDuration;
     }
+
+    // "Buy" from the player's own side of the counter -- the stall sells
+    // TO the visitor (VendorStall.SellToVisitor). Resolves the stall by
+    // NetworkIdentity (a Command can't serialize an arbitrary Component
+    // reference), same pattern PlayerDropping/PlayerBuilding's own Command
+    // pairs already use.
+    private void RequestBuyFromStall(VendorStall stall, ItemDefinition item, int qty)
+    {
+        if (stall == null || item == null) return;
+        if (!stall.TryGetComponent(out NetworkIdentity stallIdentity)) return;
+        CmdBuyFromStall(stallIdentity.netId, item.name, qty);
+    }
+
+    [Command]
+    private void CmdBuyFromStall(uint stallNetId, string itemId, int qty)
+    {
+        var stall = ResolveStall(stallNetId);
+        var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
+        if (stall == null || item == null) return;
+
+        bool ok = stall.SellToVisitor(item, qty, wallet, ReachableInventories(), bank);
+        TargetShowMessage(connectionToClient, ok ? $"Bought {qty} {item.itemName}." : "Can't buy that right now.");
+    }
+
+    // "Sell" from the player's own side of the counter -- the stall buys
+    // FROM the visitor (VendorStall.BuyFromVisitor). Used by both the
+    // stocked-item Sell button and the off-list Sell button.
+    private void RequestSellToStall(VendorStall stall, ItemDefinition item, int qty)
+    {
+        if (stall == null || item == null) return;
+        if (!stall.TryGetComponent(out NetworkIdentity stallIdentity)) return;
+        CmdSellToStall(stallIdentity.netId, item.name, qty);
+    }
+
+    [Command]
+    private void CmdSellToStall(uint stallNetId, string itemId, int qty)
+    {
+        var stall = ResolveStall(stallNetId);
+        var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
+        if (stall == null || item == null) return;
+
+        bool ok = stall.BuyFromVisitor(item, qty, wallet, ReachableInventories(), bank);
+        TargetShowMessage(connectionToClient, ok ? $"Sold {qty} {item.itemName}." : "Can't sell that right now.");
+    }
+
+    private static VendorStall ResolveStall(uint stallNetId) =>
+        NetworkServer.spawned.TryGetValue(stallNetId, out var identity) ? identity.GetComponent<VendorStall>() : null;
+
+    // Reports the real transaction outcome back to the requesting client
+    // only -- the toast text depends on which button was pressed and
+    // whether the server-side attempt actually succeeded, neither of which
+    // a Command can return directly.
+    [TargetRpc]
+    private void TargetShowMessage(NetworkConnectionToClient target, string text) => ShowMessage(text);
 }

@@ -64,10 +64,12 @@ public class Canteen : MonoBehaviour, IInteractable, IEquippable
         }
     }
 
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): routed
+    // through PlayerInventory.RequestPickUpEquipment (a real Command) --
+    // used to call PlayerCanteen.PickUp directly, entirely client-side.
     public void Complete(GameObject player)
     {
-        var carrier = player.GetComponent<PlayerCanteen>();
-        carrier?.PickUp(this);
+        player.GetComponent<PlayerInventory>()?.RequestPickUpEquipment(this);
     }
 
     // A canteen only ever holds liquid, never items — filling replaces

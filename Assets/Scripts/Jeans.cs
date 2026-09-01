@@ -37,10 +37,12 @@ public class Jeans : MonoBehaviour, IInteractable, IInventoryHolder
         col = GetComponent<Collider>();
     }
 
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): routed
+    // through PlayerInventory.RequestPickUpEquipment (a real Command) --
+    // used to call PlayerJeans.PickUp directly, entirely client-side.
     public void Complete(GameObject player)
     {
-        var carrier = player.GetComponent<PlayerJeans>();
-        carrier?.PickUp(this);
+        player.GetComponent<PlayerInventory>()?.RequestPickUpEquipment(this);
     }
 
     // Fully hides the object while it's stashed in a regular inventory slot

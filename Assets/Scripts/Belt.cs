@@ -48,10 +48,12 @@ public class Belt : MonoBehaviour, IInteractable, IInventoryHolder
         col = GetComponent<Collider>();
     }
 
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): routed
+    // through PlayerInventory.RequestPickUpEquipment (a real Command) --
+    // used to call PlayerBelt.PickUp directly, entirely client-side.
     public void Complete(GameObject player)
     {
-        var carrier = player.GetComponent<PlayerBelt>();
-        carrier?.PickUp(this);
+        player.GetComponent<PlayerInventory>()?.RequestPickUpEquipment(this);
     }
 
     public void Stash()

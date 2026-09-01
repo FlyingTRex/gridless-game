@@ -27,6 +27,27 @@ public class PlayerInventory : NetworkBehaviour
         public int count;
     }
 
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31, found live:
+    // "crafted a Stone Knife, it never showed up in inventory" -- server
+    // genuinely had it, PlayerCrafting.AddCraftedOutput's AddEquipmentItem
+    // call succeeded, but syncedSlots/ComputeSignature/RefreshSyncedSlots
+    // above always skip equipment-backed slots (`if (slot.equipment !=
+    // null) continue`), so a Stone Knife -- or any other equippable output
+    // -- sitting loose in the main inventory (not worn, not in a hand) was
+    // never told to a remote client at all). A plain itemId+count entry
+    // isn't enough here -- each occupant is a distinct LIVE object, not
+    // just a stack, so this carries the object's own NetworkIdentity.netId
+    // instead, same identity-based reconciliation PlayerEquipment.
+    // syncedSlots already established for its own named slots -- this is
+    // the same idea generalized to an unordered list instead of one entry
+    // per fixed slot name.
+    [System.Serializable]
+    public struct SyncedEquipmentInventorySlot
+    {
+        public string itemId;
+        public uint netId;
+    }
+
     [SerializeField] private int capacity = 4;
 
     private Inventory inventory;
@@ -44,29 +65,53 @@ public class PlayerInventory : NetworkBehaviour
     // those direct call sites anyway.
     public readonly SyncList<SyncedInventorySlot> syncedSlots = new SyncList<SyncedInventorySlot>();
 
+    // See SyncedEquipmentInventorySlot above -- the equipment-backed
+    // counterpart to syncedSlots, polled and reconciled independently
+    // since it tracks live object identity, not just item+count.
+    public readonly SyncList<SyncedEquipmentInventorySlot> syncedEquipmentSlots = new SyncList<SyncedEquipmentInventorySlot>();
+
     private string lastSyncedSignature = string.Empty;
+    private string lastSyncedEquipmentSignature = string.Empty;
 
     private void Awake()
     {
         inventory = new Inventory(capacity);
         syncedSlots.Callback += OnSyncedSlotsChanged;
+        syncedEquipmentSlots.Callback += OnSyncedEquipmentSlotsChanged;
     }
 
     private void OnDestroy()
     {
         syncedSlots.Callback -= OnSyncedSlotsChanged;
+        syncedEquipmentSlots.Callback -= OnSyncedEquipmentSlotsChanged;
     }
 
     private void Update()
     {
-        if (!isServer) return;
+        if (isServer)
+        {
+            string signature = ComputeSignature();
+            if (signature != lastSyncedSignature)
+            {
+                lastSyncedSignature = signature;
+                DebugLog.Write("PlayerInventory", $"[SERVER] {gameObject.name} signature changed, pushing RefreshSyncedSlots -- new signature=\"{signature}\"");
+                RefreshSyncedSlots();
+            }
 
-        string signature = ComputeSignature();
-        if (signature == lastSyncedSignature) return;
+            string equipmentSignature = ComputeEquipmentSignature();
+            if (equipmentSignature != lastSyncedEquipmentSignature)
+            {
+                lastSyncedEquipmentSignature = equipmentSignature;
+                RefreshSyncedEquipmentSlots();
+            }
+            return;
+        }
 
-        lastSyncedSignature = signature;
-        DebugLog.Write("PlayerInventory", $"[SERVER] {gameObject.name} signature changed, pushing RefreshSyncedSlots -- new signature=\"{signature}\"");
-        RefreshSyncedSlots();
+        // Client-side retry, not just the Callback below -- the equipped
+        // object's own NetworkIdentity spawn message can arrive AFTER this
+        // component's own syncedEquipmentSlots update, same reasoning
+        // PlayerEquipment.Update's own retry comment already explains.
+        ApplySyncedEquipmentSlotsToLocalInventory();
     }
 
     // Client-side reconciliation (found live, 2026-08-28). Fires on every
@@ -78,6 +123,12 @@ public class PlayerInventory : NetworkBehaviour
     {
         if (isServer) return;
         ApplySyncedSlotsToLocalInventory();
+    }
+
+    private void OnSyncedEquipmentSlotsChanged(SyncList<SyncedEquipmentInventorySlot>.Operation op, int index, SyncedEquipmentInventorySlot oldItem, SyncedEquipmentInventorySlot newItem)
+    {
+        if (isServer) return;
+        ApplySyncedEquipmentSlotsToLocalInventory();
     }
 
     // Snapshot of syncedSlots as of the last reconciliation -- lets this
@@ -165,6 +216,113 @@ public class PlayerInventory : NetworkBehaviour
         }
     }
 
+    private static uint NetIdFor(IEquippable equipment)
+    {
+        if (equipment is Component component && component != null && component.TryGetComponent(out NetworkIdentity identity))
+            return identity.netId;
+        return 0;
+    }
+
+    private string ComputeEquipmentSignature()
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment == null) continue;
+            sb.Append(NetIdFor(slot.equipment)).Append('|');
+        }
+        return sb.ToString();
+    }
+
+    private void RefreshSyncedEquipmentSlots()
+    {
+        syncedEquipmentSlots.Clear();
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment == null) continue;
+            uint netId = NetIdFor(slot.equipment);
+            if (netId == 0) continue;
+            string id = ItemDatabase.Instance.IdFor(slot.item);
+            if (id == null) continue;
+            syncedEquipmentSlots.Add(new SyncedEquipmentInventorySlot { itemId = id, netId = netId });
+        }
+    }
+
+    // FIXED (2026-08-31, found live: dragging a freshly-crafted Stone Knife
+    // into a nearby StorageBox visibly snapped it right back into the main
+    // inventory). The first version of this reconciled by "does local state
+    // exactly match the CURRENT broadcast" every tick -- correct-looking,
+    // but a full-enforcement comparison, unlike the additive-DELTA
+    // philosophy ApplySyncedSlotsToLocalInventory (the plain-item sync)
+    // already established: that one only acts on the CHANGE between
+    // successive broadcasts, so a local-only move the server was never
+    // told about (moving into a StorageBox isn't Command-routed yet, see
+    // MULTIPLAYER_INTERACTION_AUDIT.md's still-open item 2) is silently
+    // left alone -- exactly what let the Rock test in the same session
+    // work correctly. Full-enforcement instead fights that local move
+    // every single frame, since the broadcast still lists the item as
+    // present. Fixed to use the identical delta shape: track the netId set
+    // as of the last broadcast, and only add/remove what genuinely
+    // *changed* between broadcasts -- an id present in both old and new
+    // broadcasts is never touched, regardless of current local state.
+    private readonly HashSet<uint> lastSyncedEquipmentNetIds = new HashSet<uint>();
+
+    private void ApplySyncedEquipmentSlotsToLocalInventory()
+    {
+        var newNetIds = new HashSet<uint>();
+        var itemIdByNetId = new Dictionary<uint, string>();
+        foreach (var entry in syncedEquipmentSlots)
+        {
+            if (entry.netId == 0) continue;
+            newNetIds.Add(entry.netId);
+            itemIdByNetId[entry.netId] = entry.itemId;
+        }
+
+        // Genuinely removed server-side since the last broadcast.
+        foreach (var netId in lastSyncedEquipmentNetIds)
+        {
+            if (newNetIds.Contains(netId)) continue;
+            RemoveLocalEquipmentByNetId(netId);
+        }
+
+        // Genuinely added server-side since the last broadcast.
+        foreach (var netId in newNetIds)
+        {
+            if (lastSyncedEquipmentNetIds.Contains(netId)) continue;
+            if (LocalHasEquipmentNetId(netId)) continue;
+            if (!NetworkClient.spawned.TryGetValue(netId, out var identity)) continue;
+
+            var equipment = identity.GetComponent(typeof(IEquippable)) as IEquippable;
+            var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemIdByNetId[netId]) : null;
+            if (equipment == null || item == null) continue;
+
+            DebugLog.Write("PlayerInventory", $"[CLIENT] {gameObject.name} adding synced equipment: {item.itemName} netId={netId}");
+            inventory.AddEquipmentItem(item, equipment);
+        }
+
+        lastSyncedEquipmentNetIds.Clear();
+        foreach (var id in newNetIds) lastSyncedEquipmentNetIds.Add(id);
+    }
+
+    private bool LocalHasEquipmentNetId(uint netId)
+    {
+        foreach (var slot in inventory.Slots)
+            if (slot.equipment != null && NetIdFor(slot.equipment) == netId) return true;
+        return false;
+    }
+
+    private void RemoveLocalEquipmentByNetId(uint netId)
+    {
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment != null && NetIdFor(slot.equipment) == netId)
+            {
+                inventory.RemoveEquipmentItem(slot.item);
+                return;
+            }
+        }
+    }
+
     // Returns the amount that did NOT fit (0 means everything was added).
     public int AddItem(ItemDefinition item, int quantity) => inventory.AddItem(item, quantity);
 
@@ -224,22 +382,34 @@ public class PlayerInventory : NetworkBehaviour
     // InventoryTransfer's own local-path semantics exactly -- a drag
     // that doesn't fully fit partially succeeds instead of failing
     // outright, same as it always has locally.
-    public void RequestMove(string fromContainer, string toContainer, ItemDefinition item, int quantity)
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31, found live:
+    // a Stone Knife dragged into a nearby StorageBox stayed put locally
+    // (the just-fixed snap-back regression) but never reached the server
+    // at all -- host's own view of the box never showed it, a real
+    // desync, not just a display gap. This container-key scheme
+    // (ResolveContainer below) only ever covered containers reachable from
+    // the Player's own NetworkBehaviours (main inventory, PlayerEquipment
+    // slots, a worn IInventoryHolder) -- a world object like a StorageBox
+    // isn't part of that tree at all. Extended with an optional
+    // containerNetId per side, same "resolve by NetworkIdentity" pattern
+    // PlayerDropping/PlayerBuilding's own Commands already use for exactly
+    // this class of container -- a netId of 0 means "use the string key
+    // instead," so every existing main/worn/slot caller is unaffected.
+    public void RequestMove(string fromContainer, uint fromContainerNetId, string toContainer, uint toContainerNetId, ItemDefinition item, int quantity)
     {
         string id = ItemDatabase.Instance.IdFor(item);
         if (id == null) return;
-        CmdMoveItem(fromContainer, toContainer, id, quantity);
+        CmdMoveItem(fromContainer, fromContainerNetId, toContainer, toContainerNetId, id, quantity);
     }
 
     [Command]
-    private void CmdMoveItem(string fromContainer, string toContainer, string itemId, int quantity)
+    private void CmdMoveItem(string fromContainer, uint fromContainerNetId, string toContainer, uint toContainerNetId, string itemId, int quantity)
     {
         var item = ItemDatabase.Instance.Find(itemId);
         if (item == null || quantity <= 0) return;
 
-        var equipment = GetComponent<PlayerEquipment>();
-        Inventory from = ResolveContainer(fromContainer, equipment);
-        Inventory to = ResolveContainer(toContainer, equipment);
+        Inventory from = ResolveContainerOrNetId(fromContainer, fromContainerNetId);
+        Inventory to = ResolveContainerOrNetId(toContainer, toContainerNetId);
         if (from == null || to == null) return;
 
         InventoryTransfer.MoveAsManyAsFit(from, to, item, quantity);
@@ -250,6 +420,18 @@ public class PlayerInventory : NetworkBehaviour
     // duplicating ResolveContainer's logic -- same container-key scheme,
     // one source of truth.
     public Inventory ResolveContainerByKey(string key) => ResolveContainer(key, GetComponent<PlayerEquipment>());
+
+    private Inventory ResolveContainerOrNetId(string key, uint containerNetId)
+    {
+        if (containerNetId != 0)
+        {
+            return NetworkServer.spawned.TryGetValue(containerNetId, out var identity)
+                ? (identity.GetComponent(typeof(IInventoryHolder)) as IInventoryHolder)?.Inventory
+                : null;
+        }
+
+        return ResolveContainer(key, GetComponent<PlayerEquipment>());
+    }
 
     private Inventory ResolveContainer(string key, PlayerEquipment equipment)
     {
@@ -300,32 +482,44 @@ public class PlayerInventory : NetworkBehaviour
     // Belt (Waist slot) and a real Boot (Feet slot) through this same
     // shared Command, zero exceptions -- proves the generic dispatch
     // correctly covers multiple distinct carrier types, not just one.
-    public void RequestEquipInstance(IEquippable equipment, string slotName)
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): used to
+    // always equip from the main inventory only (a client had to resolve
+    // and pass nothing else -- CmdEquipInstance just assumed `inventory`)
+    // -- equipping an item sitting in a worn Backpack's nested cargo fell
+    // through to InventoryScreen's local, unrouted carrier calls instead.
+    // Now takes a source container key, same "main"/"worn:slotName"/plain-
+    // slotName scheme ResolveContainerByKey/InventoryScreen.ContainerKeyFor
+    // already established for Eating/Medicine/Reading/Writing -- reused
+    // here rather than inventing a second resolution scheme.
+    public void RequestEquipInstance(IEquippable equipment, string slotName, string sourceKey)
     {
-        if (equipment == null || equipment is not Component component) return;
+        if (equipment == null || equipment is not Component component || sourceKey == null) return;
         if (!component.TryGetComponent(out NetworkIdentity identity)) return;
-        CmdEquipInstance(identity, slotName);
+        CmdEquipInstance(identity, slotName, sourceKey);
     }
 
     [Command]
-    private void CmdEquipInstance(NetworkIdentity itemIdentity, string slotName)
+    private void CmdEquipInstance(NetworkIdentity itemIdentity, string slotName, string sourceKey)
     {
         var equipment = itemIdentity != null ? itemIdentity.GetComponent(typeof(IEquippable)) as IEquippable : null;
         if (equipment == null || !equipment.CanEquipToSlot(slotName)) return;
 
+        var source = ResolveContainerByKey(sourceKey);
+        if (source == null) return;
+
         switch (equipment)
         {
-            case Backpack backpack: GetComponent<PlayerBackpack>()?.Equip(backpack, inventory); break;
-            case Belt belt: GetComponent<PlayerBelt>()?.Equip(belt, inventory); break;
-            case Boot boot: GetComponent<PlayerBoot>()?.Equip(boot, inventory); break;
-            case Sunglasses sunglasses: GetComponent<PlayerSunglasses>()?.Equip(sunglasses, inventory); break;
-            case MiningFaceShield shield: GetComponent<PlayerMiningFaceShield>()?.Equip(shield, inventory); break;
-            case Canteen canteen: GetComponent<PlayerCanteen>()?.EquipTo(canteen, slotName, inventory); break;
-            case NavigationComputer navComputer: GetComponent<PlayerNavComputer>()?.EquipTo(navComputer, slotName, inventory); break;
-            case PersonalHealthMonitor monitor: GetComponent<PlayerHealthMonitor>()?.EquipTo(monitor, slotName, inventory); break;
-            case Tool tool: GetComponent<PlayerTool>()?.EquipTo(tool, slotName, inventory); break;
-            case Shirt shirt: GetComponent<PlayerShirt>()?.Equip(shirt, inventory); break;
-            case Jeans jeans: GetComponent<PlayerJeans>()?.Equip(jeans, inventory); break;
+            case Backpack backpack: GetComponent<PlayerBackpack>()?.Equip(backpack, source); break;
+            case Belt belt: GetComponent<PlayerBelt>()?.Equip(belt, source); break;
+            case Boot boot: GetComponent<PlayerBoot>()?.Equip(boot, source); break;
+            case Sunglasses sunglasses: GetComponent<PlayerSunglasses>()?.Equip(sunglasses, source); break;
+            case MiningFaceShield shield: GetComponent<PlayerMiningFaceShield>()?.Equip(shield, source); break;
+            case Canteen canteen: GetComponent<PlayerCanteen>()?.EquipTo(canteen, slotName, source); break;
+            case NavigationComputer navComputer: GetComponent<PlayerNavComputer>()?.EquipTo(navComputer, slotName, source); break;
+            case PersonalHealthMonitor monitor: GetComponent<PlayerHealthMonitor>()?.EquipTo(monitor, slotName, source); break;
+            case Tool tool: GetComponent<PlayerTool>()?.EquipTo(tool, slotName, source); break;
+            case Shirt shirt: GetComponent<PlayerShirt>()?.Equip(shirt, source); break;
+            case Jeans jeans: GetComponent<PlayerJeans>()?.Equip(jeans, source); break;
         }
     }
 
@@ -356,5 +550,60 @@ public class PlayerInventory : NetworkBehaviour
             case Shirt shirt: GetComponent<PlayerShirt>()?.Unequip(shirt); break;
             case Jeans jeans: GetComponent<PlayerJeans>()?.Unequip(jeans); break;
         }
+    }
+
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31) -- world
+    // pickup for every equipment-carrier type (Backpack, Belt, Boot,
+    // Canteen, Jeans, MiningFaceShield, Shirt, Tool, plus StorageBox/
+    // SkillBook which have no dedicated carrier and call straight into
+    // PlayerLoot/AddEquipmentItem from their own Complete()) never had a
+    // network hop at all -- entirely client-side, so a genuine remote
+    // client's server never found out the item left the world. Same
+    // generic-dispatch-by-runtime-type shape as CmdEquipInstance/
+    // CmdUnequipInstance above, just for the "first contact" pickup moment.
+    // NavigationComputer/PersonalHealthMonitor/Sunglasses have no live
+    // world-pickup prefab in the project yet (checked 2026-08-31) --
+    // intentionally left off this dispatch; add a case once one ships.
+    public void RequestPickUpEquipment(IEquippable equipment)
+    {
+        if (equipment == null || equipment is not Component component) return;
+        if (!component.TryGetComponent(out NetworkIdentity identity)) return;
+        CmdPickUpEquipment(identity);
+    }
+
+    [Command]
+    private void CmdPickUpEquipment(NetworkIdentity itemIdentity)
+    {
+        var equipment = itemIdentity != null ? itemIdentity.GetComponent(typeof(IEquippable)) as IEquippable : null;
+        if (equipment == null) return;
+
+        switch (equipment)
+        {
+            case Backpack backpack: GetComponent<PlayerBackpack>()?.PickUp(backpack); break;
+            case Belt belt: GetComponent<PlayerBelt>()?.PickUp(belt); break;
+            case Boot boot: GetComponent<PlayerBoot>()?.PickUp(boot); break;
+            case Canteen canteen: GetComponent<PlayerCanteen>()?.PickUp(canteen); break;
+            case MiningFaceShield shield: GetComponent<PlayerMiningFaceShield>()?.PickUp(shield); break;
+            case Tool tool: GetComponent<PlayerTool>()?.PickUp(tool); break;
+            case Shirt shirt: GetComponent<PlayerShirt>()?.PickUp(shirt); break;
+            case Jeans jeans: GetComponent<PlayerJeans>()?.PickUp(jeans); break;
+            case StorageBox box:
+                if (box.IsPlayerOwned && box.PickupItem != null && box.Inventory.Slots.Count == 0)
+                    ServerPickUpGeneric(box.PickupItem, box);
+                break;
+            case SkillBook book: ServerPickUpGeneric(book.ItemDefinition, book); break;
+        }
+    }
+
+    // Shared fallback for the two types with no dedicated PlayerXxx carrier
+    // -- same PlayerLoot-first-then-stash-into-main-inventory shape their
+    // own Complete() methods already had, just running server-side now.
+    private void ServerPickUpGeneric(ItemDefinition item, IEquippable equipment)
+    {
+        var loot = GetComponent<PlayerLoot>();
+        if (loot != null && loot.ReceiveEquipment(item, equipment)) return;
+
+        if (inventory.AddEquipmentItem(item, equipment))
+            equipment.Stash();
     }
 }

@@ -141,7 +141,15 @@ public class PlayerLoot : MonoBehaviour
             var occupant = evictHand.Slots[0];
             if (occupant.equipment == null)
             {
-                dropping?.DropFrom(evictHand, occupant.item);
+                // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31):
+                // same Command-called-from-server-context bug as
+                // PlayerLoot.Receive's own eviction fix, in a new spot --
+                // ReceiveEquipment() now also runs server-side-only
+                // (reached via PlayerInventory.CmdPickUpEquipment), so
+                // this eviction can no longer call the Command-routed
+                // DropFrom. ServerDropFrom is the plain, non-Command
+                // server-safe sibling (see PlayerDropping.cs).
+                dropping?.ServerDropFrom(evictHand, occupant.item, evictHand.GetCount(occupant.item));
                 if (evictHand.AddEquipmentItem(item, equippable))
                 {
                     AnchorInHand(equippable, HandSlots[0]);

@@ -5,10 +5,259 @@ Claude session) picks this repo up next — includes the *why* behind non-obviou
 decisions, not just the *what*. Full detail is always in `git log`; this is the
 skimmable version.
 
-**Current version:** `0.3.218-dev` — must always match `GameVersion` in
+**Current version:** `0.3.225-dev` — must always match `GameVersion` in
 `Assets/Scripts/FirstPersonController.cs` (shown on-screen in the bottom-left debug
 panel). Bump both together in the same commit whenever gameplay code/scenes/prefabs
 change; see `CLAUDE.md` for the exact rule.
+
+## 2026-08-31 (7)
+
+### v0.3.225-dev — Item 2 (partial): moving an item into/out of a StorageBox is now Command-routed
+
+Found live immediately after fixing the equipment-sync snap-back regression: the
+knife stayed put locally in the StorageBox on the depositing client, but the host
+never saw it — a real desync, not just a display gap, since depositing into a
+container was never told to the server at all
+(`InventoryTransfer.Move`/`InventoryScreen.TryDrop`'s local-only fallback, the
+still-open item 2 from `MULTIPLAYER_INTERACTION_AUDIT.md` — originally deferred to
+MVP5, escalated tonight once live testing showed it actively desyncing state, not
+just staying silently invisible).
+
+Scoped narrowly to the concrete case that broke: `StorageBox` now formally
+implements `IInventoryHolder` (it already had the right shape —
+`Inventory Inventory { get; }` — just needed the interface declared). `PlayerInventory
+.RequestMove`/`CmdMoveItem` gained an optional `containerNetId` per side alongside
+the existing string container-key scheme — 0 means "use the key as before" (main
+inventory, a worn slot), non-zero resolves an arbitrary world object's own
+`IInventoryHolder` by `NetworkIdentity`, same pattern `PlayerDropping`/
+`PlayerBuilding`'s own Commands already use. `InventoryScreen`'s new
+`ContainerNetIdFor` finds a nearby `StorageBox` by scanning `StorageBox.Active`
+(the same registry `FindNearby` already uses) and `TryDrop` now routes through the
+Command whenever *either* side resolves this way, for both plain and equipment
+items alike.
+
+**Deliberately not the full item 2 fix** — `InventoryTransfer.Move`'s other still-
+local-only callers (`FurnaceScreen`, `CampfireScreen`, `NPCHiringScreen`) are
+untouched; this covers exactly the StorageBox case that live-tested broken tonight,
+not the whole audit item. The broader fix stays scoped to MVP5 as originally
+planned.
+
+## 2026-08-31 (6)
+
+### v0.3.224-dev — Fixed the real regression the v0.3.222-dev/223-dev equipment-sync fixes introduced
+
+Found live immediately after rebuilding and retesting: dragging a freshly-crafted
+Stone Knife into a nearby StorageBox visibly snapped it right back into the main
+inventory the instant it was dropped there. Root cause: the equipment-slot sync
+added earlier tonight (`PlayerInventory`/`Backpack`/`StorageBox`, `v0.3.222-223-dev`)
+reconciled by **full enforcement** — "does local state exactly match the current
+broadcast," re-checked every frame — unlike the plain-item sync (already proven
+working, confirmed live by moving a Rock into/out of the same box across both
+machines), which is **additive-delta**: it only acts on the *change* between
+successive broadcasts, so a local-only move the server was never told about (moving
+into a container isn't Command-routed yet — `InventoryTransfer.Move`, the
+still-open, MVP5-deferred item 2) is silently left alone. Full enforcement instead
+fights that same local move every single frame, since the broadcast still lists the
+item as present in its old location.
+
+Rewrote all three (`PlayerInventory.ApplySyncedEquipmentSlotsToLocalInventory`,
+and the identical copies on `Backpack`/`StorageBox`) to track the netId set as of
+the *last* broadcast and only add/remove what genuinely changed between broadcasts
+— an id present in both old and new broadcasts is never touched regardless of
+current local state, the exact same philosophy the plain-item delta sync already
+proved correct. A real reminder that this project's own two-machine testing is what
+actually catches this class of bug — this exact regression compiled clean and would
+never have surfaced without a live retest immediately after the previous fix.
+
+Compile-verified; standalone client rebuilt with the fix. Not yet re-tested live.
+
+## 2026-08-31 (5)
+
+### v0.3.223-dev — StorageBox had zero content sync at all, not just the equipment-slot gap
+
+Checked as a follow-up to the just-fixed `PlayerInventory`/`Backpack` equipment-sync
+gap (Pattern D) — turned out worse than expected: `StorageBox.cs` had **no sync
+mechanism whatsoever** for its contents, not even the plain-stackable-item sync
+`PlayerInventory`/`Backpack` already had before tonight. A remote client's own local
+copy of a box's `Inventory` was whatever `Awake()` created (empty) and never once
+heard from the server's real contents — opening a nearby box as a genuine remote
+client would show stale/empty state regardless of what's actually stored.
+
+Fixed by giving `StorageBox` the same dual `SyncList` shape `Backpack` already has
+(reusing `PlayerInventory.SyncedInventorySlot`/`SyncedEquipmentInventorySlot`
+directly) — one pass now covers both the plain-item sync it never had and the
+equipment-item sync, rather than two separate fixes. Deposits into a box still
+aren't Command-routed (same already-known, already-deferred-to-MVP5 gap as
+`InventoryTransfer.Move` generally) — this fix makes a box's contents correctly
+*replicate outward* once set, it doesn't yet make every path that sets them
+server-authoritative.
+
+## 2026-08-31 (4)
+
+### v0.3.222-dev — First real standalone-client live test found two real bugs, both fixed
+
+The first genuine host+standalone-client session tonight (Editor host, a freshly
+rebuilt `Gridless.exe` as a real second connection) found two bugs invisible to
+every batch-mode/host-alone check so far:
+
+- **90 project prefabs with a `NetworkIdentity` were never registered in
+  `NetworkManager`'s "Registered Spawnable Prefabs" list** — Mirror requires this
+  for any prefab dynamically `Instantiate()`d at runtime (not pre-placed in the
+  scene); an unregistered one spawns fine server-side (no error, works perfectly on
+  host, since host's client and server share the same object in memory) but a
+  genuine remote client has nothing to construct it from when the spawn message
+  arrives — silently drops it. Found live: breaking a Boulder correctly removed it
+  (synced via its `broken` SyncVar) but the `MediumRockChunk` it should have spawned
+  never appeared on the standalone client, though it *did* appear on the host —
+  the exact signature of this bug, not a spawn failure. A full audit (every
+  `Assets/Prefabs/` prefab with a `NetworkIdentity`, diffed against the registered
+  list via a real batch-mode script reading the actual Unity API, not a grep — this
+  project's scenes are Force-Binary serialized) found 10 real gaps, not just the one:
+  `BerryBush`, `Boulder` itself, `GoldOreChunk`, `HerbBush`, `MediumRockChunk`,
+  `NetworkSpikePlayer`, `PlatinumOreChunk`, `SandDigSite`, `SilverOreChunk`, `Tree`.
+  `Boulder`/`BerryBush`/`HerbBush`/`Tree` being missing means every *procedurally
+  scattered* instance of these (world-generation "Scattered Boulders" etc., not
+  scene-baked placements) was invisible to a remote client — a bigger, silent world-
+  population gap than the chunk chain alone. All 10 added; verified via a second,
+  independent batch-mode process re-reading the scene (same discipline as every
+  other Force-Binary-serialization gotcha in this project).
+- **Crafting a Stone Knife (or any equippable output) never showed up in a
+  remote client's inventory, and nothing errored anywhere** — root cause: both
+  `PlayerInventory`'s main inventory sync and `Backpack`'s nested-inventory sync
+  explicitly skip equipment-backed slots when building their sync signature
+  (`if (slot.equipment != null) continue`, present in both independently since each
+  was first built). `PlayerCrafting.AddCraftedOutput` puts an equippable output
+  (a Tool, e.g. a Stone Knife) into the main inventory via `AddEquipmentItem` — the
+  server genuinely had it, but a remote client's own local copy was never told at
+  all. New `PlayerInventory.syncedEquipmentSlots` (and the identical fix mirrored
+  onto `Backpack`, which had the exact same gap for its own nested contents) —
+  reconciled by live object identity (`NetworkIdentity.netId`), not item+count,
+  since each occupant is a distinct spawned instance, not a stack; same shape
+  `PlayerEquipment.syncedSlots` already established for its own named slots,
+  generalized here to an unordered list.
+
+Compile-verified; the prefab-registration fix independently re-verified via a
+second batch-mode process. Not yet re-tested live — worth a follow-up standalone-
+client pass specifically re-breaking a Boulder and re-crafting an equippable item to
+confirm both fixes hold.
+
+## 2026-08-31 (3)
+
+### v0.3.221-dev — Closed the last open piece of item 4: equipping from a nested container
+
+`PlayerInventory.RequestEquipInstance`/`CmdEquipInstance` used to always assume the
+main inventory as the equip source (`CmdEquipInstance` never took a source at all) —
+equipping an item sitting in a worn Backpack's own cargo fell through to
+`InventoryScreen`'s local, unrouted carrier calls instead, the one gap item 4 left
+open. Rather than inventing a second source-resolution scheme, reused the project's
+existing one: `PlayerInventory.ResolveContainerByKey`/`InventoryScreen.ContainerKeyFor`
+(the same `"main"`/`"worn:slotName"`/plain-slotName container-key scheme already
+built for Eating/Medicine/Reading/Writing). `RequestEquipInstance` now takes a
+`sourceKey` string instead of assuming main inventory; `TryNetworkedEquip`,
+`EquipWithChoice`, and `EquipToSlotDispatch` in `InventoryScreen.cs` all widened from
+"only routes when source is the main inventory" to "routes whenever `ContainerKeyFor`
+can resolve the source" — covers a worn Backpack's cargo and any plain
+`PlayerEquipment` slot now, not just main. Still falls back to the local unrouted
+path when `ContainerKeyFor` returns null (a nearby StorageBox as source) — same
+already-accepted limitation Eating/Medicine/Reading share, not a new gap.
+
+This closes out `MULTIPLAYER_INTERACTION_AUDIT.md`'s item 4 in full. Compile-verified
+only; not yet live-tested.
+
+## 2026-08-31 (2)
+
+### v0.3.220-dev — Item 4 of the punch list: the whole equippable pickup/drop family, real scope corrected twice mid-fix
+
+Item #4 (`MULTIPLAYER_INTERACTION_AUDIT.md`) looked, from the audit's own summary,
+like a dozen small `ReceiveEquipment` wrappers — same shape as items 1/3/5. Reading
+the actual carrier code (`PlayerCanteen.cs` and its 9 siblings) found each one
+independently implements 4 separate unrouted mutation paths (PickUp, Equip/EquipTo,
+Unequip, Drop), not 1 — closer to `MVP5`-sized. A second look found real good news
+buried in that: **Equip and Unequip are already networked** — a 2026-08-23 partial
+rollout (`PlayerInventory.RequestEquipInstance`/`RequestUnequipInstance`, a generic
+Command dispatching by runtime type) already covers every carrier except when
+equipping from a non-main-inventory source (a nested Backpack's cargo) — smaller,
+pre-existing, left open. That narrowed the real remaining gap to exactly 2 pieces:
+
+- **World pickup (`Complete()`) never reached the server for any of the 10 carrier
+  types** (Backpack, Belt, Boot, Canteen, Jeans, MiningFaceShield, Shirt, Tool, plus
+  StorageBox/SkillBook which call `AddEquipmentItem` inline with no dedicated
+  carrier) — the actual "first contact" gap, same severity class as tonight's
+  earlier creature-loot/eviction bugs. Fixed with one more generic dispatcher next to
+  the existing two: `PlayerInventory.RequestPickUpEquipment`/`CmdPickUpEquipment`,
+  switching on runtime type to each carrier's existing (unchanged) `PickUp()` method,
+  with a small `ServerPickUpGeneric` fallback for StorageBox/SkillBook. All 10
+  `Complete()` methods now call this instead of their carrier directly.
+  `NavigationComputer`/`PersonalHealthMonitor`/`Sunglasses` were checked and have no
+  live world-pickup prefab in the project at all — left off the dispatch, not a gap
+  in practice. Prefab check: all 31 relevant tiered pickup prefabs (Tool's 4 types ×
+  5 tiers, Belt/Boot/Jeans/Shirt/MiningFaceShield/SkillBook/Canteen/Backpack) already
+  carry a `NetworkIdentity` from an earlier rollout — no prefab work needed.
+- **`PlayerDropping.DropFrom`'s equipment branch mutated `Inventory` directly, no
+  Command** — dropping a worn Canteen/Backpack/etc. via the Inventory screen's Drop
+  button never told the server. New `CmdDropEquipment`/`ServerDropEquipmentFrom`,
+  sharing the same slot/container descriptor resolution (`DescribeSource`/
+  `ResolveSource`, extracted from the existing plain-item `CmdDropItem` path) rather
+  than duplicating it.
+- **Caught before it shipped, not after**: routing `PickUp()` through a Command
+  meant `PlayerLoot.ReceiveEquipment`'s own hand-eviction branch now also runs
+  server-side-only — its `dropping?.DropFrom(evictHand, occupant.item)` call would
+  have hit the exact same "Command called from server-side code" bug fixed twice
+  earlier tonight (creature loot, then `PlayerLoot.Receive`'s own eviction), in a
+  third spot. Fixed before ever compiling it in: routed through `ServerDropFrom`
+  (the plain, non-Command sibling), same fix shape as the other two.
+
+Compile-verified only (batch-mode, clean). Not yet live-tested — this is the biggest
+single code change of the night; a real two-player pass specifically exercising
+pickup/drop of every equippable type is the next step before trusting it fully.
+
+## 2026-08-31
+
+### v0.3.219-dev — First 3 items of the `MULTIPLAYER_INTERACTION_AUDIT.md` follow-up punch list
+
+A full static audit of every `[Command]` call site and every direct `Inventory`/
+equipment mutation in the project (`MULTIPLAYER_INTERACTION_AUDIT.md`'s "Follow-up
+audit, 2026-08-31" section) found Pattern A (Command-from-server) fully closed and
+Pattern B scoped into 5 concrete buckets. Fixed the 3 smallest/most contained ones:
+
+- **`PlayerCrafting.CancelCraft`'s ingredient refund never reached the server** —
+  unlike `StartCraft`, the Cancel button on `CraftingScreen` called `CancelCraft()`
+  directly, a purely local `Inventory.AddItem`. Split into
+  `RequestCancelCraft`/`CmdCancelCraft`, same Request/Command shape `StartCraft`
+  already uses; `CancelCraft` itself stays public since `Update()`'s own
+  tool-break-stops-batch path (already `isServer`-guarded) also calls it directly.
+- **StorageBox re-placement (`InventoryScreen`'s "Place" button) mutated inventory
+  purely client-side** — pulling the box out via `RemoveEquipmentItem` and restoring
+  it on a cancelled placement via `AddEquipmentItem` never told the server. New
+  `PlayerBuilding.RequestArmExistingPiece`/`CmdArmExistingPiece` and
+  `CmdRestoreExistingPiece` route both through the server. Bonus: `CmdArmExistingPiece`
+  also sets the *server's own* `armedPiece`/`existingInstanceToPlace` fields (it runs
+  server-side, on this player's own `PlayerBuilding` instance) — closing part of the
+  larger "armedPiece not synced to server" gap `RequestConfirmPlacement` already
+  flagged, at least for this re-placement path. `ArmExistingPiece` itself is now
+  private; every caller goes through the new server-authoritative entry point.
+- **`VendorStall`/`VendorStallScreen` had zero Commands at all** — Buy/Sell buttons
+  called `SellToVisitor`/`BuyFromVisitor` directly from `OnGUI`, moving real currency
+  and item counts client-side only. `VendorStallScreen` converted to
+  `NetworkBehaviour`; new `RequestBuyFromStall`/`CmdBuyFromStall` and
+  `RequestSellToStall`/`CmdSellToStall` run the actual transaction server-side (stock/
+  till/wallet/bank were already networked, so no new sync plumbing needed), with a
+  `TargetRpc` reporting the real success/failure message back to the requesting
+  client only. **`VillageVendor.Update()` had no `isServer` guard** — every connected
+  client was independently ticking its own restock/till-regen timers, the same
+  uncoordinated-per-machine-simulation shape already fixed on Furnace/Campfire.
+  Converted to `NetworkBehaviour`, guarded. **Known follow-up, not fixed here**:
+  `VendorStallScreen`'s "Next restock in Ns" display reads `VillageVendor`'s own
+  `nextFullRefreshTime`, which is now server-only — a genuine remote client will see
+  a stuck "0s" instead of a real countdown. Small (needs one `[SyncVar]`), left for
+  the next multiplayer pass rather than scope-creeping this one.
+
+Remaining punch-list items (not attempted this session): `InventoryTransfer.Move`
+(the shared drag/move utility behind essentially all inventory drag-and-drop, called
+unrouted from 4 different screens — the single largest remaining item) and the
+~12-file equippable pickup/equip family (`ReceiveEquipment`'s already-known gap, now
+with concrete file:line references). See `MULTIPLAYER_INTERACTION_AUDIT.md` for the
+full list.
 
 ## 2026-08-30 (5)
 

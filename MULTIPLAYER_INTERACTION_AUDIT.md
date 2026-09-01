@@ -320,6 +320,178 @@ in normal play), not strictly the order found. Status as of `v0.3.210-dev`:
    the actual blocker behind `VendorStall`/`VillageVendor` (zero Commands
    each) and `Furnace`/`Campfire`'s remaining screen-driven half.
 
+## Follow-up audit, 2026-08-31 — Pattern A closed, Pattern B scoped
+
+Prompted by a live 2-player session (2026-08-30) that found two real instances
+of a new failure shape not covered above: **Pattern A**, a `[Command]`
+method invoked from code already running server-side (Mirror's ownership
+check fails wherever the call executes, not just when a real client calls
+it) — `HostileCreature`/`PreyCreature.DropLoot` and `PlayerLoot.Receive`'s
+hand-eviction path were both calling Command-wrapped methods from inside
+server-side logic; both fixed same night via new plain server-safe sibling
+methods (`PlayerDropping.ServerSpawnPickup`/`ServerDropFrom`). Before
+building any shared infrastructure to prevent recurrences, a full static
+audit was run against every `[Command]` method's call sites (Pattern A) and
+every direct `Inventory`/equipment mutation call site across all 42 files
+that touch one (Pattern B) — see
+`feedback_audit_before_shared_infrastructure` in Claude's memory for why
+audit-first was the right call here.
+
+**Pattern A: fully closed.** No further instances found — every other
+`[Command]` method's call sites resolve only to its own file's client-side
+wrapper or a Screen's button handler. `PlayerFame.Grant`/`PlayerBank`'s
+methods are correctly self-guarded (`if (!isServer) CmdX(...)`), so their
+NPC-AI/server-side callers are safe by construction.
+
+**Pattern B: five real buckets, not 46 uncoordinated instances.**
+1. ✅ **Fixed, `v0.3.219-dev`.** `PlayerCrafting.CancelCraft()`'s refund
+   (`PlayerCrafting.cs:399`, called from `CraftingScreen.cs:315`) never
+   reached the server — unlike `StartCraft`, which is properly
+   Command-routed. Now `RequestCancelCraft`/`CmdCancelCraft`, same shape.
+2. **Partially fixed, `v0.3.225-dev`.** `InventoryTransfer.Move`/
+   `MoveAsManyAsFit` — the shared drag/move utility behind essentially all
+   inventory drag-and-drop — was called unrouted from
+   `InventoryScreen.cs:826,1155,1172`, `FurnaceScreen.cs:357`,
+   `CampfireScreen.cs:385`, `NPCHiringScreen.cs:345,353`. Escalated from
+   "deferred to MVP5" to "fix now" after live testing showed it actively
+   desyncing state, not just staying invisible: a Stone Knife dragged into
+   a StorageBox stayed put locally (once the equipment-sync snap-back
+   regression above was fixed) but the host never saw it at all.
+   `StorageBox` now formally implements `IInventoryHolder`;
+   `PlayerInventory.RequestMove`/`CmdMoveItem` gained an optional
+   `containerNetId` per side (0 = use the existing string key, non-zero
+   resolves an arbitrary world object by `NetworkIdentity`, same pattern
+   `PlayerDropping`/`PlayerBuilding` already use); `InventoryScreen`'s new
+   `ContainerNetIdFor` finds a nearby box via `StorageBox.Active`. **Still
+   unrouted**: `FurnaceScreen`/`CampfireScreen`/`NPCHiringScreen`'s own
+   `InventoryTransfer` calls — this fix covers exactly the StorageBox case
+   that broke live tonight, not the whole item. Still a strong anchor data
+   point for item 7's "most direct gameplay actions never reach the
+   server" finding.
+3. ✅ **Fixed, `v0.3.219-dev`.** StorageBox re-placement: pulling a box
+   from inventory to place it (`InventoryScreen.cs:531`) and restoring it
+   on a cancelled placement (`PlayerBuilding.cs:285`) both mutated
+   locally, no Command. Now `PlayerBuilding.RequestArmExistingPiece`/
+   `CmdArmExistingPiece` and `CmdRestoreExistingPiece` — the Command also
+   sets the server's own `armedPiece`/`existingInstanceToPlace` fields,
+   closing part of item 7's "armedPiece not synced" gap for this one path.
+4. ✅ **Mostly fixed, `v0.3.220-dev`.** Real scope turned out smaller than
+   first estimated once the carrier code was actually read: Equip and
+   Unequip were *already* networked (a 2026-08-23 partial rollout,
+   `PlayerInventory.RequestEquipInstance`/`RequestUnequipInstance`) for
+   every case except equipping from a non-main-inventory source (a nested
+   Backpack's cargo — still open, narrow). The two real gaps — world
+   pickup (`Complete()`, all 10 carrier types) and `PlayerDropping
+   .DropFrom`'s equipment branch — are now fixed via
+   `PlayerInventory.RequestPickUpEquipment`/`CmdPickUpEquipment` and
+   `PlayerDropping.CmdDropEquipment`/`ServerDropEquipmentFrom`. Caught and
+   fixed before it shipped: routing pickup through a Command meant
+   `PlayerLoot.ReceiveEquipment`'s own eviction branch started running
+   server-side-only too, which would have reintroduced the exact
+   Command-from-server-context bug in a third spot — fixed the same way
+   as the other two instances (route through `ServerDropFrom`, not
+   `DropFrom`). **Equip-from-nested-container also fixed, `v0.3.221-dev`**:
+   `RequestEquipInstance`/`CmdEquipInstance` now take a source container
+   key (reusing `ResolveContainerByKey`/`ContainerKeyFor`, the same scheme
+   Eating/Medicine/Reading/Writing already use) instead of assuming main
+   inventory — item 4 is now fully closed. `NavigationComputer`/
+   `PersonalHealthMonitor`/`Sunglasses` remain off the pickup dispatch
+   since none has a live world-pickup prefab in the project at all; a
+   nearby StorageBox as an equip source still falls back to the local
+   unrouted path, same already-accepted limitation Eating/Medicine/
+   Reading share.
+5. ✅ **Fixed, `v0.3.219-dev`.** `VendorStall`/`VendorStallScreen` (zero
+   Commands) and `VillageVendor.Update()` (no `isServer` guard) — both
+   already logged above. `VendorStallScreen` converted to
+   `NetworkBehaviour` with real `RequestBuyFromStall`/`CmdBuyFromStall`
+   and `RequestSellToStall`/`CmdSellToStall` Commands (a `TargetRpc`
+   reports the real result back); `VillageVendor` converted to
+   `NetworkBehaviour` and `Update()` guarded. Known follow-up left open:
+   `VendorStallScreen`'s "Next restock in Ns" display now reads a
+   server-only field, so a genuine remote client sees a stuck "0s" —
+   needs one `[SyncVar]`, small, not done this pass.
+
+**Unclear, flagged not guessed at**: `Furnace`/`Campfire`'s actual
+`AddItem`/`RemoveItem` calls are all correctly inside the `isServer`-guarded
+`Update()` (safe) — the doc's existing "screen-driven half" note above refers
+to *other* state (queue/ignite toggles), not inventory mutation, so it's a
+separate concern from this pattern. One `PlayerEquipment.cs:175-208` swap
+helper's full caller set wasn't fully traced; likely just item 2 above, not
+an independent path.
+
+**Confirmed safe, no action needed**: `PlayerDropping`, `Pickup`,
+`PlayerWriting`, `PlayerReading`, `PlayerMedicine`, `PlayerEating`,
+`PlayerBackpack` (contents SyncList-fixed; its own equip/unequip calls are
+Command-wrapped), `GardenPlot`/`GardenPlot4x4`, `ResourceNode`,
+`AdminSpawnScreen` (still `#if UNITY_EDITOR`-gated), `PlayerRangedCombat`,
+`NPCTraining`/`NPCCrafting`/`NPCGathering`/`NPCJob` (server/NPC-AI-only),
+`InventorySaveUtility`, `PlayerCarriedItems`, `IngredientMatching`.
+
+## Two more failure shapes found live, 2026-08-31 — the first real standalone-client test
+
+Neither of these is Pattern A or B — both are new shapes, found the moment a
+genuine second connection (not host-alone, not batch-mode) first exercised this
+code:
+
+**Pattern C — an unregistered Mirror spawnable prefab.** Any prefab with a
+`NetworkIdentity` that's dynamically `Instantiate()`d at runtime must be in
+`NetworkManager`'s "Registered Spawnable Prefabs" list. If it isn't, the server
+spawns it fine (no error) and it's fully visible on host (client/server share the
+same object there) — but a genuine remote client has nothing to construct it from
+when the spawn message arrives, and silently drops it. **Completely invisible to
+every check this project has used so far** (batch-mode compile, YAML grep, host-
+alone Play testing) — the only way to find one is a real second connection actually
+triggering that specific spawn. Found: 10 real gaps (`BerryBush`, `Boulder`,
+`GoldOreChunk`, `HerbBush`, `MediumRockChunk`, `NetworkSpikePlayer`,
+`PlatinumOreChunk`, `SandDigSite`, `SilverOreChunk`, `Tree`), fixed `v0.3.222-dev`.
+**How to apply going forward**: any new prefab given a `NetworkIdentity` needs to be
+added to this list at the same time — nothing currently enforces or checks this
+automatically.
+
+**Pattern D — a sync mechanism that explicitly excludes equipment-backed slots.**
+`PlayerInventory`'s main-inventory sync and `Backpack`'s nested-inventory sync both
+independently skip any slot holding a live `IEquippable` object
+(`if (slot.equipment != null) continue`) when building their `SyncList` — a
+documented, deliberate boundary when each was first built (full nested-equipment
+capture was explicitly scoped out, matching `SAVE_LOAD_PLANNING.md`'s own v1
+boundary). The gap: an equippable item that ends up sitting loose in a plain
+inventory slot (not worn, not in a hand) — e.g. `PlayerCrafting.AddCraftedOutput`
+putting a crafted Tool straight into the main inventory — never syncs to a remote
+client at all, with zero errors anywhere (the server's own state is correct, it's
+purely a "never told the client" gap). Fixed `v0.3.222-dev` via a new
+`syncedEquipmentSlots` reconciled by live object identity (`NetworkIdentity.netId`),
+mirrored onto both `PlayerInventory` and `Backpack`.
+
+**Follow-up, same night**: checked whether `StorageBox`'s own contents had the
+identical gap — found worse. `StorageBox.cs` had no sync mechanism at all, not
+even the plain-item sync `PlayerInventory`/`Backpack` already had. Fixed
+`v0.3.223-dev` with the same dual-`SyncList` shape `Backpack` uses.
+
+**Real regression found live immediately after, `v0.3.224-dev`**: all three
+equipment-slot reconciliations above used full-enforcement comparison ("does
+local state match the current broadcast, checked every frame") rather than the
+plain-item sync's proven additive-delta philosophy ("only act on what changed
+since the last broadcast") — so dragging a Stone Knife into a StorageBox
+snapped it right back, since moving into a container isn't Command-routed yet
+and the full-enforcement check fought that local move every tick. Rewritten to
+the same delta shape the plain-item sync already used successfully (confirmed
+live: a Rock moved into/out of the same box, cross-machine, throughout this
+whole investigation). Worth remembering: this compiled clean and looked correct
+by inspection — only a real live retest caught it.
+
+**Checked, different shape**: `NPCCargo.cs` (an NPC's carried-but-not-yet-
+deposited items) has no sync either, but not because of a missed `SyncList` —
+it's a plain `MonoBehaviour` on an NPC GameObject that isn't a networked object
+at all. Confirmed directly: the actually-spawned prefabs
+(`NPCFactoryWorkerFemale.prefab`/`NPCFactoryWorkerMale.prefab`) carry zero
+`NetworkIdentity`. This is the front door of `MULTIPLAYER_PLANNING.md`'s own
+"NPCs move server-side" phase, explicitly listed there as not started —
+converting NPCs into real networked objects (spawning, server-authoritative
+movement, observer visibility for every job type) is a substantial, already-
+scoped, deliberately-separate piece of work, not a same-shape quick fix like
+the three above. Deliberately left untouched tonight rather than scope-creeping
+into it.
+
 ## Cross-references
 
 - `MULTIPLAYER_PLANNING.md` — the original phased conversion plan; Phase 3

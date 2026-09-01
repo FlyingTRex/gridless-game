@@ -377,9 +377,29 @@ public class PlayerCrafting : NetworkBehaviour
         return true;
     }
 
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): unlike
+    // StartCraft, this never reached the server at all -- CraftingScreen's
+    // Cancel button called this directly, refunding ingredients into a
+    // purely local Inventory that never told the server, so the refund was
+    // invisible to (and would desync from) any real remote client. Same
+    // Request/Command split as RequestStartCraft/CmdStartCraft.
+    public void RequestCancelCraft()
+    {
+        CmdCancelCraft();
+    }
+
+    [Command]
+    private void CmdCancelCraft()
+    {
+        CancelCraft();
+    }
+
     // Stops the active batch, refunding ingredients for whatever hadn't
     // completed yet (already-crafted items stay in inventory — nothing to
-    // undo there). No-op if nothing's running.
+    // undo there). No-op if nothing's running. Server-only in real
+    // multiplayer play (reached via RequestCancelCraft/CmdCancelCraft above
+    // or Update()'s own tool-break-stops-batch path, which already runs
+    // isServer-guarded) -- kept public since both callers are legitimate.
     public bool CancelCraft()
     {
         if (!IsCrafting) return false;

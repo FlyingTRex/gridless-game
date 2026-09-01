@@ -312,7 +312,7 @@ public class CraftingScreen : MonoBehaviour
 
         GUILayout.Space(6);
         if (GUILayout.Button("Cancel", GUILayout.Width(90)))
-            crafting.CancelCraft();
+            crafting.RequestCancelCraft();
     }
 
     private static Texture2D SolidTexture(Color color)

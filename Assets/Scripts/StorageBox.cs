@@ -23,7 +23,7 @@ using UnityEngine;
 // timer or need a Rigidbody just to physically settle on landing.
 [RequireComponent(typeof(SaveId))]
 [RequireComponent(typeof(Collider))]
-public class StorageBox : NetworkBehaviour, IRenameable, IInteractable, IEquippable
+public class StorageBox : NetworkBehaviour, IRenameable, IInteractable, IEquippable, IInventoryHolder
 {
     // Matches Backpack/other equippables' WornEquipment-layer convention —
     // excluded from the player's own camera while carried so it doesn't
@@ -79,6 +79,26 @@ public class StorageBox : NetworkBehaviour, IRenameable, IInteractable, IEquippa
 
     private Inventory inventory;
 
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): found while
+    // checking whether the just-fixed PlayerInventory/Backpack equipment-
+    // sync gap (Pattern D) also applied here -- it turned out worse.
+    // StorageBox had NO sync mechanism at all for its contents, not just
+    // equipment-backed slots -- a remote client's own local `inventory`
+    // was whatever it started as (empty, from Awake's fresh Inventory()
+    // call) and never once heard from the server's real contents. Same
+    // dual SyncList shape Backpack.cs already established (reusing
+    // PlayerInventory's own struct types) -- gives this box both the
+    // plain-item sync it never had and the equipment-item sync in one
+    // pass, rather than fixing them separately.
+    public readonly SyncList<PlayerInventory.SyncedInventorySlot> syncedSlots =
+        new SyncList<PlayerInventory.SyncedInventorySlot>();
+    public readonly SyncList<PlayerInventory.SyncedEquipmentInventorySlot> syncedEquipmentSlots =
+        new SyncList<PlayerInventory.SyncedEquipmentInventorySlot>();
+
+    private string lastSyncedSignature = string.Empty;
+    private string lastSyncedEquipmentSignature = string.Empty;
+    private readonly Dictionary<string, int> lastSyncedCounts = new Dictionary<string, int>();
+
     public string DisplayName => boxName;
     public Inventory Inventory => inventory;
     public bool IsPlayerOwned => isPlayerOwned;
@@ -115,22 +135,18 @@ public class StorageBox : NetworkBehaviour, IRenameable, IInteractable, IEquippa
     // PlayerLoot's normal equipment-pickup priority (equipped Backpack,
     // then a free hand) first, then fall back to stashing directly into
     // the main inventory as a last resort before giving up.
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): routed
+    // through PlayerInventory.RequestPickUpEquipment (a real Command) --
+    // used to run this whole method (including the isPlayerOwned/empty
+    // guard below) entirely client-side. The guard itself is re-checked
+    // server-side too (PlayerInventory.CmdPickUpEquipment), not just here
+    // — this client-side copy stays only so a genuinely non-pickupable box
+    // doesn't even attempt the round trip.
     public void Complete(GameObject player)
     {
         if (!isPlayerOwned || pickupItem == null || inventory.Slots.Count > 0) return;
 
-        var loot = player.GetComponent<PlayerLoot>();
-        if (loot != null && loot.ReceiveEquipment(pickupItem, this))
-            return;
-
-        var playerInventory = player.GetComponent<PlayerInventory>();
-        if (playerInventory != null && playerInventory.Inventory.AddEquipmentItem(pickupItem, this))
-        {
-            Stash();
-            return;
-        }
-
-        // No room anywhere — stays placed, no-op.
+        player.GetComponent<PlayerInventory>()?.RequestPickUpEquipment(this);
     }
 
     // Fully hides the object while it's stashed in a regular inventory
@@ -179,6 +195,206 @@ public class StorageBox : NetworkBehaviour, IRenameable, IInteractable, IEquippa
     {
         inventory = new Inventory(capacity, restrictToSkillBooks ? ComputeSkillBookItems() : null);
         col = GetComponent<Collider>();
+        syncedSlots.Callback += OnSyncedSlotsChanged;
+        syncedEquipmentSlots.Callback += OnSyncedEquipmentSlotsChanged;
+    }
+
+    private void OnDestroy()
+    {
+        syncedSlots.Callback -= OnSyncedSlotsChanged;
+        syncedEquipmentSlots.Callback -= OnSyncedEquipmentSlotsChanged;
+    }
+
+    private void Update()
+    {
+        if (isServer)
+        {
+            string signature = ComputeSignature();
+            if (signature != lastSyncedSignature)
+            {
+                lastSyncedSignature = signature;
+                RefreshSyncedSlots();
+            }
+
+            string equipmentSignature = ComputeEquipmentSignature();
+            if (equipmentSignature != lastSyncedEquipmentSignature)
+            {
+                lastSyncedEquipmentSignature = equipmentSignature;
+                RefreshSyncedEquipmentSlots();
+            }
+            return;
+        }
+
+        // Client-side retry -- same reasoning as PlayerEquipment/
+        // PlayerInventory/Backpack's own equipment-sync retry: the
+        // equipped object's spawn message can arrive after this SyncList
+        // update.
+        ApplySyncedEquipmentSlotsToLocalInventory();
+    }
+
+    private void OnSyncedSlotsChanged(SyncList<PlayerInventory.SyncedInventorySlot>.Operation op, int index,
+        PlayerInventory.SyncedInventorySlot oldItem, PlayerInventory.SyncedInventorySlot newItem)
+    {
+        if (isServer) return;
+        ApplySyncedSlotsToLocalInventory();
+    }
+
+    private void OnSyncedEquipmentSlotsChanged(SyncList<PlayerInventory.SyncedEquipmentInventorySlot>.Operation op, int index,
+        PlayerInventory.SyncedEquipmentInventorySlot oldItem, PlayerInventory.SyncedEquipmentInventorySlot newItem)
+    {
+        if (isServer) return;
+        ApplySyncedEquipmentSlotsToLocalInventory();
+    }
+
+    // Additive-delta reconciliation, same shape/reasoning as
+    // PlayerInventory.ApplySyncedSlotsToLocalInventory -- an item added to
+    // this box via a path that isn't yet Command-routed (deposits still
+    // aren't, see MULTIPLAYER_INTERACTION_AUDIT.md's open items) stays
+    // untouched rather than being silently wiped by a destructive rebuild.
+    private void ApplySyncedSlotsToLocalInventory()
+    {
+        var newCounts = new Dictionary<string, int>();
+        foreach (var slot in syncedSlots)
+        {
+            if (string.IsNullOrEmpty(slot.itemId)) continue;
+            newCounts[slot.itemId] = newCounts.TryGetValue(slot.itemId, out var c) ? c + slot.count : slot.count;
+        }
+
+        var allItemIds = new HashSet<string>(lastSyncedCounts.Keys);
+        allItemIds.UnionWith(newCounts.Keys);
+
+        foreach (var itemId in allItemIds)
+        {
+            int oldCount = lastSyncedCounts.TryGetValue(itemId, out var oc) ? oc : 0;
+            int newCount = newCounts.TryGetValue(itemId, out var nc) ? nc : 0;
+            int delta = newCount - oldCount;
+            if (delta == 0) continue;
+
+            var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
+            if (item == null) continue;
+
+            inventory.ApplyStackableDelta(item, delta);
+        }
+
+        lastSyncedCounts.Clear();
+        foreach (var kvp in newCounts) lastSyncedCounts[kvp.Key] = kvp.Value;
+    }
+
+    private string ComputeSignature()
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment != null) continue;
+            sb.Append(slot.item != null ? slot.item.name : "null").Append(':').Append(slot.count).Append('|');
+        }
+        return sb.ToString();
+    }
+
+    private void RefreshSyncedSlots()
+    {
+        syncedSlots.Clear();
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment != null) continue;
+            string id = ItemDatabase.Instance.IdFor(slot.item);
+            if (id == null) continue;
+            syncedSlots.Add(new PlayerInventory.SyncedInventorySlot { itemId = id, count = slot.count });
+        }
+    }
+
+    private static uint NetIdFor(IEquippable equipment)
+    {
+        if (equipment is Component component && component != null && component.TryGetComponent(out NetworkIdentity identity))
+            return identity.netId;
+        return 0;
+    }
+
+    private string ComputeEquipmentSignature()
+    {
+        var sb = new System.Text.StringBuilder();
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment == null) continue;
+            sb.Append(NetIdFor(slot.equipment)).Append('|');
+        }
+        return sb.ToString();
+    }
+
+    private void RefreshSyncedEquipmentSlots()
+    {
+        syncedEquipmentSlots.Clear();
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment == null) continue;
+            uint netId = NetIdFor(slot.equipment);
+            if (netId == 0) continue;
+            string id = ItemDatabase.Instance.IdFor(slot.item);
+            if (id == null) continue;
+            syncedEquipmentSlots.Add(new PlayerInventory.SyncedEquipmentInventorySlot { itemId = id, netId = netId });
+        }
+    }
+
+    // FIXED (2026-08-31, found live: dragging a Stone Knife into a box
+    // snapped it back into the player's own main inventory) -- same
+    // delta-based rewrite as PlayerInventory's own equipment
+    // reconciliation (see that class's own comment for full reasoning):
+    // full-enforcement fought a local-only move into this box, since
+    // depositing isn't Command-routed yet. Now only acts on the CHANGE
+    // between successive broadcasts.
+    private readonly HashSet<uint> lastSyncedEquipmentNetIds = new HashSet<uint>();
+
+    private void ApplySyncedEquipmentSlotsToLocalInventory()
+    {
+        var newNetIds = new HashSet<uint>();
+        var itemIdByNetId = new Dictionary<uint, string>();
+        foreach (var entry in syncedEquipmentSlots)
+        {
+            if (entry.netId == 0) continue;
+            newNetIds.Add(entry.netId);
+            itemIdByNetId[entry.netId] = entry.itemId;
+        }
+
+        foreach (var netId in lastSyncedEquipmentNetIds)
+        {
+            if (newNetIds.Contains(netId)) continue;
+            RemoveLocalEquipmentByNetId(netId);
+        }
+
+        foreach (var netId in newNetIds)
+        {
+            if (lastSyncedEquipmentNetIds.Contains(netId)) continue;
+            if (LocalHasEquipmentNetId(netId)) continue;
+            if (!NetworkClient.spawned.TryGetValue(netId, out var identity)) continue;
+
+            var equipment = identity.GetComponent(typeof(IEquippable)) as IEquippable;
+            var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemIdByNetId[netId]) : null;
+            if (equipment == null || item == null) continue;
+
+            inventory.AddEquipmentItem(item, equipment);
+        }
+
+        lastSyncedEquipmentNetIds.Clear();
+        foreach (var id in newNetIds) lastSyncedEquipmentNetIds.Add(id);
+    }
+
+    private bool LocalHasEquipmentNetId(uint netId)
+    {
+        foreach (var slot in inventory.Slots)
+            if (slot.equipment != null && NetIdFor(slot.equipment) == netId) return true;
+        return false;
+    }
+
+    private void RemoveLocalEquipmentByNetId(uint netId)
+    {
+        foreach (var slot in inventory.Slots)
+        {
+            if (slot.equipment != null && NetIdFor(slot.equipment) == netId)
+            {
+                inventory.RemoveEquipmentItem(slot.item);
+                return;
+            }
+        }
     }
 
     // Every ItemDefinition whose worldPickupPrefab carries a SkillBook

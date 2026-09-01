@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Mirror;
 using UnityEngine;
 
 // The lowest-risk VendorStall driver (COMMERCE_PLANNING.md section 5,
@@ -6,8 +7,17 @@ using UnityEngine;
 // mechanic in single-player with the fewest moving parts. Pricing is
 // entirely ItemValueCalculator-driven, not hand-authored, converging onto
 // the same mechanism the Traveling Trader will need later.
+//
+// MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): converted from
+// MonoBehaviour to NetworkBehaviour and Update() gained an isServer guard
+// -- previously every connected client independently ticked its own local
+// restock/till-regen timers and mutated the (already-networked) stock
+// StorageBox/till Lockbox directly, an uncoordinated per-machine
+// simulation, the exact same Class A shape already fixed on Furnace/
+// Campfire's own Update() loops. The stall's own prefab already carries a
+// NetworkIdentity (VendorStallPiece.prefab), so this is a safe conversion.
 [RequireComponent(typeof(VendorStall))]
-public class VillageVendor : MonoBehaviour
+public class VillageVendor : NetworkBehaviour
 {
     private const float FullRefreshIntervalSeconds = 30f * 60f; // 30 real minutes
     private const float TillRegenIntervalSeconds = 30f;
@@ -86,6 +96,8 @@ public class VillageVendor : MonoBehaviour
 
     private void Update()
     {
+        if (!isServer) return;
+
         if (!initialized)
         {
             // A ghost preview (PlayerBuilding.ShowGhost) fully Instantiates

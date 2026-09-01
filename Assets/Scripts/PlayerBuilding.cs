@@ -277,9 +277,24 @@ public class PlayerBuilding : NetworkBehaviour
         phase = Phase.Following;
     }
 
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): this used to
+    // call AddEquipmentItem directly on the client's own local Inventory
+    // (a purely client-side mutation, no Command) -- restoring on a genuine
+    // remote client would never tell the server the box came back. Routed
+    // through the same Request/Cmd pair RequestArmExistingPiece uses below,
+    // so cancelling a re-placement is server-authoritative too.
     private void RestoreExistingInstanceToInventory()
     {
         var box = existingInstanceToPlace.GetComponent<StorageBox>();
+        if (box != null && box.TryGetComponent(out NetworkIdentity boxIdentity))
+            CmdRestoreExistingPiece(boxIdentity.netId);
+    }
+
+    [Command]
+    private void CmdRestoreExistingPiece(uint boxNetId)
+    {
+        if (!NetworkServer.spawned.TryGetValue(boxNetId, out var boxIdentity)) return;
+        var box = boxIdentity.GetComponent<StorageBox>();
         if (box == null || inventory == null) return;
 
         if (inventory.Inventory.AddEquipmentItem(box.PickupItem, box))
@@ -296,11 +311,11 @@ public class PlayerBuilding : NetworkBehaviour
     // than a physical "drop"). piece supplies the ghost sizing/groundOffset/
     // socket-type data (the same BuildPiece the instance was originally
     // built from); existingInstance is the real GameObject Confirm will
-    // reactivate and reposition instead of instantiating a new one. The
-    // caller (InventoryScreen's "Place" action) is responsible for having
-    // already removed the item from wherever it was carried/stashed —
-    // this method only arms the placement UI.
-    public void ArmExistingPiece(BuildPiece piece, GameObject existingInstance)
+    // reactivate and reposition instead of instantiating a new one. Purely
+    // local ghost-preview/UI-state arming, deliberately kept private now —
+    // see RequestArmExistingPiece below for the real (server-authoritative)
+    // entry point every caller should use instead.
+    private void ArmExistingPiece(BuildPiece piece, GameObject existingInstance)
     {
         if (piece == null || existingInstance == null) return;
 
@@ -311,6 +326,78 @@ public class PlayerBuilding : NetworkBehaviour
             ? System.Array.ConvertAll(piece.prefab.GetComponentsInChildren<BuildSocket>(), s => s.SocketType)
             : System.Array.Empty<SocketType>();
         phase = Phase.Following;
+    }
+
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): the real
+    // entry point for InventoryScreen's "Place" action. Previously
+    // InventoryScreen called RemoveEquipmentItem directly on the client's
+    // own local Inventory, then ArmExistingPiece — both purely client-side,
+    // no Command, so a genuine remote client's server never found out the
+    // box left inventory. Also fixes the deeper gap RequestConfirmPlacement
+    // already flagged ("armedPiece/existingInstanceToPlace NOT yet synced
+    // from client to server"), at least for this re-placement path: the
+    // Command below sets the SERVER's own copy of those fields directly
+    // (this executes ON the server, using this player's own NetworkBehaviour
+    // instance), so a later CmdConfirmPlacement finds the real instance
+    // instead of hitting a null armedPiece. Local arming still happens too
+    // (below), purely for the ghost-preview loop, which is isLocalPlayer-
+    // gated and needs to react immediately without waiting on a round trip.
+    public void RequestArmExistingPiece(BuildPiece piece, Inventory source, StorageBox box)
+    {
+        if (piece == null || source == null || box == null) return;
+        if (!box.TryGetComponent(out NetworkIdentity boxIdentity)) return;
+
+        ArmExistingPiece(piece, box.gameObject);
+
+        var equippedBackpack = GetComponent<PlayerBackpack>()?.Equipped;
+        uint containerNetId = 0;
+        if (equippedBackpack != null && ReferenceEquals(equippedBackpack.Inventory, source)
+            && equippedBackpack.TryGetComponent(out NetworkIdentity backpackIdentity))
+        {
+            containerNetId = backpackIdentity.netId;
+        }
+        string slotName = containerNetId == 0 ? GetComponent<PlayerEquipment>()?.SlotNameFor(source) : null;
+
+        CmdArmExistingPiece(piece.name, slotName ?? "", containerNetId, boxIdentity.netId);
+    }
+
+    [Command]
+    private void CmdArmExistingPiece(string pieceName, string slotName, uint containerNetId, uint boxNetId)
+    {
+        BuildPiece piece = null;
+        foreach (var candidate in allPieces)
+        {
+            if (candidate != null && candidate.name == pieceName) { piece = candidate; break; }
+        }
+        if (piece == null) return;
+
+        if (!NetworkServer.spawned.TryGetValue(boxNetId, out var boxIdentity)) return;
+        var box = boxIdentity.GetComponent<StorageBox>();
+        if (box == null) return;
+
+        Inventory source;
+        if (containerNetId != 0)
+        {
+            source = NetworkServer.spawned.TryGetValue(containerNetId, out var containerIdentity)
+                ? (containerIdentity.GetComponent(typeof(IInventoryHolder)) as IInventoryHolder)?.Inventory
+                : null;
+        }
+        else
+        {
+            source = string.IsNullOrEmpty(slotName)
+                ? inventory.Inventory
+                : GetComponent<PlayerEquipment>()?.GetSlot(slotName);
+        }
+        if (source == null) return;
+
+        source.RemoveEquipmentItem(box.PickupItem);
+        box.Stash();
+
+        armedPiece = piece;
+        existingInstanceToPlace = box.gameObject;
+        armedSocketTypes = piece.prefab != null
+            ? System.Array.ConvertAll(piece.prefab.GetComponentsInChildren<BuildSocket>(), s => s.SocketType)
+            : System.Array.Empty<SocketType>();
     }
 
     private void Update()

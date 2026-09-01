@@ -43,41 +43,24 @@ public class PlayerDropping : NetworkBehaviour
         // RemoveItem+spawn-a-Pickup path below, which would strip the
         // equipment reference and orphan the physical object (the gotcha
         // documented in CLAUDE.md).
-        IEquippable equipment = null;
+        //
+        // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): this
+        // whole branch used to mutate source directly, entirely
+        // client-side (real currency-adjacent bug class: a genuine remote
+        // client dropping a worn Canteen/Backpack would leave the server's
+        // own copy still equipped). Routed through the same slot/container
+        // descriptor resolution the plain-item branch below already
+        // established, into a new CmdDropEquipment Command.
+        bool hasEquipment = false;
         foreach (var slot in source.Slots)
         {
-            if (slot.item == item && slot.equipment != null)
-            {
-                equipment = slot.equipment;
-                break;
-            }
+            if (slot.item == item && slot.equipment != null) { hasEquipment = true; break; }
         }
 
-        if (equipment != null)
+        if (hasEquipment)
         {
-            source.RemoveEquipmentItem(item);
-            equipment.SetCarried(false, null);
-            var equipmentTransform = (equipment as Component)?.transform;
-            if (equipmentTransform != null)
-            {
-                equipmentTransform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
-                var despawn = equipmentTransform.gameObject.AddComponent<Despawn>();
-                despawn.delay = equipmentDespawnDelay;
-            }
-
-            // Real bug found live (2026-08-13): this is the actual path
-            // the Inventory screen's Drop button uses (DrawItemDropPopup),
-            // which PlayerBelt.Drop's own equivalent fix never covers —
-            // a Canteen clipped to a worn Belt is a pure data relationship
-            // (registered in belt.Inventory), not a Transform-hierarchy
-            // one, so it doesn't automatically follow the Belt into the
-            // world when only the Belt's own SetCarried(false, ...) runs
-            // above. Generalized beyond Belt/Canteen: any IInventoryHolder
-            // equippable (a worn Backpack holding another equipped item,
-            // etc.) gets the same cascade.
-            if (equipment is IInventoryHolder holder && holder.Inventory != null)
-                DropNestedEquipment(holder.Inventory);
-
+            DescribeSource(source, out string eqSlotName, out uint eqContainerNetId);
+            CmdDropEquipment(eqSlotName ?? "", eqContainerNetId, item.name);
             return;
         }
 
@@ -94,24 +77,49 @@ public class PlayerDropping : NetworkBehaviour
         int amount = Mathf.Min(quantity, source.GetCount(item));
         if (amount <= 0) return;
 
-        // Three possible sources, resolved locally (a Command can't
-        // serialize an arbitrary Inventory reference): the main
-        // PlayerInventory (slotName/containerNetId both empty/0), one of
-        // PlayerEquipment's own named slots (a hand, mainly), or a worn
-        // Backpack's own nested Inventory -- identified by its
-        // NetworkIdentity, same as every other live-object reference this
-        // project's Commands already resolve things by (Pickup, tree, ...).
+        DescribeSource(source, out string slotName, out uint containerNetId);
+        DebugLog.Write("PlayerDropping", $"  -> resolved slotName=\"{slotName}\" containerNetId={containerNetId}, calling CmdDropItem");
+        CmdDropItem(slotName ?? "", containerNetId, item.name, amount);
+    }
+
+    // Three possible sources, resolved locally (a Command can't serialize
+    // an arbitrary Inventory reference): the main PlayerInventory
+    // (slotName/containerNetId both empty/0), one of PlayerEquipment's own
+    // named slots (a hand, mainly), or a worn Backpack's own nested
+    // Inventory -- identified by its NetworkIdentity, same as every other
+    // live-object reference this project's Commands already resolve
+    // things by (Pickup, tree, ...). Shared by both DropFrom branches
+    // (plain-item and equipment) so they resolve identically.
+    private void DescribeSource(Inventory source, out string slotName, out uint containerNetId)
+    {
         var equippedBackpack = GetComponent<PlayerBackpack>()?.Equipped;
-        uint containerNetId = 0;
+        containerNetId = 0;
         if (equippedBackpack != null && ReferenceEquals(equippedBackpack.Inventory, source)
             && equippedBackpack.TryGetComponent(out NetworkIdentity backpackIdentity))
         {
             containerNetId = backpackIdentity.netId;
         }
 
-        string slotName = containerNetId == 0 ? GetComponent<PlayerEquipment>()?.SlotNameFor(source) : null;
-        DebugLog.Write("PlayerDropping", $"  -> resolved slotName=\"{slotName}\" containerNetId={containerNetId}, calling CmdDropItem");
-        CmdDropItem(slotName ?? "", containerNetId, item.name, amount);
+        slotName = containerNetId == 0 ? GetComponent<PlayerEquipment>()?.SlotNameFor(source) : null;
+    }
+
+    // Server-side mirror of DescribeSource -- resolves a slotName/
+    // containerNetId descriptor back to the real Inventory. Shared by
+    // CmdDropItem and CmdDropEquipment below.
+    private Inventory ResolveSource(string slotName, uint containerNetId)
+    {
+        if (containerNetId != 0)
+        {
+            bool found = NetworkServer.spawned.TryGetValue(containerNetId, out var identity);
+            DebugLog.Write("PlayerDropping", $"  -> resolving via containerNetId: found={found}");
+            return found ? (identity.GetComponent(typeof(IInventoryHolder)) as IInventoryHolder)?.Inventory : null;
+        }
+
+        var source = string.IsNullOrEmpty(slotName)
+            ? playerInventory.Inventory
+            : GetComponent<PlayerEquipment>()?.GetSlot(slotName);
+        DebugLog.Write("PlayerDropping", $"  -> resolving via slotName=\"{slotName}\" (empty=main inventory): source-resolved={source != null}");
+        return source;
     }
 
     [Command]
@@ -125,20 +133,7 @@ public class PlayerDropping : NetworkBehaviour
             return;
         }
 
-        Inventory source;
-        if (containerNetId != 0)
-        {
-            bool found = NetworkServer.spawned.TryGetValue(containerNetId, out var identity);
-            source = found ? (identity.GetComponent(typeof(IInventoryHolder)) as IInventoryHolder)?.Inventory : null;
-            DebugLog.Write("PlayerDropping", $"  -> resolving via containerNetId: found={found} source-resolved={source != null}");
-        }
-        else
-        {
-            source = string.IsNullOrEmpty(slotName)
-                ? playerInventory.Inventory
-                : GetComponent<PlayerEquipment>()?.GetSlot(slotName);
-            DebugLog.Write("PlayerDropping", $"  -> resolving via slotName=\"{slotName}\" (empty=main inventory): source-resolved={source != null}");
-        }
+        var source = ResolveSource(slotName, containerNetId);
         if (source == null)
         {
             DebugLog.Write("PlayerDropping", "  -> source resolution FAILED, aborting");
@@ -146,6 +141,60 @@ public class PlayerDropping : NetworkBehaviour
         }
 
         ServerDropFrom(source, item, quantity);
+    }
+
+    // MULTIPLAYER_INTERACTION_AUDIT.md follow-up (2026-08-31): the
+    // equipment-backed counterpart to CmdDropItem above -- DropFrom's
+    // equipment branch used to run this whole thing directly, client-side.
+    [Command]
+    private void CmdDropEquipment(string slotName, uint containerNetId, string itemId)
+    {
+        var item = ItemDatabase.Instance != null ? ItemDatabase.Instance.Find(itemId) : null;
+        if (item == null) return;
+
+        var source = ResolveSource(slotName, containerNetId);
+        if (source == null) return;
+
+        ServerDropEquipmentFrom(source, item);
+    }
+
+    // Server-side entry point, same shape as ServerDropFrom above --
+    // releases the real IEquippable object via its own carried state
+    // instead of the generic RemoveItem+spawn-a-Pickup path, which would
+    // strip the equipment reference and orphan the physical object (the
+    // gotcha documented in CLAUDE.md).
+    public void ServerDropEquipmentFrom(Inventory source, ItemDefinition item)
+    {
+        if (source == null || item == null) return;
+
+        IEquippable equipment = null;
+        foreach (var slot in source.Slots)
+        {
+            if (slot.item == item && slot.equipment != null) { equipment = slot.equipment; break; }
+        }
+        if (equipment == null) return;
+
+        source.RemoveEquipmentItem(item);
+        equipment.SetCarried(false, null);
+        var equipmentTransform = (equipment as Component)?.transform;
+        if (equipmentTransform != null)
+        {
+            equipmentTransform.position = transform.position + transform.forward * dropDistance + Vector3.up * dropHeight;
+            var despawn = equipmentTransform.gameObject.AddComponent<Despawn>();
+            despawn.delay = equipmentDespawnDelay;
+        }
+
+        // Real bug found live (2026-08-13): this is the actual path the
+        // Inventory screen's Drop button uses (DrawItemDropPopup), which
+        // PlayerBelt.Drop's own equivalent fix never covers -- a Canteen
+        // clipped to a worn Belt is a pure data relationship (registered
+        // in belt.Inventory), not a Transform-hierarchy one, so it doesn't
+        // automatically follow the Belt into the world when only the
+        // Belt's own SetCarried(false, ...) runs above. Generalized beyond
+        // Belt/Canteen: any IInventoryHolder equippable (a worn Backpack
+        // holding another equipped item, etc.) gets the same cascade.
+        if (equipment is IInventoryHolder holder && holder.Inventory != null)
+            DropNestedEquipment(holder.Inventory);
     }
 
     // Server-side entry point (2026-08-30, found live: the SAME
